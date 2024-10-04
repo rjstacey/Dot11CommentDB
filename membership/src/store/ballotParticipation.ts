@@ -19,7 +19,12 @@ import {
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
-import { selectMemberEntities, Member } from "./members";
+import {
+	selectMemberEntities,
+	Member,
+	ExpectedStatusType,
+	StatusType,
+} from "./members";
 
 export const fields = {
 	id: { label: "id", type: FieldType.NUMERIC },
@@ -60,7 +65,7 @@ export const BallotTypeLabels = {
 };
 
 export function getBallotId(ballot: Ballot) {
-	return BallotTypeLabels[ballot.Type] + (ballot.number || "(Blank)")
+	return BallotTypeLabels[ballot.Type] + (ballot.number || "(Blank)");
 }
 
 export type BallotSeries = {
@@ -74,19 +79,19 @@ export type BallotSeries = {
 type SyncedBallotSeries = BallotSeries & {
 	ballotNames: string[];
 	project: string;
-}
+};
 
 export type BallotSeriesParticipationSummary = {
-	SAPIN: number;				// Current SAPIN
-	series_id: number;			// Ballot series identifier
-	voterSAPIN: number;			// SAPIN in voting pool
-	voter_id: string;			// Voter identifier in voting pool
-	excused: boolean;			// Excused from participation (recorded in voting pool)
-	vote: string | null;			// Last vote
-	lastSAPIN: number | null;		// SAPIN used for last vote
-	lastBallotId: number | null;	// Ballot for last vote
-	commentCount: number | null;	// Number of comments submitted with last vote
-	totalCommentCount: number | null;	// Total comments over ballot series
+	SAPIN: number; // Current SAPIN
+	series_id: number; // Ballot series identifier
+	voterSAPIN: number; // SAPIN in voting pool
+	voter_id: string; // Voter identifier in voting pool
+	excused: boolean; // Excused from participation (recorded in voting pool)
+	vote: string | null; // Last vote
+	lastSAPIN: number | null; // SAPIN used for last vote
+	lastBallotId: number | null; // Ballot for last vote
+	commentCount: number | null; // Number of comments submitted with last vote
+	totalCommentCount: number | null; // Total comments over ballot series
 };
 
 export type RecentBallotSeriesParticipation = {
@@ -99,8 +104,8 @@ export type MemberParticipation = RecentBallotSeriesParticipation & {
 	Email: string;
 	Employer: string;
 	Affiliation: string;
-	Status: string;
-	ExpectedStatus: string;
+	Status: StatusType | "New";
+	ExpectedStatus: ExpectedStatusType;
 	Summary: string;
 };
 
@@ -154,8 +159,14 @@ const slice = createAppTableDataSlice({
 export default slice;
 
 /* Slice actions */
-const { getSuccess, getFailure, setBallotSeries, setBallots, setOne, setSelected } =
-	slice.actions;
+const {
+	getSuccess,
+	getFailure,
+	setBallotSeries,
+	setBallots,
+	setOne,
+	setSelected,
+} = slice.actions;
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
@@ -163,7 +174,6 @@ export const clearBallotParticipation = createAction(dataSet + "/clear");
 
 export const ballotParticipationActions = slice.actions;
 export { setSelected };
-
 
 /*
  * Selectors
@@ -197,23 +207,24 @@ export const selectSyncedBallotSeriesEntities = createSelector(
 	selectBallotEntities,
 	selectBallotSeriesEntities,
 	(ballotEntities, ballotSeriesEntities) => {
-		const syncedBallotSeriesEntities: Record<EntityId, SyncedBallotSeries> = {};
-		Object.values(ballotSeriesEntities).forEach(entity => {
-			const ballotNames = entity!.ballotIds.map(id => {
+		const syncedBallotSeriesEntities: Record<EntityId, SyncedBallotSeries> =
+			{};
+		Object.values(ballotSeriesEntities).forEach((entity) => {
+			const ballotNames = entity!.ballotIds.map((id) => {
 				const ballot = ballotEntities[id];
-				return ballot? getBallotId(ballot): "Unknown";
+				return ballot ? getBallotId(ballot) : "Unknown";
 			});
 			const project = ballotEntities[entity!.id]?.Project || "Unknown";
 			const newEntity: SyncedBallotSeries = {
 				...entity!,
 				project,
-				ballotNames
+				ballotNames,
 			};
 			syncedBallotSeriesEntities[entity!.id] = newEntity;
 		});
-		return syncedBallotSeriesEntities
+		return syncedBallotSeriesEntities;
 	}
-)
+);
 
 export const selectRecentBallotSeries = createSelector(
 	selectBallotSeriesIds,
@@ -228,7 +239,9 @@ export function memberBallotParticipationCount(
 ) {
 	// Only care about ballots since becoming a Voter
 	// (a member may have lost voting status and we don't want participation from that time affecting the result)
-	const h = member.StatusChangeHistory.find((h) => h.NewStatus === "Voter" && h.OldStatus !== "Voter");
+	const h = member.StatusChangeHistory.find(
+		(h) => h.NewStatus === "Voter" && h.OldStatus !== "Voter"
+	);
 	if (h && h.Date)
 		ballotSeriesParticipationSummaries =
 			ballotSeriesParticipationSummaries.filter(
@@ -239,7 +252,7 @@ export function memberBallotParticipationCount(
 
 	const count = ballotSeriesParticipationSummaries.reduce(
 		(count, participation) =>
-			(participation.vote || participation.excused) ? count + 1 : count,
+			participation.vote || participation.excused ? count + 1 : count,
 		0
 	);
 	return {
@@ -271,7 +284,7 @@ export const selectBallotParticipationWithMembershipAndSummary = createSelector(
 		ids.forEach((id) => {
 			let entity = entities[id]!;
 			let member = memberEntities[entity.SAPIN];
-			let expectedStatus = "";
+			let expectedStatus: ExpectedStatusType = "";
 			let summary = "";
 			if (member) {
 				const { count, total } = memberBallotParticipationCount(
@@ -306,8 +319,15 @@ export const selectMemberBallotParticipationCount = createSelector(
 	selectBallotSeriesEntities,
 	selectMemberEntities,
 	(state: RootState, SAPIN: number) => SAPIN,
-	(ballotParticipationEntities, ballotSeriesEntities, memberEntities, SAPIN) => {
-		const summaries = ballotParticipationEntities[SAPIN]?.ballotSeriesParticipationSummaries || [];
+	(
+		ballotParticipationEntities,
+		ballotSeriesEntities,
+		memberEntities,
+		SAPIN
+	) => {
+		const summaries =
+			ballotParticipationEntities[SAPIN]
+				?.ballotSeriesParticipationSummaries || [];
 		const member = memberEntities[SAPIN];
 		if (member)
 			return memberBallotParticipationCount(
@@ -406,7 +426,6 @@ export const updateBallotParticipation =
 		> = {};
 		let updatedSummaries = entity.ballotSeriesParticipationSummaries.map(
 			(summary) => {
-
 				const update = updates.find((u) => u.id === summary.series_id);
 				if (!update) return summary;
 				const { changes } = update;

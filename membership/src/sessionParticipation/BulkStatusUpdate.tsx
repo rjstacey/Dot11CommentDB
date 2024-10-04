@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import type { EntityId, Dictionary } from "@reduxjs/toolkit";
 
 import {
@@ -13,7 +13,12 @@ import {
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { updateMembers, type MemberUpdate } from "../store/members";
+import {
+	updateMembers,
+	MemberUpdate,
+	StatusType,
+	ExpectedStatusType,
+} from "../store/members";
 import {
 	selectMostRecentAttendedSession,
 	selectAttendancesState,
@@ -27,6 +32,11 @@ import {
 	selectBallotEntities,
 } from "../store/ballotParticipation";
 
+type StatusFromParticipationType = {
+	SAPIN: number;
+	ExpectedStatus: ExpectedStatusType;
+};
+
 function BulkStatusUpdateForm({
 	methods,
 	defaultReason,
@@ -39,7 +49,7 @@ function BulkStatusUpdateForm({
 	defaultDate: string;
 	ids: EntityId[];
 	selected: EntityId[];
-	entities: Dictionary<{ SAPIN: number; ExpectedStatus: string }>;
+	entities: Dictionary<StatusFromParticipationType>;
 }) {
 	const dispatch = useAppDispatch();
 	const [selectedOnly, setSelectedOnly] = React.useState(false);
@@ -55,7 +65,7 @@ function BulkStatusUpdateForm({
 			return {
 				id: SAPIN,
 				changes: {
-					Status: ExpectedStatus,
+					Status: ExpectedStatus as StatusType,
 					StatusChangeReason: reason,
 					StatusChangeDate: date,
 				},
@@ -115,7 +125,7 @@ function BulkStatusUpdateForm({
 
 function BulkStatusUpdateFormSession(props: DropdownRendererProps) {
 	const recentSession = useAppSelector(selectMostRecentAttendedSession);
-	const defaultReason = `Post session ${
+	const defaultReason = `Session ${
 		recentSession.number || `id=${recentSession.id}`
 	} update`;
 	const defaultDate = recentSession.endDate;
@@ -140,7 +150,9 @@ function BulkStatusUpdateFormBallotSeries(props: DropdownRendererProps) {
 	const ballotId =
 		recentBallotSeries.ballotIds[recentBallotSeries.ballotIds.length - 1];
 	const lastBallot = ballotEntities[ballotId];
-	const defaultReason = `Post ballot ${lastBallot? getBallotId(lastBallot): "Unknown"} update`;
+	const defaultReason = `Post ballot ${
+		lastBallot ? getBallotId(lastBallot) : "Unknown"
+	} update`;
 	const defaultDate = recentBallotSeries.end.slice(0, 10);
 	const { ids, selected } = useAppSelector(selectBallotParticipationState);
 	const entities = useAppSelector(
@@ -171,9 +183,13 @@ function BulkStatusUpdate({
 	isSession,
 	...rest
 }: BulkStatusUpdateProps) {
-	const dropdownRenderer = isSession?
-		(props: DropdownRendererProps) => <BulkStatusUpdateFormSession {...props} />:
-		(props: DropdownRendererProps) => <BulkStatusUpdateFormBallotSeries {...props} />;
+	const dropdownRenderer = isSession
+		? (props: DropdownRendererProps) => (
+				<BulkStatusUpdateFormSession {...props} />
+		  )
+		: (props: DropdownRendererProps) => (
+				<BulkStatusUpdateFormBallotSeries {...props} />
+		  );
 
 	return (
 		<Dropdown

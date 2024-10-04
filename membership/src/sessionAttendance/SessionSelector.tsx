@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { useAppSelector } from "../store/hooks";
 
 import { Select, displayDateRange } from "dot11-components";

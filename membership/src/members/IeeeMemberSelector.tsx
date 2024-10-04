@@ -3,7 +3,19 @@ import React from "react";
 import { Select } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
-import { selectIeeeMembers } from "../store/ieeeMembers";
+import { IeeeMember, selectIeeeMembers } from "../store/ieeeMembers";
+import { selectMemberIds } from "../store/members";
+
+function itemRenderer({ item: member }: { item: IeeeMember }) {
+	let name = `${member.LastName}, ${member.FirstName}`;
+	if (member.MI) name += ` ${member.MI}`;
+	return (
+		<div>
+			<div style={{ width: 30 }}>{member.SAPIN}</div>
+			<div>{name}</div>
+		</div>
+	);
+}
 
 function IeeeMemberSelector({
 	value, // value is SAPIN
@@ -18,7 +30,10 @@ function IeeeMemberSelector({
 	React.ComponentProps<typeof Select>,
 	"values" | "onChange" | "options"
 >) {
-	const options = useAppSelector(selectIeeeMembers);
+	const memberSapins = useAppSelector(selectMemberIds);
+	const options = useAppSelector(selectIeeeMembers).filter(
+		(o) => !memberSapins.includes(o.SAPIN)
+	);
 	const values = options.filter((o) => o.SAPIN === value);
 	const handleChange = (values: typeof options) =>
 		onChange(values.length > 0 ? values[0].SAPIN : 0);
@@ -29,10 +44,11 @@ function IeeeMemberSelector({
 			values={values}
 			onChange={handleChange}
 			options={options}
-			create
 			clearable
 			valueField="SAPIN"
 			labelField="Name"
+			itemRenderer={itemRenderer}
+			selectItemRenderer={itemRenderer}
 			readOnly={readOnly}
 			portal={document.querySelector("#root")}
 			{...otherProps}

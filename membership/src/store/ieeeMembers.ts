@@ -79,7 +79,11 @@ export const selectIeeeMembers = createSelector(
 	(ids, entities) =>
 		ids
 			.map((id) => entities[id]!)
-			.sort((m1, m2) => m1.Name.localeCompare(m2.Name))
+			.sort((m1, m2) => {
+				let n = m1.LastName.localeCompare(m2.LastName);
+				if (n === 0) n = m1.FirstName.localeCompare(m2.FirstName);
+				return n;
+			})
 );
 
 /* Thunk actions */
@@ -91,16 +95,15 @@ function validResponse(members: unknown): members is IeeeMember[] {
 	return Array.isArray(members) && members.every(validIeeeMember);
 }
 
+const url = "/api/root/members";
+
 let loadingPromise: Promise<IeeeMember[]>;
 export const loadIeeeMembers =
 	(): AppThunk<IeeeMember[]> => (dispatch, getState) => {
-		const { loading } = selectIeeeMembersState(getState());
-		if (loading) {
-			return loadingPromise;
-		}
+		if (selectIeeeMembersState(getState()).loading) return loadingPromise;
 		dispatch(getPending());
 		loadingPromise = fetcher
-			.get(`/api/root/members`)
+			.get(url)
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response to GET");

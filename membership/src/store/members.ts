@@ -18,33 +18,35 @@ import { selectBallotParticipationWithMembershipAndSummary } from "./ballotParti
 import { selectTopLevelGroupByName } from "./groups";
 import { AccessLevel } from "./user";
 
-const Status = {
-	"Non-Voter": "Non-Voter",
-	Aspirant: "Aspirant",
-	"Potential Voter": "Potential Voter",
-	Voter: "Voter",
-	ExOfficio: "ExOfficio",
-	Obsolete: "Obsolete",
-};
+const statusTypes = [
+	"Non-Voter",
+	"Aspirant",
+	"Potential Voter",
+	"Voter",
+	"ExOfficio",
+	"Obsolete",
+] as const;
+export type StatusType = (typeof statusTypes)[number];
+export type ExpectedStatusType = StatusType | "";
 
-export const StatusOptions = Object.entries(Status).map(([k, v]) => ({
-	value: k,
+export const statusOptions = statusTypes.map((v) => ({
+	value: v,
 	label: v,
 }));
 
 export type StatusChangeType = {
 	id: number;
 	Date: string;
-	OldStatus: string;
-	NewStatus: string;
+	OldStatus: StatusType | "";
+	NewStatus: StatusType;
 	Reason: string;
 };
 
 export type MemberContactEmail = {
 	id: number;
 	Email: string;
-	Primary: 0 | 1;
-	Broken: 0 | 1;
+	Primary: boolean;
+	Broken: boolean;
 	DateAdded: string;
 };
 
@@ -68,7 +70,7 @@ export type MemberCommon = {
 	Email: string;
 	Employer: string;
 	Affiliation: string;
-	Status: string;
+	Status: StatusType;
 };
 
 export type MemberExtra = {

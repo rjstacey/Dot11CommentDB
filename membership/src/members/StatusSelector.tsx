@@ -1,30 +1,34 @@
-import * as React from "react";
+import React from "react";
 
-import { Select } from "dot11-components";
+import { Select, isMultiple, MULTIPLE } from "dot11-components";
 
-import { StatusOptions } from "../store/members";
+import { statusOptions, StatusType } from "../store/members";
+
+const MULTIPLE_STR = "(Multiple)";
+const BLANK_STR = "(Blank)";
 
 function StatusSelector({
 	value,
 	onChange,
 	...otherProps
 }: {
-	value: string;
-	onChange: (value: string) => void;
+	value: StatusType | "" | typeof MULTIPLE;
+	onChange: (value: StatusType) => void;
 } & Omit<
 	React.ComponentProps<typeof Select>,
 	"values" | "onChange" | "options" | "portal"
 >) {
-	const values = StatusOptions.filter((o) => o.value === value);
-	const handleChange = (values: typeof StatusOptions) =>
-		onChange(values.length === 0 ? "" : values[0].value);
+	const values = statusOptions.filter((o) => o.value === value);
+	const handleChange = (values: typeof statusOptions) =>
+		onChange(values.length === 0 ? "Non-Voter" : values[0].value);
 
 	return (
 		<Select
 			values={values}
 			onChange={handleChange}
-			options={StatusOptions}
+			options={statusOptions}
 			portal={document.querySelector("#root")}
+			placeholder={isMultiple(value) ? MULTIPLE_STR : BLANK_STR}
 			{...otherProps}
 		/>
 	);

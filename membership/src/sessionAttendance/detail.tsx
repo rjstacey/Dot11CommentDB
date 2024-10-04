@@ -18,6 +18,7 @@ import {
 	MemberContactEmail,
 	MemberContactInfo,
 	memberContactInfoEmpty,
+	StatusChangeType,
 } from "../store/members";
 import {
 	setSelected,
@@ -59,15 +60,23 @@ function sessionAttendeeMemberChanges(
 /** Create a new member from attendee */
 function sessionAttendeeToNewMember(attendee: SessionAttendee) {
 	const date = new Date().toISOString();
+	const status = "Non-Voter";
 	const contactEmail: MemberContactEmail = {
 		id: 0,
 		Email: attendee.Email,
-		Primary: 1,
-		Broken: 0,
+		Primary: true,
+		Broken: false,
 		DateAdded: date,
 	};
 	const contactInfo: MemberContactInfo =
 		attendee.ContactInfo || memberContactInfoEmpty;
+	const statusChange: StatusChangeType = {
+		id: 0,
+		OldStatus: status,
+		NewStatus: status,
+		Reason: "New member",
+		Date: date,
+	};
 	const member: MemberAdd = {
 		SAPIN: attendee.SAPIN,
 		Name: attendee.Name,
@@ -79,9 +88,10 @@ function sessionAttendeeToNewMember(attendee: SessionAttendee) {
 		Employer: attendee.Employer || "",
 		ContactInfo: contactInfo,
 		ContactEmails: [contactEmail],
-		Status: "Non-Voter",
+		Status: status,
 		StatusChangeOverride: false,
 		StatusChangeDate: date,
+		StatusChangeHistory: [statusChange],
 		DateAdded: date,
 	};
 
@@ -284,7 +294,7 @@ export function MemberAttendanceDetail() {
 					action={state.action}
 					sapins={state.originals.map((m) => m.SAPIN)}
 					member={state.edited!}
-					saved={state.saved!}
+					saved={state.action !== "add" ? state.saved! : undefined}
 					updateMember={updateMember}
 					add={add}
 					update={update}

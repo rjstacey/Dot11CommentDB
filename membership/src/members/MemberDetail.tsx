@@ -11,6 +11,7 @@ import {
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import {
+	MemberContactInfo,
 	memberContactInfoEmpty,
 	selectMembersState,
 	selectUserMembersAccess,
@@ -28,7 +29,7 @@ import {
 } from "./MemberEdit";
 import ShowAccess from "../components/ShowAccess";
 
-const defaultMember = {
+const defaultMember: MemberAdd & { ContactInfo: MemberContactInfo } = {
 	SAPIN: 0,
 	Name: "",
 	FirstName: "",
@@ -38,7 +39,6 @@ const defaultMember = {
 	Status: "Non-Voter",
 	Affiliation: "",
 	Employer: "",
-	Access: 0,
 	ContactInfo: memberContactInfoEmpty,
 };
 

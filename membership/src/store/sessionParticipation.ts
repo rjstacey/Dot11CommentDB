@@ -18,7 +18,12 @@ import {
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
-import { selectMemberEntities, type Member } from "./members";
+import {
+	selectMemberEntities,
+	StatusType,
+	ExpectedStatusType,
+	Member,
+} from "./members";
 import {
 	selectSessionEntities,
 	upsertSessions,
@@ -99,8 +104,8 @@ export type MemberAttendances = RecentSessionAttendances & {
 	Email: string;
 	Employer: string;
 	Affiliation: string;
-	Status: string;
-	ExpectedStatus: string;
+	Status: StatusType | "New";
+	ExpectedStatus: ExpectedStatusType;
 	Summary: string;
 	LastSessionId: number;
 	NonVoterDate: string | undefined;
@@ -310,7 +315,7 @@ function memberExpectedStatusFromAttendanceStats(
 	count: number,
 	lastPpartial: boolean,
 	lastPfull: boolean
-) {
+): ExpectedStatusType {
 	const status = member.Status;
 
 	if (
@@ -362,7 +367,7 @@ export const selectAttendancesWithMembershipAndSummary = createSelector(
 		ids.forEach((id) => {
 			let entity = entities[id]!;
 			let member = memberEntities[entity.SAPIN];
-			let expectedStatus = "";
+			let expectedStatus: ExpectedStatusType = "";
 			let summary = "";
 			let lastSessionId = 0;
 			let nonVoterDate: string | undefined;

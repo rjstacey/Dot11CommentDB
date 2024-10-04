@@ -1,21 +1,24 @@
-import * as React from "react";
+import React from "react";
 import { DateTime } from "luxon";
 
 import {
 	Row,
 	Field,
 	Input,
+	Checkbox,
 	ActionIcon,
-	Dropdown
+	Dropdown,
+	isMultiple,
 } from "dot11-components";
 
-import type { Member, StatusChangeType } from "../store/members";
+import type { Member, StatusChangeType, StatusType } from "../store/members";
 
 import { EditTable as Table } from "../components/Table";
 
 import StatusSelector from "./StatusSelector";
 import { hasChangesStyle, MultipleMember } from "./MemberEdit";
 
+const MULTIPLE_STR = "(Multiple)";
 const BLANK_STR = "(Blank)";
 
 const displayDate = (isoDateTime: string) =>
@@ -143,45 +146,43 @@ function MemberStatusChangeHistory({
 	readOnly?: boolean;
 }) {
 	const statusChangeHistory = member.StatusChangeHistory;
+	let statusChangeDate = "";
+	if (!isMultiple(member.StatusChangeDate) && member.StatusChangeDate)
+		statusChangeDate =
+			DateTime.fromISO(member.StatusChangeDate).toISODate() || "";
 
 	const columns = React.useMemo(() => {
-		function update(
-			id: number,
-			changes: Partial<StatusChangeType>
-		) {
-			const StatusChangeHistory = statusChangeHistory
-				.map((h) => h.id === id ? { ...h, ...changes } : h);
+		function update(id: number, changes: Partial<StatusChangeType>) {
+			const StatusChangeHistory = statusChangeHistory.map((h) =>
+				h.id === id ? { ...h, ...changes } : h
+			);
 			updateMember({ StatusChangeHistory });
 		}
 
 		function addClick() {
 			let id = 0;
-			for (const h of statusChangeHistory)
-				if (h.id > id) id = h.id + 1;
+			for (const h of statusChangeHistory) if (h.id > id) id = h.id + 1;
 			const entry: StatusChangeType = {
 				id,
 				Date: new Date().toISOString(),
-				NewStatus: member.Status,
-				OldStatus: member.Status,
-				Reason: ""
-			}
+				NewStatus: member.Status as StatusType,
+				OldStatus: member.Status as StatusType,
+				Reason: "New member",
+			};
 			const StatusChangeHistory = [entry].concat(...statusChangeHistory);
 			updateMember({ StatusChangeHistory });
 		}
 
 		function remove(id: number) {
-			const StatusChangeHistory = statusChangeHistory
-				.filter((h) => h.id !== id);
+			const StatusChangeHistory = statusChangeHistory.filter(
+				(h) => h.id !== id
+			);
 			updateMember({ StatusChangeHistory });
 		}
 
 		const columns = statusChangeHistoryColumns.map((col) => {
 			if (col.key === "actions") {
-				const label =
-					<ActionIcon
-						type="add"
-						onClick={addClick}
-					/>
+				const label = <ActionIcon type="add" onClick={addClick} />;
 				const renderCell = (entry: StatusChangeType) => (
 					<>
 						<MemberStatusChangeDropdown
@@ -207,11 +208,82 @@ function MemberStatusChangeHistory({
 	}, [member, statusChangeHistory, readOnly, updateMember]);
 
 	return (
-		<Table
-			style={hasChangesStyle(member, saved, "StatusChangeHistory")}
-			columns={columns}
-			values={statusChangeHistory}
-		/>
+		<div>
+			<Row>
+				<Field label="Status:">
+					<StatusSelector
+						style={{
+							flexBasis: 200,
+							...hasChangesStyle(member, saved, "Status"),
+						}}
+						value={member.Status}
+						onChange={(value) => updateMember({ Status: value })}
+						readOnly={readOnly}
+					/>
+					<div
+						style={{
+							display: "flex",
+							flexDirection: "column",
+							alignItems: "center",
+						}}
+					>
+						<label>Override</label>
+						<Checkbox
+							style={hasChangesStyle(
+								member,
+								saved,
+								"StatusChangeOverride"
+							)}
+							checked={Boolean(member.StatusChangeOverride)}
+							indeterminate={isMultiple(
+								member.StatusChangeOverride
+							)}
+							onChange={(
+								e: React.ChangeEvent<HTMLInputElement>
+							) =>
+								updateMember({
+									StatusChangeOverride: e.target.checked,
+								})
+							}
+							disabled={readOnly}
+						/>
+					</div>
+					<div
+						style={{
+							display: "flex",
+							flexDirection: "column",
+							alignItems: "center",
+						}}
+					>
+						<label>Last change</label>
+						<Input
+							type="date"
+							style={hasChangesStyle(
+								member,
+								saved,
+								"StatusChangeDate"
+							)}
+							value={statusChangeDate}
+							onChange={(e) =>
+								updateMember({
+									StatusChangeDate: e.target.value,
+								})
+							}
+							placeholder={
+								isMultiple(member.StatusChangeDate)
+									? MULTIPLE_STR
+									: undefined
+							}
+						/>
+					</div>
+				</Field>
+			</Row>
+			<Table
+				style={hasChangesStyle(member, saved, "StatusChangeHistory")}
+				columns={columns}
+				values={statusChangeHistory}
+			/>
+		</div>
 	);
 }
 

@@ -9,7 +9,6 @@ import {
 	Col,
 	Field,
 	FieldLeft,
-	Checkbox,
 	Input,
 	ConfirmModal,
 	isMultiple,
@@ -37,9 +36,8 @@ import {
 } from "../store/members";
 
 import IeeeMemberSelector from "./IeeeMemberSelector";
-import StatusSelector from "./StatusSelector";
 import MemberSelector from "./MemberAllSelector";
-import MemberStatusChangeHistory from "./MemberStatusChange";
+import MemberStatus from "./MemberStatus";
 import MemberContactInfo from "./MemberContactInfo";
 import MemberAttendances from "../sessionParticipation/MemberAttendances";
 import MemberBallotParticipation from "../ballotParticipation/MemberBallotParticipation";
@@ -110,15 +108,18 @@ function MemberDetailInfo({
 	saved,
 	updateMember,
 	readOnly,
+	basicOnly,
 }: {
 	sapin: number;
 	member: MultipleMember;
 	saved?: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
+	basicOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
-	const tabIndex: number = useAppSelector(selectUiProperties).tabIndex || 0;
+	let tabIndex: number = useAppSelector(selectUiProperties).tabIndex || 0;
+	if (basicOnly && tabIndex > 1) tabIndex = 0;
 	const setTabIndex = (tabIndex: number) => {
 		dispatch(setUiProperties({ tabIndex }));
 	};
@@ -139,9 +140,13 @@ function MemberDetailInfo({
 		>
 			<TabList>
 				<Tab>Contact info</Tab>
-				<Tab>Status history</Tab>
-				<Tab>{`Session participation ${sessionSumary}`}</Tab>
-				<Tab>{`Ballot participation ${ballotSummary}`}</Tab>
+				<Tab>Memberhip status</Tab>
+				{!basicOnly && (
+					<Tab>{`Session participation ${sessionSumary}`}</Tab>
+				)}
+				{!basicOnly && (
+					<Tab>{`Ballot participation ${ballotSummary}`}</Tab>
+				)}
 			</TabList>
 			<TabPanel>
 				<MemberContactInfo
@@ -152,19 +157,26 @@ function MemberDetailInfo({
 				/>
 			</TabPanel>
 			<TabPanel>
-				<MemberStatusChangeHistory
+				<MemberStatus
 					member={member}
 					saved={saved}
 					updateMember={updateMember}
 					readOnly={readOnly}
 				/>
 			</TabPanel>
-			<TabPanel>
-				<MemberAttendances SAPIN={sapin} readOnly={readOnly} />
-			</TabPanel>
-			<TabPanel>
-				<MemberBallotParticipation SAPIN={sapin} readOnly={readOnly} />
-			</TabPanel>
+			{!basicOnly && (
+				<TabPanel>
+					<MemberAttendances SAPIN={sapin} readOnly={readOnly} />
+				</TabPanel>
+			)}
+			{!basicOnly && (
+				<TabPanel>
+					<MemberBallotParticipation
+						SAPIN={sapin}
+						readOnly={readOnly}
+					/>
+				</TabPanel>
+			)}
 		</Tabs>
 	);
 }
@@ -182,21 +194,37 @@ function ExpandingInput({
 	updateMember: (changes: Partial<Member>) => void;
 } & React.ComponentProps<typeof Input>) {
 	const value: any = member[dataKey] || "";
+	const savedValue: any = saved?.[dataKey] || "";
 	return (
-		<Input
-			{...props}
-			type="text"
+		<div
 			style={{
-				...hasChangesStyle(member, saved, dataKey),
-				width: `${Math.max(value.length, 20) + 2}ch`,
+				display: "flex",
+				flexDirection: "column",
 			}}
-			name={dataKey}
-			value={isMultiple(value) ? "" : value}
-			onChange={(e) => updateMember({ [dataKey]: e.target.value })}
-			placeholder={isMultiple(value) ? MULTIPLE_STR : BLANK_STR}
-		/>
+		>
+			<Input
+				{...props}
+				type="text"
+				style={{
+					...hasChangesStyle(member, saved, dataKey),
+					width: `${Math.max(value.length + 3, 22)}ch`,
+					alignSelf: "flex-end",
+				}}
+				name={dataKey}
+				value={isMultiple(value) ? "" : value}
+				onChange={(e) => updateMember({ [dataKey]: e.target.value })}
+				placeholder={isMultiple(value) ? MULTIPLE_STR : BLANK_STR}
+			/>
+			<span
+				style={{ fontSize: "x-small", marginTop: 3, padding: "0 5px" }}
+			>
+				{savedValue}
+			</span>
+		</div>
 	);
 }
+
+const emailPattern = "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2}";
 
 function MemberBasicInfo({
 	sapins,
@@ -204,26 +232,40 @@ function MemberBasicInfo({
 	saved,
 	updateMember,
 	readOnly,
+	basicOnly,
 }: {
 	sapins: number[];
 	member: MultipleMember;
 	saved?: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
+	basicOnly?: boolean;
 }) {
 	const hasMany = sapins.length > 1;
-	const sapinsStr = sapins.join(", ");
-	const sapinsLabel = hasMany ? "SA PINs:" : "SA PIN:";
-
-	let statusChangeDate = "";
-	if (!isMultiple(member.StatusChangeDate) && member.StatusChangeDate)
-		statusChangeDate =
-			DateTime.fromISO(member.StatusChangeDate).toISODate() || "";
+	let sapinsEl: JSX.Element;
+	let sapinsLabel: string;
+	if (sapins.length > 1) {
+		sapinsLabel = "SA PINs:";
+		sapinsEl = <span>{sapins.join(", ")}</span>;
+	} else {
+		sapinsLabel = "SA PIN:";
+		sapinsEl = (
+			<Input
+				type="text"
+				value={member.SAPIN}
+				onChange={(e) =>
+					updateMember({ SAPIN: Number(e.target.value) })
+				}
+				pattern="\d+"
+				disabled={basicOnly || readOnly}
+			/>
+		);
+	}
 
 	return (
 		<>
 			<Row>
-				<FieldLeft label={sapinsLabel}>{sapinsStr}</FieldLeft>
+				<FieldLeft label={sapinsLabel}>{sapinsEl}</FieldLeft>
 				<FieldLeft label="Date added:">
 					{renderDate(member.DateAdded)}
 				</FieldLeft>
@@ -235,7 +277,40 @@ function MemberBasicInfo({
 						member={member}
 						saved={saved}
 						updateMember={updateMember}
+						disabled={readOnly}
 					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label="Family name:">
+					<ExpandingInput
+						dataKey="LastName"
+						member={member}
+						saved={saved}
+						updateMember={updateMember}
+						disabled={readOnly}
+					/>
+				</Field>
+			</Row>
+			<Row>
+				<Field label="Given/MI name:">
+					<div style={{ display: "flex", flexWrap: "wrap" }}>
+						<ExpandingInput
+							dataKey="FirstName"
+							member={member}
+							saved={saved}
+							updateMember={updateMember}
+							disabled={readOnly}
+						/>
+						<div style={{ padding: 5 }} />
+						<ExpandingInput
+							dataKey="MI"
+							member={member}
+							saved={saved}
+							updateMember={updateMember}
+							disabled={readOnly}
+						/>
+					</div>
 				</Field>
 			</Row>
 			<Row>
@@ -245,6 +320,8 @@ function MemberBasicInfo({
 						member={member}
 						saved={saved}
 						updateMember={updateMember}
+						disabled={readOnly}
+						pattern={emailPattern}
 					/>
 				</Field>
 			</Row>
@@ -255,6 +332,7 @@ function MemberBasicInfo({
 						member={member}
 						saved={saved}
 						updateMember={updateMember}
+						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
@@ -265,79 +343,8 @@ function MemberBasicInfo({
 						member={member}
 						saved={saved}
 						updateMember={updateMember}
+						disabled={readOnly}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Status:">
-					<StatusSelector
-						style={{
-							flexBasis: 200,
-							...hasChangesStyle(member, saved, "Status"),
-						}}
-						value={isMultiple(member.Status) ? "" : member.Status}
-						onChange={(value) => updateMember({ Status: value })}
-						placeholder={
-							isMultiple(member.Status) ? MULTIPLE_STR : BLANK_STR
-						}
-						readOnly={readOnly}
-					/>
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "center",
-						}}
-					>
-						<label>Override</label>
-						<Checkbox
-							style={hasChangesStyle(
-								member,
-								saved,
-								"StatusChangeOverride"
-							)}
-							checked={Boolean(member.StatusChangeOverride)}
-							indeterminate={isMultiple(
-								member.StatusChangeOverride
-							)}
-							onChange={(
-								e: React.ChangeEvent<HTMLInputElement>
-							) =>
-								updateMember({
-									StatusChangeOverride: e.target.checked,
-								})
-							}
-							disabled={readOnly}
-						/>
-					</div>
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "center",
-						}}
-					>
-						<label>Last change</label>
-						<Input
-							type="date"
-							style={hasChangesStyle(
-								member,
-								saved,
-								"StatusChangeDate"
-							)}
-							value={statusChangeDate}
-							onChange={(e) =>
-								updateMember({
-									StatusChangeDate: e.target.value,
-								})
-							}
-							placeholder={
-								isMultiple(member.StatusChangeDate)
-									? MULTIPLE_STR
-									: undefined
-							}
-						/>
-					</div>
 				</Field>
 			</Row>
 			{member.Status === "Obsolete" && (
@@ -411,13 +418,17 @@ export function MemberEntryForm({
 	let errMsg = "";
 	if (!member.SAPIN) errMsg = "SA PIN not set";
 	else if (!member.Name) errMsg = "Name not set";
+	else if (!member.LastName) errMsg = "Family name not set";
+	else if (!member.FirstName) errMsg = "Given name not set";
+	else if (!new RegExp(emailPattern).test(member.Email))
+		errMsg = "Invalid email address";
 
 	let submitForm, cancelForm, submitLabel;
 	if (action === "add") {
 		submitLabel = "Add";
 		submitForm = async () => {
 			if (errMsg) {
-				ConfirmModal.show("Fix error: " + errMsg);
+				ConfirmModal.show("Fix error: " + errMsg, false);
 				return;
 			}
 			add();
@@ -427,12 +438,33 @@ export function MemberEntryForm({
 		submitLabel = "Update";
 		submitForm = async () => {
 			if (errMsg) {
-				ConfirmModal.show("Fix error: " + errMsg);
+				ConfirmModal.show("Fix error: " + errMsg, false);
 				return;
 			}
 			update();
 		};
 		cancelForm = cancel;
+	}
+
+	function changeMember(changes: Partial<Member>) {
+		let name =
+			member.FirstName +
+			(member.MI ? ` ${member.MI} ` : " ") +
+			member.LastName;
+		if (
+			("LastName" in changes ||
+				"FirstName" in changes ||
+				"MI" in changes) &&
+			member.Name === name
+		) {
+			const LastName =
+				"LastName" in changes ? changes.LastName : member.LastName;
+			const MI = "MI" in changes ? changes.MI : member.MI;
+			const FirstName =
+				"FirstName" in changes ? changes.FirstName : member.FirstName;
+			changes.Name = FirstName + (MI ? ` ${MI} ` : " ") + LastName;
+		}
+		updateMember(changes);
 	}
 
 	function setMember(sapin: number) {
@@ -455,37 +487,34 @@ export function MemberEntryForm({
 			cancel={cancelForm}
 			errorText={errMsg}
 		>
-			{action === "add" && (
-				<IeeeMemberSelector
-					value={member.SAPIN as number}
-					onChange={(sapin) => setMember(sapin)}
-				/>
+			{action === "add" && !basicOnly && (
+				<Row>
+					<Field label="Add existing IEEE member:">
+						<IeeeMemberSelector
+							value={member.SAPIN as number}
+							onChange={(sapin) => setMember(sapin)}
+						/>
+					</Field>
+				</Row>
 			)}
 			<MemberBasicInfo
 				sapins={action === "add" ? [member.SAPIN as number] : sapins}
 				member={member}
 				saved={saved}
-				updateMember={updateMember}
+				updateMember={changeMember}
 				readOnly={readOnly}
+				basicOnly={basicOnly}
 			/>
 			{sapins.length <= 1 && (
 				<Row>
-					{action !== "add" && !basicOnly ? (
-						<MemberDetailInfo
-							sapin={sapins[0]}
-							member={member}
-							saved={saved}
-							updateMember={updateMember}
-							readOnly={readOnly}
-						/>
-					) : (
-						<MemberContactInfo
-							edited={member}
-							saved={saved}
-							onChange={updateMember}
-							readOnly={readOnly}
-						/>
-					)}
+					<MemberDetailInfo
+						sapin={sapins[0]}
+						member={member}
+						saved={saved}
+						updateMember={updateMember}
+						readOnly={readOnly}
+						basicOnly={basicOnly || action === "add"}
+					/>
 				</Row>
 			)}
 		</Form>

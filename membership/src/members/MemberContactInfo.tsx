@@ -65,8 +65,8 @@ function MemberContactEmails({
 			const contactEmail: MemberContactEmail = {
 				id,
 				Email: "",
-				Primary: 0,
-				Broken: 0,
+				Primary: false,
+				Broken: false,
 				DateAdded: DateTime.now().toISO(),
 			};
 			const ContactEmails = [contactEmail, ...contactEmails];
@@ -112,7 +112,7 @@ function MemberContactEmails({
 						checked={!!entry.Primary}
 						onChange={(e) =>
 							updateContactEmail(entry.id, {
-								Primary: e.target.checked ? 1 : 0,
+								Primary: e.target.checked,
 							})
 						}
 						disabled={readOnly}
@@ -125,7 +125,7 @@ function MemberContactEmails({
 						checked={!!entry.Broken}
 						onChange={(e) =>
 							updateContactEmail(entry.id, {
-								Broken: e.target.checked ? 1 : 0,
+								Broken: e.target.checked,
 							})
 						}
 						disabled={readOnly}
