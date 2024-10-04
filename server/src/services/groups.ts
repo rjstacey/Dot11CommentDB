@@ -155,11 +155,11 @@ function rollupGroupUserPermissions(
  * @param constraints.parentName (Optional) Group and subgroups with the parent with this name
  * @returns An array of group objects that includes the user permissions for each group
  */
-export async function getGroups(user: User, constraints?: GroupQuery) {
+export async function getGroups(user: User, query?: GroupQuery) {
 	let sql = selectGroupsSql;
 
-	if (constraints) {
-		const { parentName, ...rest } = constraints;
+	if (query) {
+		const { parentName, ...rest } = query;
 		const wheres: string[] = [];
 		if (parentName) {
 			const ids = await getGroupAndSubgroupIdsByName(parentName);
@@ -167,19 +167,21 @@ export async function getGroups(user: User, constraints?: GroupQuery) {
 			wheres.push(db.format("BIN_TO_UUID(org.id) IN (?)", [ids]));
 		}
 		Object.entries(rest).forEach(([key, value]) => {
-			wheres.push(
-				key === "id" || key === "parent_id"
-					? db.format(
-							Array.isArray(value)
-								? "BIN_TO_UUID(org.??) IN (?)"
-								: "BIN_TO_UUID(org.??)=?",
-							[key, value]
-					  )
-					: db.format(
-							Array.isArray(value) ? "org.?? IN (?)" : "org.??=?",
-							[key, value]
-					  )
-			);
+			let sql: string;
+			if (key === "id" || key === "parent_id") {
+				sql = db.format(
+					Array.isArray(value)
+						? "BIN_TO_UUID(org.??) IN (?)"
+						: "BIN_TO_UUID(org.??)=?",
+					[key, value]
+				);
+			} else {
+				sql = db.format(
+					Array.isArray(value) ? "org.?? IN (?)" : "org.??=?",
+					[key, value]
+				);
+			}
+			wheres.push(sql);
 		});
 		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 	}

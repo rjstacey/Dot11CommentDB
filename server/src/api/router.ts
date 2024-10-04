@@ -90,7 +90,6 @@ async function parseGroupName(req: Request, res: Response, next: NextFunction) {
 router.use("/groups", groups); // Groups and subgroups
 
 router.use("/:groupName/members", parseGroupName, members); // Manage membership
-//router.use("/:groupName/users", parseGroupName, users); // Limited access to member information for various uses (comment resolution, meeting setup, etc.)
 router.use("/:groupName/affiliationMap", parseGroupName, affiliationMap); // Map affiliation to short name
 router.use("/:groupName/officers", parseGroupName, officers); // Group and subgroup officers
 router.use("/:groupName/attendances", parseGroupName, attendances); // Attendances
@@ -99,7 +98,7 @@ router.use(
 	parseGroupName,
 	ballotParticipation
 ); // Ballot series participation
-router.use("/:groupName/email", parseGroupName, email); // Sending email
+router.use("/:groupName/email", parseGroupName, email); // Email templates and sending email
 
 /*
  * APIs for managing meetings

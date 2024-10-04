@@ -22,7 +22,7 @@ import { init as initBallotVoters } from "./services/voters";
 import { init as initBallotResults } from "./services/results";
 import { init as webexInit } from "./services/webex";
 import { init as calendarInit } from "./services/calendar";
-import { init as emailInit } from "./services/email";
+import { init as emailInit } from "./services/emailSend";
 
 dotenv.config();
 

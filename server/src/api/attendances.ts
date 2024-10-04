@@ -3,6 +3,7 @@
  *
  */
 import { Request, Response, NextFunction, Router } from "express";
+import Multer from "multer";
 import { AccessLevel } from "../auth/access";
 import { ForbiddenError } from "../utils";
 import {
@@ -19,6 +20,7 @@ import {
 	updateAttendances,
 	deleteAttendances,
 	importAttendances,
+	uploadRegistration,
 	exportAttendancesForMinutes,
 } from "../services/attendances";
 
@@ -58,6 +60,17 @@ function importAll(req: Request, res: Response, next: NextFunction) {
 	let useDailyAttendance =
 		typeof use === "string" && use.toLowerCase().startsWith("daily");
 	importAttendances(req.user, req.group!, session_id, useDailyAttendance)
+		.then((data) => res.json(data))
+		.catch(next);
+}
+
+function uploadRegistrationRequest(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const session_id = Number(req.params.session_id);
+	uploadRegistration(req.user, req.group!, session_id, req.file)
 		.then((data) => res.json(data))
 		.catch(next);
 }
@@ -107,12 +120,18 @@ function removeMany(req: Request, res: Response, next: NextFunction) {
 		.catch(next);
 }
 
+const upload = Multer();
 const router = Router();
 router
 	.all("*", validatePermissions)
 	.get("/:session_id(\\d+)", getForSession)
 	.get("/:session_id(\\d+)/exportForMinutes", getForMinutes)
-	.post("/:session_id(\\d+)/import", importAll);
+	.post("/:session_id(\\d+)/import", importAll)
+	.post(
+		"/:session_id(\\d+)/uploadRegistration",
+		upload.single("file"),
+		uploadRegistrationRequest
+	);
 router
 	.route("/")
 	.get(getRecent)

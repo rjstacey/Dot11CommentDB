@@ -2,12 +2,12 @@ import { Request, Response, NextFunction, Router } from "express";
 import { ForbiddenError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import {
-	sendEmail,
 	getTemplates,
 	addTemplates,
 	updateTemplates,
 	deleteTemplates,
-} from "../services/email";
+} from "../services/emailTemplates";
+import { sendEmail } from "../services/emailSend";
 import {
 	Email,
 	EmailTemplateCreate,

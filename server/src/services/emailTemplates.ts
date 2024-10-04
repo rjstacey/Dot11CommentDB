@@ -1,15 +1,6 @@
-import { fromIni } from "@aws-sdk/credential-providers";
-import {
-	SESClient,
-	SendEmailCommand,
-	SendEmailCommandInput,
-} from "@aws-sdk/client-ses";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
-
-import type { User } from "./users";
 import type { Group } from "../schemas/groups";
 import type {
-	Email,
 	EmailTemplate,
 	EmailTemplateQuery,
 	EmailTemplateCreate,
@@ -17,33 +8,6 @@ import type {
 } from "../schemas/email";
 
 import db from "../utils/database";
-
-const region = "us-west-2";
-let credentials: ReturnType<typeof fromIni>;
-let sesClient: SESClient;
-
-export function init() {
-	if (process.env.NODE_ENV === "development")
-		credentials = fromIni({ profile: "profile eb-cli" });
-
-	sesClient = new SESClient({ region, credentials });
-}
-
-/**
- * Send an email
- * @param user The user executing the command
- * @param email The email to be sent
- */
-export async function sendEmail(user: User, email: Email) {
-	if (!sesClient) throw new Error("eMail service has not been initialized");
-
-	const params: SendEmailCommandInput = {
-		...email,
-		Source: "noreply@802tools.org",
-	};
-	const data = await sesClient.send(new SendEmailCommand(params));
-	return data;
-}
 
 export function getTemplates(
 	group: Group,

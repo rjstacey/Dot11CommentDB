@@ -32,10 +32,7 @@ import {
 } from "../schemas/members";
 import { Group } from "../schemas/groups";
 import { getRecentAttendances } from "./attendances";
-import {
-	getActiveBallotSeriesParticipation,
-	BallotSeries,
-} from "./ballotParticipation";
+import { getActiveBallotSeriesParticipation } from "./ballotParticipation";
 
 type UserTypeDB = Omit<UserType, "ContactInfo" | "ContactEmails"> & {
 	ContactInfo: string; // JSON
@@ -50,13 +47,6 @@ export type MemberBasic = Pick<
 	Member,
 	"SAPIN" | "groupId" | "Name" | "Affiliation" | "Status"
 >;
-
-/*type MembersQueryConstraints = {
-	SAPIN?: number | number[];
-	Status?: string | string[];
-	groupId?: string | string[];
-	InRoster?: 0 | 1;
-};*/
 
 // prettier-ignore
 const createViewMembersSQL =
@@ -82,7 +72,7 @@ const createViewMembersSQL =
 		"m.Notes AS Notes, " +
 		"m.DateAdded AS DateAdded, " +
 		"m.InRoster AS InRoster " +
-	"FROM users u LEFT JOIN groupMembers m ON (u.SAPIN=m.SAPIN)"
+	"FROM users u JOIN groupMembers m ON (u.SAPIN=m.SAPIN)"
 
 export async function init() {
 	const tables = await db.query<RowDataPacket[]>(
@@ -96,8 +86,8 @@ export async function init() {
 	return db.query(createViewMembersSQL);
 }
 
-function selectMembersSql(constraints: MemberQuery) {
-	const { groupId, ...rest } = constraints;
+function selectMembersSql(query: MemberQuery) {
+	const { groupId, ...rest } = query;
 	const wheres: string[] = [];
 
 	let sql: string;
@@ -191,9 +181,9 @@ function selectMembersSql(constraints: MemberQuery) {
  */
 export function getMembers(
 	access: number,
-	constraints: MemberQuery
+	query: MemberQuery
 ): Promise<Member[]> {
-	const sql = selectMembersSql(constraints);
+	const sql = selectMembersSql(query);
 	return db.query<(RowDataPacket & Member)[]>(sql);
 }
 
