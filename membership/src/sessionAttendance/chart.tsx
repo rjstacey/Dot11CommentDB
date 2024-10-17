@@ -4,7 +4,7 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { useAppSelector } from "../store/hooks";
 import { AffiliationMap, selectAffiliationMaps } from "../store/affiliationMap";
 import {
-	selectSyncedSessionAtendeesEntities,
+	selectSyncedSessionAtendeeEntities,
 	selectSessionAttendeesIds,
 	SyncedSessionAttendee,
 } from "../store/sessionAttendees";
@@ -38,7 +38,7 @@ const nullEntry: StatusCountRecord = {
 
 const attendeesByAffiliation = createSelector(
 	selectSessionAttendeesIds,
-	selectSyncedSessionAtendeesEntities,
+	selectSyncedSessionAtendeeEntities,
 	selectAffiliationMaps,
 	(attendeeIds, attendeeEntities, maps) => {
 		const membersEntities: Record<string, SyncedSessionAttendee[]> = {};

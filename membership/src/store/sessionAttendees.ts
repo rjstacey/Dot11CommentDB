@@ -19,18 +19,12 @@ import {
 import type { RootState, AppThunk } from ".";
 import type { MemberContactInfo } from "./members";
 import { selectMemberEntities } from "./members";
+import { selectSessionByNumber, selectSessionEntities } from "./sessions";
 import {
-	validResponse as validRecentSessionAttendanceReponse,
-	getPending as getPendingRecentSessionAttendance,
-	getSuccess as getSuccessRecentSessionAttendance,
-	getFailure as getFailureRecentSessionAttendance,
+	getNullAttendanceSummary,
+	selectAttendanceSummaryEntitiesForSession,
 	SessionAttendanceSummary,
-} from "./sessionParticipation";
-import {
-	selectSessionByNumber,
-	upsertSessions,
-	type Session,
-} from "./sessions";
+} from "./attendanceSummary";
 
 export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
@@ -53,6 +47,7 @@ export const fields: Fields = {
 	},
 	IsRegistered: { label: "Registered" },
 	Notes: { label: "Notes" },
+	RegMatch: { label: "Reg Match" },
 };
 
 export type SessionAttendee = {
@@ -69,16 +64,10 @@ export type SessionAttendee = {
 	AttendancePercentage: number;
 };
 
-type SessionAttendeeWithOverrride = SessionAttendee & {
-	DidAttend: boolean;
-	DidNotAttend: boolean;
-	AttendancePercentageOverride: number;
-	InPerson: boolean;
-	IsRegistered: boolean;
-	Notes: string;
-};
+type SessionAttendeeWithSummary = SessionAttendee & SessionAttendanceSummary;
 
-export type SyncedSessionAttendee = SessionAttendeeWithOverrride & {
+export type SyncedSessionAttendee = SessionAttendeeWithSummary & {
+	RegMatch: boolean;
 	Status: string;
 	OldName: string | null;
 	OldAffiliation: string | null;
@@ -87,37 +76,20 @@ export type SyncedSessionAttendee = SessionAttendeeWithOverrride & {
 	OldContactInfo: MemberContactInfo | null;
 };
 
-/* Fields derived from other fields */
-export function getField(entity: SyncedSessionAttendee, key: string): any {
-	if (key === "AttendanceOverride") {
-		if (entity.DidAttend) return "Did attend";
-		else if (entity.DidNotAttend) return "Did not attend";
-		else if (
-			entity.AttendancePercentage.toFixed(0) !==
-			entity.AttendancePercentageOverride.toFixed(0)
-		)
-			return entity.AttendancePercentageOverride.toFixed(0) + "%";
-		else return "";
-	}
-	return entity[key as keyof SyncedSessionAttendee];
-}
-
 /*
  * Slice
  */
-const selectId = (attendee: SessionAttendeeWithOverrride) => attendee.SAPIN;
-const sortComparer = (
-	m1: SessionAttendeeWithOverrride,
-	m2: SessionAttendeeWithOverrride
-) => m1.SAPIN - m2.SAPIN;
+const selectId = (attendee: SessionAttendee) => attendee.SAPIN;
+const sortComparer = (m1: SessionAttendee, m2: SessionAttendee) =>
+	m1.SAPIN - m2.SAPIN;
 
 const initialState: {
 	groupName: string | null;
-	sessionNumber: number | null;
+	sessionId: number | null;
 	useDaily: boolean; // derive from IMAT "daily attendance" (vs "attendance summary")
 } = {
 	groupName: null,
-	sessionNumber: null,
+	sessionId: null,
 	useDaily: false,
 };
 
@@ -134,15 +106,14 @@ const slice = createAppTableDataSlice({
 			.addMatcher(
 				(action: Action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
-					const { groupName, sessionNumber, useDaily } =
-						action.payload;
+					const { groupName, sessionId, useDaily } = action.payload;
 					if (
 						groupName !== state.groupName ||
-						sessionNumber !== state.sessionNumber ||
+						sessionId !== state.sessionId ||
 						useDaily !== state.useDaily
 					) {
 						state.groupName = groupName;
-						state.sessionNumber = sessionNumber;
+						state.sessionId = sessionId;
 						state.useDaily = useDaily;
 						state.valid = false;
 						dataAdapter.removeAll(state);
@@ -154,7 +125,7 @@ const slice = createAppTableDataSlice({
 					action.type === clearSessionAttendees.toString(),
 				(state) => {
 					state.groupName = null;
-					state.sessionNumber = null;
+					state.sessionId = null;
 					state.valid = false;
 					dataAdapter.removeAll(state);
 				}
@@ -175,7 +146,7 @@ const { getSuccess, getFailure } = slice.actions;
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{
 	groupName: string;
-	sessionNumber: number | null;
+	sessionId: number | null;
 	useDaily: boolean;
 }>(dataSet + "/getPending");
 
@@ -183,89 +154,108 @@ const getPending = createAction<{
  * Selectors
  */
 export const selectSessionAttendeesState = (state: RootState) => state[dataSet];
+export const selectSessionAttendeesGroupName = (state: RootState) =>
+	selectSessionAttendeesState(state).groupName;
 export const selectSessionAttendeesIds = (state: RootState) =>
 	selectSessionAttendeesState(state).ids;
 export const selectSessionAttendeesEntities = (state: RootState) =>
 	selectSessionAttendeesState(state).entities;
-export const selectSessionAttendeesSessionNumber = (state: RootState) =>
-	selectSessionAttendeesState(state).sessionNumber;
+export const selectSessionAttendeesSessionId = (state: RootState) =>
+	selectSessionAttendeesState(state).sessionId;
+export const selectSessionAttendeesSession = (state: RootState) => {
+	const sessionId = selectSessionAttendeesSessionId(state);
+	if (sessionId) return selectSessionEntities(state)[sessionId];
+};
+export const selectSessionAttendeesSelected = createSelector(
+	(state: RootState) => selectSessionAttendeesState(state).selected,
+	selectSessionAttendeesEntities,
+	(selected, entities) => selected.filter((id) => Boolean(entities[id]))
+);
 
-export const selectSyncedSessionAtendeesEntities = createSelector(
+export const selectSyncedSessionAtendeeEntities = createSelector(
 	selectSessionAttendeesIds,
 	selectSessionAttendeesEntities,
+	(state: RootState) =>
+		selectAttendanceSummaryEntitiesForSession(
+			state,
+			selectSessionAttendeesSessionId(state)
+		),
 	selectMemberEntities,
-	(ids, entities, memberEntities) => {
-		const newEntities: Record<EntityId, SyncedSessionAttendee> = {};
+	selectSessionAttendeesSessionId,
+	(ids, entities, attendanceSummaryEntities, memberEntities, session_id) => {
+		const syncedEntities: Record<EntityId, SyncedSessionAttendee> = {};
+
 		ids.forEach((id) => {
-			let entity: SyncedSessionAttendee = {
-				...entities[id]!,
+			const entity = entities[id]!;
+			const a =
+				attendanceSummaryEntities[entity.SAPIN] ||
+				getNullAttendanceSummary(session_id || 0, entity.SAPIN);
+			let syncedEntity: SyncedSessionAttendee = {
+				...a,
+				...entity,
 				OldAffiliation: null,
 				OldEmployer: null,
 				OldName: null,
 				OldEmail: null,
 				OldContactInfo: null,
 				Status: "New",
+				RegMatch: Boolean(a),
 			};
 			const m = memberEntities[id];
 			if (m) {
-				entity.Status = m.Status;
-				if (m.Affiliation !== entity.Affiliation)
-					entity.OldAffiliation = m.Affiliation;
+				syncedEntity.Status = m.Status;
+				if (m.Affiliation !== syncedEntity.Affiliation)
+					syncedEntity.OldAffiliation = m.Affiliation;
 				if (
-					entity.Employer !== undefined &&
+					syncedEntity.Employer !== undefined &&
 					m.Employer !== entity.Employer
 				)
-					entity.OldEmployer = m.Employer;
-				if (m.Email !== entity.Email) entity.OldEmail = m.Email;
-				if (m.Name !== entity.Name) entity.OldName = m.Name;
+					syncedEntity.OldEmployer = m.Employer;
+				if (m.Email !== entity.Email) syncedEntity.OldEmail = m.Email;
+				if (m.Name !== entity.Name) syncedEntity.OldName = m.Name;
 				if (
-					entity.Employer !== undefined &&
+					syncedEntity.Employer !== undefined &&
 					!isEqual(m.ContactInfo, entity.ContactInfo)
 				) {
-					entity.OldContactInfo = m.ContactInfo;
+					syncedEntity.OldContactInfo = m.ContactInfo;
 				}
 			}
-			newEntities[id] = entity;
+			syncedEntities[id] = syncedEntity;
 		});
-		return newEntities;
+		return syncedEntities;
 	}
 );
 
 export const sessionAttendeesSelectors = getAppTableDataSelectors(
 	selectSessionAttendeesState,
-	{ selectEntities: selectSyncedSessionAtendeesEntities, getField }
+	{ selectEntities: selectSyncedSessionAtendeeEntities }
 );
 
 /*
  * Thunk actions
  */
 function validSessionAttendee(entry: any): entry is SessionAttendee {
-	return isObject(entry);
+	return (
+		isObject(entry) &&
+		typeof entry.SAPIN === "number" &&
+		typeof entry.Name === "string" &&
+		typeof entry.Email === "string"
+	);
 }
 
 function validGetImatAttendanceResponse(
-	response: any
+	response: unknown
 ): response is SessionAttendee[] {
 	return Array.isArray(response) && response.every(validSessionAttendee);
 }
 
-function validGetAttendancesResponse(
-	response: any
-): response is { attendances: SessionAttendanceSummary[]; session: Session } {
-	return (
-		isObject(response) &&
-		Array.isArray(response.attendances) &&
-		isObject(response.session)
-	);
-}
-
-let loadingPromise: Promise<SessionAttendee[]>;
+let loadingPromise: Promise<null>;
 export const loadSessionAttendees =
 	(
 		groupName: string,
 		sessionNumber: number,
 		useDaily = false
-	): AppThunk<SessionAttendee[]> =>
+	): AppThunk<null> =>
 	async (dispatch, getState) => {
 		const session = selectSessionByNumber(getState(), sessionNumber);
 		if (!session || !session.imatMeetingId) {
@@ -278,135 +268,37 @@ export const loadSessionAttendees =
 				)
 			);
 			dispatch(clearSessionAttendees());
-			return [];
+			return null;
 		}
 
 		const { loading, ...current } = selectSessionAttendeesState(getState());
 		if (
 			loading &&
 			groupName === current.groupName &&
-			session.number === current.sessionNumber &&
+			session.id === current.sessionId &&
 			useDaily === current.useDaily
 		) {
 			return loadingPromise;
 		}
 
-		dispatch(
-			getPending({ groupName, sessionNumber: session.number, useDaily })
-		);
-		const attendanceUrl = `/api/${groupName}/attendances/${session.id}`;
-		const imatAttendanceUrl = `/api/${groupName}/imat/attendance/${
+		dispatch(getPending({ groupName, sessionId: session.id, useDaily }));
+		const url = `/api/${groupName}/imat/attendance/${
 			session.imatMeetingId
 		}/${useDaily ? "daily" : "summary"}`;
 		loadingPromise = fetcher
-			.get(attendanceUrl)
-			.then((response: any) => {
-				if (!validGetAttendancesResponse(response))
-					throw new TypeError(
-						"Unexpected response to GET " + attendanceUrl
-					);
-				const { attendances } = response;
-				return fetcher
-					.get(imatAttendanceUrl)
-					.then((imatAttendances: any) => {
-						if (!validGetImatAttendanceResponse(imatAttendances))
-							throw new TypeError(
-								"Unexpected response to GET " +
-									imatAttendanceUrl
-							);
-						const mergedAttendances: SessionAttendeeWithOverrride[] =
-							imatAttendances.map((i) => {
-								const attendance = attendances.find(
-									(a) => a.SAPIN === i.SAPIN
-								);
-								return {
-									...i,
-									DidAttend: attendance?.DidAttend || false,
-									DidNotAttend:
-										attendance?.DidNotAttend || false,
-									Notes: attendance?.Notes || "",
-									AttendancePercentageOverride:
-										attendance?.AttendancePercentage || 0,
-									InPerson: attendance?.InPerson || false,
-									IsRegistered:
-										attendance?.IsRegistered || false,
-								};
-							});
-						dispatch(getSuccess(mergedAttendances));
-						return mergedAttendances;
-					});
+			.get(url)
+			.then((imatAttendances: any) => {
+				if (!validGetImatAttendanceResponse(imatAttendances))
+					throw new TypeError("Unexpected response to GET " + url);
+				dispatch(getSuccess(imatAttendances));
+				return null;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get attendances", error));
-				return [];
+				return null;
 			});
 		return loadingPromise;
-	};
-
-export const importAttendances =
-	(groupName: string, sessionNumber: number, useDaily = false): AppThunk =>
-	async (dispatch, getState) => {
-		const session = selectSessionByNumber(getState(), sessionNumber);
-		if (!session) {
-			dispatch(
-				setError("Can't retrieve attendance", "Bad session number")
-			);
-			return;
-		}
-		let url = `/api/${groupName}/attendances/${session.id}/import`;
-		if (useDaily) url += "?use=daily-attendance";
-		dispatch(getPendingRecentSessionAttendance({ groupName }));
-		let response: any;
-		try {
-			response = await fetcher.post(url);
-			if (!validRecentSessionAttendanceReponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
-		} catch (error) {
-			dispatch(getFailureRecentSessionAttendance());
-			dispatch(
-				setError(
-					"Unable to import attendance summary for session " +
-						sessionNumber,
-					error
-				)
-			);
-			return;
-		}
-		dispatch(upsertSessions(response.sessions));
-		dispatch(getSuccessRecentSessionAttendance(response.attendances));
-	};
-
-export const uploadRegistration =
-	(groupName: string, sessionNumber: number, file: File): AppThunk =>
-	async (dispatch, getState) => {
-		const session = selectSessionByNumber(getState(), sessionNumber);
-		if (!session) {
-			dispatch(
-				setError("Can't upload registration", "Bad session number")
-			);
-			return;
-		}
-		let url = `/api/${groupName}/attendances/${session.id}/uploadRegistration`;
-		dispatch(getPendingRecentSessionAttendance({ groupName }));
-		let response: any;
-		try {
-			response = await fetcher.postMultipart(url, { file });
-			if (!validRecentSessionAttendanceReponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
-		} catch (error) {
-			dispatch(getFailureRecentSessionAttendance());
-			dispatch(
-				setError(
-					"Unable to import attendance summary for session " +
-						sessionNumber,
-					error
-				)
-			);
-			return;
-		}
-		dispatch(upsertSessions(response.sessions));
-		dispatch(getSuccessRecentSessionAttendance(response.attendances));
 	};
 
 export const exportAttendanceForMinutes =

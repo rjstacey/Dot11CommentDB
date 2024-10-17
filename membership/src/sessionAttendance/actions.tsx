@@ -28,11 +28,15 @@ import {
 	selectSessionAttendeesState,
 	exportAttendanceForMinutes,
 	SessionAttendee,
-	importAttendances,
-	uploadRegistration,
-	selectSessionAttendeesSessionNumber,
+	selectSessionAttendeesSession,
 } from "../store/sessionAttendees";
-import { selectSessionByNumber, Session } from "../store/sessions";
+import {
+	sessionRegistrationActions,
+	sessionRegistrationSelectors,
+	uploadSessionRegistration,
+} from "../store/sessionRegistration";
+import { importAttendanceSummary } from "../store/attendanceSummary";
+import { Session } from "../store/sessions";
 import {
 	selectMemberEntities,
 	addMembers,
@@ -43,16 +47,14 @@ import {
 } from "../store/members";
 
 import SessionSelector from "./SessionSelector";
-import { tableColumns } from "./table";
+import { tableColumns as sessionAttendeesColumns } from "./table";
+import { tableColumns as sessionRegistrationColumns } from "./sessionRegistration";
 import { copyChartToClipboard, downloadChart } from "../components/copyChart";
 
 function ImportRegistrationForm({ methods }: DropdownRendererProps) {
 	const dispatch = useAppDispatch();
 	const { groupName } = useAppSelector(selectSessionAttendeesState);
-	const sessionNumber = useAppSelector(selectSessionAttendeesSessionNumber)!;
-	const session = useAppSelector((state) =>
-		selectSessionByNumber(state, sessionNumber)
-	)!;
+	const session = useAppSelector(selectSessionAttendeesSession)!;
 
 	const [busy, setBusy] = React.useState(false);
 	const [file, setFile] = React.useState<File | null>(null);
@@ -63,7 +65,10 @@ function ImportRegistrationForm({ methods }: DropdownRendererProps) {
 	async function submit() {
 		if (!file) return;
 		setBusy(true);
-		await dispatch(uploadRegistration(groupName!, session.number!, file));
+		await dispatch(
+			uploadSessionRegistration(groupName!, session.number!, file)
+		);
+		//await dispatch(matchRegistration());
 		setBusy(false);
 		methods.close();
 	}
@@ -110,10 +115,7 @@ function BulkUpdateForm({ methods }: DropdownRendererProps) {
 	const { groupName, selected, ids, entities } = useAppSelector(
 		selectSessionAttendeesState
 	);
-	const sessionNumber = useAppSelector(selectSessionAttendeesSessionNumber)!;
-	const session = useAppSelector((state) =>
-		selectSessionByNumber(state, sessionNumber)
-	)!;
+	const session = useAppSelector(selectSessionAttendeesSession)!;
 
 	const [importAttendance, setImportAttendance] = React.useState(true);
 	const [importNew, setImportNew] = React.useState(true);
@@ -166,7 +168,9 @@ function BulkUpdateForm({ methods }: DropdownRendererProps) {
 	async function submit() {
 		setBusy(true);
 		if (importAttendance)
-			await dispatch(importAttendances(groupName!, session.number!));
+			await dispatch(
+				importAttendanceSummary(groupName!, session.number!)
+			);
 		if (importNew) await dispatch(addMembers(adds));
 		if (importUpdates) await dispatch(updateMembers(updates));
 		setBusy(false);
@@ -236,9 +240,16 @@ function SessionAttendanceActions() {
 	};
 
 	const showChart = /chart$/.test(location.pathname);
-	const setShowChart = (showChart: boolean) => {
+	const toggleShowChart = () => {
 		let pathname = "" + sessionNumber;
-		if (showChart) pathname += "/chart";
+		if (!showChart) pathname += "/chart";
+		navigate({ pathname, search: searchParams.toString() });
+	};
+
+	const showRegistration = /registration$/.test(location.pathname);
+	const toggleShowRegistration = () => {
+		let pathname = "" + sessionNumber;
+		if (!showRegistration) pathname += "/registration";
 		navigate({ pathname, search: searchParams.toString() });
 	};
 
@@ -253,6 +264,16 @@ function SessionAttendanceActions() {
 	};
 
 	const refresh = () => navigate(0);
+
+	const tableSelectors = showRegistration
+		? sessionRegistrationSelectors
+		: sessionAttendeesSelectors;
+	const tableActions = showRegistration
+		? sessionRegistrationActions
+		: sessionAttendeesActions;
+	const tableColumns = showRegistration
+		? sessionRegistrationColumns
+		: sessionAttendeesColumns;
 
 	return (
 		<div className="top-row">
@@ -299,17 +320,17 @@ function SessionAttendanceActions() {
 					<div>Table view</div>
 					<div style={{ display: "flex" }}>
 						<TableViewSelector
-							selectors={sessionAttendeesSelectors}
-							actions={sessionAttendeesActions}
+							selectors={tableSelectors}
+							actions={tableActions}
 						/>
 						<TableColumnSelector
-							selectors={sessionAttendeesSelectors}
-							actions={sessionAttendeesActions}
+							selectors={tableSelectors}
+							actions={tableActions}
 							columns={tableColumns}
 						/>
 						<SplitPanelButton
-							selectors={sessionAttendeesSelectors}
-							actions={sessionAttendeesActions}
+							selectors={tableSelectors}
+							actions={tableActions}
 						/>
 					</div>
 				</ButtonGroup>
@@ -334,7 +355,7 @@ function SessionAttendanceActions() {
 					disabled={!sessionNumber}
 				/>
 				<ActionButtonDropdown
-					title="Import registration form"
+					title="Import registration"
 					selectRenderer={() => (
 						<Button
 							style={{
@@ -375,11 +396,18 @@ function SessionAttendanceActions() {
 					<span>for minutes</span>
 				</Button>
 				<ActionButton
+					name="bi-r-circle"
+					title="Show registration"
+					disabled={!sessionNumber}
+					isActive={showRegistration}
+					onClick={toggleShowRegistration}
+				/>
+				<ActionButton
 					name="bi-bar-chart-line"
 					title="Chart attendance"
 					disabled={!sessionNumber}
 					isActive={showChart}
-					onClick={() => setShowChart(!showChart)}
+					onClick={toggleShowChart}
 				/>
 				<ActionButton
 					name="copy"

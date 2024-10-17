@@ -15,9 +15,11 @@ import timeZonesSlice from "./timeZones";
 import membersSlice from "./members";
 import ieeeMembersSlice from "./ieeeMembers";
 import officersSlice from "./officers";
+import attendanceSummarySlice from "./attendanceSummary";
 import attendancesSlice from "./sessionParticipation";
 import ballotParticipationSlice from "./ballotParticipation";
 import sessionAttendeesSlice from "./sessionAttendees";
+import sessionRegistratonSlice from "./sessionRegistration";
 import imatCommitteesSlice from "./imatCommittees";
 import sessionsSlice from "./sessions";
 import emailTemlatesSlice from "./emailTemplates";
@@ -41,9 +43,11 @@ const transformState = createTransform(
 			ieeeMembersSlice.name,
 			groupsSlice.name,
 			officersSlice.name,
+			attendanceSummarySlice.name,
 			attendancesSlice.name,
 			ballotParticipationSlice.name,
 			sessionAttendeesSlice.name,
+			sessionRegistratonSlice.name,
 			emailTemlatesSlice.name,
 			affliationMapSlice.name,
 		],
@@ -57,9 +61,11 @@ const appReducer = combineReducers({
 	[ieeeMembersSlice.name]: ieeeMembersSlice.reducer,
 	[sessionsSlice.name]: sessionsSlice.reducer,
 	[officersSlice.name]: officersSlice.reducer,
+	[attendanceSummarySlice.name]: attendanceSummarySlice.reducer,
 	[attendancesSlice.name]: attendancesSlice.reducer,
 	[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
 	[sessionAttendeesSlice.name]: sessionAttendeesSlice.reducer,
+	[sessionRegistratonSlice.name]: sessionRegistratonSlice.reducer,
 	[timeZonesSlice.name]: timeZonesSlice.reducer,
 	[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
 	[emailTemlatesSlice.name]: emailTemlatesSlice.reducer,
@@ -88,9 +94,11 @@ const persistConfig = {
 		ieeeMembersSlice.name,
 		sessionsSlice.name,
 		officersSlice.name,
+		attendanceSummarySlice.name,
 		attendancesSlice.name,
 		ballotParticipationSlice.name,
 		sessionAttendeesSlice.name,
+		sessionRegistratonSlice.name,
 		timeZonesSlice.name,
 		imatCommitteesSlice.name,
 		emailTemlatesSlice.name,

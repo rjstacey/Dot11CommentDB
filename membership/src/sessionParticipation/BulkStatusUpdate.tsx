@@ -19,10 +19,11 @@ import {
 	StatusType,
 	ExpectedStatusType,
 } from "../store/members";
+import { selectMostRecentAttendedSession } from "../store/sessions";
 import {
-	selectMostRecentAttendedSession,
-	selectAttendancesState,
-	selectAttendancesWithMembershipAndSummary,
+	selectSessionParticipationSelected,
+	selectSessionParticipationIds,
+	selectSessionParticipationWithMembershipAndSummary,
 } from "../store/sessionParticipation";
 import {
 	getBallotId,
@@ -129,8 +130,11 @@ function BulkStatusUpdateFormSession(props: DropdownRendererProps) {
 		recentSession.number || `id=${recentSession.id}`
 	} update`;
 	const defaultDate = recentSession.endDate;
-	const { ids, selected } = useAppSelector(selectAttendancesState);
-	const entities = useAppSelector(selectAttendancesWithMembershipAndSummary);
+	const selected = useAppSelector(selectSessionParticipationSelected);
+	const ids = useAppSelector(selectSessionParticipationIds);
+	const entities = useAppSelector(
+		selectSessionParticipationWithMembershipAndSummary
+	);
 
 	return (
 		<BulkStatusUpdateForm

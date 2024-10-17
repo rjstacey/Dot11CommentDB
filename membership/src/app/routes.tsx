@@ -23,6 +23,7 @@ import sessionParticipationRoute from "../sessionParticipation/route";
 import ballotParticipationRoute from "../ballotParticipation/route";
 import notificationRoute from "../notification/route";
 import affiliationMapRoute from "../affiliationMap/route";
+import { loadSessions } from "../store/sessions";
 
 /*
  * Routing loaders
@@ -49,6 +50,7 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 
 	dispatch(setTopLevelGroupId(group.id));
 	dispatch(loadGroups(groupName));
+	dispatch(loadSessions(groupName));
 	dispatch(loadIeeeMembers());
 	dispatch(loadMembers(groupName));
 	dispatch(loadOfficers(groupName));

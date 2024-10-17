@@ -151,10 +151,16 @@ export const selectRecentSessions = createSelector(
 	selectSessions,
 	(sessions) => {
 		const today = new Date();
-		return sessions.filter((s) => new Date(s.startDate) < today);
-		//.slice(0, 8);
+		return sessions
+			.filter((s) => new Date(s.startDate) < today)
+			.slice(0, 8);
 	}
 );
+
+export const selectMostRecentAttendedSession = (state: RootState) => {
+	const sessions = selectRecentSessions(state);
+	return sessions[0];
+};
 
 export const selectSession = (state: RootState, id: EntityId) =>
 	selectSessionEntities(state)[id];
@@ -167,15 +173,15 @@ function validSessions(sessions: any): sessions is Session[] {
 	return Array.isArray(sessions) && sessions.every(validSession);
 }
 
-let loadingPromise: Promise<Session[]> | undefined;
+let loadingPromise: Promise<null>;
 export const loadSessions =
-	(groupName: string): AppThunk<Session[]> =>
+	(groupName: string): AppThunk<null> =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const { loading, groupName: currentGroupName } =
 			selectSessionsState(state);
 		if (loading && currentGroupName === groupName) {
-			return loadingPromise!;
+			return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/sessions`;
@@ -185,15 +191,12 @@ export const loadSessions =
 				if (!validSessions(response))
 					throw new TypeError("Unexpected response to GET " + url);
 				dispatch(getSuccess(response));
-				return response;
+				return null;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get sessions", error));
-				return [];
-			})
-			.finally(() => {
-				loadingPromise = undefined;
+				return null;
 			});
-		return loadingPromise!;
+		return loadingPromise;
 	};

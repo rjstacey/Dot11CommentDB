@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { ActionButton, displayDateRange } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
-import { selectAttendanceSessions } from "../store/sessionParticipation";
+import { selectRecentSessions } from "../store/sessions";
 
 import BulkStatusUpdate from "./BulkStatusUpdate";
 import { SessionParticipationTableActions } from "./table";
 
 function SessionSummary() {
-	const sessions = useAppSelector(selectAttendanceSessions);
+	const sessions = useAppSelector(selectRecentSessions);
 
 	return (
 		<div

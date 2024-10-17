@@ -20,14 +20,14 @@ import {
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	fields,
-	setSelected,
-	selectAttendancesState,
-	selectAttendanceSessions,
-	attendancesSelectors,
-	attendancesActions,
+	sessionParticipationSelectors,
+	sessionParticipationActions,
+	selectSessionParticipationSelected,
+	setSessionParticipationSelected,
 	type MemberAttendances,
-	type SessionAttendanceSummary,
 } from "../store/sessionParticipation";
+import { selectRecentSessions } from "../store/sessions";
+import { SessionAttendanceSummary } from "../store/attendanceSummary";
 
 import { renderNameAndEmail } from "../members/table";
 import MemberDetail from "../members/MemberDetail";
@@ -51,7 +51,7 @@ const renderSessionAttendance = (
 			color: notRelevant ? "gray" : "unset",
 		}}
 	>
-		<span>{attendance.AttendancePercentage.toFixed(1) + "%"}</span>
+		<span>{(attendance.AttendancePercentage || 0).toFixed(1) + "%"}</span>
 		<span>
 			{attendance.DidAttend
 				? "Did attend"
@@ -71,8 +71,8 @@ const tableColumns: ColumnProperties[] = [
 		headerRenderer: SelectHeaderCell,
 		cellRenderer: (p) => (
 			<SelectCell
-				selectors={attendancesSelectors}
-				actions={attendancesActions}
+				selectors={sessionParticipationSelectors}
+				actions={sessionParticipationActions}
 				{...p}
 			/>
 		),
@@ -114,13 +114,13 @@ const tableColumns: ColumnProperties[] = [
 export const SessionParticipationTableActions = () => (
 	<>
 		<TableColumnSelector
-			selectors={attendancesSelectors}
-			actions={attendancesActions}
+			selectors={sessionParticipationSelectors}
+			actions={sessionParticipationActions}
 			columns={tableColumns}
 		/>
 		<SplitPanelButton
-			selectors={attendancesSelectors}
-			actions={attendancesActions}
+			selectors={sessionParticipationSelectors}
+			actions={sessionParticipationActions}
 		/>
 	</>
 );
@@ -128,8 +128,8 @@ export const SessionParticipationTableActions = () => (
 function SessionParticipationTable() {
 	const dispatch = useAppDispatch();
 
-	const { selected } = useAppSelector(selectAttendancesState);
-	const sessions = useAppSelector(selectAttendanceSessions);
+	const selected = useAppSelector(selectSessionParticipationSelected);
+	const sessions = useAppSelector(selectRecentSessions);
 
 	const columns = React.useMemo(() => {
 		return tableColumns.concat(
@@ -173,33 +173,35 @@ function SessionParticipationTable() {
 				style={{ display: "flex", width: "100%", alignItems: "center" }}
 			>
 				<ShowFilters
-					selectors={attendancesSelectors}
-					actions={attendancesActions}
+					selectors={sessionParticipationSelectors}
+					actions={sessionParticipationActions}
 					fields={fields}
 				/>
 				<GlobalFilter
-					selectors={attendancesSelectors}
-					actions={attendancesActions}
+					selectors={sessionParticipationSelectors}
+					actions={sessionParticipationActions}
 				/>
 			</div>
 
 			<SplitPanel
-				selectors={attendancesSelectors}
-				actions={attendancesActions}
+				selectors={sessionParticipationSelectors}
+				actions={sessionParticipationActions}
 			>
 				<Panel>
 					<AppTable
 						columns={columns}
 						headerHeight={40}
 						estimatedRowHeight={50}
-						selectors={attendancesSelectors}
-						actions={attendancesActions}
+						selectors={sessionParticipationSelectors}
+						actions={sessionParticipationActions}
 					/>
 				</Panel>
 				<Panel className="details-panel">
 					<MemberDetail
 						selected={selected}
-						setSelected={(ids) => dispatch(setSelected(ids))}
+						setSelected={(ids) =>
+							dispatch(setSessionParticipationSelected(ids))
+						}
 					/>
 				</Panel>
 			</SplitPanel>

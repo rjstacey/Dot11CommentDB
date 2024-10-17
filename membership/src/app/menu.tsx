@@ -7,7 +7,7 @@ import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import { selectTopLevelGroupByName } from "../store/groups";
 
-import { selectSessionAttendeesSessionNumber } from "../store/sessionAttendees";
+import { selectSessionAttendeesSession } from "../store/sessionAttendees";
 
 type MenuItem = {
 	link: string;
@@ -19,7 +19,7 @@ function useMenuLinks() {
 	const group = useAppSelector((state) =>
 		selectTopLevelGroupByName(state, groupName)
 	);
-	const sessionNumber = useAppSelector(selectSessionAttendeesSessionNumber);
+	const session = useAppSelector(selectSessionAttendeesSession);
 
 	// Only display links for which the use has permissions
 	// Replace params with the current setting
@@ -59,7 +59,7 @@ function useMenuLinks() {
 			menu.push({
 				link:
 					`/${group.name}/sessionAttendance` +
-					(sessionNumber ? `/${sessionNumber}` : ""),
+					(session?.number ? `/${session.number}` : ""),
 				label: "Session attendance",
 			});
 			menu.push({
@@ -76,7 +76,7 @@ function useMenuLinks() {
 		}
 
 		return menu;
-	}, [group, sessionNumber]);
+	}, [group, session]);
 }
 
 function Menu({

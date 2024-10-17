@@ -102,7 +102,7 @@ const renderDate = (value: any) =>
 		<i>{BLANK_STR}</i>
 	);
 
-function MemberDetailInfo({
+export function MemberDetailInfo({
 	sapin,
 	member,
 	saved,
@@ -224,9 +224,10 @@ function ExpandingInput({
 	);
 }
 
-const emailPattern = "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2}";
+export const emailPattern =
+	"[A-Za-z0-9.\\-_%+]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}";
 
-function MemberBasicInfo({
+export function MemberBasicInfo({
 	sapins,
 	member,
 	saved,

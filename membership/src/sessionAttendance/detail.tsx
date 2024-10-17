@@ -1,4 +1,5 @@
 import React from "react";
+import { EntityId } from "@reduxjs/toolkit";
 import isEqual from "lodash.isequal";
 
 import {
@@ -6,8 +7,17 @@ import {
 	deepMergeTagMultiple,
 	deepDiff,
 	deepMerge,
+	shallowDiff,
+	Form,
+	Row,
+	Field,
+	Checkbox,
+	isMultiple,
+	type Multiple,
+	MULTIPLE,
 } from "dot11-components";
 
+import type { AppThunk } from "../store";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import {
@@ -20,20 +30,39 @@ import {
 	memberContactInfoEmpty,
 	StatusChangeType,
 } from "../store/members";
+import { selectSessionByNumber } from "../store/sessions";
 import {
 	setSelected,
 	selectSessionAttendeesState,
 	SessionAttendee,
+	selectSessionAttendeesSelected,
+	selectSessionAttendeesEntities,
 } from "../store/sessionAttendees";
+import {
+	getNullAttendanceSummary,
+	isNullAttendanceSummary,
+	selectAttendanceSummaryEntitiesForSession,
+	updateAttendanceSummaries,
+	addAttendanceSummaries,
+	deleteAttendanceSummaries,
+	SessionAttendanceSummary,
+	SessionAttendanceSummaryChanges,
+	SessionAttendanceSummaryCreate,
+	SessionAttendanceSummaryUpdate,
+} from "../store/attendanceSummary";
 
 import {
-	MemberEntryForm,
+	MemberBasicInfo,
+	MemberDetailInfo,
+	emailPattern,
 	useMembersAdd,
 	useMembersUpdate,
 	type MultipleMember,
 	type EditAction,
 } from "../members/MemberEdit";
+
 import ShowAccess from "../components/ShowAccess";
+import { useParams } from "react-router-dom";
 
 /** Identify changes to an existing member */
 function sessionAttendeeMemberChanges(
@@ -98,38 +127,313 @@ function sessionAttendeeToNewMember(attendee: SessionAttendee) {
 	return member;
 }
 
+function renderAttendancePercentage(pct: typeof MULTIPLE | null | number) {
+	return isMultiple(pct) ? (
+		<i>(Multiple)</i>
+	) : pct === null ? (
+		<i>(Blank)</i>
+	) : (
+		pct.toFixed(1) + "%"
+	);
+}
+
+function AttendanceInfo({
+	attendance,
+	savedAttendance,
+	updateAttendance,
+}: {
+	attendance: MultipleSessionAttendanceSummary;
+	savedAttendance: MultipleSessionAttendanceSummary;
+	updateAttendance: (changes: SessionAttendanceSummaryChanges) => void;
+}) {
+	return (
+		<>
+			<Row>
+				<Field label="Registration:">
+					<div style={{ display: "flex", alignItems: "center" }}>
+						<div
+							style={{
+								display: "flex",
+								alignItems: "center",
+								marginRight: 20,
+							}}
+						>
+							<Checkbox
+								id="isregistered"
+								checked={!!attendance.IsRegistered}
+								indeterminate={isMultiple(
+									attendance.IsRegistered
+								)}
+								onChange={(e) =>
+									updateAttendance({
+										IsRegistered: e.target.checked,
+									})
+								}
+							/>
+							<label htmlFor="isregistered">Registered</label>
+						</div>
+						<div
+							style={{
+								display: "flex",
+								alignItems: "center",
+							}}
+						>
+							<Checkbox
+								id="inperson"
+								checked={!!attendance.InPerson}
+								indeterminate={isMultiple(attendance.InPerson)}
+								onChange={(e) =>
+									updateAttendance({
+										InPerson: e.target.checked,
+									})
+								}
+							/>
+							<label htmlFor="inperson">In-person</label>
+						</div>
+					</div>
+				</Field>
+			</Row>
+			<Row>
+				<Field label="IMAT recorded attendance:">
+					{renderAttendancePercentage(
+						attendance.AttendancePercentage
+					)}
+				</Field>
+			</Row>
+			<Row>
+				<Field label="Attendance override:">
+					<div style={{ display: "flex", alignItems: "center" }}>
+						<div
+							style={{
+								display: "flex",
+								alignItems: "center",
+								marginRight: 20,
+							}}
+						>
+							<Checkbox
+								id="didattend"
+								checked={!!attendance.DidAttend}
+								indeterminate={isMultiple(attendance.DidAttend)}
+								onChange={(e) =>
+									updateAttendance({
+										DidAttend: e.target.checked,
+									})
+								}
+							/>
+							<label htmlFor="didattend">Did attend</label>
+						</div>
+						<div style={{ display: "flex", alignItems: "center" }}>
+							<Checkbox
+								id="didnotattend"
+								checked={!!attendance.DidNotAttend}
+								indeterminate={isMultiple(
+									attendance.DidNotAttend
+								)}
+								onChange={(e) =>
+									updateAttendance({
+										DidNotAttend: e.target.checked,
+									})
+								}
+							/>
+							<label htmlFor="didnotattend">Did not attend</label>
+						</div>
+					</div>
+				</Field>
+			</Row>
+		</>
+	);
+}
+
+export function MemberEntryForm({
+	action,
+	sapins,
+	member,
+	saved,
+	updateMember,
+	attendance,
+	savedAttendance,
+	updateAttendance,
+	add,
+	update,
+	cancel,
+	readOnly,
+	basicOnly,
+}: {
+	add: () => void;
+	update: () => void;
+	cancel: () => void;
+	action: EditAction;
+	sapins: number[];
+	member: MultipleMember;
+	saved?: MultipleMember;
+	updateMember: (changes: Partial<Member>) => void;
+	attendance: MultipleSessionAttendanceSummary;
+	savedAttendance: MultipleSessionAttendanceSummary;
+	updateAttendance: (changes: SessionAttendanceSummaryChanges) => void;
+	readOnly?: boolean;
+	basicOnly?: boolean;
+}) {
+	let errMsg = "";
+	if (!member.SAPIN) errMsg = "SA PIN not set";
+	else if (!member.Name) errMsg = "Name not set";
+	else if (!member.LastName) errMsg = "Family name not set";
+	else if (!member.FirstName) errMsg = "Given name not set";
+	else if (!new RegExp(emailPattern).test(member.Email))
+		errMsg = "Invalid email address";
+
+	let submitForm, cancelForm, submitLabel;
+	if (action === "add") {
+		submitLabel = "Add";
+		submitForm = async () => {
+			if (errMsg) {
+				ConfirmModal.show("Fix error: " + errMsg, false);
+				return;
+			}
+			add();
+		};
+		cancelForm = cancel;
+	} else if (action === "update") {
+		submitLabel = "Update";
+		submitForm = async () => {
+			if (errMsg) {
+				ConfirmModal.show("Fix error: " + errMsg, false);
+				return;
+			}
+			update();
+		};
+		cancelForm = cancel;
+	}
+
+	function changeMember(changes: Partial<Member>) {
+		let name =
+			member.FirstName +
+			(member.MI ? ` ${member.MI} ` : " ") +
+			member.LastName;
+		if (
+			("LastName" in changes ||
+				"FirstName" in changes ||
+				"MI" in changes) &&
+			member.Name === name
+		) {
+			const LastName =
+				"LastName" in changes ? changes.LastName : member.LastName;
+			const MI = "MI" in changes ? changes.MI : member.MI;
+			const FirstName =
+				"FirstName" in changes ? changes.FirstName : member.FirstName;
+			changes.Name = FirstName + (MI ? ` ${MI} ` : " ") + LastName;
+		}
+		updateMember(changes);
+	}
+
+	return (
+		<Form
+			className="main"
+			submitLabel={submitLabel}
+			submit={submitForm}
+			cancel={cancelForm}
+			errorText={errMsg}
+		>
+			<MemberBasicInfo
+				sapins={action === "add" ? [member.SAPIN as number] : sapins}
+				member={member}
+				saved={saved}
+				updateMember={changeMember}
+				readOnly={readOnly}
+				basicOnly={basicOnly}
+			/>
+			<AttendanceInfo
+				attendance={attendance}
+				savedAttendance={savedAttendance}
+				updateAttendance={updateAttendance}
+			/>
+			{sapins.length <= 1 && (
+				<Row>
+					<MemberDetailInfo
+						sapin={sapins[0]}
+						member={member}
+						saved={saved}
+						updateMember={updateMember}
+						readOnly={readOnly}
+						basicOnly={basicOnly || action === "add"}
+					/>
+				</Row>
+			)}
+		</Form>
+	);
+}
+
+export function useAttendanceUpdate() {
+	const dispatch = useAppDispatch();
+	return async (
+		edited: MultipleSessionAttendanceSummary,
+		saved: MultipleSessionAttendanceSummary,
+		attendances: SessionAttendanceSummary[]
+	) => {
+		const changes = shallowDiff(
+			saved,
+			edited
+		) as SessionAttendanceSummaryChanges;
+		const p: AppThunk[] = [];
+		const updates: SessionAttendanceSummaryUpdate[] = [];
+		const adds: SessionAttendanceSummaryCreate[] = [];
+		const deletes: EntityId[] = [];
+		if (Object.keys(changes).length > 0) {
+			for (const a of attendances) {
+				const entry = { ...a, ...changes };
+				if (entry.id) {
+					if (isNullAttendanceSummary(a)) deletes.push(entry.id);
+					else updates.push({ id: entry.id, changes });
+				} else {
+					adds.push(a);
+				}
+			}
+			if (adds.length > 0) p.push(addAttendanceSummaries(adds));
+			if (updates.length > 0) p.push(updateAttendanceSummaries(updates));
+			if (deletes.length > 0) p.push(deleteAttendanceSummaries(deletes));
+		}
+		await Promise.all(p.map(dispatch));
+	};
+}
+
+type MultipleSessionAttendanceSummary = Multiple<SessionAttendanceSummary>;
+
 type MemberAttendanceDetailState = {
 	action: EditAction;
-	edited: MultipleMember | null;
-	created: MultipleMember | null;
-	saved: MultipleMember | null;
-	originals: MemberAdd[];
+	editedMember: MultipleMember | null;
+	createdMember: MultipleMember | null;
+	savedMember: MultipleMember | null;
+	members: MemberAdd[];
+	editedAttendance: MultipleSessionAttendanceSummary | null;
+	savedAttendance: MultipleSessionAttendanceSummary | null;
+	attendances: SessionAttendanceSummary[];
 	message: string;
 };
 
 export function MemberAttendanceDetail() {
 	const dispatch = useAppDispatch();
+	const sessionNumber = Number(useParams().sessionNumber);
+	const session = useAppSelector((state) =>
+		selectSessionByNumber(state, sessionNumber)
+	)!;
 
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 
+	const attendeeEntities = useAppSelector(selectSessionAttendeesEntities);
 	const memberEntities = useAppSelector(selectMemberEntities);
-	const {
-		loading,
-		valid,
-		selected: selectedAll,
-		entities,
-	} = useAppSelector(selectSessionAttendeesState);
-	let selected = React.useMemo(
-		() => selectedAll.filter((id) => Boolean(entities[id])),
-		[selectedAll, entities]
+	const { loading, valid } = useAppSelector(selectSessionAttendeesState);
+	const selected = useAppSelector(selectSessionAttendeesSelected);
+	const attendanceSummaryEntities = useAppSelector((state) =>
+		selectAttendanceSummaryEntitiesForSession(state, session.id)
 	);
 
 	const initState = React.useCallback((): MemberAttendanceDetailState => {
 		let action: EditAction = "view",
-			edited: MultipleMember | null = null,
-			saved: MultipleMember | null = null,
-			originals: MemberAdd[] = [],
+			editedMember: MultipleMember | null = null,
+			savedMember: MultipleMember | null = null,
+			members: MemberAdd[] = [],
+			editedAttendance: MultipleSessionAttendanceSummary | null = null,
+			attendances: SessionAttendanceSummary[] = [],
 			message: string = "";
 
 		if (loading && !valid) {
@@ -140,72 +444,85 @@ export function MemberAttendanceDetail() {
 			// All selected are existing members
 			for (const sapin of selected as number[]) {
 				const member = memberEntities[sapin]!;
-				const attendee = entities[sapin];
-				if (!attendee) {
-					console.warn("Can't get attendee with SAPIN=" + sapin);
-					message = "Invalid selection";
-					continue;
-				}
+				const attendee = attendeeEntities[sapin];
+				if (!attendee) throw new Error("Invalid selection");
 				const changes = sessionAttendeeMemberChanges(member, attendee);
-				edited = deepMergeTagMultiple(
-					edited || {},
+				editedMember = deepMergeTagMultiple(
+					editedMember || {},
 					deepMerge(member, changes)
 				) as MultipleMember;
-				saved = deepMergeTagMultiple(
-					saved || {},
+				savedMember = deepMergeTagMultiple(
+					savedMember || {},
 					member
 				) as MultipleMember;
-				originals.push(member);
+				members.push(member);
+
+				const attendanceSummary =
+					attendanceSummaryEntities[sapin] ||
+					getNullAttendanceSummary(session.id, sapin);
+				editedAttendance = deepMergeTagMultiple(
+					editedAttendance || {},
+					attendanceSummary
+				) as MultipleSessionAttendanceSummary;
+				attendances.push(attendanceSummary);
 			}
-			if (isEqual(edited, saved)) {
-				saved = edited;
-			} else if (edited) {
+			if (isEqual(editedMember, savedMember)) {
+				savedMember = editedMember;
+			} else if (editedMember) {
 				action = "update";
 			}
 		} else if (selected.every((id) => !Boolean(memberEntities[id]))) {
 			// All selected are new attendees
 			action = "add";
 			for (const sapin of selected as number[]) {
-				const attendee = entities[sapin];
-				if (!attendee) {
-					console.warn("Can't get attendee with SAPIN=" + sapin);
-					continue;
-				}
+				const attendee = attendeeEntities[sapin];
+				if (!attendee) throw new Error("Invalid selection");
 				const newMember = sessionAttendeeToNewMember(attendee);
-				edited = deepMergeTagMultiple(
-					edited || {},
+				editedMember = deepMergeTagMultiple(
+					editedMember || {},
 					newMember
 				) as MultipleMember;
-				originals.push(newMember);
+				members.push(newMember);
 			}
-			saved = edited;
+			savedMember = editedMember;
 		} else {
 			message = "Mix of new attendees and existing members selected";
 		}
 
 		return {
 			action,
-			edited,
-			created: edited,
-			saved,
-			originals,
+			editedMember,
+			createdMember: editedMember,
+			savedMember,
+			members,
+			editedAttendance,
+			savedAttendance: editedAttendance,
+			attendances,
 			message,
-		};
-	}, [loading, valid, selected, entities, memberEntities]);
+		} satisfies MemberAttendanceDetailState;
+	}, [
+		loading,
+		valid,
+		selected,
+		attendeeEntities,
+		memberEntities,
+		attendanceSummaryEntities,
+		session,
+	]);
 
 	const [state, setState] =
 		React.useState<MemberAttendanceDetailState>(initState);
 
 	React.useEffect(() => {
-		const { action, edited, created, originals } = state;
-		const ids = originals.map((m) => m.SAPIN);
+		const { action, editedMember, createdMember, members } = state;
+		const ids = members.map((m) => m.SAPIN);
 		if (action === "view" && selected.join() !== ids.join()) {
 			setState(initState);
 		} else if (
 			(action === "update" || action === "add") &&
 			selected.join() !== ids.join()
 		) {
-			if (edited === created) {
+			if (editedMember === createdMember) {
 				// No edits made
 				setState(initState);
 				return;
@@ -219,51 +536,107 @@ export function MemberAttendanceDetail() {
 		}
 	}, [state, selected, loading, valid, setState, initState, dispatch]);
 
-	const updateMember = (changes: Partial<Member>) => {
-		if (readOnly || state.edited === null || state.saved === null) {
+	const changeMember = (changes: Partial<Member>) => {
+		if (
+			readOnly ||
+			state.editedMember === null ||
+			state.savedMember === null
+		) {
 			console.warn("Update with unexpected state");
 			return;
 		}
 		setState((state) => {
-			let { action, edited, saved } = state;
-			edited = { ...edited!, ...changes };
-			if (isEqual(edited, saved)) {
-				if (action !== "add") action = "view";
-				edited = saved!;
+			let {
+				action,
+				editedMember,
+				savedMember,
+				editedAttendance,
+				savedAttendance,
+			} = state;
+			editedMember = { ...editedMember!, ...changes };
+			if (isEqual(editedMember, savedMember)) {
+				if (action !== "add" && editedAttendance === savedAttendance)
+					action = "view";
+				editedMember = savedMember!;
 			} else {
 				if (action !== "add") action = "update";
 			}
 			return {
 				...state,
 				action,
-				edited,
-				saved,
+				editedMember,
+				savedMember,
 			};
+		});
+	};
+
+	const changeAttendance = (changes: SessionAttendanceSummaryChanges) => {
+		if (readOnly || state.editedAttendance === null) {
+			throw new Error("Update with unexpected state");
+		}
+		setState((state) => {
+			let {
+				action,
+				editedMember,
+				savedMember,
+				editedAttendance,
+				savedAttendance,
+			} = state;
+			editedAttendance = { ...editedAttendance!, ...changes };
+			if (isEqual(editedAttendance, savedAttendance)) {
+				if (action !== "add" && editedMember === savedMember)
+					action = "view";
+				editedAttendance = savedAttendance!;
+			} else {
+				if (action !== "add") action = "update";
+			}
+			return {
+				...state,
+				action,
+				editedAttendance,
+				savedAttendance,
+			} satisfies MemberAttendanceDetailState;
 		});
 	};
 
 	const membersAdd = useMembersAdd();
 
 	const add = async () => {
-		const { action, edited, saved, originals } = state;
-		if (action !== "add" || edited === null || saved === null) {
+		const { action, editedMember, savedMember, members } = state;
+		if (action !== "add" || editedMember === null || savedMember === null) {
 			console.warn("Add with unexpected state");
 			return;
 		}
-		const ids = await membersAdd(edited, saved, originals);
+		const ids = await membersAdd(editedMember, savedMember, members);
 		dispatch(setSelected(ids));
 		setState(initState);
 	};
 
 	const membersUpdate = useMembersUpdate();
+	const attendanceUpdate = useAttendanceUpdate();
 
 	const update = async () => {
-		const { action, edited, saved, originals } = state;
-		if (action !== "update" || edited === null || saved === null) {
+		const {
+			action,
+			editedMember,
+			savedMember,
+			members,
+			editedAttendance,
+			savedAttendance,
+			attendances,
+		} = state;
+		if (
+			action !== "update" ||
+			editedMember === null ||
+			savedMember === null ||
+			editedAttendance === null ||
+			savedAttendance === null
+		) {
 			console.warn("Update with unexpected state");
 			return;
 		}
-		await membersUpdate(edited, saved, originals);
+		await membersUpdate(editedMember, savedMember, members);
+		await attendanceUpdate(editedAttendance, savedAttendance, attendances);
 		setState(initState);
 	};
 
@@ -273,9 +646,9 @@ export function MemberAttendanceDetail() {
 
 	let title: string;
 	if (state.action === "add") {
-		title = "Add member" + (state.originals.length > 1 ? "s" : "");
+		title = "Add member" + (state.members.length > 1 ? "s" : "");
 	} else if (state.action === "update") {
-		title = "Update member" + (state.originals.length > 1 ? "s" : "");
+		title = "Update member" + (state.members.length > 1 ? "s" : "");
 	} else {
 		title = "Member detail";
 	}
@@ -292,10 +665,15 @@ export function MemberAttendanceDetail() {
 			) : (
 				<MemberEntryForm
 					action={state.action}
-					sapins={state.originals.map((m) => m.SAPIN)}
-					member={state.edited!}
-					saved={state.action !== "add" ? state.saved! : undefined}
-					updateMember={updateMember}
+					sapins={state.members.map((m) => m.SAPIN)}
+					member={state.editedMember!}
+					saved={
+						state.action !== "add" ? state.savedMember! : undefined
+					}
+					updateMember={changeMember}
+					attendance={state.editedAttendance!}
+					savedAttendance={state.savedAttendance!}
+					updateAttendance={changeAttendance}
 					add={add}
 					update={update}
 					cancel={cancel}

@@ -10,13 +10,20 @@ import {
 } from "dot11-components";
 
 import type { RootState } from "../store";
+import { selectMemberAttendanceStats } from "../store/sessionParticipation";
 import {
-	selectAttendancesEntities,
-	selectMemberAttendanceStats,
-	selectAttendanceSessionIds,
-	updateAttendances,
-	type SessionAttendanceSummary,
-} from "../store/sessionParticipation";
+	selectMemberAttendances,
+	selectAttendanceSummarySessionIds,
+	updateAttendanceSummaries,
+	getNullAttendanceSummary,
+	SessionAttendanceSummary,
+	MemberSessionAttendanceSummaries,
+	isNullAttendanceSummary,
+	SessionAttendanceSummaryCreate,
+	SessionAttendanceSummaryUpdate,
+	addAttendanceSummaries,
+	deleteAttendanceSummaries,
+} from "../store/attendanceSummary";
 import { selectSessionEntities, Session } from "../store/sessions";
 
 import styles from "../sessionAttendance/sessionAttendance.module.css";
@@ -40,36 +47,36 @@ function renderSessionSummary(session: Session | undefined) {
 	`;
 }
 
-const nullAttendance = (session_id: number, SAPIN: number) => ({
-	id: 0,
-	session_id,
-	AttendancePercentage: 0,
-	DidAttend: false,
-	DidNotAttend: false,
-	Notes: "",
-	SAPIN,
-	CurrentSAPIN: SAPIN,
-});
-
 const headings = ["Session", "Attendance", "Notes"];
 
+function useSessionAttendances(SAPIN: number) {
+	const sessionIds = useAppSelector(selectAttendanceSummarySessionIds);
+	const membersAttendances = useAppSelector(selectMemberAttendances);
+
+	return React.useMemo(() => {
+		const session_ids = sessionIds as number[];
+		const attendances = membersAttendances[SAPIN] || {};
+
+		return {
+			session_ids,
+			attendances,
+		};
+	}, [SAPIN, sessionIds, membersAttendances]);
+}
+
 export function useRenderSessionAttendances() {
-	const sessionIds = useAppSelector(selectAttendanceSessionIds);
+	const sessionIds = useAppSelector(selectAttendanceSummarySessionIds);
 	const sessionEntities = useAppSelector(selectSessionEntities);
-	const attendancesEntities = useAppSelector(selectAttendancesEntities);
+	const membersAttendances = useAppSelector(selectMemberAttendances);
 
 	return React.useCallback(
 		(SAPIN: number) => {
-			const session_ids = sessionIds.slice().reverse() as number[];
+			const session_ids = sessionIds as number[];
 			const values = session_ids.map((id) => {
 				const session = sessionEntities[id]!;
-				const sessionAttendances =
-					attendancesEntities[SAPIN]?.sessionAttendanceSummaries ||
-					[];
-				let a =
-					sessionAttendances.find(
-						(a) => a.session_id === session.id
-					) || nullAttendance(session.id, SAPIN);
+				const attendances = membersAttendances[SAPIN];
+				let a = attendances[id] || getNullAttendanceSummary(id, SAPIN);
+
 				let notes = "";
 				if (a.DidAttend) notes = "Override: did attend";
 				else if (a.DidNotAttend) notes = "Override: did not attend";
@@ -77,54 +84,18 @@ export function useRenderSessionAttendances() {
 					if (notes) notes += "; ";
 					notes += `Attended using SAPIN=${a.SAPIN}`;
 				}
+
 				return [
 					renderSessionSummary(session),
-					a.AttendancePercentage.toFixed(1) + "%",
+					(a.AttendancePercentage || 0).toFixed(1) + "%",
 					notes,
 				];
 			});
 
 			return renderTable(headings, values);
 		},
-		[sessionIds, sessionEntities, attendancesEntities]
+		[sessionIds, sessionEntities, membersAttendances]
 	);
-}
-
-export function useSessionAttendances(SAPIN: number) {
-	const sessionIds = useAppSelector(selectAttendanceSessionIds);
-	const attendancesEntities = useAppSelector(selectAttendancesEntities);
-
-	return React.useMemo(() => {
-		const session_ids = sessionIds.slice().reverse() as number[];
-		const attendances: Record<number, SessionAttendanceSummary> = {};
-		for (const session_id of session_ids) {
-			const sessionAttendances =
-				attendancesEntities[SAPIN]?.sessionAttendanceSummaries || [];
-			let a = sessionAttendances.find((a) => a.session_id === session_id);
-			if (!a) {
-				// No entry for this session; generate a "null" entry
-				a = {
-					id: 0,
-					session_id,
-					AttendancePercentage: 0,
-					IsRegistered: false,
-					InPerson: false,
-					DidAttend: false,
-					DidNotAttend: false,
-					Notes: "",
-					SAPIN,
-					CurrentSAPIN: SAPIN,
-				};
-			}
-			attendances[session_id] = a;
-		}
-
-		return {
-			SAPIN,
-			session_ids,
-			attendances,
-		};
-	}, [SAPIN, sessionIds, attendancesEntities]);
 }
 
 const attendancesColumns: TableColumn[] = [
@@ -175,13 +146,12 @@ function MemberAttendances({
 
 	const { session_ids, attendances } = useSessionAttendances(SAPIN);
 
-	const [editedSAPIN, setEditedSAPIN] = React.useState<number>(SAPIN);
 	const [editedSessionIds, setEditedSessionIds] =
 		React.useState<number[]>(session_ids);
 	const [editedAttendances, setEditedAttendances] =
-		React.useState<Record<number, SessionAttendanceSummary>>(attendances);
+		React.useState<MemberSessionAttendanceSummaries>(attendances);
 	const [savedAttendances, setSavedAttendances] =
-		React.useState<Record<number, SessionAttendanceSummary>>(attendances);
+		React.useState<MemberSessionAttendanceSummaries>(attendances);
 
 	const selectAttendanceStats = React.useCallback(
 		(state: RootState) => selectMemberAttendanceStats(state, SAPIN),
@@ -190,34 +160,44 @@ function MemberAttendances({
 	const { count, total } = useAppSelector(selectAttendanceStats);
 
 	const values = editedSessionIds.map(
-		(session_id) => editedAttendances[session_id]
+		(session_id) =>
+			editedAttendances[session_id] ||
+			getNullAttendanceSummary(session_id, SAPIN)
 	);
 
 	const triggerSave = useDebounce(() => {
-		const updates = [];
+		const updates: SessionAttendanceSummaryUpdate[] = [];
+		const adds: SessionAttendanceSummaryCreate[] = [];
+		const deletes: number[] = [];
 		for (const session_id of editedSessionIds) {
 			const changes = shallowDiff(
 				savedAttendances[session_id],
 				editedAttendances[session_id]
 			) as Partial<SessionAttendanceSummary>;
-			if (Object.keys(changes).length > 0)
-				updates.push({ session_id, changes });
+			if (Object.keys(changes).length > 0) {
+				const updated = { ...savedAttendances[session_id], changes };
+				if (updated.id) {
+					if (isNullAttendanceSummary(updated))
+						deletes.push(updated.id);
+					else updates.push({ id: updated.id, changes });
+				} else if (!isNullAttendanceSummary(updated)) {
+					adds.push(updated);
+				}
+			}
 		}
-		if (updates.length > 0)
-			dispatch(updateAttendances(editedSAPIN, updates));
+		if (adds.length > 0) dispatch(addAttendanceSummaries(adds));
+		if (updates.length > 0) dispatch(updateAttendanceSummaries(updates));
+		if (deletes.length > 0) dispatch(deleteAttendanceSummaries(deletes));
 		setSavedAttendances(editedAttendances);
 	});
 
 	React.useEffect(() => {
-		setEditedSAPIN(SAPIN);
 		setEditedSessionIds(session_ids);
 		setEditedAttendances(attendances);
 		setSavedAttendances(attendances);
 	}, [
-		SAPIN,
 		session_ids,
 		attendances,
-		setEditedSAPIN,
 		setEditedSessionIds,
 		setEditedAttendances,
 		setSavedAttendances,
@@ -260,7 +240,7 @@ function MemberAttendances({
 				renderCell = (entry) => renderSessionSummary(entry.session_id);
 			if (col.key === "AttendancePercentage")
 				renderCell = (entry) =>
-					`${entry.AttendancePercentage.toFixed(0)}%`;
+					`${(entry.AttendancePercentage || 0).toFixed(0)}%`;
 			if (col.key === "IsRegistered") {
 				renderCell = (entry) => (
 					<Checkbox

@@ -3,7 +3,7 @@ import { LoaderFunction } from "react-router-dom";
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
 import { selectTopLevelGroupByName } from "../store/groups";
-import { loadAttendances } from "../store/sessionParticipation";
+import { loadRecentAttendanceSummaries } from "../store/attendanceSummary";
 import { loadBallotParticipation } from "../store/ballotParticipation";
 import { loadAffiliationMap } from "../store/affiliationMap";
 
@@ -23,7 +23,7 @@ export const membersLoader: LoaderFunction = async ({ params }) => {
 		throw new Error("You don't have permission to view this data");
 
 	// We have already loaded the members, but we need participation
-	dispatch(loadAttendances(groupName));
+	dispatch(loadRecentAttendanceSummaries(groupName));
 	dispatch(loadBallotParticipation(groupName));
 	dispatch(loadAffiliationMap(groupName));
 

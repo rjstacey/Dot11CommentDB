@@ -31,7 +31,7 @@ import {
 	membersActions,
 	type Member,
 } from "../store/members";
-import { selectMostRecentAttendedSession } from "../store/sessionParticipation";
+import { selectMostRecentAttendedSession } from "../store/sessions";
 import { selectMostRecentBallotSeries } from "../store/ballotParticipation";
 
 import NotificationEmail from "./NotificationEmail";

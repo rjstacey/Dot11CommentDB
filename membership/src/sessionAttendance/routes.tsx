@@ -8,6 +8,8 @@ import { loadSessionAttendees } from "../store/sessionAttendees";
 import SessionAttendanceLayout from "./layout";
 import SessionAttendanceTable from "./table";
 import SessionAttendanceChart from "./chart";
+import SessionRegistration from "./sessionRegistration";
+import { loadRecentAttendanceSummaries } from "../store/attendanceSummary";
 
 const sessionAttendanceLoader: LoaderFunction = async ({ params, request }) => {
 	const { groupName, sessionNumber } = params;
@@ -29,6 +31,7 @@ const sessionAttendanceLoader: LoaderFunction = async ({ params, request }) => {
 			loadSessionAttendees(groupName, Number(sessionNumber), useDaily)
 		);
 	}
+	dispatch(loadRecentAttendanceSummaries(groupName));
 
 	return null;
 };
@@ -47,6 +50,10 @@ const route = {
 				{
 					path: "chart",
 					element: <SessionAttendanceChart />,
+				},
+				{
+					path: "registration",
+					element: <SessionRegistration />,
 				},
 			],
 		},

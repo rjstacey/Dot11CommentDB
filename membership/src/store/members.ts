@@ -13,7 +13,7 @@ import {
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
-import { selectAttendancesWithMembershipAndSummary } from "./sessionParticipation";
+import { selectSessionParticipationWithMembershipAndSummary } from "./sessionParticipation";
 import { selectBallotParticipationWithMembershipAndSummary } from "./ballotParticipation";
 import { selectTopLevelGroupByName } from "./groups";
 import { AccessLevel } from "./user";
@@ -210,7 +210,9 @@ export const clearMembers = createAction(dataSet + "/clear");
 export { setSelected, setUiProperties };
 
 /* Selectors */
-export const selectMembersState = (state: RootState) => state[dataSet];
+export function selectMembersState(state: RootState) {
+	return state[dataSet];
+}
 export const selectMemberIds = (state: RootState) =>
 	selectMembersState(state).ids;
 export function selectMemberEntities(state: RootState) {
@@ -247,7 +249,7 @@ export const selectAllMembers = createSelector(
 );
 
 export const selectMemberWithParticipationSummary = createSelector(
-	selectAttendancesWithMembershipAndSummary,
+	selectSessionParticipationWithMembershipAndSummary,
 	selectBallotParticipationWithMembershipAndSummary,
 	selectMemberIds,
 	selectMemberEntities,

@@ -30,7 +30,7 @@ import {
 } from "../store/emailTemplates";
 import { sendEmail, type Email } from "../store/emailSend";
 import { selectMembersState, type Member } from "../store/members";
-import { selectMostRecentAttendedSession } from "../store/sessionParticipation";
+import { selectMostRecentAttendedSession } from "../store/sessions";
 import { type Session } from "../store/sessions";
 import { selectUser, type User } from "../store/user";
 import { useParams } from "react-router-dom";

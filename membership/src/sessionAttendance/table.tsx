@@ -166,6 +166,14 @@ export const tableColumns: ColumnProperties[] = [
 		dataRenderer: (d: boolean) => (d ? "Registered" : ""),
 	},
 	{
+		key: "RegMatch",
+		label: "Reg found",
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+		dataRenderer: (d: boolean) => (d ? "YES" : "NO"),
+	},
+	{
 		key: "Notes",
 		label: "Notes",
 		width: 150,
