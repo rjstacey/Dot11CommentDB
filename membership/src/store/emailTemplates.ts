@@ -24,6 +24,7 @@ type ExtraState = {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
+	lastLoad: string | null;
 };
 
 const dataAdapter = createEntityAdapter<EmailTemplate>();
@@ -31,6 +32,7 @@ const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
 	groupName: null,
+	lastLoad: null,
 });
 const dataSet = "emailTemplates";
 const slice = createSlice({
@@ -40,6 +42,7 @@ const slice = createSlice({
 		getPending(state, action: PayloadAction<{ groupName: string }>) {
 			const { groupName } = action.payload;
 			state.loading = true;
+			state.lastLoad = new Date().toISOString();
 			if (state.groupName !== groupName) {
 				state.groupName = groupName;
 				dataAdapter.removeAll(state);
@@ -65,6 +68,11 @@ export default slice;
  * Selector
  */
 export const selectEmailTemplatesState = (state: RootState) => state[dataSet];
+const selectEmailTemplatesAge = (state: RootState) => {
+	let lastLoad = selectEmailTemplatesState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 
 /*
  * Actions
@@ -86,15 +94,17 @@ function validEmailTemplates(templates: any): templates is EmailTemplate[] {
 	return Array.isArray(templates) && templates.every(validEmailTemplate);
 }
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 let loadingPromise: Promise<EmailTemplate[]>;
 export const loadEmailTemplates =
-	(groupName: string): AppThunk<EmailTemplate[]> =>
+	(groupName: string, force = false): AppThunk<EmailTemplate[]> =>
 	async (dispatch, getState) => {
 		const { loading, groupName: currentGroupName } =
 			selectEmailTemplatesState(getState());
-		if (loading && groupName === currentGroupName) {
-			return loadingPromise;
-		}
+		if (loading && groupName === currentGroupName) return loadingPromise;
+		const age = selectEmailTemplatesAge(getState());
+		if (!force && age && age < AGE_STALE) return loadingPromise;
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/email/templates`;
 		loadingPromise = fetcher

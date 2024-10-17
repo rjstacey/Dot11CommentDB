@@ -34,7 +34,7 @@ export const fields = {
 const dataSet = "ieeeMembers";
 const selectId = (m: IeeeMember) => m.SAPIN;
 const sortComparer = (m1: IeeeMember, m2: IeeeMember) => m1.SAPIN - m2.SAPIN;
-const initialState: { groupName: string | null } = { groupName: null };
+const initialState: { lastLoad: string | null } = { lastLoad: null };
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -44,9 +44,15 @@ const slice = createAppTableDataSlice({
 	reducers: {},
 	extraReducers: (builder, dataAdapter) => {
 		builder.addMatcher(
+			(action: Action) => action.type === dataSet + "/getPending",
+			(state) => {
+				state.lastLoad = new Date().toISOString();
+			}
+		);
+		builder.addMatcher(
 			(action: Action) => action.type === clearUsers.toString(),
 			(state) => {
-				state.groupName = null;
+				state.lastLoad = null;
 				state.valid = false;
 				dataAdapter.removeAll(state);
 			}
@@ -73,6 +79,11 @@ export const selectIeeeMemberIds = (state: RootState) =>
 export function selectIeeeMemberEntities(state: RootState) {
 	return selectIeeeMembersState(state).entities;
 }
+const selectIeeeMembersAge = (state: RootState) => {
+	let lastLoad = selectIeeeMembersState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectIeeeMembers = createSelector(
 	selectIeeeMemberIds,
 	selectIeeeMemberEntities,
@@ -97,10 +108,14 @@ function validResponse(members: unknown): members is IeeeMember[] {
 
 const url = "/api/root/members";
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 let loadingPromise: Promise<IeeeMember[]>;
 export const loadIeeeMembers =
 	(): AppThunk<IeeeMember[]> => (dispatch, getState) => {
 		if (selectIeeeMembersState(getState()).loading) return loadingPromise;
+		const age = selectIeeeMembersAge(getState());
+		if (age && age < AGE_STALE) return loadingPromise;
 		dispatch(getPending());
 		loadingPromise = fetcher
 			.get(url)

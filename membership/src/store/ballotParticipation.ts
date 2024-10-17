@@ -115,6 +115,7 @@ const initialState = {
 	ballotSeries: ballotSeriesAdapter.getInitialState(),
 	ballots: ballotsAdapter.getInitialState(),
 	groupName: null as string | null,
+	lastLoad: null as string | null,
 };
 
 const selectId = (entity: RecentBallotSeriesParticipation) => entity.SAPIN;
@@ -142,6 +143,7 @@ const slice = createAppTableDataSlice({
 						dataAdapter.removeAll(state);
 						state.valid = false;
 					}
+					state.lastLoad = new Date().toISOString();
 					state.groupName = groupName;
 				}
 			)
@@ -151,6 +153,8 @@ const slice = createAppTableDataSlice({
 				(state) => {
 					dataAdapter.removeAll(state);
 					state.valid = false;
+					state.lastLoad = null;
+					state.groupName = null;
 				}
 			);
 	},
@@ -180,7 +184,11 @@ export { setSelected };
  */
 export const selectBallotParticipationState = (state: RootState) =>
 	state[dataSet];
-
+const selectBallotParticipationAge = (state: RootState) => {
+	let lastLoad = selectBallotParticipationState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectBallotParticipationIds = (state: RootState) =>
 	selectBallotParticipationState(state).ids;
 export const selectBallotParticipationEntities = (state: RootState) =>
@@ -375,15 +383,17 @@ function validResponse(response: any): response is {
 	);
 }
 
-let loadingPromise: Promise<RecentBallotSeriesParticipation[]>;
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
+let loadingPromise: Promise<null>;
 export const loadBallotParticipation =
-	(groupName: string): AppThunk<RecentBallotSeriesParticipation[]> =>
+	(groupName: string): AppThunk<null> =>
 	(dispatch, getState) => {
 		const { loading, groupName: currentGroupName } =
 			selectBallotParticipationState(getState());
-		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
-		}
+		if (loading && currentGroupName === groupName) return loadingPromise;
+		const age = selectBallotParticipationAge(getState());
+		if (age && age < AGE_STALE) return loadingPromise;
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/ballotParticipation`;
 		loadingPromise = fetcher
@@ -394,14 +404,14 @@ export const loadBallotParticipation =
 				dispatch(setBallots(response.ballots));
 				dispatch(setBallotSeries(response.ballotSeries));
 				dispatch(getSuccess(response.ballotSeriesParticipation));
-				return response.ballotSeriesParticipation;
+				return null;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(
 					setError(`Unable to get ballot series participation`, error)
 				);
-				return [];
+				return null;
 			});
 		return loadingPromise;
 	};

@@ -155,7 +155,10 @@ export function getField(entity: Member, key: string): any {
 const dataSet = "members";
 const selectId = (m: Member) => m.SAPIN;
 const sortComparer = (m1: Member, m2: Member) => m1.SAPIN - m2.SAPIN;
-const initialState: { groupName: string | null } = { groupName: null };
+const initialState: { groupName: string | null; lastLoad: string | null } = {
+	groupName: null,
+	lastLoad: null,
+};
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -169,6 +172,7 @@ const slice = createAppTableDataSlice({
 				(action: Action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
 					const { groupName } = action.payload;
+					state.lastLoad = new Date().toISOString();
 					if (groupName !== state.groupName) {
 						state.groupName = groupName;
 						state.valid = false;
@@ -179,6 +183,7 @@ const slice = createAppTableDataSlice({
 			.addMatcher(
 				(action: Action) => action.type === clearMembers.toString(),
 				(state) => {
+					state.lastLoad = null;
 					state.groupName = null;
 					state.valid = false;
 					dataAdapter.removeAll(state);
@@ -218,6 +223,11 @@ export const selectMemberIds = (state: RootState) =>
 export function selectMemberEntities(state: RootState) {
 	return selectMembersState(state).entities;
 }
+const selectMembersAge = (state: RootState) => {
+	let lastLoad = selectMembersState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectActiveMembers = createSelector(
 	selectMemberIds,
 	selectMemberEntities,
@@ -316,6 +326,8 @@ function validResponse(members: unknown): members is Member[] {
 	return Array.isArray(members) && members.every(validMember);
 }
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 let loadingPromise: Promise<Member[]>;
 export const loadMembers =
 	(groupName: string): AppThunk<Member[]> =>
@@ -323,9 +335,9 @@ export const loadMembers =
 		const { loading, groupName: currentGroupName } = selectMembersState(
 			getState()
 		);
-		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
-		}
+		if (loading && currentGroupName === groupName) return loadingPromise;
+		const age = selectMembersAge(getState());
+		if (age && age < AGE_STALE) return loadingPromise;
 		dispatch(getPending({ groupName }));
 		loadingPromise = fetcher
 			.get(`/api/${groupName}/members`)

@@ -35,8 +35,12 @@ export const fields = {
 	shortAffiliation: { label: "Name" },
 };
 
-const initialState = {
-	groupName: null as string | null,
+const initialState: {
+	groupName: string | null;
+	lastLoad: string | null;
+} = {
+	groupName: null,
+	lastLoad: null,
 };
 
 const selectId = (a: AffiliationMap) => a.id;
@@ -53,6 +57,7 @@ const slice = createAppTableDataSlice({
 			(action: Action) => action.type === getPending.toString(),
 			(state, action: ReturnType<typeof getPending>) => {
 				const { groupName } = action.payload;
+				state.lastLoad = new Date().toISOString();
 				if (groupName !== state.groupName) {
 					dataAdapter.removeAll(state);
 					state.valid = false;
@@ -83,6 +88,11 @@ export const selectAffiliationMapIds = (state: RootState) =>
 	selectAffiliationMapState(state).ids;
 export const selectAffiliationMapEntities = (state: RootState) =>
 	selectAffiliationMapState(state).entities;
+const selectAffiliationMapAge = (state: RootState) => {
+	let lastLoad = selectAffiliationMapState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 
 export const affiliationMapSelectors = getAppTableDataSelectors(
 	selectAffiliationMapState
@@ -101,15 +111,17 @@ function validResponse(response: any): response is AffiliationMap[] {
 	return Array.isArray(response) && response.every(isObject);
 }
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 let loadingPromise: Promise<AffiliationMap[]>;
 export const loadAffiliationMap =
 	(groupName: string): AppThunk<AffiliationMap[]> =>
 	(dispatch, getState) => {
 		const { loading, groupName: currentGroupName } =
 			selectAffiliationMapState(getState());
-		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
-		}
+		if (loading && currentGroupName === groupName) return loadingPromise;
+		const age = selectAffiliationMapAge(getState());
+		if (age && age < AGE_STALE) return loadingPromise;
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/affiliationMap`;
 		loadingPromise = fetcher

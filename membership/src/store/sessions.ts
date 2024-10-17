@@ -69,6 +69,7 @@ type ExtraState = {
 	loading: boolean;
 	valid: boolean;
 	groupName: string | null;
+	lastLoad: string | null;
 };
 const sortComparer = (a: Session, b: Session) =>
 	DateTime.fromISO(b.startDate).toMillis() -
@@ -78,6 +79,7 @@ const initialState = dataAdapter.getInitialState<ExtraState>({
 	loading: false,
 	valid: false,
 	groupName: null,
+	lastLoad: null,
 });
 
 const slice = createSlice({
@@ -87,6 +89,7 @@ const slice = createSlice({
 		getPending(state, action: PayloadAction<{ groupName: string | null }>) {
 			const { groupName } = action.payload;
 			state.loading = true;
+			state.lastLoad = new Date().toISOString();
 			if (state.groupName !== groupName) {
 				state.groupName = groupName;
 				state.valid = false;
@@ -104,6 +107,7 @@ const slice = createSlice({
 		clear(state) {
 			state.groupName = null;
 			state.valid = false;
+			state.lastLoad = null;
 			dataAdapter.removeAll(state);
 		},
 		upsertMany: dataAdapter.upsertMany,
@@ -135,7 +139,11 @@ export const selectSessionIds = (state: RootState) =>
 	selectSessionsState(state).ids;
 export const selectSessionEntities = (state: RootState) =>
 	selectSessionsState(state).entities;
-
+const selectSessionsAge = (state: RootState) => {
+	let lastLoad = selectSessionsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectSessions = createSelector(
 	selectSessionIds,
 	selectSessionEntities,
@@ -173,20 +181,26 @@ function validSessions(sessions: any): sessions is Session[] {
 	return Array.isArray(sessions) && sessions.every(validSession);
 }
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 let loadingPromise: Promise<null>;
 export const loadSessions =
 	(groupName: string): AppThunk<null> =>
 	async (dispatch, getState) => {
-		const state = getState();
-		const { loading, groupName: currentGroupName } =
-			selectSessionsState(state);
+		const { loading, groupName: currentGroupName } = selectSessionsState(
+			getState()
+		);
 		if (loading && currentGroupName === groupName) {
+			return loadingPromise;
+		}
+		const age = selectSessionsAge(getState());
+		if (age && age < AGE_STALE) {
 			return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/sessions`;
 		loadingPromise = fetcher
-			.get(url, { type: ["p", "i"] })
+			.get(url, { type: ["p", "i"], limit: 20 })
 			.then((response: any) => {
 				if (!validSessions(response))
 					throw new TypeError("Unexpected response to GET " + url);

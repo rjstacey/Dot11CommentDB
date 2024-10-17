@@ -29,8 +29,7 @@ export const officerPositions = [
 ];
 
 export function officerPositionsForGroupType(groupType: GroupType) {
-	if (groupType === 'r')
-		return ["Admin"];
+	if (groupType === "r") return ["Admin"];
 	return officerPositions;
 }
 
@@ -47,6 +46,7 @@ type ExtraState = {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
+	lastLoad: string | null;
 };
 
 /* Create slice */
@@ -55,6 +55,7 @@ const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
 	groupName: null,
+	lastLoad: null,
 });
 const dataSet = "officers";
 const slice = createSlice({
@@ -64,6 +65,7 @@ const slice = createSlice({
 		getPending(state, action: PayloadAction<{ groupName: string }>) {
 			const { groupName } = action.payload;
 			state.loading = true;
+			state.lastLoad = new Date().toISOString();
 			if (state.groupName !== groupName) {
 				state.groupName = groupName;
 				state.valid = false;
@@ -79,6 +81,7 @@ const slice = createSlice({
 			state.loading = false;
 		},
 		clear(state) {
+			state.lastLoad = null;
 			state.groupName = null;
 			state.valid = false;
 			dataAdapter.removeAll(state);
@@ -123,8 +126,18 @@ export const selectOfficerIds = (state: RootState) =>
 	selectOfficersState(state).ids;
 export const selectOfficerEntities = (state: RootState) =>
 	selectOfficersState(state).entities;
+const selectOfficersAge = (state: RootState) => {
+	let lastLoad = selectOfficersState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 
-/* Thunk actions */
+/*
+ * Thunk actions
+ */
+
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 let loadingPromise: Promise<Officer[]>;
 export const loadOfficers =
 	(groupName: string): AppThunk<Officer[]> =>
@@ -132,9 +145,9 @@ export const loadOfficers =
 		const { loading, groupName: currentGroupName } = selectOfficersState(
 			getState()
 		);
-		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
-		}
+		if (loading && currentGroupName === groupName) return loadingPromise;
+		const age = selectOfficersAge(getState());
+		if (age && age < AGE_STALE) return loadingPromise;
 		dispatch(getPending({ groupName }));
 		loadingPromise = fetcher
 			.get(`/api/${groupName}/officers`)

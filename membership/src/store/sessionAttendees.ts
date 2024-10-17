@@ -87,10 +87,12 @@ const initialState: {
 	groupName: string | null;
 	sessionId: number | null;
 	useDaily: boolean; // derive from IMAT "daily attendance" (vs "attendance summary")
+	lastLoad: string | null;
 } = {
 	groupName: null,
 	sessionId: null,
 	useDaily: false,
+	lastLoad: null,
 };
 
 const dataSet = "sessionAttendees";
@@ -118,6 +120,7 @@ const slice = createAppTableDataSlice({
 						state.valid = false;
 						dataAdapter.removeAll(state);
 					}
+					state.lastLoad = new Date().toISOString();
 				}
 			)
 			.addMatcher(
@@ -128,6 +131,7 @@ const slice = createAppTableDataSlice({
 					state.sessionId = null;
 					state.valid = false;
 					dataAdapter.removeAll(state);
+					state.lastLoad = null;
 				}
 			);
 	},
@@ -154,6 +158,11 @@ const getPending = createAction<{
  * Selectors
  */
 export const selectSessionAttendeesState = (state: RootState) => state[dataSet];
+const selectSessionAttendeesAge = (state: RootState) => {
+	let lastLoad = selectSessionAttendeesState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectSessionAttendeesGroupName = (state: RootState) =>
 	selectSessionAttendeesState(state).groupName;
 export const selectSessionAttendeesIds = (state: RootState) =>
@@ -249,6 +258,8 @@ function validGetImatAttendanceResponse(
 	return Array.isArray(response) && response.every(validSessionAttendee);
 }
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 let loadingPromise: Promise<null>;
 export const loadSessionAttendees =
 	(
@@ -280,6 +291,9 @@ export const loadSessionAttendees =
 		) {
 			return loadingPromise;
 		}
+
+		const age = selectSessionAttendeesAge(getState());
+		if (age && age < AGE_STALE) return loadingPromise;
 
 		dispatch(getPending({ groupName, sessionId: session.id, useDaily }));
 		const url = `/api/${groupName}/imat/attendance/${

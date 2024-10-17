@@ -48,12 +48,14 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	if (access < AccessLevel.ro)
 		throw new Error("You don't have permission to view this data");
 
+	const wait: Promise<any>[] = [];
 	dispatch(setTopLevelGroupId(group.id));
-	dispatch(loadGroups(groupName));
-	dispatch(loadSessions(groupName));
+	wait.push(dispatch(loadGroups(groupName)));
+	wait.push(dispatch(loadSessions(groupName)));
 	dispatch(loadIeeeMembers());
 	dispatch(loadMembers(groupName));
 	dispatch(loadOfficers(groupName));
+	await Promise.all(wait);
 
 	return null;
 };

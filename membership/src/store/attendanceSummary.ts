@@ -101,6 +101,7 @@ type ExtraState = {
 	loading: boolean;
 	groupName: string | null;
 	sessionIds: EntityId[];
+	lastLoad: string | null;
 };
 
 /* Create slice */
@@ -111,6 +112,7 @@ const initialState = dataAdapter.getInitialState<ExtraState>({
 	loading: false,
 	groupName: null,
 	sessionIds: [],
+	lastLoad: null,
 });
 const dataSet = "attendanceSummary";
 const slice = createSlice({
@@ -123,6 +125,7 @@ const slice = createSlice({
 		) {
 			const { groupName, sessionIds } = action.payload;
 			state.loading = true;
+			state.lastLoad = new Date().toISOString();
 			if (
 				state.groupName !== groupName ||
 				!isEqual(state.sessionIds, sessionIds)
@@ -159,7 +162,11 @@ export const upsertAttendanceSummaries = slice.actions.upsertMany;
 /** Selectors */
 export const selectAttendanceSummaryState = (state: RootState) =>
 	state[dataSet];
-
+const selectAttendanceSummaryAge = (state: RootState) => {
+	let lastLoad = selectAttendanceSummaryState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectAttendanceSummaryIds = (state: RootState) =>
 	selectAttendanceSummaryState(state).ids;
 export const selectAttendanceSummaryEntities = (state: RootState) =>
@@ -253,6 +260,8 @@ function validGetAttendanceSummary(
 	return isObject(response) && validAttendanceSummaries(response.attendances);
 }
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
 let loadingPromise: Promise<null>;
 export const loadRecentAttendanceSummaries =
 	(groupName: string): AppThunk<null> =>
@@ -272,6 +281,8 @@ export const loadRecentAttendanceSummaries =
 		) {
 			return loadingPromise;
 		}
+		const age = selectAttendanceSummaryAge(getState());
+		if (age && age < AGE_STALE) return loadingPromise;
 		dispatch(getPending({ groupName, sessionIds }));
 		loadingPromise = Promise.all<SessionAttendanceSummary[][]>(
 			sessions.map((session) => {
