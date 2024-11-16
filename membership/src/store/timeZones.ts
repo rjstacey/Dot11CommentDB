@@ -69,9 +69,7 @@ const AGE_STALE = 60 * 60 * 1000; // 1 hour
 const url = "/api/timeZones";
 export const loadTimeZones = (): AppThunk => async (dispatch, getState) => {
 	const age = selectTimeZonesAge(getState());
-	if (age && age < AGE_STALE) {
-		return;
-	}
+	if (age && age < AGE_STALE) return;
 	dispatch(getPending());
 	let timeZones;
 	try {

@@ -50,6 +50,7 @@ import SessionSelector from "./SessionSelector";
 import { tableColumns as sessionAttendeesColumns } from "./table";
 import { tableColumns as sessionRegistrationColumns } from "./sessionRegistration";
 import { copyChartToClipboard, downloadChart } from "../components/copyChart";
+import { refresh } from "./routes";
 
 function ImportRegistrationForm({ methods }: DropdownRendererProps) {
 	const dispatch = useAppDispatch();
@@ -262,8 +263,6 @@ function SessionAttendanceActions() {
 		}
 		navigate({ pathname, search: searchParams.toString() });
 	};
-
-	const refresh = () => navigate(0);
 
 	const tableSelectors = showRegistration
 		? sessionRegistrationSelectors

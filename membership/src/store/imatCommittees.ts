@@ -22,6 +22,7 @@ type ExtraState = {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
+	lastLoad: string | null;
 };
 
 /* Create slice */
@@ -31,6 +32,7 @@ const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
 	groupName: null,
+	lastLoad: null,
 });
 const dataSet = "imatCommittees";
 const slice = createSlice({
@@ -40,6 +42,7 @@ const slice = createSlice({
 		getPending(state, action: PayloadAction<{ groupName: string }>) {
 			const { groupName } = action.payload;
 			state.loading = true;
+			state.lastLoad = new Date().toISOString();
 			if (state.groupName !== groupName) {
 				state.groupName = groupName;
 				state.valid = false;
@@ -64,23 +67,35 @@ const { getPending, getSuccess, getFailure } = slice.actions;
 
 /* Selectors */
 export const selectImatCommitteesState = (state: RootState) => state[dataSet];
+const selectImatCommitteesAge = (state: RootState) => {
+	let lastLoad = selectImatCommitteesState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectImatCommittees = createSelector(
 	selectImatCommitteesState,
-	({ids, entities}) => ids.map(id => entities[id]!)
+	({ ids, entities }) => ids.map((id) => entities[id]!)
 );
 
 /* Thunk actions */
-let loadingPromise: Promise<ImatCommitteeType[]>
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+
+let loadingPromise: Promise<ImatCommitteeType[]>;
 export const loadCommittees =
-	(groupName: string): AppThunk<ImatCommitteeType[]> =>
+	(groupName: string, force = false): AppThunk<ImatCommitteeType[]> =>
 	async (dispatch, getState) => {
-		const {loading, groupName: currentGroupName} = selectImatCommitteesState(getState());
-		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
+		const state = getState();
+		const { loading, groupName: currentGroupName } =
+			selectImatCommitteesState(state);
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectImatCommitteesAge(state);
+			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/imat/committees`;
-		loadingPromise = fetcher.get(url)
+		loadingPromise = fetcher
+			.get(url)
 			.then((response: any) => {
 				if (!Array.isArray(response))
 					throw new TypeError(`Unexpected response to GET ${url}`);

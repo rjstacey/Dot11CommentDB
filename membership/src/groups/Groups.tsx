@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 
 import {
 	ActionButton,
@@ -25,6 +24,7 @@ import {
 import { selectMemberEntities } from "../store/members";
 
 import GroupDetail from "./GroupDetail";
+import { refresh } from "./route";
 
 function GroupOfficers({ group }: { group: GroupWithOfficers }) {
 	const { officers } = group;
@@ -103,9 +103,6 @@ for (const column of tableColumns) {
 defaultTablesConfig["default"] = tableConfig;
 
 function Organization() {
-	const navigate = useNavigate();
-	const refresh = () => navigate(0);
-
 	return (
 		<>
 			<div className="top-row justify-right">

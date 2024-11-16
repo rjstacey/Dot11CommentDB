@@ -21,8 +21,6 @@ import {
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	fields,
-	loadBallotParticipation,
-	clearBallotParticipation,
 	setSelected,
 	selectBallotParticipationState,
 	selectBallotEntities,
@@ -37,6 +35,7 @@ import {
 import MemberDetail from "../members/MemberDetail";
 import { renderNameAndEmail } from "../members/table";
 import BulkStatusUpdate from "../sessionParticipation/BulkStatusUpdate";
+import { refresh } from "./route";
 
 function BallotSeriesSummary() {
 	const ballotSeriesIds = useAppSelector(selectBallotSeriesIds);
@@ -138,9 +137,7 @@ const tableColumns: ColumnProperties[] = [
 
 function BallotParticipation() {
 	const dispatch = useAppDispatch();
-	const { selected, groupName } = useAppSelector(
-		selectBallotParticipationState
-	);
+	const { selected } = useAppSelector(selectBallotParticipationState);
 	const ballotSeriesIds = useAppSelector(selectBallotSeriesIds);
 	const ballotSeriesEntities = useAppSelector(
 		selectSyncedBallotSeriesEntities
@@ -171,13 +168,6 @@ function BallotParticipation() {
 			})
 		);
 	}, [ballotSeriesIds, ballotSeriesEntities]);
-
-	const refresh = () =>
-		dispatch(
-			groupName
-				? loadBallotParticipation(groupName)
-				: clearBallotParticipation()
-		);
 
 	return (
 		<>

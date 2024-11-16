@@ -2,15 +2,29 @@ import { RouteObject, LoaderFunction } from "react-router";
 
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
-import { selectTopLevelGroupByName, setTopLevelGroupId } from "../store/groups";
-import { loadCommittees } from "../store/imatCommittees";
+import {
+	loadGroups,
+	selectTopLevelGroupByName,
+	setTopLevelGroupId,
+} from "../store/groups";
+import {
+	loadCommittees,
+	selectImatCommitteesState,
+} from "../store/imatCommittees";
 
 import Groups from "./Groups";
+
+export function refresh() {
+	const { dispatch, getState } = store;
+	const { groupName } = selectImatCommitteesState(getState());
+	if (groupName) dispatch(loadCommittees(groupName, true));
+}
 
 const groupsLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 
 	const { dispatch, getState } = store;
+	await dispatch(loadGroups());
 	const group = selectTopLevelGroupByName(getState(), groupName || "");
 	if (!group) throw new Error(`Group ${groupName || "(Blank)"} not found`);
 	const access = group.permissions.groups || AccessLevel.none;

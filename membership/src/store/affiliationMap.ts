@@ -113,15 +113,18 @@ function validResponse(response: any): response is AffiliationMap[] {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<AffiliationMap[]>;
+let loadingPromise: Promise<void>;
 export const loadAffiliationMap =
-	(groupName: string): AppThunk<AffiliationMap[]> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
+		const state = getState();
 		const { loading, groupName: currentGroupName } =
-			selectAffiliationMapState(getState());
-		if (loading && currentGroupName === groupName) return loadingPromise;
-		const age = selectAffiliationMapAge(getState());
-		if (age && age < AGE_STALE) return loadingPromise;
+			selectAffiliationMapState(state);
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectAffiliationMapAge(state);
+			if (!force && age && age < AGE_STALE) return loadingPromise;
+		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/affiliationMap`;
 		loadingPromise = fetcher
@@ -130,14 +133,12 @@ export const loadAffiliationMap =
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response to GET " + url);
 				dispatch(getSuccess(response));
-				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(
 					setError(`Unable to get ballot series participation`, error)
 				);
-				return [];
 			});
 		return loadingPromise;
 	};

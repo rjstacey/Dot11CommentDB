@@ -1,5 +1,3 @@
-import { useNavigate } from "react-router-dom";
-
 import { ActionButton, displayDateRange } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
@@ -7,6 +5,7 @@ import { selectRecentSessions } from "../store/sessions";
 
 import BulkStatusUpdate from "./BulkStatusUpdate";
 import { SessionParticipationTableActions } from "./table";
+import { refresh } from "./route";
 
 function SessionSummary() {
 	const sessions = useAppSelector(selectRecentSessions);
@@ -54,9 +53,6 @@ function SessionSummary() {
 }
 
 function SessionPartipationActions() {
-	const navigate = useNavigate();
-	const refresh = () => navigate(0);
-
 	return (
 		<>
 			<div className="top-row">

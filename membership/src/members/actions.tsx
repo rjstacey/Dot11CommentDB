@@ -15,6 +15,7 @@ import MembersSummary from "./MembersSummary";
 import MembersRoster from "./MembersRoster";
 import MembersExport from "./MembersExport";
 import { MembersTableActions } from "./table";
+import { refresh } from "./route";
 
 function copyHtmlToClipboard(html: string) {
 	const type = "text/html";
@@ -61,7 +62,6 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 function MembersActions() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const refresh = () => navigate(0);
 	const { selected, entities: members } = useAppSelector(selectMembersState);
 
 	const showChart = /chart$/.test(location.pathname);

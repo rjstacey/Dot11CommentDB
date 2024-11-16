@@ -145,9 +145,11 @@ export const loadOfficers =
 		const { loading, groupName: currentGroupName } = selectOfficersState(
 			getState()
 		);
-		if (loading && currentGroupName === groupName) return loadingPromise;
-		const age = selectOfficersAge(getState());
-		if (age && age < AGE_STALE) return loadingPromise;
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectOfficersAge(getState());
+			if (age && age < AGE_STALE) return loadingPromise;
+		}
 		dispatch(getPending({ groupName }));
 		loadingPromise = fetcher
 			.get(`/api/${groupName}/officers`)

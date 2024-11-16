@@ -262,9 +262,9 @@ function validGetAttendanceSummary(
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<null>;
+let loadingPromise: Promise<void>;
 export const loadRecentAttendanceSummaries =
-	(groupName: string): AppThunk<null> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const sessions = selectRecentSessions(state);
@@ -275,14 +275,13 @@ export const loadRecentAttendanceSummaries =
 			sessionIds: currentSessionIds,
 		} = selectAttendanceSummaryState(state);
 		if (
-			loading &&
 			currentGroupName === groupName &&
 			isEqual(currentSessionIds, sessionIds)
 		) {
-			return loadingPromise;
+			if (loading) return loadingPromise;
+			const age = selectAttendanceSummaryAge(state);
+			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
-		const age = selectAttendanceSummaryAge(getState());
-		if (age && age < AGE_STALE) return loadingPromise;
 		dispatch(getPending({ groupName, sessionIds }));
 		loadingPromise = Promise.all<SessionAttendanceSummary[][]>(
 			sessions.map((session) => {
@@ -302,14 +301,12 @@ export const loadRecentAttendanceSummaries =
 					...all
 				);
 				dispatch(getSuccess(summaries));
-				return null;
 			})
 			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(
 					setError(`Unable to get recent attendance summaries`, error)
 				);
-				return null;
 			});
 		return loadingPromise;
 	};

@@ -2,7 +2,7 @@ import { RouteObject, LoaderFunction } from "react-router-dom";
 
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
-import { selectTopLevelGroupByName } from "../store/groups";
+import { loadGroups, selectTopLevelGroupByName } from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadEmailTemplates } from "../store/emailTemplates";
 
@@ -13,6 +13,7 @@ const notificationsLoader: LoaderFunction = async ({ params }) => {
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;
+	await dispatch(loadGroups());
 	const group = selectTopLevelGroupByName(getState(), groupName);
 	if (!group) throw new Error(`Group ${groupName} not found`);
 	const access = group.permissions.members || AccessLevel.none;

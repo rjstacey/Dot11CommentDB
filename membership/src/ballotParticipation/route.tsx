@@ -2,16 +2,28 @@ import { RouteObject, LoaderFunction } from "react-router-dom";
 
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
-import { selectTopLevelGroupByName } from "../store/groups";
-import { loadBallotParticipation } from "../store/ballotParticipation";
+import { loadGroups, selectTopLevelGroupByName } from "../store/groups";
+import {
+	loadBallotParticipation,
+	selectBallotParticipationState,
+} from "../store/ballotParticipation";
 
 import BallotParticipation from "./BallotParticipation";
+
+export function refresh() {
+	const { dispatch, getState } = store;
+	const { groupName } = selectBallotParticipationState(getState());
+	if (!groupName) throw new Error("Route error: groupName not set");
+
+	dispatch(loadBallotParticipation(groupName, true));
+}
 
 const ballotParticipationLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;
+	await dispatch(loadGroups());
 	const group = selectTopLevelGroupByName(getState(), groupName);
 	if (!group) throw new Error(`Group ${groupName} not found`);
 	const access = group.permissions.members || AccessLevel.none;

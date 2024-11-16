@@ -102,9 +102,11 @@ export const loadEmailTemplates =
 	async (dispatch, getState) => {
 		const { loading, groupName: currentGroupName } =
 			selectEmailTemplatesState(getState());
-		if (loading && groupName === currentGroupName) return loadingPromise;
-		const age = selectEmailTemplatesAge(getState());
-		if (!force && age && age < AGE_STALE) return loadingPromise;
+		if (groupName === currentGroupName) {
+			if (loading) return loadingPromise;
+			const age = selectEmailTemplatesAge(getState());
+			if (!force && age && age < AGE_STALE) return loadingPromise;
+		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/email/templates`;
 		loadingPromise = fetcher

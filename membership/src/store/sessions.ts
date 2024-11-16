@@ -190,12 +190,10 @@ export const loadSessions =
 		const { loading, groupName: currentGroupName } = selectSessionsState(
 			getState()
 		);
-		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
-		}
-		const age = selectSessionsAge(getState());
-		if (age && age < AGE_STALE) {
-			return loadingPromise;
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectSessionsAge(getState());
+			if (age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/sessions`;

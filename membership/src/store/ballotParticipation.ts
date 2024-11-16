@@ -333,7 +333,7 @@ export const selectMemberBallotParticipationCount = createSelector(
 		memberEntities,
 		SAPIN
 	) => {
-		const summaries =
+		const summaries: BallotSeriesParticipationSummary[] =
 			ballotParticipationEntities[SAPIN]
 				?.ballotSeriesParticipationSummaries || [];
 		const member = memberEntities[SAPIN];
@@ -385,15 +385,18 @@ function validResponse(response: any): response is {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<null>;
+let loadingPromise: Promise<void>;
 export const loadBallotParticipation =
-	(groupName: string): AppThunk<null> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
+		const state = getState();
 		const { loading, groupName: currentGroupName } =
-			selectBallotParticipationState(getState());
-		if (loading && currentGroupName === groupName) return loadingPromise;
-		const age = selectBallotParticipationAge(getState());
-		if (age && age < AGE_STALE) return loadingPromise;
+			selectBallotParticipationState(state);
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectBallotParticipationAge(state);
+			if (!force && age && age < AGE_STALE) return loadingPromise;
+		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/ballotParticipation`;
 		loadingPromise = fetcher
@@ -404,14 +407,12 @@ export const loadBallotParticipation =
 				dispatch(setBallots(response.ballots));
 				dispatch(setBallotSeries(response.ballotSeries));
 				dispatch(getSuccess(response.ballotSeriesParticipation));
-				return null;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(
 					setError(`Unable to get ballot series participation`, error)
 				);
-				return null;
 			});
 		return loadingPromise;
 	};

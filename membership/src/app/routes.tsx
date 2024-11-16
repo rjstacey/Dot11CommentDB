@@ -42,6 +42,7 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 
 	// Check permissions
+	await dispatch(loadGroups());
 	const group = selectTopLevelGroupByName(getState(), groupName);
 	if (!group) throw new Error(`Group ${groupName} not found`);
 	const access = group.permissions.members || AccessLevel.none;

@@ -260,13 +260,14 @@ function validGetImatAttendanceResponse(
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<null>;
+let loadingPromise: Promise<void>;
 export const loadSessionAttendees =
 	(
 		groupName: string,
 		sessionNumber: number,
-		useDaily = false
-	): AppThunk<null> =>
+		useDaily = false,
+		force = false
+	): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const session = selectSessionByNumber(getState(), sessionNumber);
 		if (!session || !session.imatMeetingId) {
@@ -279,21 +280,19 @@ export const loadSessionAttendees =
 				)
 			);
 			dispatch(clearSessionAttendees());
-			return null;
+			return Promise.resolve();
 		}
 
 		const { loading, ...current } = selectSessionAttendeesState(getState());
 		if (
-			loading &&
 			groupName === current.groupName &&
 			session.id === current.sessionId &&
 			useDaily === current.useDaily
 		) {
-			return loadingPromise;
+			if (loading) return loadingPromise;
+			const age = selectSessionAttendeesAge(getState());
+			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
-
-		const age = selectSessionAttendeesAge(getState());
-		if (age && age < AGE_STALE) return loadingPromise;
 
 		dispatch(getPending({ groupName, sessionId: session.id, useDaily }));
 		const url = `/api/${groupName}/imat/attendance/${
@@ -305,12 +304,10 @@ export const loadSessionAttendees =
 				if (!validGetImatAttendanceResponse(imatAttendances))
 					throw new TypeError("Unexpected response to GET " + url);
 				dispatch(getSuccess(imatAttendances));
-				return null;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get attendances", error));
-				return null;
 			});
 		return loadingPromise;
 	};

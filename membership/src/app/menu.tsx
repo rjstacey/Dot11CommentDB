@@ -119,7 +119,7 @@ function CurrentMenuItem() {
 	return (
 		<>
 			<i className="bi-list" />
-			<div className="nav-link active">{menuItem?.label || "??"}</div>
+			<div className="nav-link active">{menuItem?.label || ""}</div>
 		</>
 	);
 }

@@ -328,16 +328,18 @@ function validResponse(members: unknown): members is Member[] {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<Member[]>;
+let loadingPromise: Promise<void>;
 export const loadMembers =
-	(groupName: string): AppThunk<Member[]> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
-		const { loading, groupName: currentGroupName } = selectMembersState(
-			getState()
-		);
-		if (loading && currentGroupName === groupName) return loadingPromise;
-		const age = selectMembersAge(getState());
-		if (age && age < AGE_STALE) return loadingPromise;
+		const state = getState();
+		const { loading, groupName: currentGroupName } =
+			selectMembersState(state);
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectMembersAge(state);
+			if (!force && age && age < AGE_STALE) return loadingPromise;
+		}
 		dispatch(getPending({ groupName }));
 		loadingPromise = fetcher
 			.get(`/api/${groupName}/members`)
@@ -345,12 +347,10 @@ export const loadMembers =
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response to GET");
 				dispatch(getSuccess(response));
-				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get members list", error));
-				return [];
 			});
 		return loadingPromise;
 	};
