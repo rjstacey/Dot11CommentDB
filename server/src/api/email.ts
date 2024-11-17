@@ -28,17 +28,15 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	next(new ForbiddenError("Insufficient karma"));
 }
 
-function postSend(req: Request, res: Response, next: NextFunction) {
+async function postSend(req: Request, res: Response, next: NextFunction) {
 	const { user, body } = req;
-	let email: Email;
 	try {
-		email = emailSchema.parse(body);
+		const email = emailSchema.parse(body);
+		const response = sendEmail(user, email);
+		res.json(response);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	sendEmail(user, email)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
 function get(req: Request, res: Response, next: NextFunction) {

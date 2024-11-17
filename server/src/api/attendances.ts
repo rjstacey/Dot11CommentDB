@@ -11,7 +11,7 @@ import {
 	SessionAttendanceSummaryUpdate,
 	sessionAttendanceSummaryCreatesSchema,
 	sessionAttendanceSummaryUpdatesSchema,
-	sessionAttendancesSummaryIdsSchema,
+	sessionAttendanceSummaryIdsSchema,
 } from "../schemas/attendances";
 import {
 	getAttendances,
@@ -42,7 +42,7 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 function getForSession(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
 	const session_id = Number(req.params.session_id);
-	getAttendances(group.id, session_id)
+	getAttendances({ groupId: group.id, session_id })
 		.then((data) => res.json(data))
 		.catch(next);
 }
@@ -111,7 +111,7 @@ function updateMany(req: Request, res: Response, next: NextFunction) {
 function removeMany(req: Request, res: Response, next: NextFunction) {
 	let ids: number[];
 	try {
-		ids = sessionAttendancesSummaryIdsSchema.parse(req.body);
+		ids = sessionAttendanceSummaryIdsSchema.parse(req.body);
 	} catch (error) {
 		return next(error);
 	}

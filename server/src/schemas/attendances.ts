@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { groupIdSchema } from "./groups";
+import { sessionIdSchema } from "./sessions";
 
 export const sessionAttendanceSummarySchema = z.object({
 	id: z.number(),
@@ -74,4 +76,15 @@ export type SessionAttendanceSummaryUpdate = z.infer<
 export const sessionAttendanceSummaryUpdatesSchema =
 	sessionAttendanceSummaryUpdateSchema.array();
 
-export const sessionAttendancesSummaryIdsSchema = z.number().array();
+export const sessionAttendanceSummaryIdsSchema = z.number().array();
+
+export const sessionAttendanceSummaryQuerySchema = z
+	.object({
+		id: z.union([z.number(), z.number().array()]),
+		groupId: z.union([groupIdSchema, groupIdSchema.array()]),
+		session_id: z.union([sessionIdSchema, sessionIdSchema.array()]),
+	})
+	.partial();
+export type SessionAttendanceSummaryQuery = z.infer<
+	typeof sessionAttendanceSummaryQuerySchema
+>;

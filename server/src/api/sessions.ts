@@ -8,6 +8,7 @@ import {
 	sessionCreateSchema,
 	sessionUpdateSchema,
 	sessionIdsSchema,
+	sessionsQuerySchema,
 } from "../schemas/sessions";
 import {
 	getSessions,
@@ -16,46 +17,45 @@ import {
 	deleteSessions,
 } from "../services/sessions";
 
-function get(req: Request, res: Response, next: NextFunction) {
-	getSessions(req.query)
-		.then((data) => res.json(data))
-		.catch(next);
+async function get(req: Request, res: Response, next: NextFunction) {
+	try {
+		const query = sessionsQuerySchema.parse(req.query);
+		const data = await getSessions(query);
+		res.json(data);
+	}
+	catch (error) {
+		next(error);
+	}
 }
 
-function addOne(req: Request, res: Response, next: NextFunction) {
-	let session: SessionCreate;
+async function addOne(req: Request, res: Response, next: NextFunction) {
 	try {
-		session = sessionCreateSchema.parse(req.body);
+		const session = sessionCreateSchema.parse(req.body);
+		const response = await addSession(session)
+		res.json(response);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function updateOne(req: Request, res: Response, next: NextFunction) {
+	try {
+		const update = sessionUpdateSchema.parse(req.body);
+		const response = await updateSession(update.id, update.changes)
+		res.json(response);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function removeMany(req: Request, res: Response, next: NextFunction) {
+	try {
+		const ids = sessionIdsSchema.parse(req.body);
+		const response = await deleteSessions(ids);
+		res.json(response);
 	} catch (error) {
 		return next(error);
 	}
-	addSession(session)
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function updateOne(req: Request, res: Response, next: NextFunction) {
-	let update: SessionUpdate;
-	try {
-		update = sessionUpdateSchema.parse(req.body);
-	} catch (error) {
-		return next(error);
-	}
-	updateSession(update.id, update.changes)
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function removeMany(req: Request, res: Response, next: NextFunction) {
-	let ids: number[];
-	try {
-		ids = sessionIdsSchema.parse(req.body);
-	} catch (error) {
-		return next(error);
-	}
-	deleteSessions(ids)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
 const router = Router();

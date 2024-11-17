@@ -42,12 +42,13 @@ export const sessionSchema = z.object({
 export const sessionsQuerySchema = z
 	.object({
 		id: z.union([sessionIdSchema, sessionIdSchema.array()]),
-		number: z.union([z.number(), z.number().array()]),
+		number: z.union([z.coerce.number(), z.coerce.number().array()]),
 		name: z.union([z.string(), z.string().array()]),
 		type: z.union([sessionTypeSchema, sessionTypeSchema.array()]),
 		timezone: z.union([z.string(), z.string().array()]),
 		groupId: z.union([groupIdSchema, groupIdSchema.array()]),
 		isCancelled: z.union([z.boolean(), z.boolean().array()]),
+		limit: z.coerce.number(),
 	})
 	.partial();
 
