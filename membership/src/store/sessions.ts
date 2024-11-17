@@ -110,6 +110,7 @@ const slice = createSlice({
 			state.lastLoad = null;
 			dataAdapter.removeAll(state);
 		},
+		updateOne: dataAdapter.updateOne,
 		upsertMany: dataAdapter.upsertMany,
 	},
 });
@@ -127,9 +128,10 @@ const {
 	getFailure,
 	clear: clearSessions,
 	upsertMany: upsertSessions,
+	updateOne: updateSession,
 } = slice.actions;
 
-export { clearSessions, upsertSessions };
+export { clearSessions, upsertSessions, updateSession };
 
 /*
  * Selectors
@@ -185,15 +187,15 @@ const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loadingPromise: Promise<null>;
 export const loadSessions =
-	(groupName: string): AppThunk<null> =>
+	(groupName: string, force = false): AppThunk<null> =>
 	async (dispatch, getState) => {
-		const { loading, groupName: currentGroupName } = selectSessionsState(
-			getState()
-		);
+		const state = getState();
+		const { loading, groupName: currentGroupName } =
+			selectSessionsState(state);
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
-			const age = selectSessionsAge(getState());
-			if (age && age < AGE_STALE) return loadingPromise;
+			const age = selectSessionsAge(state);
+			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/sessions`;

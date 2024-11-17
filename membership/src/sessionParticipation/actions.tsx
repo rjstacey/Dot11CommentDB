@@ -1,4 +1,5 @@
 import { ActionButton, displayDateRange } from "dot11-components";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAppSelector } from "../store/hooks";
 import { selectRecentSessions } from "../store/sessions";
@@ -53,6 +54,13 @@ function SessionSummary() {
 }
 
 function SessionPartipationActions() {
+	const location = useLocation();
+	const navigate = useNavigate();
+	const showStats = /\/stats$/.test(location.pathname);
+	function toggleShowStats() {
+		const pathname = showStats ? "" : "stats";
+		navigate(pathname);
+	}
 	return (
 		<>
 			<div className="top-row">
@@ -62,6 +70,12 @@ function SessionPartipationActions() {
 				<div className="control-group">
 					<BulkStatusUpdate isSession={true} />
 					<SessionParticipationTableActions />
+					<ActionButton
+						name="bi-graph-up"
+						title="Show stats"
+						onClick={toggleShowStats}
+						isActive={showStats}
+					/>
 					<ActionButton
 						name="refresh"
 						title="Refresh"

@@ -47,7 +47,6 @@ export const fields: Fields = {
 	},
 	IsRegistered: { label: "Registered" },
 	Notes: { label: "Notes" },
-	RegMatch: { label: "Reg Match" },
 };
 
 export type SessionAttendee = {
@@ -67,7 +66,6 @@ export type SessionAttendee = {
 type SessionAttendeeWithSummary = SessionAttendee & SessionAttendanceSummary;
 
 export type SyncedSessionAttendee = SessionAttendeeWithSummary & {
-	RegMatch: boolean;
 	Status: string;
 	OldName: string | null;
 	OldAffiliation: string | null;
@@ -208,7 +206,6 @@ export const selectSyncedSessionAtendeeEntities = createSelector(
 				OldEmail: null,
 				OldContactInfo: null,
 				Status: "New",
-				RegMatch: Boolean(a),
 			};
 			const m = memberEntities[id];
 			if (m) {
@@ -280,7 +277,7 @@ export const loadSessionAttendees =
 				)
 			);
 			dispatch(clearSessionAttendees());
-			return Promise.resolve();
+			return;
 		}
 
 		const { loading, ...current } = selectSessionAttendeesState(getState());
@@ -291,7 +288,7 @@ export const loadSessionAttendees =
 		) {
 			if (loading) return loadingPromise;
 			const age = selectSessionAttendeesAge(getState());
-			if (!force && age && age < AGE_STALE) return loadingPromise;
+			if (!force && age && age < AGE_STALE) return;
 		}
 
 		dispatch(getPending({ groupName, sessionId: session.id, useDaily }));

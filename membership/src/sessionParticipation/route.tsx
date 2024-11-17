@@ -1,16 +1,16 @@
-import { LoaderFunction } from "react-router-dom";
+import { LoaderFunction, Outlet, RouteObject } from "react-router-dom";
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
 import { loadGroups, selectTopLevelGroupByName } from "../store/groups";
-import {
-	loadRecentAttendanceSummaries,
-	selectAttendanceSummaryState,
-} from "../store/attendanceSummary";
+import { loadRecentAttendanceSummaries } from "../store/attendanceSummary";
 import SessionParticipationLayout from "./layout";
+import { selectAttendanceSummaryGroupName } from "../store/attendanceSummary";
+import { loadSessions } from "../store/sessions";
+import SessionParticipationStats from "./stats";
 
 export function refresh() {
 	const { dispatch, getState } = store;
-	const { groupName } = selectAttendanceSummaryState(getState());
+	const groupName = selectAttendanceSummaryGroupName(getState());
 	if (!groupName) throw new Error("Route error: groupName not set");
 	dispatch(loadRecentAttendanceSummaries(groupName, true));
 }
@@ -27,14 +27,25 @@ const sessionParticipationLoader: LoaderFunction = async ({ params }) => {
 	if (access < AccessLevel.admin)
 		throw new Error("You don't have permission to view this data");
 
+	await dispatch(loadSessions(groupName));
 	dispatch(loadRecentAttendanceSummaries(groupName));
 
 	return null;
 };
 
-const route = {
-	element: <SessionParticipationLayout />,
+const route: RouteObject = {
+	element: <Outlet />,
 	loader: sessionParticipationLoader,
+	children: [
+		{
+			index: true,
+			element: <SessionParticipationLayout />,
+		},
+		{
+			path: "stats",
+			element: <SessionParticipationStats />,
+		},
+	],
 };
 
 export default route;

@@ -15,6 +15,7 @@ import { selectMemberEntities } from "./members";
 import {
 	selectRecentSessions,
 	selectSessionByNumber,
+	updateSession,
 	type Session,
 } from "./sessions";
 
@@ -287,12 +288,12 @@ export const loadRecentAttendanceSummaries =
 			sessions.map((session) => {
 				const url = `/api/${groupName}/attendances/${session.id}`;
 				return fetcher.get(url).then((response: any) => {
-					if (!validGetAttendanceSummary(response)) {
+					if (!validAttendanceSummaries(response)) {
 						throw new TypeError(
 							"Unexpected response to GET " + url
 						);
 					}
-					return response.attendances;
+					return response;
 				});
 			})
 		)
@@ -326,7 +327,7 @@ export const importAttendanceSummary =
 		let response: any;
 		try {
 			response = await fetcher.post(url);
-			if (!validGetAttendanceSummary(response))
+			if (!validAttendanceSummaries(response))
 				throw new TypeError("Unexpected response to POST " + url);
 		} catch (error) {
 			dispatch(
@@ -338,7 +339,13 @@ export const importAttendanceSummary =
 			);
 			return;
 		}
-		dispatch(setMany(response.attendances));
+		dispatch(
+			updateSession({
+				id: session.id,
+				changes: { attendees: response.length },
+			})
+		);
+		dispatch(setMany(response));
 	};
 
 export const addAttendanceSummaries =
