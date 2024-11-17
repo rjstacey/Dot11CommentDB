@@ -1,8 +1,12 @@
 import ExcelJS from "exceljs";
 import { csvParse } from "../utils";
 
-type RegEntry = {
-	SAPIN: number;
+type SessionRegistration = {
+	id: number;
+	SAPIN: number | null;
+	Name: string;
+	FirstName: string;
+	LastName: string;
 	Email: string;
 	RegType: string;
 };
@@ -52,13 +56,24 @@ export async function parseRegistrationSpreadsheet(file: {
 	const regTypeIndex = rows[0].findIndex((v) => /registration/i.test(v));
 	if (regTypeIndex < 0)
 		throw new TypeError("Can't find registration type column");
+	const firstNameIndex = rows[0].findIndex((v) => /first name/i.test(v));
+	if (firstNameIndex < 0) throw new TypeError("Can't find First Name column");
+	const lastNameIndex = rows[0].findIndex((v) => /last name/i.test(v));
+	if (lastNameIndex < 0) throw new TypeError("Can't find Last Name column");
+	const fullNameIndex = rows[0].findIndex((v) => /full name/i.test(v));
 	rows.unshift();
-	const registrations = rows.map((r) => {
+	const registrations = rows.map((r, id) => {
+		let Name = r[firstNameIndex] + " " + r[lastNameIndex];
+		if (fullNameIndex >= 0) Name = r[fullNameIndex];
 		return {
-			SAPIN: Number(r[sapinIndex]),
+			id,
+			SAPIN: Number(r[sapinIndex]) || null,
+			Name,
+			FirstName: r[firstNameIndex],
+			LastName: r[lastNameIndex],
 			Email: r[emailIndex],
 			RegType: r[regTypeIndex],
-		} satisfies RegEntry;
+		} satisfies SessionRegistration;
 	});
 	return registrations;
 }

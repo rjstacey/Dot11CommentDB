@@ -106,12 +106,12 @@ export function getCredit(creditStr: string): {
  *
  * @returns an array of session objects
  */
-export function getSessions(constraints?: SessionsQuery): Promise<Session[]> {
+export function getSessions(constraints: SessionsQuery = {}): Promise<Session[]> {
+	const { limit, ...query } = constraints;
 	let sql = getSessionsSQL(constraints?.groupId);
 
-	if (constraints) {
 		const wheres: string[] = [];
-		Object.entries(constraints).forEach(([key, value]) => {
+		Object.entries(query).forEach(([key, value]) => {
 			wheres.push(
 				key === "groupId"
 					? db.format(
@@ -127,9 +127,10 @@ export function getSessions(constraints?: SessionsQuery): Promise<Session[]> {
 			);
 		});
 		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
-	}
 
 	sql += " ORDER BY startDate DESC";
+
+	if (typeof limit === "number") sql += db.format(" LIMIT ?", [limit]);
 
 	//console.log(sql)
 	return db.query<(RowDataPacket & Session)[]>(sql);
