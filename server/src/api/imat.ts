@@ -133,26 +133,22 @@ function getMeetingAttendance(req: Request, res: Response, next: NextFunction) {
 		.catch(next);
 }
 
-function getMeetingDailyAttendance(
+async function getMeetingAttendanceSummary(
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) {
-	const imatMeetingId = Number(req.params.imatMeetingId);
-	getImatMeetingDailyAttendance(req.user, req.group!, imatMeetingId)
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function getMeetingAttendanceSummary(
-	req: Request,
-	res: Response,
-	next: NextFunction
-) {
-	const imatMeetingId = Number(req.params.imatMeetingId);
-	getImatMeetingAttendanceSummary(req.user, req.group!, imatMeetingId)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const imatMeetingId = Number(req.params.imatMeetingId);
+		const useDaily = req.query.useDaily !== "false";
+		const getAttendance = useDaily
+			? getImatMeetingDailyAttendance
+			: getImatMeetingAttendanceSummary;
+		const data = await getAttendance(req.user, req.group!, imatMeetingId);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 function getBreakoutAttendance(
@@ -182,7 +178,6 @@ router
 		"/attendance/:imatMeetingId(\\d+)/:imatBreakoutId(\\d+)",
 		getBreakoutAttendance
 	)
-	.get("/attendance/:imatMeetingId(\\d+)/daily", getMeetingDailyAttendance)
 	.get(
 		"/attendance/:imatMeetingId(\\d+)/summary",
 		getMeetingAttendanceSummary
