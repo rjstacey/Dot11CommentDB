@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import type { RequestHandler, Request } from "express";
 
 import { getUser } from "../services/users";
+import { AuthError } from "../utils";
 
 const secret = process.env.NODE_ENV === "development" ? "secret" : uuidv4();
 //const secret = uuidv4();
@@ -60,3 +61,13 @@ export const authorize: RequestHandler = async (req, res, next) => {
 		res.status(403).send(error);
 	}
 };
+
+export async function verifyToken(token: string) {
+	try {
+		const userId = Number(jwt.verify(token, secret));
+		const user = await getUser(userId);
+		return user;
+	} catch (error) {
+		throw new AuthError("Unauthorized");
+	}
+}

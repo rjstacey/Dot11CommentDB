@@ -6,6 +6,7 @@
 
 import dotenv from "dotenv";
 import path from "path";
+import { createServer } from "node:http";
 import express, { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
 
@@ -13,6 +14,7 @@ import login from "./auth/login";
 import oauth2 from "./auth/oauth2";
 import api from "./api/router";
 
+import { init as initSocketIo } from "./socket.io";
 import { init as initDatabaseConnection } from "./utils/database";
 import { init as initMembers } from "./services/members";
 import { init as initComments } from "./services/comments";
@@ -116,11 +118,9 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 	res.status(status).send(message);
 };
 
-function initServer() {
-	console.log("starting server");
+function initExpressApp() {
 	const app = express();
 
-	app.set("port", LISTEN_PORT);
 	app.use(express.json());
 	app.use(express.urlencoded({ extended: true }));
 
@@ -183,10 +183,6 @@ function initServer() {
 	);
 	//app.get('*', (req, res) => res.redirect('/'));
 
-	app.listen(app.get("port"), () => {
-		console.log("👂 listening on port %s", app.get("port"));
-	});
-
 	return app;
 }
 
@@ -209,7 +205,14 @@ async function main() {
 		process.exitCode = 1;
 	}
 
-	initServer();
+	const app = initExpressApp();
+	const server = createServer(app);
+	initSocketIo(server);
+
+	console.log("starting server");
+	server.listen(LISTEN_PORT, () => {
+		console.log("👂 listening on port %s", LISTEN_PORT);
+	});
 }
 
 main();
