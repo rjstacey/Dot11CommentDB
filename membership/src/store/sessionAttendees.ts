@@ -261,12 +261,12 @@ let loadingPromise: Promise<void>;
 export const loadSessionAttendees =
 	(
 		groupName: string,
-		sessionNumber: number,
+		sessionId: number,
 		useDaily = false,
 		force = false
 	): AppThunk<void> =>
 	async (dispatch, getState) => {
-		const session = selectSessionByNumber(getState(), sessionNumber);
+		const session = selectSessionEntities(getState())[sessionId];
 		if (!session || !session.imatMeetingId) {
 			dispatch(
 				setError(
@@ -292,11 +292,9 @@ export const loadSessionAttendees =
 		}
 
 		dispatch(getPending({ groupName, sessionId: session.id, useDaily }));
-		const url = `/api/${groupName}/imat/attendance/${
-			session.imatMeetingId
-		}/${useDaily ? "daily" : "summary"}`;
+		const url = `/api/${groupName}/imat/attendance/${session.imatMeetingId}/summary`;
 		loadingPromise = fetcher
-			.get(url)
+			.get(url, { useDaily })
 			.then((imatAttendances: any) => {
 				if (!validGetImatAttendanceResponse(imatAttendances))
 					throw new TypeError("Unexpected response to GET " + url);

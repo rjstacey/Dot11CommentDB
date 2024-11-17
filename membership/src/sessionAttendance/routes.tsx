@@ -16,7 +16,10 @@ import {
 	loadRecentAttendanceSummaries,
 	selectAttendanceSummaryState,
 } from "../store/attendanceSummary";
-import { selectSessionEntities } from "../store/sessions";
+import {
+	selectSessionByNumber,
+	selectSessionEntities,
+} from "../store/sessions";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -24,8 +27,7 @@ export function refresh() {
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const { sessionId, useDaily } = selectSessionAttendeesState(getState());
 	if (sessionId) {
-		const session = selectSessionEntities(getState())[sessionId]!;
-		dispatch(loadSessionAttendees(groupName, session.id, useDaily, true));
+		dispatch(loadSessionAttendees(groupName, sessionId, useDaily, true));
 	}
 	dispatch(loadRecentAttendanceSummaries(groupName, true));
 }
@@ -47,9 +49,15 @@ const sessionAttendanceLoader: LoaderFunction = async ({ params, request }) => {
 		searchParams.has("useDaily") &&
 		searchParams.get("useDaily") !== "false";
 	if (sessionNumber) {
-		dispatch(
-			loadSessionAttendees(groupName, Number(sessionNumber), useDaily)
+		const session = selectSessionByNumber(
+			getState(),
+			Number(sessionNumber)
 		);
+		if (session) {
+			dispatch(loadSessionAttendees(groupName, session.id, useDaily));
+		} else {
+			throw new Error("Can't find session " + sessionNumber);
+		}
 	}
 	dispatch(loadRecentAttendanceSummaries(groupName));
 
