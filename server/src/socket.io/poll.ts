@@ -99,7 +99,7 @@ async function onEventOpen(this: Socket, payload: unknown, callback: unknown) {
 	try {
 		const groupId = getSocketGroupId(this);
 		const { eventId } = eventOpenSchema.parse(payload);
-		const polls = await getPolls({ groupId, eventId });
+		const polls = await getPolls({ eventId });
 		okCallback(callback);
 		const arg: EventOpened = { eventId, polls };
 		this.nsp.to(groupId).emit("event:opened", arg);
@@ -169,7 +169,7 @@ async function onPollsGet(this: Socket, payload: unknown, callback: unknown) {
 	try {
 		const groupId = getSocketGroupId(this);
 		const query = pollsQuerySchema.parse(payload);
-		const polls = await getPolls({ ...query, groupId });
+		const polls = await getPolls(query);
 		okCallback(callback, { polls });
 	} catch (error) {
 		errorCallback(callback, error);
