@@ -2,7 +2,7 @@ import db from "../utils/database";
 import {
 	Event,
 	EventsQuery,
-	EventCreate,
+	EventAdd,
 	EventUpdate,
 	Poll,
 	PollsQuery,
@@ -34,7 +34,7 @@ export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 	return events;
 }
 
-export async function addPollEvent(event: EventCreate) {
+export async function addPollEvent(event: EventAdd) {
 	const sql = db.format("INSERT INTO pollEvents SET ?", [event]);
 	const { insertId: id } = await db.query<ResultSetHeader>(sql);
 	const [eventOut] = await getPollEvents({ id });

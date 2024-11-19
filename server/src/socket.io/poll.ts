@@ -1,21 +1,32 @@
 import { Socket } from "socket.io";
 import { User } from "../services/users";
 import {
-	EventCreate,
+	PollingOK,
+	PollingError,
+	EventCreateResponse,
+	EventUpdateResponse,
+	EventAdd,
 	EventOpened,
-	PollCreate,
+	PollShown,
 	PollOpened,
+	PollUpdated,
+	PollDeleted,
+	PollCreateResponse,
 	groupJoinSchema,
-	eventCreateInSchema,
-	eventIdSchema,
+	eventCreateSchema,
 	eventUpdateSchema,
+	eventDeleteSchema,
 	eventOpenSchema,
 	eventsQuerySchema,
 	pollCreateSchema,
 	pollUpdateSchema,
 	pollIdSchema,
 	pollOpenSchema,
+	pollShowSchema,
 	pollsQuerySchema,
+	PollAdded,
+	PollUpdateResponse,
+	PollsGetResponse,
 } from "../schemas/poll";
 import {
 	addPollEvent,
@@ -38,21 +49,25 @@ function validCallback(callback: unknown): callback is Function {
 	return false;
 }
 
-function okCallback(callback: Function, data?: {}) {
-	callback({ status: "OK", ...data });
+function okCallback<T extends {}>(callback: Function, data?: T) {
+	callback({ status: "OK", ...data } satisfies PollingOK);
 }
 
 function errorCallback(callback: Function, error: any) {
 	console.log(error);
-	let errorObj: { [K: string]: string } = {};
+	let errorObj: { name: string; message: string };
 	if (error instanceof Error) {
-		errorObj.name = error.name;
-		errorObj.message = error.message;
+		errorObj = {
+			name: error.name,
+			message: error.message,
+		};
 	} else {
-		errorObj.name = "ServerError";
-		errorObj.message = "Unknown";
+		errorObj = {
+			name: "ServerError",
+			message: "Unknown",
+		};
 	}
-	callback({ status: "Error", error: errorObj });
+	callback({ status: "Error", error: errorObj } satisfies PollingError);
 }
 
 function setSocketGroupId(socket: Socket, groupId: string) {
@@ -101,8 +116,8 @@ async function onEventOpen(this: Socket, payload: unknown, callback: unknown) {
 		const { eventId } = eventOpenSchema.parse(payload);
 		const polls = await getPolls({ eventId });
 		okCallback(callback);
-		const arg: EventOpened = { eventId, polls };
-		this.nsp.to(groupId).emit("event:opened", arg);
+		const params: EventOpened = { eventId, polls };
+		this.nsp.to(groupId).emit("event:opened", params);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -117,33 +132,17 @@ async function onEventCreate(
 	if (!validCallback(callback)) return;
 	try {
 		const groupId = getSocketGroupId(this);
-		const addIn = eventCreateInSchema.parse(payload);
-		const add: EventCreate = {
+		const addIn = eventCreateSchema.parse(payload);
+		const add: EventAdd = {
 			groupId,
 			name: addIn.name,
 			timeZone: addIn.timeZone || "America/New_York",
 			datetime: addIn.datetime || new Date().toISOString(),
 		};
 		const event = await addPollEvent(add);
-		okCallback(callback, { event });
+		okCallback(callback, { event } satisfies EventCreateResponse);
 	} catch (error) {
 		errorCallback(callback, error);
-	}
-}
-
-/** Delete event */
-async function onEventDelete(
-	this: Socket,
-	payload: unknown,
-	callback: unknown
-) {
-	if (!validCallback(callback)) return;
-	try {
-		const id = eventIdSchema.parse(payload);
-		await deletePollEvent(id);
-		okCallback(callback);
-	} catch (error) {
-		callback({ status: "Error", error });
 	}
 }
 
@@ -157,7 +156,23 @@ async function onEventUpdate(
 	try {
 		const update = eventUpdateSchema.parse(payload);
 		const event = await updatePollEvent(update);
-		okCallback(callback, { event });
+		okCallback(callback, { event } satisfies EventUpdateResponse);
+	} catch (error) {
+		errorCallback(callback, error);
+	}
+}
+
+/** Delete event */
+async function onEventDelete(
+	this: Socket,
+	payload: unknown,
+	callback: unknown
+) {
+	if (!validCallback(callback)) return;
+	try {
+		const id = eventDeleteSchema.parse(payload);
+		await deletePollEvent(id);
+		okCallback(callback);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -170,7 +185,7 @@ async function onPollsGet(this: Socket, payload: unknown, callback: unknown) {
 		const groupId = getSocketGroupId(this);
 		const query = pollsQuerySchema.parse(payload);
 		const polls = await getPolls(query);
-		okCallback(callback, { polls });
+		okCallback(callback, { polls } satisfies PollsGetResponse);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -182,8 +197,8 @@ async function onPollCreate(this: Socket, payload: unknown, callback: unknown) {
 		const groupId = getSocketGroupId(this);
 		const add = pollCreateSchema.parse(payload);
 		const poll = await addPoll(add);
-		okCallback(callback, { poll });
-		this.nsp.to(groupId).emit("poll:add", poll);
+		okCallback(callback, { poll } satisfies PollCreateResponse);
+		this.nsp.to(groupId).emit("poll:added", poll satisfies PollAdded);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -195,8 +210,8 @@ async function onPollUpdate(this: Socket, payload: unknown, callback: unknown) {
 		const groupId = getSocketGroupId(this);
 		const update = pollUpdateSchema.parse(payload);
 		const poll = await updatePoll(update);
-		okCallback(callback, { poll });
-		this.nsp.to(groupId).emit("poll:update", update);
+		okCallback(callback, { poll } satisfies PollUpdateResponse);
+		this.nsp.to(groupId).emit("poll:updated", poll satisfies PollUpdated);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -209,7 +224,7 @@ async function onPollDelete(this: Socket, payload: unknown, callback: unknown) {
 		const id = pollIdSchema.parse(payload);
 		await deletePoll(id);
 		okCallback(callback);
-		this.nsp.to(groupId).emit("poll:delete", id);
+		this.nsp.to(groupId).emit("poll:deleted", id satisfies PollDeleted);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -219,12 +234,11 @@ async function onPollShow(this: Socket, payload: unknown, callback: unknown) {
 	if (!validCallback(callback)) return;
 	try {
 		const groupId = getSocketGroupId(this);
-		const { id } = pollOpenSchema.parse(payload);
+		const id = pollShowSchema.parse(payload);
 		const poll = (await getPolls({ id }))[0];
 		if (!poll) throw new TypeError("Poll not found");
 		okCallback(callback);
-		const arg: PollOpened = { id };
-		this.nsp.to(groupId).emit("poll:shown", arg);
+		this.nsp.to(groupId).emit("poll:shown", id satisfies PollShown);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -234,12 +248,11 @@ async function onPollOpen(this: Socket, payload: unknown, callback: unknown) {
 	if (!validCallback(callback)) return;
 	try {
 		const groupId = getSocketGroupId(this);
-		const { id } = pollOpenSchema.parse(payload);
+		const id = pollOpenSchema.parse(payload);
 		const poll = (await getPolls({ id }))[0];
 		if (!poll) throw new TypeError("Poll not found");
 		okCallback(callback);
-		const arg: PollOpened = { id };
-		this.nsp.to(groupId).emit("poll:opened", arg);
+		this.nsp.to(groupId).emit("poll:opened", id satisfies PollOpened);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -271,10 +284,7 @@ function onConnect(socket: Socket, user: User) {
 	socket.on("disconnect", () => {
 		console.log("disconnect ", socket.data.user);
 	});
-	socket.on("poll:vote", (socket) => {
-		console.log("Got vote for ", user);
-	});
-	socket.on("poll:admin", (data, callback) => {
+	socket.on("group:admin", (data, callback) => {
 		console.log("User " + user.Name + " wants to become an admin");
 		callback(0);
 	});
@@ -287,11 +297,11 @@ function onConnect(socket: Socket, user: User) {
 		.on("event:update", onEventUpdate.bind(socket))
 		.on("event:open", onEventOpen.bind(socket))
 		.on("polls:get", onPollsGet.bind(socket))
-		.on("poll:show", onPollShow.bind(socket))
-		.on("poll:open", onPollOpen.bind(socket))
 		.on("poll:create", onPollCreate.bind(socket))
 		.on("poll:update", onPollUpdate.bind(socket))
-		.on("poll:delete", onPollDelete.bind(socket));
+		.on("poll:delete", onPollDelete.bind(socket))
+		.on("poll:show", onPollShow.bind(socket))
+		.on("poll:open", onPollOpen.bind(socket));
 }
 
 export default onConnect;
