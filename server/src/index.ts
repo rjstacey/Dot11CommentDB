@@ -205,11 +205,13 @@ async function main() {
 		process.exitCode = 1;
 	}
 
+	console.log("init express app");
 	const app = initExpressApp();
+	console.log("create http server");
 	const server = createServer(app);
+	console.log("create socket.io server");
 	initSocketIo(server);
 
-	console.log("starting server");
 	server.listen(LISTEN_PORT, () => {
 		console.log("👂 listening on port %s", LISTEN_PORT);
 	});

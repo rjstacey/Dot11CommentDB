@@ -1,12 +1,14 @@
 import { Server as HttpServer } from "node:http";
 import { Server as SocketIoServer, Socket } from "socket.io";
-import onConnectPoll from "./poll";
+import onPollConnect from "./poll";
 import { verifyToken } from "../auth/jwt";
 
-function authSocket(socket: Socket, next: Function) {
+async function authSocket(socket: Socket, next: Function) {
+	console.log("auth");
 	try {
-		const token = socket.handshake.auth.token;
-		const user = verifyToken(token);
+		const token = socket.handshake.query.token;
+		if (typeof token !== "string") throw new Error("Invalid token");
+		const user = await verifyToken(token);
 		socket.data.user = user;
 		next();
 	} catch (error) {
@@ -15,11 +17,13 @@ function authSocket(socket: Socket, next: Function) {
 	}
 }
 
+let io: any;
 export function init(httpServer: HttpServer) {
-	const io = new SocketIoServer(httpServer);
-	io.on("connection", () => console.log("connection"));
-	io.use(authSocket);
-	io.of("/poll").on("connection", (socket) => {
-		onConnectPoll(socket, socket.data.user);
-	});
+	io = new SocketIoServer(httpServer);
+	io.of("/poll")
+		.use(authSocket)
+		.on("connection", (socket: Socket) => {
+			console.log("poll connection");
+			onPollConnect(socket, socket.data.user);
+		});
 }
