@@ -15,6 +15,8 @@ import userSlice from "./user";
 import timeZonesSlice from "./timeZones";
 import groupsSlice from "./groups";
 import pollingSocketSlice from "./pollingSocket";
+import pollingAdminSlice from "./pollingAdmin";
+import pollingUserSlice from "./pollingUser";
 
 const RESET_STORE_ACTION = "root/RESET_STORE";
 const PERSIST_VERSION = 1;
@@ -36,6 +38,8 @@ const appReducer = combineReducers({
 	[timeZonesSlice.name]: timeZonesSlice.reducer,
 	[groupsSlice.name]: groupsSlice.reducer,
 	[pollingSocketSlice.name]: pollingSocketSlice.reducer,
+	[pollingAdminSlice.name]: pollingAdminSlice.reducer,
+	[pollingUserSlice.name]: pollingUserSlice.reducer,
 	[errorsSlice.name]: errorsSlice.reducer,
 });
 

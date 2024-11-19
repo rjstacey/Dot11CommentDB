@@ -27,8 +27,6 @@ function Header() {
 		});
 	}
 
-	console.log(isAdmin);
-
 	const clearCache = () => {
 		dispatch(resetStore());
 		dispatch(setUser(user));
