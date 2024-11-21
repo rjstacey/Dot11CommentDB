@@ -7,7 +7,7 @@ import { fromHtml } from "./commentsSpreadsheet";
 import type { Response } from "express";
 import { getComments } from "./comments";
 import type { Comment, CommentResolution } from "../schemas/comments";
-import type { Member } from "../schemas/members";
+import type { Member, UpdateRosterOptions } from "../schemas/members";
 import type { Result } from "../schemas/results";
 import type { User } from "./users";
 
@@ -119,9 +119,7 @@ async function myProjectAddResolutions(
 	validateSpreadsheetHeader(header, myProjectCommentsHeader);
 
 	worksheet.eachRow((row, i) => {
-		if (i === 1)
-			// skip header
-			return;
+		if (i === 1) return; // skip header
 		if (Array.isArray(row.values)) {
 			let comment = parseMyProjectComment(row.values.slice(1, 26));
 
@@ -205,23 +203,34 @@ const involvementLevelToStatus = {
 	"Aspirant Member": "Aspirant",
 	"Potential Member": "Potential Voter",
 	"Voting Member": "Voter",
-	Observer: "Non-Voter",
 	"Non-Voting Member": "Non-Voter",
+	Observer: "Non-Voter",
 	"Corresponding Member": "Other",
 	Member: "Other",
 	"Nearly Member": "Other",
-};
+} as const;
 
-const mapStatus = (involvementLevel: string) =>
+const mapInvolvementLevelToStatus = (involvementLevel: string) =>
 	involvementLevelToStatus[involvementLevel] || "Other";
+
+const activeInvolvementLevel = [
+	"Aspirant Member",
+	"Potential Member",
+	"Voting Member",
+];
 
 const statusToInvolvementLevel = {
 	Aspirant: "Aspirant Member",
 	"Potential Voter": "Potential Member",
 	Voter: "Voting Member",
 	ExOfficio: "Voting Member",
-	"Non-Voter": "Observer",
-};
+	"Non-Voter": "Non-Voting Member",
+} as const;
+
+const mapStatusToInvolvementLevel = (status: string) =>
+	statusToInvolvementLevel[status] || "Observer";
+
+const activeStatus = ["Aspirant", "Potential Voter", "Voter"];
 
 type Col = {
 	width: number;
@@ -270,9 +279,6 @@ const myProjectRosterColumns: Record<string, Col> = {
 	},
 };
 
-const mapStatusToInvolvementLevel = (status: string) =>
-	statusToInvolvementLevel[status] || "Observer";
-
 function parseRosterEntry(u: any[]) {
 	let LastName = u[1] || "";
 	let FirstName = u[2] || "";
@@ -288,7 +294,7 @@ function parseRosterEntry(u: any[]) {
 		Employer: u[11] || "",
 		Affiliation: u[12] || "",
 		OfficerRole: u[13] || "",
-		Status: mapStatus(u[14]),
+		Status: mapInvolvementLevelToStatus(u[14]),
 	};
 }
 
@@ -340,5 +346,96 @@ export async function genMyProjectRosterSpreadsheet(
 	});
 
 	res.attachment("RosterUsers.xlsx");
+	return workbook.xlsx.write(res);
+}
+
+export async function updateMyProjectRoster(
+	user: User,
+	members: Member[],
+	buffer: Buffer,
+	options: UpdateRosterOptions,
+	res: Response
+) {
+	const workbook = new ExcelJS.Workbook();
+	await workbook.xlsx.load(buffer);
+
+	const ws = workbook.getWorksheet(1);
+	if (!ws) throw new Error("Roster file has no worksheets");
+
+	const headerRow = ws.getRow(1);
+	if (!Array.isArray(headerRow.values)) throw new Error("Bad header row");
+	validateSpreadsheetHeader(
+		headerRow.values.slice(1, myProjectCommentsHeader.length + 1),
+		myProjectRosterHeader
+	);
+
+	const sapinColNum = myProjectRosterHeader.indexOf("SA PIN") + 1;
+	const emailColNum = myProjectRosterHeader.indexOf("Email Address") + 1;
+	const involvementLevelColNum =
+		myProjectRosterHeader.indexOf("Involvement Level") + 1;
+	if (sapinColNum <= 0 || emailColNum <= 0 || involvementLevelColNum <= 0)
+		throw new Error("indexing error");
+
+	const unchangedRows: number[] = []; // row numbers, highest to lowest
+	ws.eachRow((row) => {
+		if (row.number === 1) return; // skip header
+		const sapin = Number(row.getCell(sapinColNum).text);
+		const email = row.getCell(emailColNum).text.toLowerCase();
+		const involvementLevel = row.getCell(involvementLevelColNum).text;
+		const currentlyActive =
+			activeInvolvementLevel.includes(involvementLevel);
+
+		let memberIndex = members.findIndex((m) => m.SAPIN === sapin);
+		if (memberIndex < 0)
+			memberIndex = members.findIndex(
+				(m) => m.Email.toLowerCase() === email
+			);
+		if (memberIndex >= 0) {
+			// Member is in our database
+			const m = members[memberIndex];
+			members.splice(memberIndex, 1); // Handled this member so remove from list
+			const newInvolvementLevel = statusToInvolvementLevel[m.Status];
+			const newlyActive =
+				activeInvolvementLevel.includes(newInvolvementLevel);
+			// No change needed if the member is not currently active or has not become active
+			if (
+				(!currentlyActive && !newlyActive) ||
+				involvementLevel === newInvolvementLevel
+			) {
+				unchangedRows.unshift(row.number);
+				return;
+			}
+			row.getCell(involvementLevelColNum).value = newInvolvementLevel;
+		} else {
+			// Member is not in our database
+			if (!currentlyActive) {
+				// No change needed if the member is not currently active
+				unchangedRows.unshift(row.number);
+				return;
+			}
+			// We have no record of this member; change to observer
+			row.getCell(involvementLevelColNum).value = "Observer";
+		}
+	});
+
+	if (options.removeUnchanged) {
+		unchangedRows.forEach((n) => {
+			ws.spliceRows(n, 1);
+		});
+	}
+
+	if (options.appendNew) {
+		for (const m of members) {
+			if (!activeStatus.includes[m.Status]) continue;
+			const values = Object.values(myProjectRosterColumns).map((col) =>
+				typeof col.set === "function" ? col.set(m) : col.set || ""
+			);
+			ws.addRow(values);
+		}
+	}
+
+	workbook.lastModifiedBy = user.Name;
+	workbook.modified = new Date();
+	res.attachment("RosterUsers-updated.xlsx");
 	return workbook.xlsx.write(res);
 }

@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { datetimeSchema } from "./common";
 
 const statusChangeEntrySchema = z.object({
 	id: z.number(),
-	Date: z.nullable(z.string().datetime({ offset: true })),
+	Date: z.nullable(datetimeSchema),
 	OldStatus: z.string(),
 	NewStatus: z.string(),
 	Reason: z.string(),
@@ -11,7 +12,7 @@ const statusChangeEntrySchema = z.object({
 const contactEmailSchema = z.object({
 	id: z.number(),
 	Email: z.string().email(),
-	DateAdded: z.nullable(z.string().datetime({ offset: true })),
+	DateAdded: z.nullable(datetimeSchema),
 	Primary: z.boolean(),
 	Broken: z.boolean(),
 });
@@ -46,10 +47,10 @@ const groupMemberSchema = z.object({
 	Status: z.string(), // Group member status
 	ObsoleteSAPINs: z.array(z.number()), // Array of SAPINs previously used by member
 	ReplacedBySAPIN: z.number(), // SAPIN that replaces this one
-	StatusChangeDate: z.nullable(z.string().date()), // Date of last status change (ISO date string)
+	StatusChangeDate: z.nullable(datetimeSchema), // Date of last status change
 	StatusChangeHistory: z.array(statusChangeEntrySchema), // History of status change
 	StatusChangeOverride: z.boolean(), // Manually maintain status; don't update based on attendance/participation
-	DateAdded: z.nullable(z.string().date()), // Date member was added
+	DateAdded: z.nullable(datetimeSchema), // Date member was added
 	MemberID: z.number(), // Member identifier from Adrian's Access database
 	Notes: z.string(),
 	InRoster: z.boolean(), // Present in MyProject roster
@@ -110,6 +111,11 @@ export const memberUpdateSchema = z.object({
 });
 export const memberUpdatesSchema = z.array(memberUpdateSchema);
 export const memberIdsSchema = z.array(z.number());
+
+export type UpdateRosterOptions = {
+	appendNew?: boolean;
+	removeUnchanged?: boolean;
+};
 
 export type StatusChangeEntry = z.infer<typeof statusChangeEntrySchema>;
 export type ContactEmail = z.infer<typeof contactEmailSchema>;

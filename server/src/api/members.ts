@@ -13,6 +13,7 @@ import {
 	memberUpdatesSchema,
 	MemberUpdate,
 	memberIdsSchema,
+	UpdateRosterOptions,
 } from "../schemas/members";
 import {
 	getMembers,
@@ -30,6 +31,7 @@ import {
 	uploadMembers,
 	importMyProjectRoster,
 	exportMyProjectRoster,
+	updateMyProjectRosterWithMemberStatus,
 	exportMembersPublic,
 	exportMembersPrivate,
 	exportVotingMembers,
@@ -236,6 +238,23 @@ function postMyProjectRoster(req: Request, res: Response, next: NextFunction) {
 		.catch(next);
 }
 
+function patchMyProjectRoster(req: Request, res: Response, next: NextFunction) {
+	const group = req.group!;
+	if (!req.file) return next(new TypeError("Missing file"));
+	let options: UpdateRosterOptions = {};
+	if (req.query.appendNew === "true") options.appendNew = true;
+	if (req.query.removeUnchanged === "true") options.removeUnchanged = true;
+	updateMyProjectRosterWithMemberStatus(
+		req.user,
+		group.id,
+		req.file,
+		options,
+		res
+	)
+		.then(() => res.end())
+		.catch(next);
+}
+
 function getMyProjectRoster(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
 	const access = group.permissions.members || AccessLevel.none;
@@ -286,6 +305,7 @@ router
 	.get("/snapshot", getSnapshot)
 	.post("/upload/:format", upload.single("File"), postUpload)
 	.post("/MyProjectRoster", upload.single("File"), postMyProjectRoster)
+	.patch("/MyProjectRoster", upload.single("file"), patchMyProjectRoster)
 	.get("/MyProjectRoster", getMyProjectRoster)
 	.get("/public", getPublic)
 	.get("/private", getPrivate)

@@ -9,6 +9,7 @@ import type { User } from "./users";
 import {
 	parseMyProjectRosterSpreadsheet,
 	genMyProjectRosterSpreadsheet,
+	updateMyProjectRoster,
 } from "./myProjectSpreadsheets";
 
 import {
@@ -29,6 +30,7 @@ import {
 	MemberCreate,
 	StatusChangeEntry,
 	ContactEmail,
+	UpdateRosterOptions,
 } from "../schemas/members";
 import { Group } from "../schemas/groups";
 import { getRecentAttendances } from "./attendances";
@@ -1027,6 +1029,27 @@ export async function exportMyProjectRoster(
 	});
 	members = members.filter((m) => m.Status !== "Non-Voter" || m.InRoster);
 	return genMyProjectRosterSpreadsheet(user, members, res);
+}
+
+export async function updateMyProjectRosterWithMemberStatus(
+	user: User,
+	groupId: string,
+	file: { buffer: Buffer },
+	options: UpdateRosterOptions,
+	res: Response
+) {
+	let members = await getMembers(AccessLevel.admin, {
+		groupId,
+		Status: [
+			"Voter",
+			"Aspirant",
+			"Potential Voter",
+			"Non-Voter",
+			"ExOfficio",
+		],
+	});
+
+	return updateMyProjectRoster(user, members, file.buffer, options, res);
 }
 
 export async function exportMembersPublic(groupId: string, res: Response) {

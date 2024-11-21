@@ -27,6 +27,7 @@ import {
 	PollAdded,
 	PollUpdateResponse,
 	PollsGetResponse,
+	EventsGetResponse,
 } from "../schemas/poll";
 import {
 	addPollEvent,
@@ -102,7 +103,7 @@ async function onEventsGet(this: Socket, payload: unknown, callback: unknown) {
 		const groupId = getSocketGroupId(this);
 		const query = eventsQuerySchema.parse(payload);
 		const events = await getPollEvents({ ...query, groupId });
-		okCallback(callback, { events });
+		okCallback(callback, { events } satisfies EventsGetResponse);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
