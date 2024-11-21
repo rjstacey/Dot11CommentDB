@@ -3,10 +3,12 @@ import { LoaderFunction } from "react-router-dom";
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
 import { loadGroups, selectTopLevelGroupByName } from "../store/groups";
+import { loadIeeeMembers } from "../store/ieeeMembers";
+import { selectMembersState, loadMembers } from "../store/members";
+import { loadOfficers } from "../store/officers";
 import { loadRecentAttendanceSummaries } from "../store/attendanceSummary";
 import { loadBallotParticipation } from "../store/ballotParticipation";
 import { loadAffiliationMap } from "../store/affiliationMap";
-import { selectMembersState, loadMembers } from "../store/members";
 
 import MembersLayout from "./layout";
 import MembersTable from "./table";
@@ -17,10 +19,12 @@ export function refresh() {
 	const { groupName } = selectMembersState(getState());
 	if (!groupName) throw new Error("Route error: groupName not set");
 
+	dispatch(loadIeeeMembers(true));
 	dispatch(loadMembers(groupName, true));
+	dispatch(loadOfficers(groupName, true));
+	dispatch(loadAffiliationMap(groupName, true));
 	dispatch(loadRecentAttendanceSummaries(groupName, true));
 	dispatch(loadBallotParticipation(groupName, true));
-	dispatch(loadAffiliationMap(groupName, true));
 }
 
 export const membersLoader: LoaderFunction = async ({ params }) => {

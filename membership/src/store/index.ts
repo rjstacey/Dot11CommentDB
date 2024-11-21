@@ -24,7 +24,7 @@ import imatCommitteesSlice from "./imatCommittees";
 import sessionsSlice from "./sessions";
 import emailTemlatesSlice from "./emailTemplates";
 import affliationMapSlice from "./affiliationMap";
-
+import myProjectRosterSlice from "./myProjectRoster";
 import { errorsSlice } from "dot11-components";
 
 const RESET_STORE_ACTION = "root/RESET_STORE";
@@ -50,6 +50,7 @@ const transformState = createTransform(
 			sessionRegistratonSlice.name,
 			emailTemlatesSlice.name,
 			affliationMapSlice.name,
+			myProjectRosterSlice.name,
 		],
 	}
 );
@@ -70,6 +71,7 @@ const appReducer = combineReducers({
 	[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
 	[emailTemlatesSlice.name]: emailTemlatesSlice.reducer,
 	[affliationMapSlice.name]: affliationMapSlice.reducer,
+	[myProjectRosterSlice.name]: myProjectRosterSlice.reducer,
 	[errorsSlice.name]: errorsSlice.reducer,
 });
 
@@ -103,6 +105,7 @@ const persistConfig = {
 		imatCommitteesSlice.name,
 		emailTemlatesSlice.name,
 		affliationMapSlice.name,
+		myProjectRosterSlice.name,
 	],
 	stateReconciler: autoMergeLevel2,
 	transforms: [transformState],

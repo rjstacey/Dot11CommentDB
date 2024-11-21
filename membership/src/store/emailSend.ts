@@ -33,7 +33,7 @@ export const sendEmail =
 	async (dispatch) => {
 		const url = `/api/${groupName}/email/send`;
 		try {
-			for (let i = 0; i < 100; i++) await fetcher.post(url, email);
+			await fetcher.post(url, email);
 		} catch (error) {
 			dispatch(setError("Unable to send email: ", error));
 		}

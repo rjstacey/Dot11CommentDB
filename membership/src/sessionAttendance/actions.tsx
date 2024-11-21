@@ -5,7 +5,6 @@ import {
 	useSearchParams,
 	useLocation,
 } from "react-router-dom";
-
 import {
 	ActionButton,
 	ActionButtonDropdown,
@@ -27,7 +26,6 @@ import {
 	sessionAttendeesActions,
 	selectSessionAttendeesState,
 	exportAttendanceForMinutes,
-	SessionAttendee,
 	selectSessionAttendeesSession,
 } from "../store/sessionAttendees";
 import {
@@ -36,21 +34,20 @@ import {
 	uploadSessionRegistration,
 } from "../store/sessionRegistration";
 import { importAttendanceSummary } from "../store/attendanceSummary";
-import { Session } from "../store/sessions";
 import {
 	selectMemberEntities,
 	addMembers,
 	updateMembers,
 	Member,
-	MemberAdd,
 	MemberUpdate,
 } from "../store/members";
 
 import SessionSelector from "./SessionSelector";
+import { refresh } from "./routes";
 import { tableColumns as sessionAttendeesColumns } from "./table";
 import { tableColumns as sessionRegistrationColumns } from "./sessionRegistration";
 import { copyChartToClipboard, downloadChart } from "../components/copyChart";
-import { refresh } from "./routes";
+import { sessionAttendeeToNewMember } from "./detail";
 
 function ImportRegistrationForm({ methods }: DropdownRendererProps) {
 	const dispatch = useAppDispatch();
@@ -69,7 +66,6 @@ function ImportRegistrationForm({ methods }: DropdownRendererProps) {
 		await dispatch(
 			uploadSessionRegistration(groupName!, session.number!, file)
 		);
-		//await dispatch(matchRegistration());
 		setBusy(false);
 		methods.close();
 	}
@@ -93,23 +89,6 @@ function ImportRegistrationForm({ methods }: DropdownRendererProps) {
 			</Row>
 		</Form>
 	);
-}
-
-function sessionAttendeeToMember(session: Session, attendee: SessionAttendee) {
-	const member: MemberAdd = {
-		DateAdded: session.startDate, // Show add as from session start
-		SAPIN: attendee.SAPIN,
-		Name: attendee.Name,
-		FirstName: attendee.FirstName,
-		LastName: attendee.LastName,
-		MI: attendee.MI,
-		Employer: attendee.Employer || "",
-		Email: attendee.Email,
-		Affiliation: attendee.Affiliation,
-		Status: "Non-Voter",
-		ContactInfo: attendee.ContactInfo,
-	};
-	return member;
 }
 
 function BulkUpdateForm({ methods }: DropdownRendererProps) {
@@ -136,7 +115,9 @@ function BulkUpdateForm({ methods }: DropdownRendererProps) {
 				.filter(
 					(attendee) => attendee && !memberEntities[attendee.SAPIN]
 				)
-				.map((attendee) => sessionAttendeeToMember(session, attendee)),
+				.map((attendee) =>
+					sessionAttendeeToNewMember(attendee, session)
+				),
 		[list, entities, memberEntities, session]
 	);
 
@@ -344,14 +325,16 @@ function SessionAttendanceActions() {
 								fontSize: 10,
 								fontWeight: 700,
 							}}
-							disabled={!sessionNumber}
+							disabled={
+								!sessionNumber || showChart || showRegistration
+							}
 						>
 							<span>Bulk</span>
 							<span>Update</span>
 						</Button>
 					)}
 					dropdownRenderer={(props) => <BulkUpdateForm {...props} />}
-					disabled={!sessionNumber}
+					disabled={!sessionNumber || showChart || showRegistration}
 				/>
 				<ActionButtonDropdown
 					title="Import registration"

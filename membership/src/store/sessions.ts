@@ -185,32 +185,34 @@ function validSessions(sessions: any): sessions is Session[] {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<null>;
+let loading = false;
+let loadingPromise: Promise<void>;
 export const loadSessions =
-	(groupName: string, force = false): AppThunk<null> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const state = getState();
-		const { loading, groupName: currentGroupName } =
-			selectSessionsState(state);
+		const currentGroupName = selectSessionsState(state).groupName;
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
-			const age = selectSessionsAge(state);
+			const age = selectSessionsAge(getState());
 			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/sessions`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url, { type: ["p", "i"], limit: 20 })
 			.then((response: any) => {
 				if (!validSessions(response))
 					throw new TypeError("Unexpected response to GET " + url);
 				dispatch(getSuccess(response));
-				return null;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get sessions", error));
-				return null;
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};

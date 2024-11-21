@@ -1,7 +1,7 @@
 import React from "react";
 import { EntityId } from "@reduxjs/toolkit";
 import isEqual from "lodash.isequal";
-
+import { DateTime } from "luxon";
 import {
 	ConfirmModal,
 	deepMergeTagMultiple,
@@ -18,6 +18,7 @@ import {
 } from "dot11-components";
 
 import type { AppThunk } from "../store";
+import { store } from "../store";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import {
@@ -30,7 +31,7 @@ import {
 	memberContactInfoEmpty,
 	StatusChangeType,
 } from "../store/members";
-import { selectSessionByNumber } from "../store/sessions";
+import { selectSessionByNumber, Session } from "../store/sessions";
 import {
 	setSelected,
 	selectSessionAttendeesState,
@@ -87,8 +88,13 @@ function sessionAttendeeMemberChanges(
 }
 
 /** Create a new member from attendee */
-function sessionAttendeeToNewMember(attendee: SessionAttendee) {
-	const date = new Date().toISOString();
+export function sessionAttendeeToNewMember(
+	attendee: SessionAttendee,
+	session: Session
+) {
+	const date = DateTime.fromISO(session.startDate, {
+		zone: session.timezone,
+	}).toISO()!;
 	const status = "Non-Voter";
 	const contactEmail: MemberContactEmail = {
 		id: 0,
@@ -341,11 +347,13 @@ export function MemberEntryForm({
 				readOnly={readOnly}
 				basicOnly={basicOnly}
 			/>
-			<AttendanceInfo
-				attendance={attendance}
-				savedAttendance={savedAttendance}
-				updateAttendance={updateAttendance}
-			/>
+			{action !== "add" && (
+				<AttendanceInfo
+					attendance={attendance}
+					savedAttendance={savedAttendance}
+					updateAttendance={updateAttendance}
+				/>
+			)}
 			{sapins.length <= 1 && (
 				<Row>
 					<MemberDetailInfo
@@ -409,6 +417,92 @@ type MemberAttendanceDetailState = {
 	message: string;
 };
 
+function initStateForSession(session: Session) {
+	const state = store.getState();
+
+	const { loading, valid } = selectSessionAttendeesState(state);
+	const selected = selectSessionAttendeesSelected(state);
+	const attendeeEntities = selectSessionAttendeesEntities(state);
+	const memberEntities = selectMemberEntities(state);
+	const attendanceSummaryEntities = selectAttendanceSummaryEntitiesForSession(
+		state,
+		session.id
+	);
+
+	let action: EditAction = "view",
+		editedMember: MultipleMember | null = null,
+		savedMember: MultipleMember | null = null,
+		members: MemberAdd[] = [],
+		editedAttendance: MultipleSessionAttendanceSummary | null = null,
+		attendances: SessionAttendanceSummary[] = [],
+		message: string = "";
+
+	if (loading && !valid) {
+		message = "Loading...";
+	} else if (selected.length === 0) {
+		message = "Nothing selected";
+	} else if (selected.every((id) => Boolean(memberEntities[id]))) {
+		// All selected are existing members
+		for (const sapin of selected as number[]) {
+			const member = memberEntities[sapin]!;
+			const attendee = attendeeEntities[sapin];
+			if (!attendee) throw new Error("Invalid selection");
+			const changes = sessionAttendeeMemberChanges(member, attendee);
+			editedMember = deepMergeTagMultiple(
+				editedMember || {},
+				deepMerge(member, changes)
+			) as MultipleMember;
+			savedMember = deepMergeTagMultiple(
+				savedMember || {},
+				member
+			) as MultipleMember;
+			members.push(member);
+
+			const attendanceSummary =
+				attendanceSummaryEntities[sapin] ||
+				getNullAttendanceSummary(session.id, sapin);
+			editedAttendance = deepMergeTagMultiple(
+				editedAttendance || {},
+				attendanceSummary
+			) as MultipleSessionAttendanceSummary;
+			attendances.push(attendanceSummary);
+		}
+		if (isEqual(editedMember, savedMember)) {
+			savedMember = editedMember;
+		} else if (editedMember) {
+			action = "update";
+		}
+	} else if (selected.every((id) => !Boolean(memberEntities[id]))) {
+		// All selected are new attendees
+		action = "add";
+		for (const sapin of selected as number[]) {
+			const attendee = attendeeEntities[sapin];
+			if (!attendee) throw new Error("Invalid selection");
+			const newMember = sessionAttendeeToNewMember(attendee, session);
+			editedMember = deepMergeTagMultiple(
+				editedMember || {},
+				newMember
+			) as MultipleMember;
+			members.push(newMember);
+		}
+		savedMember = editedMember;
+	} else {
+		message = "Mix of new attendees and existing members selected";
+	}
+
+	return {
+		action,
+		editedMember,
+		createdMember: editedMember,
+		savedMember,
+		members,
+		editedAttendance,
+		savedAttendance: editedAttendance,
+		attendances,
+		message,
+	} satisfies MemberAttendanceDetailState;
+}
+
 export function MemberAttendanceDetail() {
 	const dispatch = useAppDispatch();
 	const sessionNumber = Number(useParams().sessionNumber);
@@ -419,96 +513,13 @@ export function MemberAttendanceDetail() {
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 
-	const attendeeEntities = useAppSelector(selectSessionAttendeesEntities);
-	const memberEntities = useAppSelector(selectMemberEntities);
 	const { loading, valid } = useAppSelector(selectSessionAttendeesState);
 	const selected = useAppSelector(selectSessionAttendeesSelected);
-	const attendanceSummaryEntities = useAppSelector((state) =>
-		selectAttendanceSummaryEntitiesForSession(state, session.id)
+
+	const initState = React.useCallback(
+		() => initStateForSession(session),
+		[session]
 	);
-
-	const initState = React.useCallback((): MemberAttendanceDetailState => {
-		let action: EditAction = "view",
-			editedMember: MultipleMember | null = null,
-			savedMember: MultipleMember | null = null,
-			members: MemberAdd[] = [],
-			editedAttendance: MultipleSessionAttendanceSummary | null = null,
-			attendances: SessionAttendanceSummary[] = [],
-			message: string = "";
-
-		if (loading && !valid) {
-			message = "Loading...";
-		} else if (selected.length === 0) {
-			message = "Nothing selected";
-		} else if (selected.every((id) => Boolean(memberEntities[id]))) {
-			// All selected are existing members
-			for (const sapin of selected as number[]) {
-				const member = memberEntities[sapin]!;
-				const attendee = attendeeEntities[sapin];
-				if (!attendee) throw new Error("Invalid selection");
-				const changes = sessionAttendeeMemberChanges(member, attendee);
-				editedMember = deepMergeTagMultiple(
-					editedMember || {},
-					deepMerge(member, changes)
-				) as MultipleMember;
-				savedMember = deepMergeTagMultiple(
-					savedMember || {},
-					member
-				) as MultipleMember;
-				members.push(member);
-
-				const attendanceSummary =
-					attendanceSummaryEntities[sapin] ||
-					getNullAttendanceSummary(session.id, sapin);
-				editedAttendance = deepMergeTagMultiple(
-					editedAttendance || {},
-					attendanceSummary
-				) as MultipleSessionAttendanceSummary;
-				attendances.push(attendanceSummary);
-			}
-			if (isEqual(editedMember, savedMember)) {
-				savedMember = editedMember;
-			} else if (editedMember) {
-				action = "update";
-			}
-		} else if (selected.every((id) => !Boolean(memberEntities[id]))) {
-			// All selected are new attendees
-			action = "add";
-			for (const sapin of selected as number[]) {
-				const attendee = attendeeEntities[sapin];
-				if (!attendee) throw new Error("Invalid selection");
-				const newMember = sessionAttendeeToNewMember(attendee);
-				editedMember = deepMergeTagMultiple(
-					editedMember || {},
-					newMember
-				) as MultipleMember;
-				members.push(newMember);
-			}
-			savedMember = editedMember;
-		} else {
-			message = "Mix of new attendees and existing members selected";
-		}
-
-		return {
-			action,
-			editedMember,
-			createdMember: editedMember,
-			savedMember,
-			members,
-			editedAttendance,
-			savedAttendance: editedAttendance,
-			attendances,
-			message,
-		} satisfies MemberAttendanceDetailState;
-	}, [
-		loading,
-		valid,
-		selected,
-		attendeeEntities,
-		memberEntities,
-		attendanceSummaryEntities,
-		session,
-	]);
 
 	const [state, setState] =
 		React.useState<MemberAttendanceDetailState>(initState);

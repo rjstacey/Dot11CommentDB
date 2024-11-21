@@ -385,13 +385,14 @@ function validResponse(response: any): response is {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<void>;
+let loading = false;
+let loadingPromise: Promise<void> = Promise.resolve();
 export const loadBallotParticipation =
 	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
 		const state = getState();
-		const { loading, groupName: currentGroupName } =
-			selectBallotParticipationState(state);
+		const currentGroupName =
+			selectBallotParticipationState(state).groupName;
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
 			const age = selectBallotParticipationAge(state);
@@ -399,6 +400,7 @@ export const loadBallotParticipation =
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/ballotParticipation`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
@@ -413,6 +415,9 @@ export const loadBallotParticipation =
 				dispatch(
 					setError(`Unable to get ballot series participation`, error)
 				);
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};

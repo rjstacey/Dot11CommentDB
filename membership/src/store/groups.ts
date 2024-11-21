@@ -393,8 +393,8 @@ export const loadGroups =
 	};
 
 export const addGroup =
-	(group: GroupCreate): AppThunk<Group | undefined> =>
-	(dispatch) => {
+	(group: GroupCreate): AppThunk<Group | void> =>
+	async (dispatch) => {
 		if (!group.id) group = { ...group, id: uuid() };
 		dispatch(addOne(group as Group));
 		return fetcher
@@ -416,7 +416,7 @@ export const addGroup =
 
 export const updateGroups =
 	(updates: GroupUpdate[]): AppThunk =>
-	(dispatch, getState) => {
+	async (dispatch, getState) => {
 		const { entities } = selectGroupsState(getState());
 		const originals = updates.map((u) => entities[u.id]!);
 		dispatch(updateMany(updates));
@@ -439,7 +439,7 @@ export const updateGroups =
 
 export const deleteGroups =
 	(ids: EntityId[]): AppThunk =>
-	(dispatch, getState) => {
+	async (dispatch, getState) => {
 		const { entities } = selectGroupsState(getState());
 		const originals = ids.map((id) => entities[id]!);
 		dispatch(removeMany(ids));

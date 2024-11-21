@@ -328,19 +328,20 @@ function validResponse(members: unknown): members is Member[] {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<void>;
+let loading = false;
+let loadingPromise: Promise<void> = Promise.resolve();
 export const loadMembers =
 	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
 		const state = getState();
-		const { loading, groupName: currentGroupName } =
-			selectMembersState(state);
+		const currentGroupName = selectMembersState(state).groupName;
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
 			const age = selectMembersAge(state);
 			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
+		loading = true;
 		loadingPromise = fetcher
 			.get(`/api/${groupName}/members`)
 			.then((response: any) => {
@@ -351,6 +352,9 @@ export const loadMembers =
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get members list", error));
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};
@@ -481,7 +485,7 @@ export const uploadMembers =
 		dispatch(getPending({ groupName }));
 		let response: any;
 		try {
-			response = await fetcher.postMultipart(url, { File: file });
+			response = await fetcher.postFile(url, file);
 			if (!validResponse(response))
 				throw new TypeError("Unexpected response to POST " + url);
 		} catch (error) {
@@ -514,29 +518,6 @@ export const exportMyProjectRoster =
 		} catch (error) {
 			dispatch(setError("Unable to get file", error));
 		}
-	};
-
-export const importMyProjectRoster =
-	(file: any): AppThunk =>
-	async (dispatch, getState) => {
-		const { groupName } = selectMembersState(getState());
-		if (!groupName) {
-			dispatch(setError("Unable to import roster", "Group not selected"));
-			return;
-		}
-		const url = `/api/${groupName}/members/MyProjectRoster`;
-		dispatch(getPending({ groupName }));
-		let response: any;
-		try {
-			response = await fetcher.postMultipart(url, { File: file });
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
-		} catch (error) {
-			dispatch(getFailure());
-			dispatch(setError("Unable to upload roster", error));
-			return;
-		}
-		dispatch(getSuccess(response));
 	};
 
 export const exportMembersPublic =

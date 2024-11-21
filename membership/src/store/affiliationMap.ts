@@ -113,20 +113,22 @@ function validResponse(response: any): response is AffiliationMap[] {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<void>;
+let loading = false;
+let loadingPromise: Promise<void> = Promise.resolve();
 export const loadAffiliationMap =
 	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
 		const state = getState();
-		const { loading, groupName: currentGroupName } =
-			selectAffiliationMapState(state);
+		const currentGroupName = selectAffiliationMapState(state).groupName;
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
 			const age = selectAffiliationMapAge(state);
 			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
+
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/affiliationMap`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
@@ -139,12 +141,16 @@ export const loadAffiliationMap =
 				dispatch(
 					setError(`Unable to get ballot series participation`, error)
 				);
+			})
+			.finally(() => {
+				loading = false;
 			});
+
 		return loadingPromise;
 	};
 
 export const addAffiliationMaps =
-	(adds: AffiliationMapCreate[]): AppThunk<AffiliationMap[] | undefined> =>
+	(adds: AffiliationMapCreate[]): AppThunk<AffiliationMap[] | void> =>
 	(dispatch, getState) => {
 		const { groupName } = selectAffiliationMapState(getState());
 		const url = `/api/${groupName}/affiliationMap`;
@@ -162,7 +168,7 @@ export const addAffiliationMaps =
 	};
 
 export const updateAffiliationMaps =
-	(updates: AffiliationMapUpdate[]): AppThunk<AffiliationMap[] | undefined> =>
+	(updates: AffiliationMapUpdate[]): AppThunk<AffiliationMap[] | void> =>
 	(dispatch, getState) => {
 		const { groupName } = selectAffiliationMapState(getState());
 		const url = `/api/${groupName}/affiliationMap`;

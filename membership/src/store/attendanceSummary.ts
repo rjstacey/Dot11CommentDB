@@ -16,7 +16,6 @@ import {
 	selectRecentSessions,
 	selectSessionByNumber,
 	updateSession,
-	type Session,
 } from "./sessions";
 
 export type SessionAttendanceSummary = {
@@ -255,26 +254,18 @@ export function validAttendanceSummaries(
 	);
 }
 
-function validGetAttendanceSummary(
-	response: any
-): response is { session: Session; attendances: SessionAttendanceSummary[] } {
-	return isObject(response) && validAttendanceSummaries(response.attendances);
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<void>;
+let loading = false;
+let loadingPromise: Promise<void> = Promise.resolve();
 export const loadRecentAttendanceSummaries =
 	(groupName: string, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const sessions = selectRecentSessions(state);
 		const sessionIds = sessions.map((s) => s.id);
-		const {
-			loading,
-			groupName: currentGroupName,
-			sessionIds: currentSessionIds,
-		} = selectAttendanceSummaryState(state);
+		const { groupName: currentGroupName, sessionIds: currentSessionIds } =
+			selectAttendanceSummaryState(state);
 		if (
 			currentGroupName === groupName &&
 			isEqual(currentSessionIds, sessionIds)
@@ -284,7 +275,8 @@ export const loadRecentAttendanceSummaries =
 			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName, sessionIds }));
-		loadingPromise = Promise.all<SessionAttendanceSummary[][]>(
+		loading = true;
+		loadingPromise = Promise.all(
 			sessions.map((session) => {
 				const url = `/api/${groupName}/attendances/${session.id}`;
 				return fetcher.get(url).then((response: any) => {
@@ -308,6 +300,9 @@ export const loadRecentAttendanceSummaries =
 				dispatch(
 					setError(`Unable to get recent attendance summaries`, error)
 				);
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};

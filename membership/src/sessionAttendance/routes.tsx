@@ -16,10 +16,7 @@ import {
 	loadRecentAttendanceSummaries,
 	selectAttendanceSummaryState,
 } from "../store/attendanceSummary";
-import {
-	selectSessionByNumber,
-	selectSessionEntities,
-} from "../store/sessions";
+import { selectSessionByNumber } from "../store/sessions";
 
 export function refresh() {
 	const { dispatch, getState } = store;

@@ -96,31 +96,34 @@ function validEmailTemplates(templates: any): templates is EmailTemplate[] {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<EmailTemplate[]>;
+let loading = false;
+let loadingPromise: Promise<void> = Promise.resolve();
 export const loadEmailTemplates =
-	(groupName: string, force = false): AppThunk<EmailTemplate[]> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
-		const { loading, groupName: currentGroupName } =
-			selectEmailTemplatesState(getState());
-		if (groupName === currentGroupName) {
-			if (loading) return loadingPromise;
-			const age = selectEmailTemplatesAge(getState());
-			if (!force && age && age < AGE_STALE) return loadingPromise;
+		const state = getState();
+		const currentGroupName = selectEmailTemplatesState(state).groupName;
+		const age = selectEmailTemplatesAge(state);
+		if (currentGroupName === groupName) {
+			if (loading || (!force && age && age < AGE_STALE))
+				return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/email/templates`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
 				if (!validEmailTemplates(response))
 					throw new TypeError(`Unexpected response to GET ${url}`);
 				dispatch(getSuccess(response));
-				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get email templates", error));
-				return [];
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};

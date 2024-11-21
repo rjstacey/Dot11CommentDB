@@ -74,16 +74,16 @@ export { setSelected, setUiProperties };
 
 /* Selectors */
 export const selectIeeeMembersState = (state: RootState) => state[dataSet];
-export const selectIeeeMemberIds = (state: RootState) =>
-	selectIeeeMembersState(state).ids;
-export function selectIeeeMemberEntities(state: RootState) {
-	return selectIeeeMembersState(state).entities;
-}
 const selectIeeeMembersAge = (state: RootState) => {
 	let lastLoad = selectIeeeMembersState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
+export const selectIeeeMemberIds = (state: RootState) =>
+	selectIeeeMembersState(state).ids;
+export function selectIeeeMemberEntities(state: RootState) {
+	return selectIeeeMembersState(state).entities;
+}
 export const selectIeeeMembers = createSelector(
 	selectIeeeMemberIds,
 	selectIeeeMemberEntities,
@@ -110,25 +110,30 @@ const url = "/api/root/members";
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<IeeeMember[]>;
+let loading = false;
+let loadingPromise: Promise<void> = Promise.resolve();
 export const loadIeeeMembers =
-	(): AppThunk<IeeeMember[]> => (dispatch, getState) => {
-		if (selectIeeeMembersState(getState()).loading) return loadingPromise;
+	(force = false): AppThunk<void> =>
+	(dispatch, getState) => {
 		const age = selectIeeeMembersAge(getState());
-		if (age && age < AGE_STALE) return loadingPromise;
+		if (loading || (!force && age && age < AGE_STALE))
+			return loadingPromise;
+
 		dispatch(getPending());
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response to GET");
 				dispatch(getSuccess(response));
-				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get users list", error));
-				return [];
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};

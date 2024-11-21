@@ -8,10 +8,11 @@ import { selectAttendanceSummaryGroupName } from "../store/attendanceSummary";
 import { loadSessions } from "../store/sessions";
 import SessionParticipationStats from "./stats";
 
-export function refresh() {
+export async function refresh() {
 	const { dispatch, getState } = store;
 	const groupName = selectAttendanceSummaryGroupName(getState());
 	if (!groupName) throw new Error("Route error: groupName not set");
+	await dispatch(loadSessions(groupName, true));
 	dispatch(loadRecentAttendanceSummaries(groupName, true));
 }
 

@@ -80,13 +80,13 @@ export const selectImatCommittees = createSelector(
 /* Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<ImatCommitteeType[]>;
+let loading = false;
+let loadingPromise: Promise<void> = Promise.resolve();
 export const loadCommittees =
-	(groupName: string, force = false): AppThunk<ImatCommitteeType[]> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const state = getState();
-		const { loading, groupName: currentGroupName } =
-			selectImatCommitteesState(state);
+		const currentGroupName = selectImatCommitteesState(state).groupName;
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
 			const age = selectImatCommitteesAge(state);
@@ -94,18 +94,20 @@ export const loadCommittees =
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/imat/committees`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
 				if (!Array.isArray(response))
 					throw new TypeError(`Unexpected response to GET ${url}`);
 				dispatch(getSuccess(response));
-				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get committees", error));
-				return [];
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};

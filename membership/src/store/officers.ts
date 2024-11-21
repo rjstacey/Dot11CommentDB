@@ -138,19 +138,21 @@ const selectOfficersAge = (state: RootState) => {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<Officer[]>;
+let loading = false;
+let loadingPromise: Promise<void> = Promise.resolve();
 export const loadOfficers =
-	(groupName: string): AppThunk<Officer[]> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
-		const { loading, groupName: currentGroupName } = selectOfficersState(
-			getState()
-		);
+		const state = getState();
+		const currentGroupName = selectOfficersState(state).groupName;
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
-			const age = selectOfficersAge(getState());
-			if (age && age < AGE_STALE) return loadingPromise;
+			const age = selectOfficersAge(state);
+			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
+
 		dispatch(getPending({ groupName }));
+		loading = true;
 		loadingPromise = fetcher
 			.get(`/api/${groupName}/officers`)
 			.then((officers: any) => {
@@ -161,7 +163,11 @@ export const loadOfficers =
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get groups", error));
+			})
+			.finally(() => {
+				loading = false;
 			});
+
 		return loadingPromise;
 	};
 

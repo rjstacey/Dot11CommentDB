@@ -20,7 +20,6 @@ import {
 	SessionAttendanceSummary,
 	validAttendanceSummaries,
 	upsertAttendanceSummaries,
-	selectAttendanceSummaryEntitiesForSession,
 } from "./attendanceSummary";
 import { Member, selectMemberEntities } from "./members";
 import { selectSessionByNumber } from "./sessions";
@@ -35,7 +34,7 @@ export const fields: Fields = {
 	RegType: {
 		label: "Registration type",
 	},
-	Matched: { label: "Matched" },
+	Matched: { label: "Matched", type: FieldType.STRING },
 };
 
 export type SessionRegistration = {
@@ -49,7 +48,8 @@ export type SessionRegistration = {
 };
 
 export type SyncedSessionRegistration = SessionRegistration & {
-	Matched: boolean;
+	Matched: string;
+	CurrentSAPIN: number | null;
 };
 
 export type SessionRegistrationUpdate = {
@@ -139,26 +139,27 @@ export const selectSessionRegistrationSessionId = (state: RootState) =>
 const selectSyncedSessionRegistrationEntities = createSelector(
 	selectSessionRegistrationIds,
 	selectSessionRegistrationEntities,
-	(state: RootState) =>
-		selectAttendanceSummaryEntitiesForSession(
-			state,
-			selectSessionRegistrationSessionId(state)
-		),
 	selectMemberEntities,
-	(ids, entities, attendanceSummaryEntities, memberEntities) => {
+	(ids, entities, memberEntities) => {
 		const syncedEntities: Dictionary<SyncedSessionRegistration> = {};
 		const members = Object.values(memberEntities) as Member[];
 		for (const id of ids) {
 			const reg = entities[id]!;
 			const email = reg.Email.toLowerCase();
-			let sapin = reg.SAPIN || 0;
-			let m = memberEntities[sapin];
-			if (!m) m = members.find((m) => m.Email.toLowerCase() === email);
+			let sapin = reg.SAPIN;
+			let Matched = "NO";
+			let m = sapin ? memberEntities[sapin] : undefined;
+			if (m) {
+				Matched = "SAPIN";
+			} else {
+				m = members.find((m) => m.Email.toLowerCase() === email);
+				if (m) Matched = "Email";
+			}
 			if (m) sapin = m.SAPIN;
-			const a = attendanceSummaryEntities[sapin];
 			syncedEntities[id] = {
 				...entities[id]!,
-				Matched: Boolean(a),
+				Matched,
+				CurrentSAPIN: sapin,
 			} satisfies SyncedSessionRegistration;
 		}
 		return syncedEntities;
@@ -201,7 +202,6 @@ function validUploadRestrationResponse(response: any): response is {
 	attendances: SessionAttendanceSummary[];
 	registrations: SessionRegistration[];
 } {
-	console.log(response.attendances);
 	return (
 		isObject(response) &&
 		validSessionRegistrations(response.registrations) &&
@@ -223,7 +223,7 @@ export const uploadSessionRegistration =
 		dispatch(getPending({ groupName, sessionId: session.id }));
 		let response: unknown;
 		try {
-			response = await fetcher.postMultipart(url, { file });
+			response = await fetcher.postFile(url, file);
 			if (!validUploadRestrationResponse(response))
 				throw new TypeError("Unexpected response to POST " + url);
 		} catch (error) {
