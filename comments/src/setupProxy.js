@@ -1,11 +1,13 @@
-const createProxyMiddleware = require("http-proxy-middleware");
+const { createProxyMiddleware } = require("http-proxy-middleware");
+
+//const target = 'https://test.802tools.org';
+const target = "http://localhost:8080";
 
 module.exports = function (app) {
 	app.use(
-		"/api|/auth|/login|/logout",
 		createProxyMiddleware({
-			//target: 'https://test.802tools.org',
-			target: "http://localhost:8080",
+			pathFilter: ["/api", "/auth", "/login", "/logout"],
+			target,
 			changeOrigin: true,
 			secure: true,
 		})
