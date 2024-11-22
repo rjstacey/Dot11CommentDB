@@ -582,57 +582,69 @@ function arrayDiff<T extends { id: number | string }>(
 
 export function useMembersUpdate() {
 	const dispatch = useAppDispatch();
-	return async (
-		edited: MultipleMember,
-		saved: MultipleMember,
-		members: MemberAdd[]
-	) => {
-		const changes = shallowDiff(saved, edited) as Partial<Member>;
-		const p: AppThunk[] = [];
-		if ("StatusChangeHistory" in changes) {
-			const { updates, adds, deletes } = arrayDiff(
-				saved.StatusChangeHistory,
-				edited.StatusChangeHistory
-			);
-			members.forEach((m) => {
-				if (updates.length > 0)
-					p.push(updateMemberStatusChangeEntries(m.SAPIN, updates));
-				if (deletes.length > 0)
-					p.push(deleteMemberStatusChangeEntries(m.SAPIN, deletes));
-				if (adds.length > 0)
-					p.push(addMemberStatusChangeEntries(m.SAPIN, adds));
-			});
-			delete changes.StatusChangeHistory;
-		}
-		if (Object.keys(changes).length > 0) {
-			const updates = members.map((m) => ({ id: m.SAPIN, changes }));
-			p.push(updateMembers(updates));
-		}
-		await Promise.all(p.map(dispatch));
-	};
+	return React.useCallback(
+		async (
+			edited: MultipleMember,
+			saved: MultipleMember,
+			members: MemberAdd[]
+		) => {
+			const changes = shallowDiff(saved, edited) as Partial<Member>;
+			const p: AppThunk[] = [];
+			if ("StatusChangeHistory" in changes) {
+				const { updates, adds, deletes } = arrayDiff(
+					saved.StatusChangeHistory,
+					edited.StatusChangeHistory
+				);
+				members.forEach((m) => {
+					if (updates.length > 0)
+						p.push(
+							updateMemberStatusChangeEntries(m.SAPIN, updates)
+						);
+					if (deletes.length > 0)
+						p.push(
+							deleteMemberStatusChangeEntries(m.SAPIN, deletes)
+						);
+					if (adds.length > 0)
+						p.push(addMemberStatusChangeEntries(m.SAPIN, adds));
+				});
+				delete changes.StatusChangeHistory;
+			}
+			if (Object.keys(changes).length > 0) {
+				const updates = members.map((m) => ({ id: m.SAPIN, changes }));
+				p.push(updateMembers(updates));
+			}
+			await Promise.all(p.map(dispatch));
+		},
+		[dispatch]
+	);
 }
 
 export function useMembersAdd() {
 	const dispatch = useAppDispatch();
-	return async (
-		edited: MultipleMember,
-		saved: MultipleMember,
-		members: MemberAdd[]
-	) => {
-		const changes = deepDiff(saved, edited);
-		const newMembers = changes
-			? members.map((m) => deepMerge(m, changes))
-			: members;
-		const ids = await dispatch(addMembers(newMembers));
-		return ids;
-	};
+	return React.useCallback(
+		async (
+			edited: MultipleMember,
+			saved: MultipleMember,
+			members: MemberAdd[]
+		) => {
+			const changes = deepDiff(saved, edited);
+			const newMembers = changes
+				? members.map((m) => deepMerge(m, changes))
+				: members;
+			const ids = await dispatch(addMembers(newMembers));
+			return ids;
+		},
+		[dispatch]
+	);
 }
 
 export function useMembersDelete() {
 	const dispatch = useAppDispatch();
-	return async (members: MemberAdd[]) => {
-		const sapins = members.map((m) => m.SAPIN);
-		await dispatch(deleteMembers(sapins));
-		return;
-	};
+	return React.useCallback(
+		async (members: MemberAdd[]) => {
+			const sapins = members.map((m) => m.SAPIN);
+			await dispatch(deleteMembers(sapins));
+		},
+		[dispatch]
+	);
 }

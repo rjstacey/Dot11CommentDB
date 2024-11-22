@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import type { EntityId } from "@reduxjs/toolkit";
-import { ButtonGroup, ActionButton } from "dot11-components";
+import { ActionButton } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
 import {
@@ -15,6 +15,7 @@ import MembersSummary from "./MembersSummary";
 import MembersRoster from "./MembersRoster";
 import MembersExport from "./MembersExport";
 import { MembersTableActions } from "./table";
+import { MyProjectRosterTableActions } from "./roster";
 import { refresh } from "./route";
 
 function copyHtmlToClipboard(html: string) {
@@ -65,41 +66,60 @@ function MembersActions() {
 	const { selected, entities: members } = useAppSelector(selectMembersState);
 
 	const showChart = /chart$/.test(location.pathname);
-	const setShowChart = (showChart: boolean) => {
-		navigate(showChart ? "chart" : "");
+	const toggleShowChart = () => {
+		navigate(showChart ? "" : "chart");
 	};
+
+	const showRoster = /roster$/.test(location.pathname);
+	const toggleShowRoster = () => {
+		navigate(showRoster ? "" : "roster");
+	};
+
+	const tableActionsEl = showChart ? (
+		<div />
+	) : showRoster ? (
+		<MyProjectRosterTableActions />
+	) : (
+		<MembersTableActions />
+	);
+
+	const copyEl = showChart ? (
+		<ActionButton
+			name="copy"
+			title="Copy chart to clipboard"
+			disabled={!showChart}
+			onClick={copyChartToClipboard}
+		/>
+	) : (
+		<ActionButton
+			name="copy"
+			title="Copy selected members to clipboard"
+			disabled={showRoster || selected.length === 0}
+			onClick={() => setClipboard(selected, members)}
+		/>
+	);
 
 	return (
 		<div className="top-row">
 			<MembersSummary />
 			<div className="control-group">
-				<MembersTableActions />
+				{tableActionsEl}
 				<MembersRoster />
 				<MembersExport />
-				<ButtonGroup className="button-group">
-					<div>Edit</div>
-					<div style={{ display: "flex" }}>
-						<ActionButton
-							name="copy"
-							title="Copy to clipboard"
-							disabled={selected.length === 0}
-							onClick={() => setClipboard(selected, members)}
-						/>
-						<MembersUpload />
-					</div>
-				</ButtonGroup>
+				<MembersUpload />
+				<ActionButton
+					name="bi-r-circle"
+					title="Show roster"
+					isActive={showRoster}
+					onClick={toggleShowRoster}
+				/>
 				<ActionButton
 					name="bi-bar-chart-line"
 					title="Chart members"
 					isActive={showChart}
-					onClick={() => setShowChart(!showChart)}
+					onClick={toggleShowChart}
 				/>
-				<ActionButton
-					name="copy"
-					title="Copy chart to clipboard"
-					disabled={!showChart}
-					onClick={copyChartToClipboard}
-				/>
+				{copyEl}
 				<ActionButton
 					name="export"
 					title="Export chart"

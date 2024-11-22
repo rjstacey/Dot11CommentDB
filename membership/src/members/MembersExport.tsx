@@ -1,6 +1,5 @@
 import React from "react";
 import {
-	ButtonGroup,
 	Button,
 	Form,
 	Row,
@@ -10,11 +9,7 @@ import {
 } from "dot11-components";
 
 import { useAppDispatch } from "../store/hooks";
-import {
-	exportMembersPrivate,
-	exportMembersPublic,
-	exportVotingMembers,
-} from "../store/members";
+import { exportMembersPublic, exportVotingMembers } from "../store/members";
 
 function VotingMembersExportForm({ methods }: DropdownRendererProps) {
 	const dispatch = useAppDispatch();
@@ -22,16 +17,20 @@ function VotingMembersExportForm({ methods }: DropdownRendererProps) {
 
 	return (
 		<Form
-			style={{ width: 250 }}
+			style={{ width: 300 }}
 			submit={() => dispatch(exportVotingMembers(forPlenary))}
 			cancel={methods.close}
 		>
 			<Row>
-				Export a list of voting members for a future session. If the
-				session is a plenary the list includes potential voters.
+				Export a list of voters (members with "Voter" or "ExOfficio"
+				status).
 			</Row>
 			<Row>
-				<label htmlFor="forPlenary">For plenary:</label>
+				<label htmlFor="forPlenary">
+					<span>Include "Potential Voters":</span>
+					<br />
+					<span>(Can vote at a plenary session)</span>
+				</label>
 				<Checkbox
 					id="forPlenary"
 					checked={forPlenary}
@@ -52,30 +51,19 @@ function VotingMembersExportDropdown() {
 				methods,
 			}: DropdownRendererProps) => (
 				<Button
-					title="Export voting members list for session"
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "center",
+						fontSize: 10,
+						fontWeight: 700,
+					}}
+					title="Export a list of voters"
 					isActive={state.isOpen}
 					onClick={state.isOpen ? methods.close : methods.open}
 				>
-					<div
-						style={{
-							position: "relative",
-							top: "-4px",
-							height: 0,
-							fontSize: "x-small",
-							fontWeight: "bold",
-						}}
-					>
-						session
-					</div>
-					<i
-						className="bi-person-lines-fill"
-						style={{
-							position: "relative",
-							top: "4px",
-							marginLeft: "auto",
-							marginRight: "auto",
-						}}
-					/>
+					<span>Voters</span>
+					<span>List</span>
 				</Button>
 			)}
 			dropdownRenderer={(props) => <VotingMembersExportForm {...props} />}
@@ -86,63 +74,23 @@ function MembersExport() {
 	const dispatch = useAppDispatch();
 
 	return (
-		<ButtonGroup className="button-group">
-			<div>Export</div>
-			<div style={{ display: "flex" }}>
-				<Button
-					style={{ position: "relative" }}
-					title="Export public member list"
-					onClick={() => dispatch(exportMembersPublic())}
-				>
-					<div
-						style={{
-							position: "relative",
-							top: "-4px",
-							height: 0,
-							fontSize: "x-small",
-							fontWeight: "bold",
-						}}
-					>
-						public
-					</div>
-					<i
-						className="bi-person-lines-fill"
-						style={{
-							position: "relative",
-							top: "4px",
-							marginLeft: "auto",
-							marginRight: "auto",
-						}}
-					/>
-				</Button>
-				<Button
-					title="Export private member list"
-					onClick={() => dispatch(exportMembersPrivate())}
-				>
-					<div
-						style={{
-							position: "relative",
-							top: "-4px",
-							height: 0,
-							fontSize: "x-small",
-							fontWeight: "bold",
-						}}
-					>
-						private
-					</div>
-					<i
-						className="bi-person-lines-fill"
-						style={{
-							position: "relative",
-							top: "4px",
-							marginLeft: "auto",
-							marginRight: "auto",
-						}}
-					/>
-				</Button>
-				<VotingMembersExportDropdown />
-			</div>
-		</ButtonGroup>
+		<>
+			<Button
+				style={{
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "center",
+					fontSize: 10,
+					fontWeight: 700,
+				}}
+				title="Export public member list"
+				onClick={() => dispatch(exportMembersPublic())}
+			>
+				<span>Members</span>
+				<span>List</span>
+			</Button>
+			<VotingMembersExportDropdown />
+		</>
 	);
 }
 

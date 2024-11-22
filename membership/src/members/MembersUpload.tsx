@@ -7,6 +7,7 @@ import {
 	List,
 	ListItem,
 	ActionButtonDropdown,
+	Button,
 	type DropdownRendererProps,
 } from "dot11-components";
 
@@ -120,6 +121,20 @@ const MembersUpload = () => (
 	<ActionButtonDropdown
 		name="upload"
 		title="Upload members"
+		selectRenderer={() => (
+			<Button
+				style={{
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "center",
+					fontSize: 10,
+					fontWeight: 700,
+				}}
+			>
+				<span>Upload</span>
+				<span>Members</span>
+			</Button>
+		)}
 		dropdownRenderer={(props) => <MembersUploadForm {...props} />}
 	/>
 );

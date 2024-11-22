@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { useAppSelector } from "../store/hooks";

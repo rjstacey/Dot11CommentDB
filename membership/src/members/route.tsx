@@ -4,7 +4,7 @@ import { store } from "../store";
 import { AccessLevel } from "../store/user";
 import { loadGroups, selectTopLevelGroupByName } from "../store/groups";
 import { loadIeeeMembers } from "../store/ieeeMembers";
-import { selectMembersState, loadMembers } from "../store/members";
+import { loadMembers } from "../store/members";
 import { loadOfficers } from "../store/officers";
 import { loadRecentAttendanceSummaries } from "../store/attendanceSummary";
 import { loadBallotParticipation } from "../store/ballotParticipation";
@@ -13,6 +13,8 @@ import { loadAffiliationMap } from "../store/affiliationMap";
 import MembersLayout from "./layout";
 import MembersTable from "./table";
 import MembersChart from "./chart";
+import { selectMembersState } from "../store/members";
+import MyProjectRosterTable from "./roster";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -40,9 +42,9 @@ export const membersLoader: LoaderFunction = async ({ params }) => {
 		throw new Error("You don't have permission to view this data");
 
 	// We have already loaded the members, but we need participation
+	dispatch(loadAffiliationMap(groupName));
 	dispatch(loadRecentAttendanceSummaries(groupName));
 	dispatch(loadBallotParticipation(groupName));
-	dispatch(loadAffiliationMap(groupName));
 
 	return null;
 };
@@ -58,6 +60,10 @@ const route = {
 		{
 			path: "chart",
 			element: <MembersChart />,
+		},
+		{
+			path: "roster",
+			element: <MyProjectRosterTable />,
 		},
 	],
 };
