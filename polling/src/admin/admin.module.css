@@ -1,0 +1,60 @@
+.tabs {
+	-webkit-tap-highlight-color: transparent;
+	display: flex;
+	width: 100%;
+}
+
+.tabs .filler {
+	flex: 1;
+}
+
+.tabList {
+	border-bottom: 1px solid #aaa;
+	margin: 0 0 10px;
+	padding: 0;
+}
+
+.tab {
+	display: inline-block;
+	border: 1px solid transparent;
+	border-bottom: none;
+	bottom: -1px;
+	position: relative;
+	list-style: none;
+	padding: 6px 12px;
+	cursor: pointer;
+}
+
+.tab:global(.selected) {
+	background: #fff;
+	border-color: #aaa;
+	color: black;
+	border-radius: 5px 5px 0 0;
+}
+
+.tab:global(.disabled) {
+	color: GrayText;
+	cursor: default;
+}
+
+.tab:focus {
+	outline: none;
+}
+
+.tab:focus:after {
+	content: "";
+	position: absolute;
+	height: 5px;
+	left: -4px;
+	right: -4px;
+	bottom: -5px;
+	background: #fff;
+}
+
+.tabPanel {
+	display: none;
+}
+
+.tabPanel:global(.selected) {
+	display: block;
+}

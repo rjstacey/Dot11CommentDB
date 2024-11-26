@@ -28,7 +28,7 @@ function Polling() {
 	React.useEffect(() => {
 		if (group) dispatch(pollingSocketJoinGroup(group.id));
 		else dispatch(pollingSocketLeaveGroup());
-	}, [group]);
+	}, [dispatch, group]);
 
 	return searchParams.get("isAdmin") === "true" ? (
 		<PollAdmin />

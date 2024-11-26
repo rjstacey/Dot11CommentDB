@@ -63,7 +63,9 @@ export type EventAdd = z.infer<typeof eventAddSchema>;
 export type EventUpdate = z.infer<typeof eventUpdateSchema>; // argument for event:update -> server
 export type EventDelete = z.infer<typeof eventDeleteSchema>; // argument for event:delete -> server
 
-export const eventsGetResponseSchema = eventSchema.array();
+export const eventsGetResponseSchema = z.object({
+	events: eventSchema.array(),
+});
 export const eventCreateResponseSchema = z.object({ event: eventSchema });
 export const eventUpdateResponseSchema = z.object({ event: eventSchema });
 export type EventsGetResponse = z.infer<typeof eventsGetResponseSchema>; // response to events:get

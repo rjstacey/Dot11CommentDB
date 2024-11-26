@@ -6,12 +6,10 @@ import {
 import { Socket } from "socket.io-client";
 import {
 	eventOpenedSchema,
-	pollIdSchema,
 	pollAddedSchema,
 	pollUpdatedSchema,
 	pollDeletedSchema,
 	Poll,
-	PollUpdated,
 } from "../schemas/poll";
 import { AppThunk, RootState, store } from ".";
 import { getSocket } from "./pollingSocket";
@@ -53,7 +51,7 @@ const { setEventId, setPolls, setPoll, addPoll, removePoll } = slice.actions;
 
 /** Selectors */
 const selectPollingUserState = (state: RootState) => state[dataSet];
-const selectPollingUserEventId = (state: RootState) =>
+export const selectPollingUserEventId = (state: RootState) =>
 	selectPollingUserState(state).eventId;
 
 /** Thunk actions */
@@ -67,7 +65,7 @@ export const pollingAdminSetEventId =
 
 /** Polling socket */
 function pollingUserPollsSet(params: any, cb: Function) {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	try {
 		const p = eventOpenedSchema.parse(params);
 		dispatch(setEventId(p.eventId));
@@ -78,7 +76,7 @@ function pollingUserPollsSet(params: any, cb: Function) {
 }
 
 function pollingUserPollAdded(params: any, cb: Function) {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	try {
 		const poll = pollAddedSchema.parse(params);
 		dispatch(addPoll(poll));
@@ -88,7 +86,7 @@ function pollingUserPollAdded(params: any, cb: Function) {
 }
 
 function pollingUserPollUpdated(params: any, cb: Function) {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	try {
 		const poll = pollUpdatedSchema.parse(params);
 		dispatch(setPoll(poll));
@@ -98,7 +96,7 @@ function pollingUserPollUpdated(params: any, cb: Function) {
 }
 
 function pollingUserPollRemoved(params: any, cb: Function) {
-	const { dispatch, getState } = store;
+	const { dispatch } = store;
 	try {
 		const id = pollDeletedSchema.parse(params);
 		dispatch(removePoll(id));

@@ -1,11 +1,12 @@
 import {
 	createSlice,
 	createEntityAdapter,
+	createSelector,
 	PayloadAction,
 } from "@reduxjs/toolkit";
-import { setError } from "dot11-components";
 import {
 	Event,
+	EventsQuery,
 	EventCreate,
 	EventUpdate,
 	EventDelete,
@@ -20,14 +21,12 @@ import {
 	PollDelete,
 	PollShow,
 	PollOpen,
-	pollAddedSchema,
-	pollUpdatedSchema,
 	pollsGetResponseSchema,
 	pollCreateResponseSchema,
 	pollUpdateResponseSchema,
 } from "../schemas/poll";
 import { AppThunk, RootState } from ".";
-import { getSocket, okResponse } from "./pollingSocket";
+import { getSocket, okResponse, handleError } from "./pollingSocket";
 
 const eventsAdapter = createEntityAdapter<Event>();
 const pollsAdapter = createEntityAdapter<Poll>();
@@ -100,19 +99,36 @@ const {
 
 /** Selectors */
 const selectPollingAdminState = (state: RootState) => state[dataSet];
-const selectPollingAdminEventId = (state: RootState) =>
+export const selectPollingAdminEventId = (state: RootState) =>
 	selectPollingAdminState(state).eventId;
+export const selectPollingAdminEventIds = (state: RootState) =>
+	selectPollingAdminState(state).events.ids;
+export const selectPollingAdminEventEntities = (state: RootState) =>
+	selectPollingAdminState(state).events.ids;
+
+export const selectPollingAdminEvents = createSelector(
+	(state: RootState) => selectPollingAdminState(state).events,
+	(events) => eventsAdapter.getSelectors().selectAll(events)
+);
 
 /** Thunk actions */
-function handleError(error: any) {
-	let name = "Error";
-	let message = "Unknown";
-	if (error instanceof Error) {
-		name = error.name;
-		message = error.message;
-	}
-	return setError(name, message);
-}
+export const pollingAdminEventsGet =
+	(groupId: string): AppThunk =>
+	async (dispatch, getState) => {
+		const socket = getSocket();
+		const params: EventsQuery = { groupId };
+		socket.emit("events:get", params, (response: any) => {
+			try {
+				const { events } = okResponse(
+					response,
+					eventsGetResponseSchema
+				);
+				dispatch(setEvents(events));
+			} catch (error: any) {
+				dispatch(handleError(error));
+			}
+		});
+	};
 
 export const pollingAdminSelectEvent =
 	(eventId: number): AppThunk =>
@@ -268,7 +284,7 @@ export const pollingAdminOpenPoll =
 			console.log("poll:show");
 			try {
 				okResponse(response);
-				dispatch(showPoll(id));
+				dispatch(openPoll(id));
 			} catch (error) {
 				dispatch(handleError(error));
 			}

@@ -14,6 +14,7 @@
 		"@types/react-dom": "^18.3.1",
 		"dot11-components": "^1.9.95",
 		"idb-keyval": "^6.2.1",
+		"luxon": "^3.5.0",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
 		"react-helmet-async": "^2.0.5",
@@ -55,6 +56,7 @@
 	"author": "",
 	"license": "ISC",
 	"devDependencies": {
+		"@types/luxon": "^3.4.2",
 		"@types/redux-logger": "^3.0.6",
 		"http-proxy-middleware": "^3.0.3"
 	}

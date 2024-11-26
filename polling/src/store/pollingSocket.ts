@@ -1,9 +1,11 @@
 import { createSlice, PayloadAction, isPlainObject } from "@reduxjs/toolkit";
 import { io, Socket } from "socket.io-client";
 import z from "zod";
-import { PollingError, PollingOK } from "../schemas/poll";
+import { setError } from "dot11-components";
+import { GroupJoin, PollingError, PollingOK } from "../schemas/poll";
 import { AppThunk, RootState } from ".";
 import { selectUser } from "./user";
+import { pollingAdminEventsGet } from "./pollingAdmin";
 
 /* Create slice */
 const initialState: {
@@ -37,9 +39,9 @@ const { setConnected, setDisconnected, setGroupId } = slice.actions;
 
 /** Selectors */
 const selectPollingSocketState = (state: RootState) => state[dataSet];
-const selectPollingSocketGroupId = (state: RootState) =>
+export const selectPollingSocketGroupId = (state: RootState) =>
 	selectPollingSocketState(state).groupId;
-const selectPollingSocketIsConnected = (state: RootState) =>
+export const selectPollingSocketIsConnected = (state: RootState) =>
 	selectPollingSocketState(state).isConnected;
 
 /** Thunk actions */
@@ -47,10 +49,6 @@ let socket: Socket | undefined = undefined;
 
 function assertHasSocket(socket: Socket | undefined): asserts socket is Socket {
 	if (!socket) throw new Error("no socket");
-}
-
-function checkHasSocket(socket: Socket | undefined): socket is Socket {
-	return Boolean(socket);
 }
 
 export function getSocket() {
@@ -99,6 +97,16 @@ export function okResponse<T extends z.ZodTypeAny>(
 	throw new Error("polling socket protocol error");
 }
 
+export function handleError(error: any) {
+	let name = "Error";
+	let message = "Unknown";
+	if (error instanceof Error) {
+		name = error.name;
+		message = error.message;
+	}
+	return setError(name, message);
+}
+
 export const pollingSocketConnect =
 	(): AppThunk => async (dispatch, getState) => {
 		const user = selectUser(getState());
@@ -129,10 +137,20 @@ export const pollingSocketJoinGroup =
 	(groupId: string): AppThunk =>
 	async (dispatch, getState) => {
 		assertHasSocket(socket);
-		socket.emit("group:join", { groupId }, () => {
-			setGroupId(groupId);
-			console.log("joined group");
-		});
+		socket.emit(
+			"group:join",
+			{ groupId } satisfies GroupJoin,
+			(response: any) => {
+				try {
+					okResponse(response);
+					setGroupId(groupId);
+					dispatch(pollingAdminEventsGet(groupId));
+				} catch (error) {
+					dispatch(handleError(error));
+				}
+				console.log("joined group");
+			}
+		);
 	};
 
 export const pollingSocketLeaveGroup =
