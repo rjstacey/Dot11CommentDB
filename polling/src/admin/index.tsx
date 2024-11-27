@@ -1,195 +1,93 @@
-import React from "react";
 import { DateTime } from "luxon";
+import { displayDate, Button } from "dot11-components";
+import { Event, Poll } from "../schemas/poll";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
-	Button,
-	Form,
-	Row,
-	Dropdown,
-	DropdownRendererProps,
-	Field,
-	Input,
-	InputDates,
-	InputTime,
-} from "dot11-components";
-import { useAppSelector, useAppDispatch } from "../store/hooks";
-import {
-	pollingAdminCreateEvent,
 	selectPollingAdminEvents,
+	selectPollingAdminPolls,
+	pollingAdminSelectEvent,
+	selectPollingAdminEventId,
 } from "../store/pollingAdmin";
-import { EventCreate } from "../schemas/poll";
 import css from "./admin.module.css";
-import TimeZoneSelector from "./TimeZoneSelector";
-import { selectSelectedGroupId } from "../store/groups";
+import CreateEventDropdown from "./createEvent";
+
+function displayTime(d: string) {
+	return DateTime.fromISO(d).toFormat("HH:mm");
+}
+
+function EventTab({ event }: { event: Event }) {
+	const dispatch = useAppDispatch();
+	const selectedEventId = useAppSelector(selectPollingAdminEventId);
+	let cn = css.tab;
+	if (event.id === selectedEventId) cn += " selected";
+	return (
+		<div
+			key={event.id}
+			className={cn}
+			onClick={() => dispatch(pollingAdminSelectEvent(event.id))}
+		>
+			<span className={css.tabName}>{event.name}</span>
+			<span className={css.tabDate}>{displayDate(event.datetime)}</span>
+			<span className={css.tabDate}>{displayTime(event.datetime)}</span>
+		</div>
+	);
+}
 
 function EventTabsList() {
 	const events = useAppSelector(selectPollingAdminEvents);
 	return (
 		<div className={css.tabList}>
 			{events.map((event) => (
-				<div key={event.id} className={css.tab}>
-					<span>{event.name}</span>
-					<span>{event.datetime}</span>
-				</div>
+				<EventTab event={event} />
 			))}
 		</div>
 	);
 }
 
-function useNullEvent() {
-	const groupId = useAppSelector(selectSelectedGroupId)!;
-	return React.useMemo(() => {
-		const event: EventCreate = {
-			groupId,
-			name: "",
-			timeZone: "America/New_York",
-			datetime: new Date().toISOString(),
-		};
-		return event;
-	}, [groupId]);
-}
-
-function CreateEventForm({ methods }: DropdownRendererProps) {
-	const dispatch = useAppDispatch();
-	const nullEvent = useNullEvent();
-	const [event, setEvent] = React.useState<EventCreate>(nullEvent);
-	const d = DateTime.fromISO(event.datetime || "", { zone: event.timeZone });
-	const [time, setTime] = React.useState(d.toFormat("HH:mm"));
-	const [date, setDate] = React.useState<string | undefined>(
-		d.toISODate() || undefined
-	);
-	const [errorText, setErrorText] = React.useState<string | undefined>();
-
-	function changeEvent(changes: Partial<EventCreate>) {
-		setEvent((event) => ({ ...event, ...changes }));
-	}
-
-	function datetimeConversion(
-		event: EventCreate,
-		date: string | undefined,
-		time: string
-	) {
-		if (!event.timeZone) {
-			setErrorText("Set time zone");
-			return;
-		}
-		if (!date) {
-			setErrorText("Date not set");
-			return;
-		}
-		let d = DateTime.fromISO(date, { zone: event.timeZone });
-		if (!d.isValid) {
-			setErrorText("Invalid date");
-			return;
-		}
-		let t = DateTime.fromFormat(time, "HH:mm");
-		if (!t.isValid) {
-			setErrorText("Invalid time");
-			return;
-		}
-		d = d.set({ hour: t.hour, minute: t.minute });
-		setErrorText(undefined);
-		return { ...event, datetime: d.toISO()! };
-	}
-
-	function changeDate(dates: string[]) {
-		const [date] = dates;
-		setDate(date);
-		datetimeConversion(event, date, time);
-	}
-
-	function changeTime(time: string) {
-		setTime(time);
-		datetimeConversion(event, date, time);
-	}
-
-	function submit() {
-		const updatedEvent = datetimeConversion(event, date, time);
-		console.log(updatedEvent);
-		if (updatedEvent) dispatch(pollingAdminCreateEvent(updatedEvent));
-	}
-
+function EventActions() {
 	return (
-		<Form
-			style={{ width: 300 }}
-			title="Create Event"
-			submitLabel="Add"
-			submit={submit}
-			cancel={methods.close}
-			errorText={errorText}
-		>
-			<Row>
-				<Field label="Name:">
-					<Input
-						type="text"
-						value={event.name}
-						onChange={(e) => changeEvent({ name: e.target.value })}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Time zone:">
-					<TimeZoneSelector
-						style={{ width: 200, height: 35 }}
-						value={event.timeZone || ""}
-						onChange={(value) => changeEvent({ timeZone: value })}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Date:">
-					<InputDates
-						multi={false}
-						value={date ? [date] : undefined}
-						onChange={changeDate}
-					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Time:">
-					<InputTime value={time} onChange={changeTime} />
-				</Field>
-			</Row>
-		</Form>
+		<div className={css.eventActions}>
+			<Button>Add Poll</Button>
+		</div>
 	);
 }
 
-function CreateEventDropdown() {
+function PollEntry({ poll }: { poll: Poll }) {
 	return (
-		<Dropdown
-			handle={false}
-			selectRenderer={({
-				props,
-				state,
-				methods,
-			}: DropdownRendererProps) => (
-				<Button
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-						fontSize: 10,
-						fontWeight: 700,
-					}}
-					title="Export a list of voters"
-					isActive={state.isOpen}
-					onClick={state.isOpen ? methods.close : methods.open}
-				>
-					<span>Create</span>
-					<span>Event</span>
-				</Button>
-			)}
-			dropdownRenderer={(props) => <CreateEventForm {...props} />}
-		/>
+		<div className={css.pollEntry}>
+			<span>{poll.title}</span>
+			<span>{poll.body}</span>
+		</div>
+	);
+}
+
+function EventPanel() {
+	const polls = useAppSelector(selectPollingAdminPolls);
+
+	return (
+		<div className={css.eventPanel}>
+			<EventActions />
+			<div className={css.pollTable}>
+				{polls.map((poll) => (
+					<PollEntry poll={poll} />
+				))}
+			</div>
+		</div>
 	);
 }
 
 function Admin() {
 	return (
 		<div className={css.tabs}>
-			<EventTabsList />
-			<div className={css.filler} />
-			<div>
-				<CreateEventDropdown />
+			<div className={css.header}>
+				<EventTabsList />
+				<div className={css.filler} />
+				<div>
+					<CreateEventDropdown />
+				</div>
+			</div>
+			<div className={css.body}>
+				<EventPanel />
 			</div>
 		</div>
 	);

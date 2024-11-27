@@ -111,10 +111,15 @@ export const selectPollingAdminEvents = createSelector(
 	(events) => eventsAdapter.getSelectors().selectAll(events)
 );
 
+export const selectPollingAdminPolls = createSelector(
+	(state: RootState) => selectPollingAdminState(state).polls,
+	(polls) => pollsAdapter.getSelectors().selectAll(polls)
+);
+
 /** Thunk actions */
 export const pollingAdminEventsGet =
 	(groupId: string): AppThunk =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		const socket = getSocket();
 		const params: EventsQuery = { groupId };
 		socket.emit("events:get", params, (response: any) => {
@@ -132,7 +137,7 @@ export const pollingAdminEventsGet =
 
 export const pollingAdminSelectEvent =
 	(eventId: number): AppThunk =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		const socket = getSocket();
 		dispatch(setEventId(eventId));
 		const params: PollsQuery = { eventId };

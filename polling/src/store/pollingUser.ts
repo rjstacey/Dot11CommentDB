@@ -11,7 +11,7 @@ import {
 	pollDeletedSchema,
 	Poll,
 } from "../schemas/poll";
-import { AppThunk, RootState, store } from ".";
+import { RootState, store } from ".";
 import { getSocket } from "./pollingSocket";
 
 const pollsAdapter = createEntityAdapter<Poll>();
@@ -55,15 +55,6 @@ export const selectPollingUserEventId = (state: RootState) =>
 	selectPollingUserState(state).eventId;
 
 /** Thunk actions */
-export const pollingAdminSetEventId =
-	(): AppThunk => async (dispatch, getState) => {
-		const socket = getSocket();
-		socket.emit("event:open", (response: any) => {
-			console.log("event:open");
-		});
-	};
-
-/** Polling socket */
 function pollingUserPollsSet(params: any, cb: Function) {
 	const { dispatch } = store;
 	try {

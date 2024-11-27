@@ -1,6 +1,13 @@
 .tabs {
 	-webkit-tap-highlight-color: transparent;
 	display: flex;
+	flex-direction: column;
+	width: 100%;
+	flex: 1;
+}
+
+.tabs .header {
+	display: flex;
 	width: 100%;
 }
 
@@ -9,13 +16,15 @@
 }
 
 .tabList {
+	display: flex;
 	border-bottom: 1px solid #aaa;
 	margin: 0 0 10px;
 	padding: 0;
 }
 
 .tab {
-	display: inline-block;
+	display: flex;
+	flex-direction: column;
 	border: 1px solid transparent;
 	border-bottom: none;
 	bottom: -1px;
@@ -51,10 +60,32 @@
 	background: #fff;
 }
 
+.tabName {
+	font-weight: bold;
+}
+
+.tabDate {
+	font-size: smaller;
+}
+
 .tabPanel {
 	display: none;
 }
 
 .tabPanel:global(.selected) {
 	display: block;
+}
+
+.eventPanel {
+	display: block;
+}
+
+.pollTable {
+	display: flex;
+	flex-direction: column;
+}
+
+.pollEntry {
+	display: flex;
+	flex-direction: column;
 }
