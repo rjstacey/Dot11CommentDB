@@ -14,11 +14,13 @@ import { ResultSetHeader, RowDataPacket } from "mysql2";
 export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 	// prettier-ignore
 	let sql =
-		"SELECT " +
+		"SELECT " +	
 			"id, " +
+			"name, " +
 			"BIN_TO_UUID(groupId) as groupId, " +
 			"timeZone, " +
-			'DATE_FORMAT(datatime, "%Y-%m-%dT%TZ") as datetime ' +
+			'DATE_FORMAT(datetime, "%Y-%m-%dT%TZ") as datetime, ' +
+			"isPublished " +
 		"FROM pollEvents";
 
 	const wheres = Object.entries(query).map(([key, value]) => {
@@ -35,7 +37,11 @@ export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 }
 
 export async function addPollEvent(event: EventAdd) {
-	const sql = db.format("INSERT INTO pollEvents SET ?", [event]);
+	const { groupId, ...rest } = event;
+	const sql = db.format(
+		"INSERT INTO pollEvents SET groupId=UUID_TO_BIN(?), ?",
+		[groupId, rest]
+	);
 	const { insertId: id } = await db.query<ResultSetHeader>(sql);
 	const [eventOut] = await getPollEvents({ id });
 	return eventOut;
@@ -61,15 +67,15 @@ export async function getPolls(query: PollsQuery = {}) {
 			"p.id, " +
 			"p.eventId, " +
 			"BIN_TO_UUID(e.groupId) as groupId, " +
-			"title, " +
-			'body ' +
+			"p.title, " +
+			'p.body ' +
 		"FROM polls p LEFT JOIN pollEvents e ON p.eventId=e.id";
 
 	const wheres = Object.entries(query).map(([key, value]) => {
 		let sql: string;
 		if (key === "groupId")
 			sql = db.format("BIN_TO_UUID(??) IN (?)", [key, value]);
-		else sql = db.format("?? IN (?)", [key, value]);
+		else sql = db.format("p.?? IN (?)", [key, value]);
 		return sql;
 	});
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
@@ -79,7 +85,7 @@ export async function getPolls(query: PollsQuery = {}) {
 }
 
 export async function addPoll(poll: PollCreate) {
-	const sql = db.format("INSERT INTO poll SET ?", [poll]);
+	const sql = db.format("INSERT INTO polls SET ?", [poll]);
 	const { insertId: id } = await db.query<ResultSetHeader>(sql);
 	const [pollOut] = await getPolls({ id });
 	return pollOut;

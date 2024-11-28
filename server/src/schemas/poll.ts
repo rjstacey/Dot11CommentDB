@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { boolean, z } from "zod";
 import { groupIdSchema } from "./groups";
 
 export type PollingError = {
@@ -24,6 +24,7 @@ export const eventSchema = z.object({
 	name: z.string(),
 	timeZone: z.string(),
 	datetime: datetimeSchema,
+	isPublished: z.boolean(),
 });
 
 export const eventCreateSchema = eventSchema
@@ -140,15 +141,18 @@ export type PollAdded = z.infer<typeof pollAddedSchema>; // argument for poll:ad
 export type PollUpdated = z.infer<typeof pollUpdatedSchema>; // argument for poll:update -> client
 export type PollDeleted = z.infer<typeof pollDeletedSchema>; // argument for poll:deleted -> client
 
-export const eventOpenSchema = z.object({
+export const eventPublishSchema = z.object({
 	eventId: eventIdSchema,
 });
-export type EventOpen = z.infer<typeof eventOpenSchema>; // argument for event:open -> server
+export type EventPublish = z.infer<typeof eventPublishSchema>; // argument for event:publish -> server
+
 export const eventOpenedSchema = z.object({
 	eventId: eventIdSchema,
 	polls: pollSchema.array(),
 });
+export const eventClosedSchema = eventOpenedSchema.omit({ polls: true });
 export type EventOpened = z.infer<typeof eventOpenedSchema>; // argument for event:opened -> client
+export type EventClosed = z.infer<typeof eventClosedSchema>; // argument for event:closed -> client
 
 export const groupJoinSchema = z.object({
 	groupId: groupIdSchema,

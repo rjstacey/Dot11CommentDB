@@ -7,6 +7,7 @@ import {
 	EventUpdateResponse,
 	EventAdd,
 	EventOpened,
+	EventClosed,
 	PollShown,
 	PollOpened,
 	PollUpdated,
@@ -16,7 +17,7 @@ import {
 	eventCreateSchema,
 	eventUpdateSchema,
 	eventDeleteSchema,
-	eventOpenSchema,
+	eventPublishSchema,
 	eventsQuerySchema,
 	pollCreateSchema,
 	pollUpdateSchema,
@@ -39,6 +40,7 @@ import {
 	updatePoll,
 	deletePoll,
 } from "../services/poll";
+import { NotFoundError } from "../utils";
 
 export class NoGroupError extends Error {
 	name = "NoGroupError";
@@ -109,16 +111,40 @@ async function onEventsGet(this: Socket, payload: unknown, callback: unknown) {
 	}
 }
 
-/** Open event => distribute polls to the group */
-async function onEventOpen(this: Socket, payload: unknown, callback: unknown) {
+/** Publish event => distribute polls to the group and provide updates */
+async function onEventPublish(
+	this: Socket,
+	payload: unknown,
+	callback: unknown
+) {
 	if (!validCallback(callback)) return;
 	try {
 		const groupId = getSocketGroupId(this);
-		const { eventId } = eventOpenSchema.parse(payload);
+		const { eventId } = eventPublishSchema.parse(payload);
+		updatePollEvent({ id: eventId, changes: { isPublished: true } });
 		const polls = await getPolls({ eventId });
 		okCallback(callback);
 		const params: EventOpened = { eventId, polls };
 		this.nsp.to(groupId).emit("event:opened", params);
+	} catch (error) {
+		errorCallback(callback, error);
+	}
+}
+
+/** Unpublish event => stop distributing poll updates to the group */
+async function onEventUnpublish(
+	this: Socket,
+	payload: unknown,
+	callback: unknown
+) {
+	if (!validCallback(callback)) return;
+	try {
+		const groupId = getSocketGroupId(this);
+		const { eventId } = eventPublishSchema.parse(payload);
+		updatePollEvent({ id: eventId, changes: { isPublished: false } });
+		okCallback(callback);
+		const params: EventClosed = { eventId };
+		this.nsp.to(groupId).emit("event:closed", params);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -197,9 +223,14 @@ async function onPollCreate(this: Socket, payload: unknown, callback: unknown) {
 	try {
 		const groupId = getSocketGroupId(this);
 		const add = pollCreateSchema.parse(payload);
+		const [event] = await getPollEvents({ id: add.eventId });
+		if (!event)
+			throw new NotFoundError(`Event id=${add.eventId} not found`);
 		const poll = await addPoll(add);
 		okCallback(callback, { poll } satisfies PollCreateResponse);
-		this.nsp.to(groupId).emit("poll:added", poll satisfies PollAdded);
+		if (event.isPublished) {
+			this.nsp.to(groupId).emit("poll:added", poll satisfies PollAdded);
+		}
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -212,7 +243,12 @@ async function onPollUpdate(this: Socket, payload: unknown, callback: unknown) {
 		const update = pollUpdateSchema.parse(payload);
 		const poll = await updatePoll(update);
 		okCallback(callback, { poll } satisfies PollUpdateResponse);
-		this.nsp.to(groupId).emit("poll:updated", poll satisfies PollUpdated);
+		const [event] = await getPollEvents({ id: poll.eventId });
+		if (event && event.isPublished) {
+			this.nsp
+				.to(groupId)
+				.emit("poll:updated", poll satisfies PollUpdated);
+		}
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -223,9 +259,17 @@ async function onPollDelete(this: Socket, payload: unknown, callback: unknown) {
 	try {
 		const groupId = getSocketGroupId(this);
 		const id = pollIdSchema.parse(payload);
+		const [poll] = await getPolls({ id });
 		await deletePoll(id);
 		okCallback(callback);
-		this.nsp.to(groupId).emit("poll:deleted", id satisfies PollDeleted);
+		if (poll) {
+			const [event] = await getPollEvents({ id: poll.eventId });
+			if (event && event.isPublished) {
+				this.nsp
+					.to(groupId)
+					.emit("poll:deleted", id satisfies PollDeleted);
+			}
+		}
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -296,7 +340,8 @@ function onConnect(socket: Socket, user: User) {
 		.on("event:create", onEventCreate.bind(socket))
 		.on("event:delete", onEventDelete.bind(socket))
 		.on("event:update", onEventUpdate.bind(socket))
-		.on("event:open", onEventOpen.bind(socket))
+		.on("event:publish", onEventPublish.bind(socket))
+		.on("event:unpublish", onEventUnpublish.bind(socket))
 		.on("polls:get", onPollsGet.bind(socket))
 		.on("poll:create", onPollCreate.bind(socket))
 		.on("poll:update", onPollUpdate.bind(socket))
