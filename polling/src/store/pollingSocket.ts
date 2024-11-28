@@ -97,6 +97,31 @@ export function okResponse<T extends z.ZodTypeAny>(
 	throw new Error("polling socket protocol error");
 }
 
+export function pollingSocketEmit(
+	message: string,
+	data?: any
+): Promise<undefined>;
+export function pollingSocketEmit<T extends z.ZodTypeAny>(
+	message: string,
+	data?: any,
+	schema?: T
+): Promise<z.infer<T>>;
+export function pollingSocketEmit<T extends z.ZodTypeAny>(
+	message: string,
+	data?: any,
+	schema?: T
+): Promise<z.infer<T> | undefined> {
+	return new Promise((resolve) => {
+		const socket = getSocket();
+		socket.emit(message, data, (response: unknown) => {
+			const result = schema
+				? okResponse(response, schema)
+				: okResponse(response);
+			resolve(result);
+		});
+	});
+}
+
 export function handleError(error: any) {
 	let name = "Error";
 	let message = "Unknown";
@@ -135,29 +160,21 @@ export const pollingSocketDisconnect =
 
 export const pollingSocketJoinGroup =
 	(groupId: string): AppThunk =>
-	async (dispatch, getState) => {
-		assertHasSocket(socket);
-		socket.emit(
-			"group:join",
-			{ groupId } satisfies GroupJoin,
-			(response: any) => {
-				try {
-					okResponse(response);
-					setGroupId(groupId);
-					dispatch(pollingAdminEventsGet(groupId));
-				} catch (error) {
-					dispatch(handleError(error));
-				}
-				console.log("joined group");
-			}
-		);
+	async (dispatch) => {
+		const params: GroupJoin = { groupId };
+		try {
+			await pollingSocketEmit("group:join", params);
+			await dispatch(pollingAdminEventsGet(groupId));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
 
 export const pollingSocketLeaveGroup =
 	(): AppThunk => async (dispatch, getState) => {
-		assertHasSocket(socket);
-		socket.emit("group:leave", () => {
-			setGroupId(null);
-			console.log("leave group");
-		});
+		try {
+			await pollingSocketEmit("group:leave");
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};

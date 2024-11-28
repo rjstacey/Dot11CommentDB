@@ -84,16 +84,18 @@ function CreateEventForm({ methods }: DropdownRendererProps) {
 		datetimeConversion(event, date, time);
 	}
 
-	function submit() {
+	async function submit() {
 		const updatedEvent = datetimeConversion(event, date, time);
-		console.log(updatedEvent);
-		if (updatedEvent) dispatch(pollingAdminCreateEvent(updatedEvent));
+		if (updatedEvent) {
+			await dispatch(pollingAdminCreateEvent(updatedEvent));
+			methods.close();
+		}
 	}
 
 	return (
 		<Form
 			style={{ width: 300 }}
-			title="Create Event"
+			title="Add Event"
 			submitLabel="Add"
 			submit={submit}
 			cancel={methods.close}
@@ -156,7 +158,7 @@ function CreateEventDropdown() {
 					isActive={state.isOpen}
 					onClick={state.isOpen ? methods.close : methods.open}
 				>
-					<span>Create</span>
+					<span>Add</span>
 					<span>Event</span>
 				</Button>
 			)}

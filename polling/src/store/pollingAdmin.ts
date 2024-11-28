@@ -10,7 +10,7 @@ import {
 	EventCreate,
 	EventUpdate,
 	EventDelete,
-	EventOpen,
+	EventPublish,
 	eventCreateResponseSchema,
 	eventUpdateResponseSchema,
 	eventsGetResponseSchema,
@@ -26,7 +26,7 @@ import {
 	pollUpdateResponseSchema,
 } from "../schemas/poll";
 import { AppThunk, RootState } from ".";
-import { getSocket, okResponse, handleError } from "./pollingSocket";
+import { handleError, pollingSocketEmit } from "./pollingSocket";
 
 const eventsAdapter = createEntityAdapter<Event>();
 const pollsAdapter = createEntityAdapter<Poll>();
@@ -62,6 +62,9 @@ const slice = createSlice({
 		addEvent(state, action: PayloadAction<Event>) {
 			eventsAdapter.addOne(state.events, action.payload);
 		},
+		updateEvent(state, action: PayloadAction<EventUpdate>) {
+			eventsAdapter.updateOne(state.events, action.payload);
+		},
 		removeEvent(state, action: PayloadAction<number>) {
 			eventsAdapter.removeOne(state.events, action.payload);
 		},
@@ -88,6 +91,7 @@ const {
 	setEvents,
 	setEvent,
 	addEvent,
+	updateEvent,
 	removeEvent,
 	setPolls,
 	setPoll,
@@ -106,6 +110,11 @@ export const selectPollingAdminEventIds = (state: RootState) =>
 export const selectPollingAdminEventEntities = (state: RootState) =>
 	selectPollingAdminState(state).events.ids;
 
+export const selectPollAdminEvent = (state: RootState) => {
+	const { eventId, events } = selectPollingAdminState(state);
+	return eventId ? events.entities[eventId] : undefined;
+};
+
 export const selectPollingAdminEvents = createSelector(
 	(state: RootState) => selectPollingAdminState(state).events,
 	(events) => eventsAdapter.getSelectors().selectAll(events)
@@ -120,178 +129,146 @@ export const selectPollingAdminPolls = createSelector(
 export const pollingAdminEventsGet =
 	(groupId: string): AppThunk =>
 	async (dispatch) => {
-		const socket = getSocket();
-		const params: EventsQuery = { groupId };
-		socket.emit("events:get", params, (response: any) => {
-			try {
-				const { events } = okResponse(
-					response,
-					eventsGetResponseSchema
-				);
-				dispatch(setEvents(events));
-			} catch (error: any) {
-				dispatch(handleError(error));
-			}
-		});
+		try {
+			const { events } = await pollingSocketEmit(
+				"events:get",
+				{ groupId } satisfies EventsQuery,
+				eventsGetResponseSchema
+			);
+			dispatch(setEvents(events));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
 
 export const pollingAdminSelectEvent =
 	(eventId: number): AppThunk =>
 	async (dispatch) => {
-		const socket = getSocket();
 		dispatch(setEventId(eventId));
-		const params: PollsQuery = { eventId };
-		socket.emit("polls:get", params, (response: any) => {
-			try {
-				const { polls } = okResponse(response, pollsGetResponseSchema);
-				dispatch(setPolls(polls));
-			} catch (error: any) {
-				dispatch(handleError(error));
-			}
-		});
+		try {
+			const { polls } = await pollingSocketEmit(
+				"polls:get",
+				{ eventId } satisfies PollsQuery,
+				pollsGetResponseSchema
+			);
+			dispatch(setPolls(polls));
+		} catch (error: any) {
+			dispatch(handleError);
+		}
 	};
 
-export const pollingAdminOpenEvent =
-	(eventId: number): AppThunk =>
-	async (dispatch, getState) => {
-		const socket = getSocket();
-		const params: EventOpen = { eventId };
-		socket.emit("event:open", params, (response: any) => {
-			console.log("event:open");
-			try {
-				okResponse(response);
-			} catch (error: any) {
-				dispatch(handleError(error));
-			}
-		});
+export const pollingAdminEventPublish =
+	(eventId: number, isPublished: boolean): AppThunk =>
+	async (dispatch) => {
+		try {
+			const msg = "event:" + (isPublished ? "publish" : "unpublish");
+			await pollingSocketEmit(msg, { eventId } satisfies EventPublish);
+			dispatch(updateEvent({ id: eventId, changes: { isPublished } }));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
 
 export const pollingAdminCreateEvent =
-	(event: EventCreate): AppThunk =>
-	async (dispatch, getState) => {
-		const socket = getSocket();
-		socket.emit("event:create", event, (response: any) => {
-			console.log("event:create response");
-			try {
-				const { event } = okResponse(
-					response,
-					eventCreateResponseSchema
-				);
-				dispatch(addEvent(event));
-			} catch (error: any) {
-				dispatch(handleError(error));
-			}
-		});
+	(eventIn: EventCreate): AppThunk =>
+	async (dispatch) => {
+		try {
+			const { event } = await pollingSocketEmit(
+				"event:create",
+				eventIn,
+				eventCreateResponseSchema
+			);
+			dispatch(addEvent(event));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
 
 export const pollingAdminUpdateEvent =
 	(update: EventUpdate): AppThunk =>
-	async (dispatch, getState) => {
-		const socket = getSocket();
-		socket.emit("event:update", update, (response: any) => {
-			console.log("event:update response");
-			try {
-				const { event } = okResponse(
-					response,
-					eventUpdateResponseSchema
-				);
-				dispatch(setEvent(event));
-			} catch (error: any) {
-				dispatch(handleError(error));
-			}
-		});
+	async (dispatch) => {
+		try {
+			const { event } = await pollingSocketEmit(
+				"event:update",
+				update,
+				eventUpdateResponseSchema
+			);
+			dispatch(setEvent(event));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
 
 export const pollingAdminDeleteEvent =
 	(id: number): AppThunk =>
-	async (dispatch, getState) => {
-		const socket = getSocket();
-		socket.emit(
-			"event:delete",
-			id satisfies EventDelete,
-			(response: any) => {
-				console.log("event:delete response");
-				try {
-					okResponse(response);
-					dispatch(removeEvent(id));
-				} catch (error: any) {
-					dispatch(handleError(error));
-				}
-			}
-		);
+	async (dispatch) => {
+		try {
+			await pollingSocketEmit("event:delete", id satisfies EventDelete);
+			dispatch(removeEvent(id));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
 
 export const pollingAdminAddPoll =
-	(poll: PollCreate): AppThunk =>
-	async (dispatch, getState) => {
-		const socket = getSocket();
-		socket.emit("poll:create", poll, (response: any) => {
-			console.log("poll:create");
-			try {
-				const { poll } = okResponse(response, pollCreateResponseSchema);
-				dispatch(addPoll(poll));
-			} catch (error) {
-				dispatch(handleError(error));
-			}
-		});
+	(pollIn: PollCreate): AppThunk =>
+	async (dispatch) => {
+		try {
+			const { poll } = await pollingSocketEmit(
+				"poll:create",
+				pollIn,
+				pollCreateResponseSchema
+			);
+			dispatch(addPoll(poll));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
 
 export const pollingAdminUpdatePoll =
 	(update: PollUpdate): AppThunk =>
-	async (dispatch, getState) => {
-		const socket = getSocket();
-		socket.emit("poll:update", update, (response: any) => {
-			console.log("poll:update");
-			try {
-				const { poll } = okResponse(response, pollUpdateResponseSchema);
-				dispatch(setPoll(poll));
-			} catch (error) {
-				dispatch(handleError(error));
-			}
-		});
+	async (dispatch) => {
+		try {
+			const { poll } = await pollingSocketEmit(
+				"poll:update",
+				update,
+				pollUpdateResponseSchema
+			);
+			dispatch(setPoll(poll));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
 
 export const pollingAdminDeletePoll =
 	(id: number): AppThunk =>
-	async (dispatch, getState) => {
-		const socket = getSocket();
-		socket.emit("poll:delete", id satisfies PollDelete, (response: any) => {
-			console.log("poll:delete");
-			try {
-				okResponse(response);
-				dispatch(removePoll(id));
-			} catch (error) {
-				dispatch(handleError(error));
-			}
-		});
+	async (dispatch) => {
+		try {
+			await pollingSocketEmit("poll:delete", id satisfies PollDelete);
+			dispatch(removePoll(id));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
 
 export const pollingAdminShowPoll =
 	(id: number): AppThunk =>
-	async (dispatch, getState) => {
-		const socket = getSocket();
-		socket.emit("poll:show", id satisfies PollShow, (response: any) => {
-			console.log("poll:show");
-			try {
-				okResponse(response);
-				dispatch(showPoll(id));
-			} catch (error) {
-				dispatch(handleError(error));
-			}
-		});
+	async (dispatch) => {
+		try {
+			await pollingSocketEmit("poll:show", id satisfies PollShow);
+			dispatch(showPoll(id));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
 
 export const pollingAdminOpenPoll =
 	(id: number): AppThunk =>
-	async (dispatch, getState) => {
-		const socket = getSocket();
-		socket.emit("poll:open", id satisfies PollOpen, (response: any) => {
-			console.log("poll:show");
-			try {
-				okResponse(response);
-				dispatch(openPoll(id));
-			} catch (error) {
-				dispatch(handleError(error));
-			}
-		});
+	async (dispatch) => {
+		try {
+			await pollingSocketEmit("poll:open", id satisfies PollOpen);
+			dispatch(openPoll(id));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
 	};
