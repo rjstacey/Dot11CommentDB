@@ -1,4 +1,4 @@
-import { boolean, z } from "zod";
+import { z } from "zod";
 import { groupIdSchema } from "./groups";
 
 export type PollingError = {
@@ -117,26 +117,20 @@ export type PollCreate = z.infer<typeof pollCreateSchema>; // argument for poll:
 export type PollUpdate = z.infer<typeof pollUpdateSchema>; // argument for poll:update -> server
 export type PollDelete = z.infer<typeof pollDeleteSchema>; // argument for poll:delete -> server
 
-export const pollOpenSchema = pollIdSchema;
-export const pollShowSchema = pollIdSchema;
-export type PollOpen = z.infer<typeof pollOpenSchema>;
-export type PollShow = z.infer<typeof pollShowSchema>;
+export const pollActionSchema = pollIdSchema;
+export type PollAction = z.infer<typeof pollActionSchema>;
 
 export const pollsGetResponseSchema = z.object({ polls: pollSchema.array() });
 export const pollCreateResponseSchema = z.object({ poll: pollSchema });
 export const pollUpdateResponseSchema = z.object({ poll: pollSchema });
-export type PollsGetResponse = z.infer<typeof pollsGetResponseSchema>; // response to poll:create
+export type PollsGetResponse = z.infer<typeof pollsGetResponseSchema>; // response to polls:get
 export type PollCreateResponse = z.infer<typeof pollCreateResponseSchema>; // response to poll:create
 export type PollUpdateResponse = z.infer<typeof pollUpdateResponseSchema>; // response to poll:update
 
-export const pollOpenedSchema = pollIdSchema;
-export const pollShownSchema = pollIdSchema;
 export const pollAddedSchema = pollSchema;
 export const pollUpdatedSchema = pollSchema;
 export const pollDeletedSchema = pollIdSchema;
 
-export type PollShown = z.infer<typeof pollShownSchema>;
-export type PollOpened = z.infer<typeof pollOpenedSchema>;
 export type PollAdded = z.infer<typeof pollAddedSchema>; // argument for poll:added -> client
 export type PollUpdated = z.infer<typeof pollUpdatedSchema>; // argument for poll:update -> client
 export type PollDeleted = z.infer<typeof pollDeletedSchema>; // argument for poll:deleted -> client

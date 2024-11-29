@@ -8,8 +8,7 @@ import {
 	EventAdd,
 	EventOpened,
 	EventClosed,
-	PollShown,
-	PollOpened,
+	PollAction,
 	PollUpdated,
 	PollDeleted,
 	PollCreateResponse,
@@ -22,8 +21,7 @@ import {
 	pollCreateSchema,
 	pollUpdateSchema,
 	pollIdSchema,
-	pollOpenSchema,
-	pollShowSchema,
+	pollActionSchema,
 	pollsQuerySchema,
 	PollAdded,
 	PollUpdateResponse,
@@ -279,11 +277,11 @@ async function onPollShow(this: Socket, payload: unknown, callback: unknown) {
 	if (!validCallback(callback)) return;
 	try {
 		const groupId = getSocketGroupId(this);
-		const id = pollShowSchema.parse(payload);
-		const poll = (await getPolls({ id }))[0];
+		const id = pollActionSchema.parse(payload);
+		const [poll] = await getPolls({ id });
 		if (!poll) throw new TypeError("Poll not found");
 		okCallback(callback);
-		this.nsp.to(groupId).emit("poll:shown", id satisfies PollShown);
+		this.nsp.to(groupId).emit("poll:shown", id satisfies PollAction);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -293,11 +291,25 @@ async function onPollOpen(this: Socket, payload: unknown, callback: unknown) {
 	if (!validCallback(callback)) return;
 	try {
 		const groupId = getSocketGroupId(this);
-		const id = pollOpenSchema.parse(payload);
-		const poll = (await getPolls({ id }))[0];
+		const id = pollActionSchema.parse(payload);
+		const [poll] = await getPolls({ id });
 		if (!poll) throw new TypeError("Poll not found");
 		okCallback(callback);
-		this.nsp.to(groupId).emit("poll:opened", id satisfies PollOpened);
+		this.nsp.to(groupId).emit("poll:opened", id satisfies PollAction);
+	} catch (error) {
+		errorCallback(callback, error);
+	}
+}
+
+async function onPollClose(this: Socket, payload: unknown, callback: unknown) {
+	if (!validCallback(callback)) return;
+	try {
+		const groupId = getSocketGroupId(this);
+		const id = pollActionSchema.parse(payload);
+		const [poll] = await getPolls({ id });
+		if (!poll) throw new TypeError("Poll not found");
+		okCallback(callback);
+		this.nsp.to(groupId).emit("poll:closed", id satisfies PollAction);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -347,7 +359,8 @@ function onConnect(socket: Socket, user: User) {
 		.on("poll:update", onPollUpdate.bind(socket))
 		.on("poll:delete", onPollDelete.bind(socket))
 		.on("poll:show", onPollShow.bind(socket))
-		.on("poll:open", onPollOpen.bind(socket));
+		.on("poll:open", onPollOpen.bind(socket))
+		.on("poll:close", onPollClose.bind(socket));
 }
 
 export default onConnect;
