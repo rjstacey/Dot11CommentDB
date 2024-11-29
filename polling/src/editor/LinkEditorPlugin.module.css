@@ -1,0 +1,63 @@
+.link-editor {
+	display: flex;
+	align-items: center;
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 10;
+	max-width: 400px;
+	width: 100%;
+	opacity: 0;
+	background-color: #fff;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+	border-radius: 0 0 8px 8px;
+	transition: opacity 0.5s;
+	will-change: transform;
+}
+
+.link-editor button {
+	border-radius: 8px;
+	cursor: pointer;
+	margin: 0 4px;
+	padding: 2;
+	border: none;
+	font-size: larger;
+	background-color: inherit;
+}
+
+.link-editor button:hover {
+	background-color: rgb(223, 232, 250);
+}
+
+.link-editor input {
+	display: block;
+	width: calc(100% - 75px);
+	box-sizing: border-box;
+	margin: 12px 12px;
+	padding: 8px 12px;
+	border-radius: 15px;
+	background-color: #eee;
+	font-size: 15px;
+	color: rgb(5, 5, 5);
+	border: 0;
+	outline: 0;
+	position: relative;
+	font-family: inherit;
+}
+
+.link-editor a {
+	display: block;
+	word-break: break-word;
+	width: calc(100% - 33px);
+	margin: 8px 12px;
+	padding: 8px 12px;
+	color: rgb(33, 111, 219);
+	text-decoration: underline;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.link-editor a:hover {
+	text-decoration: underline;
+}

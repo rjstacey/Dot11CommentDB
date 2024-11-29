@@ -19,8 +19,7 @@ import {
 	PollCreate,
 	PollUpdate,
 	PollDelete,
-	PollShow,
-	PollOpen,
+	PollAction,
 	pollsGetResponseSchema,
 	pollCreateResponseSchema,
 	pollUpdateResponseSchema,
@@ -28,14 +27,15 @@ import {
 import { AppThunk, RootState } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
 
+type PollState = null | "shown" | "opened" | "closed";
 const eventsAdapter = createEntityAdapter<Event>();
 const pollsAdapter = createEntityAdapter<Poll>();
 
 /* Create slice */
 const initialState = {
 	eventId: null as number | null,
-	shownPollId: null as number | null,
-	openedPollId: null as number | null,
+	pollId: null as number | null,
+	pollState: null as PollState,
 	events: eventsAdapter.getInitialState(),
 	polls: pollsAdapter.getInitialState(),
 };
@@ -47,11 +47,11 @@ const slice = createSlice({
 		setEventId(state, action: PayloadAction<number | null>) {
 			state.eventId = action.payload;
 		},
-		showPoll(state, action: PayloadAction<number | null>) {
-			state.shownPollId = action.payload;
+		setPollId(state, action: PayloadAction<number | null>) {
+			state.pollId = action.payload;
 		},
-		openPoll(state, action: PayloadAction<number | null>) {
-			state.openedPollId = action.payload;
+		setPollState(state, action: PayloadAction<PollState>) {
+			state.pollState = action.payload;
 		},
 		setEvents(state, action: PayloadAction<Event[]>) {
 			eventsAdapter.setAll(state.events, action.payload);
@@ -97,14 +97,16 @@ const {
 	setPoll,
 	addPoll,
 	removePoll,
-	showPoll,
-	openPoll,
+	setPollId,
+	setPollState,
 } = slice.actions;
 
 /** Selectors */
 const selectPollingAdminState = (state: RootState) => state[dataSet];
 export const selectPollingAdminEventId = (state: RootState) =>
 	selectPollingAdminState(state).eventId;
+export const selectPollingAdminPollId = (state: RootState) =>
+	selectPollingAdminState(state).pollId;
 export const selectPollingAdminEventIds = (state: RootState) =>
 	selectPollingAdminState(state).events.ids;
 export const selectPollingAdminEventEntities = (state: RootState) =>
@@ -113,6 +115,11 @@ export const selectPollingAdminEventEntities = (state: RootState) =>
 export const selectPollAdminEvent = (state: RootState) => {
 	const { eventId, events } = selectPollingAdminState(state);
 	return eventId ? events.entities[eventId] : undefined;
+};
+
+export const selectPollAdminPoll = (state: RootState) => {
+	const { pollId, polls } = selectPollingAdminState(state);
+	return pollId ? polls.entities[pollId] : undefined;
 };
 
 export const selectPollingAdminEvents = createSelector(
@@ -251,12 +258,25 @@ export const pollingAdminDeletePoll =
 		}
 	};
 
+export const pollingAdminSelectPoll =
+	(id: number | null): AppThunk =>
+	async (dispatch, getState) => {
+		try {
+			const { pollId } = selectPollingAdminState(getState());
+			if (pollId !== id) dispatch(setPollState(null));
+			dispatch(setPollId(id));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
+	};
+
 export const pollingAdminShowPoll =
 	(id: number): AppThunk =>
 	async (dispatch) => {
 		try {
-			await pollingSocketEmit("poll:show", id satisfies PollShow);
-			dispatch(showPoll(id));
+			dispatch(setPollId(id));
+			await pollingSocketEmit("poll:show", id satisfies PollAction);
+			dispatch(setPollState("shown"));
 		} catch (error: any) {
 			dispatch(handleError(error));
 		}
@@ -266,8 +286,21 @@ export const pollingAdminOpenPoll =
 	(id: number): AppThunk =>
 	async (dispatch) => {
 		try {
-			await pollingSocketEmit("poll:open", id satisfies PollOpen);
-			dispatch(openPoll(id));
+			dispatch(setPollId(id));
+			await pollingSocketEmit("poll:open", id satisfies PollAction);
+			dispatch(setPollState("opened"));
+		} catch (error: any) {
+			dispatch(handleError(error));
+		}
+	};
+
+export const pollingAdminClosePoll =
+	(id: number): AppThunk =>
+	async (dispatch) => {
+		try {
+			dispatch(setPollId(id));
+			await pollingSocketEmit("poll:close", id satisfies PollAction);
+			dispatch(setPollState("closed"));
 		} catch (error: any) {
 			dispatch(handleError(error));
 		}

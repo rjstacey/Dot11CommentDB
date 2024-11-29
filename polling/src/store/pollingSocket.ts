@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction, isPlainObject } from "@reduxjs/toolkit";
+import { createSlice, isPlainObject } from "@reduxjs/toolkit";
 import { io, Socket } from "socket.io-client";
 import z from "zod";
 import { setError } from "dot11-components";
@@ -6,14 +6,13 @@ import { GroupJoin, PollingError, PollingOK } from "../schemas/poll";
 import { AppThunk, RootState } from ".";
 import { selectUser } from "./user";
 import { pollingAdminEventsGet } from "./pollingAdmin";
+import { selectSelectedGroupId } from "./groups";
 
 /* Create slice */
 const initialState: {
 	isConnected: boolean;
-	groupId: string | null;
 } = {
 	isConnected: false,
-	groupId: null,
 };
 const dataSet = "pollingSocket";
 const slice = createSlice({
@@ -26,21 +25,16 @@ const slice = createSlice({
 		setDisconnected(state) {
 			state.isConnected = false;
 		},
-		setGroupId(state, action: PayloadAction<string | null>) {
-			state.groupId = action.payload;
-		},
 	},
 });
 
 export default slice;
 
 /** Slice actions */
-const { setConnected, setDisconnected, setGroupId } = slice.actions;
+const { setConnected, setDisconnected } = slice.actions;
 
 /** Selectors */
 const selectPollingSocketState = (state: RootState) => state[dataSet];
-export const selectPollingSocketGroupId = (state: RootState) =>
-	selectPollingSocketState(state).groupId;
 export const selectPollingSocketIsConnected = (state: RootState) =>
 	selectPollingSocketState(state).isConnected;
 
@@ -140,7 +134,7 @@ export const pollingSocketConnect =
 			console.log("connect");
 			assertHasSocket(socket);
 			if (socket.recovered) {
-				const groupId = selectPollingSocketGroupId(getState());
+				const groupId = selectSelectedGroupId(getState());
 				dispatch(
 					groupId
 						? pollingSocketJoinGroup(groupId)

@@ -36,7 +36,7 @@ function EventTabsList() {
 	return (
 		<div className={css.tabList}>
 			{events.map((event) => (
-				<EventTab event={event} />
+				<EventTab key={event.id} event={event} />
 			))}
 		</div>
 	);

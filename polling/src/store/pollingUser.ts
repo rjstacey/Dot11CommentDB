@@ -12,7 +12,6 @@ import {
 	Poll,
 } from "../schemas/poll";
 import { RootState, store } from ".";
-import { getSocket } from "./pollingSocket";
 
 const pollsAdapter = createEntityAdapter<Poll>();
 

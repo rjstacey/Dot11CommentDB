@@ -85,7 +85,19 @@
 	flex-direction: column;
 }
 
+.pollRow {
+	display: flex;
+	padding: 5px;
+	margin: 5px;
+	border: solid 1px;
+}
+
 .pollEntry {
 	display: flex;
 	flex-direction: column;
+	flex: 1;
+}
+
+.pollEntry:global(.selected) {
+	background-color: lightgreen;
 }
