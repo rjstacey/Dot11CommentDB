@@ -67,8 +67,11 @@ export async function getPolls(query: PollsQuery = {}) {
 			"p.id, " +
 			"p.eventId, " +
 			"BIN_TO_UUID(e.groupId) as groupId, " +
+			"p.index, " +
 			"p.title, " +
-			'p.body ' +
+			"p.body, " +
+			"p.type, " +
+			"p.autoNumber " +
 		"FROM polls p LEFT JOIN pollEvents e ON p.eventId=e.id";
 
 	const wheres = Object.entries(query).map(([key, value]) => {
@@ -79,6 +82,8 @@ export async function getPolls(query: PollsQuery = {}) {
 		return sql;
 	});
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
+
+	sql += " ORDER BY `index`";
 
 	const polls = await db.query<(RowDataPacket & Poll)[]>(sql);
 	return polls;

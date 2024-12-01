@@ -74,12 +74,17 @@ export type EventCreateResponse = z.infer<typeof eventCreateResponseSchema>; // 
 export type EventUpdateResponse = z.infer<typeof eventUpdateResponseSchema>; // response to event:update
 
 export const pollIdSchema = z.number();
+export const pollTypeSchema = z.enum(["m", "sp"]);
+export type PollType = z.infer<typeof pollTypeSchema>;
 
 export const pollSchema = z.object({
 	id: pollIdSchema,
 	eventId: eventIdSchema,
+	index: z.number(),
 	title: z.string(),
 	body: z.string(),
+	type: pollTypeSchema,
+	autoNumber: z.boolean(),
 });
 
 export const pollCreateSchema = pollSchema
