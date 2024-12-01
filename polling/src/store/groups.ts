@@ -116,12 +116,14 @@ export const selectSelectedSubgroupId = (state: RootState) =>
 export const selectGroup = (state: RootState, groupId: string) =>
 	selectGroupEntities(state)[groupId];
 
-export const selectTopLevelGroups = (state: RootState) => {
-	const { ids, entities } = selectGroupsState(state);
-	return ids
-		.map((id) => entities[id]!)
-		.filter((g) => ["r", "c", "wg"].includes(g.type!));
-};
+export const selectTopLevelGroups = createSelector(
+	selectGroupIds,
+	selectGroupEntities,
+	(ids, entities) =>
+		ids
+			.map((id) => entities[id]!)
+			.filter((g) => ["r", "c", "wg"].includes(g.type!))
+);
 
 export const selectGroupByName = (state: RootState, groupName: string) => {
 	const groups = selectTopLevelGroups(state);

@@ -105,14 +105,22 @@ export function pollingSocketEmit<T extends z.ZodTypeAny>(
 	data?: any,
 	schema?: T
 ): Promise<z.infer<T> | undefined> {
-	return new Promise((resolve) => {
-		const socket = getSocket();
-		socket.emit(message, data, (response: unknown) => {
-			const result = schema
-				? okResponse(response, schema)
-				: okResponse(response);
-			resolve(result);
-		});
+	return new Promise((resolve, reject) => {
+		try {
+			const socket = getSocket();
+			socket.emit(message, data, (response: unknown) => {
+				try {
+					const result = schema
+						? okResponse(response, schema)
+						: okResponse(response);
+					resolve(result);
+				} catch (error: any) {
+					reject(error);
+				}
+			});
+		} catch (error: any) {
+			reject(error);
+		}
 	});
 }
 

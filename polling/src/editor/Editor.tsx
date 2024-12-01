@@ -195,7 +195,7 @@ function Editor({
 						}
 						placeholder={
 							<div className={styles.placeholder}>
-								Email body here...
+								Body here...
 							</div>
 						}
 						ErrorBoundary={LexicalErrorBoundary}

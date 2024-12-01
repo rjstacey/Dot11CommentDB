@@ -160,7 +160,7 @@ export const pollingAdminSelectEvent =
 			);
 			dispatch(setPolls(polls));
 		} catch (error: any) {
-			dispatch(handleError);
+			dispatch(handleError(error));
 		}
 	};
 

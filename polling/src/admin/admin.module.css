@@ -101,3 +101,15 @@
 .pollEntry:global(.selected) {
 	background-color: lightgreen;
 }
+
+.columnChoice {
+	display: flex;
+	flex-direction: column;
+}
+
+.labeledCheckbox {
+	display: inline-block;
+	flex-wrap: nowrap;
+	flex-direction: row;
+	align-items: baseline;
+}
