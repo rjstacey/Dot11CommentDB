@@ -178,6 +178,9 @@ function initExpressApp() {
 	app.get("/meetings*", (req, res) =>
 		res.sendFile(path.join(__dirname, devdir, "meetings/index.html"))
 	);
+	app.get("/polling*", (req, res) =>
+		res.sendFile(path.join(__dirname, devdir, "polling/index.html"))
+	);
 	app.get("/*", (req, res) =>
 		res.sendFile(path.join(__dirname, devdir, "home/index.html"))
 	);

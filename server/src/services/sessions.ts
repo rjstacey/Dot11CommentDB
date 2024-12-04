@@ -15,7 +15,7 @@ import {
 
 function getSessionsSQL(groupId?: string | string[]) {
 	let attendanceSql =
-		"SELECT COUNT(DISTINCT(SAPIN)) FROM attendance_summary WHERE ";
+		"SELECT COUNT(DISTINCT(SAPIN)) FROM attendanceSummary WHERE ";
 	if (groupId) {
 		attendanceSql += Array.isArray(groupId)
 			? `BIN_TO_UUID(groupId) IN (${db.escape(groupId)})`
@@ -106,27 +106,29 @@ export function getCredit(creditStr: string): {
  *
  * @returns an array of session objects
  */
-export function getSessions(constraints: SessionsQuery = {}): Promise<Session[]> {
+export function getSessions(
+	constraints: SessionsQuery = {}
+): Promise<Session[]> {
 	const { limit, ...query } = constraints;
 	let sql = getSessionsSQL(constraints?.groupId);
 
-		const wheres: string[] = [];
-		Object.entries(query).forEach(([key, value]) => {
-			wheres.push(
-				key === "groupId"
-					? db.format(
-							Array.isArray(value)
-								? "BIN_TO_UUID(??) IN (?)"
-								: "BIN_TO_UUID(??)=?",
-							[key, value]
-					  )
-					: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
-							key,
-							value,
-					  ])
-			);
-		});
-		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
+	const wheres: string[] = [];
+	Object.entries(query).forEach(([key, value]) => {
+		wheres.push(
+			key === "groupId"
+				? db.format(
+						Array.isArray(value)
+							? "BIN_TO_UUID(??) IN (?)"
+							: "BIN_TO_UUID(??)=?",
+						[key, value]
+				  )
+				: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
+						key,
+						value,
+				  ])
+		);
+	});
+	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 
 	sql += " ORDER BY startDate DESC";
 
