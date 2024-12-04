@@ -1,5 +1,6 @@
 import React from "react";
 import type { EntityId, Dictionary } from "@reduxjs/toolkit";
+import { DateTime } from "luxon";
 
 import {
 	Form,
@@ -63,14 +64,17 @@ function BulkStatusUpdateForm({
 		.filter((entity) => entity && entity.ExpectedStatus)
 		.map((entity) => {
 			const { SAPIN, ExpectedStatus } = entity!;
+			let StatusChangeDate = DateTime.fromISO(date, {
+				zone: "America/New_York",
+			}).toISO()!;
 			return {
 				id: SAPIN,
 				changes: {
 					Status: ExpectedStatus as StatusType,
 					StatusChangeReason: reason,
-					StatusChangeDate: date,
+					StatusChangeDate,
 				},
-			};
+			} satisfies MemberUpdate;
 		});
 
 	let warning = `${updates.length} updates`;
@@ -129,7 +133,10 @@ function BulkStatusUpdateFormSession(props: DropdownRendererProps) {
 	const defaultReason = `Session ${
 		recentSession.number || `id=${recentSession.id}`
 	} update`;
-	const defaultDate = recentSession.endDate;
+	const defaultDate =
+		DateTime.fromISO(recentSession.endDate, { zone: "America/New_York" })
+			.plus({ days: 1 })
+			.toISODate() || recentSession.endDate;
 	const selected = useAppSelector(selectSessionParticipationSelected);
 	const ids = useAppSelector(selectSessionParticipationIds);
 	const entities = useAppSelector(
