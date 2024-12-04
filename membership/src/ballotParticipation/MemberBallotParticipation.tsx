@@ -18,55 +18,79 @@ import {
 	selectSyncedBallotSeriesEntities,
 } from "../store/ballotParticipation";
 
-import { EditTable as Table, renderTable, TableColumn } from "../components/Table";
+import {
+	EditTable as Table,
+	renderTable,
+	TableColumn,
+} from "../components/Table";
 
-const headings = [
-	"Project",
-	"Ballot series",
-	"Period",
-	"Last vote",
-	"Notes"
-];
+const headings = ["Project", "Ballot series", "Period", "Last vote", "Notes"];
 
 export function useRenderBallotParticipation() {
 	const entities = useAppSelector(selectBallotParticipationState).entities;
-	const ballotSeriesEntities = useAppSelector(selectSyncedBallotSeriesEntities);
-	const ballotEntities = useAppSelector(selectBallotParticipationState).ballots.entities;
+	const ballotSeriesEntities = useAppSelector(
+		selectSyncedBallotSeriesEntities
+	);
+	const ballotEntities = useAppSelector(selectBallotParticipationState)
+		.ballots.entities;
 
-	return React.useCallback((SAPIN: number) => {
-		let values: string[][] = [];
-		const entity = entities[SAPIN];
-		if (entity) {
-			function renderDateRange(entity: BallotSeriesParticipationSummary) {
-				const ballotSeries = ballotSeriesEntities[entity.series_id]!;
-				return displayDateRange(ballotSeries.start, ballotSeries.end);
-			}
-			
-			function renderVoteSummary(entity: BallotSeriesParticipationSummary) {
-				if (!entity.lastBallotId) return "Did not vote";
-				const ballot = ballotEntities[entity.lastBallotId];
-				const ballotName = ballot? getBallotId(ballot): "?";
-				return `${ballotName}/${entity.vote}` + (entity.commentCount? `/${entity.commentCount}`: "");
-			}
-		
-			values = entity.ballotSeriesParticipationSummaries.map(entry => {
-				let notes = "";
-				if (entry.excused)
-					notes = "Excused";
-				else if (entry.SAPIN !== entry.lastSAPIN && entry.lastSAPIN)
-					notes = "Voted using SAPIN=" + entry.lastSAPIN;
-				return [
-					ballotSeriesEntities[entry.series_id]?.project || "?",
-					ballotSeriesEntities[entry.series_id]?.ballotNames.reverse().join(", ") || "?",
-					renderDateRange(entry),
-					renderVoteSummary(entry),
-					notes
-				];
-			});
-		}
+	return React.useCallback(
+		(SAPIN: number) => {
+			let values: string[][] = [];
+			const entity = entities[SAPIN];
+			if (entity) {
+				function renderDateRange(
+					entity: BallotSeriesParticipationSummary
+				) {
+					const ballotSeries =
+						ballotSeriesEntities[entity.series_id]!;
+					return displayDateRange(
+						ballotSeries.start,
+						ballotSeries.end
+					);
+				}
 
-		return renderTable(headings, values);
-	}, [entities, ballotSeriesEntities, ballotEntities]);
+				function renderVoteSummary(
+					entity: BallotSeriesParticipationSummary
+				) {
+					if (!entity.lastBallotId) return "Did not vote";
+					const ballot = ballotEntities[entity.lastBallotId];
+					const ballotName = ballot ? getBallotId(ballot) : "?";
+					return (
+						`${ballotName}/${entity.vote}` +
+						(entity.commentCount ? `/${entity.commentCount}` : "")
+					);
+				}
+
+				values = entity.ballotSeriesParticipationSummaries.map(
+					(entry) => {
+						let notes = "";
+						if (entry.excused) notes = "Excused";
+						else if (
+							entry.SAPIN !== entry.lastSAPIN &&
+							entry.lastSAPIN
+						)
+							notes = "Voted using SAPIN=" + entry.lastSAPIN;
+						const ballotSeries =
+							ballotSeriesEntities[entry.series_id];
+						const project = ballotSeries?.project || "?";
+						const ballotSeriesText =
+							ballotSeries?.ballotNames.join(", ") || "?";
+						return [
+							project,
+							ballotSeriesText,
+							renderDateRange(entry),
+							renderVoteSummary(entry),
+							notes,
+						];
+					}
+				);
+			}
+
+			return renderTable(headings, values);
+		},
+		[entities, ballotSeriesEntities, ballotEntities]
+	);
 }
 
 const ballotSeriesParticipationColumns: TableColumn[] = [
@@ -96,7 +120,9 @@ function MemberBallotParticipation({
 	);
 
 	const entities = useAppSelector(selectBallotParticipationState).entities;
-	const ballotSeriesEntities = useAppSelector(selectSyncedBallotSeriesEntities);
+	const ballotSeriesEntities = useAppSelector(
+		selectSyncedBallotSeriesEntities
+	);
 	const ballotEntities = useAppSelector(selectBallotParticipationState)
 		.ballots.entities;
 
@@ -170,8 +196,11 @@ function MemberBallotParticipation({
 		function renderVoteSummary(entity: BallotSeriesParticipationSummary) {
 			if (!entity.lastBallotId) return "Did not vote";
 			const ballot = ballotEntities[entity.lastBallotId];
-			const ballotName = ballot? getBallotId(ballot): "?";
-			return `${ballotName}/${entity.vote}` + (entity.commentCount? `/${entity.commentCount}`: "");
+			const ballotName = ballot ? getBallotId(ballot) : "?";
+			return (
+				`${ballotName}/${entity.vote}` +
+				(entity.commentCount ? `/${entity.commentCount}` : "")
+			);
 		}
 
 		return ballotSeriesParticipationColumns.map((col) => {
@@ -185,14 +214,18 @@ function MemberBallotParticipation({
 					ballotSeriesEntities[entry.series_id]?.project || "?";
 			if (col.key === "ballotIds")
 				renderCell = (entry) =>
-					ballotSeriesEntities[entry.series_id]?.ballotNames.join(", ") || "?";
+					ballotSeriesEntities[entry.series_id]?.ballotNames.join(
+						", "
+					) || "?";
 			if (col.key === "period") renderCell = renderDateRange;
 			if (col.key === "excused") {
 				renderCell = (entry) => (
 					<Checkbox
 						checked={entry.excused}
 						onChange={(e) =>
-							update(entry.series_id, { excused: e.target.checked })
+							update(entry.series_id, {
+								excused: e.target.checked,
+							})
 						}
 						disabled={readOnly}
 					/>

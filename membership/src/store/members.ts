@@ -258,6 +258,13 @@ export const selectAllMembers = createSelector(
 	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
+export const selectSelectedMembers = createSelector(
+	(state: RootState) => selectMembersState(state).selected,
+	selectMemberEntities,
+	(ids, entities) =>
+		ids.map((id) => entities[id]).filter((m) => Boolean(m)) as Member[]
+);
+
 export const selectMemberWithParticipationSummary = createSelector(
 	selectSessionParticipationWithMembershipAndSummary,
 	selectBallotParticipationWithMembershipAndSummary,

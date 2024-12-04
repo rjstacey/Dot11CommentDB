@@ -29,7 +29,7 @@ import {
 	type EmailTemplate,
 } from "../store/emailTemplates";
 import { sendEmail, type Email } from "../store/emailSend";
-import { selectMembersState, type Member } from "../store/members";
+import { selectSelectedMembers, type Member } from "../store/members";
 import { selectMostRecentAttendedSession } from "../store/sessions";
 import { type Session } from "../store/sessions";
 import { selectUser, type User } from "../store/user";
@@ -202,18 +202,36 @@ function NotificationEmail() {
 	const dispatch = useAppDispatch();
 	const [edited, setEdited] = React.useState<EmailTemplate | null>(null);
 	const [saved, setSaved] = React.useState<EmailTemplate | null>(null);
-	const [preview, setPreview] = React.useState(false);
+	const [preview, setPreview] = React.useState<EmailTemplate | null>(null);
+	const [isPreview, setIsPreview] = React.useState(false);
+	const [busy, setBusy] = React.useState(false);
 
-	const { selected, entities } = useAppSelector(selectMembersState);
-	const members = selected
-		.map((id) => entities[id])
-		.filter((m) => Boolean(m)) as Member[];
-
+	const user = useAppSelector(selectUser);
+	const members = useAppSelector(selectSelectedMembers);
 	const session = useAppSelector(selectMostRecentAttendedSession);
 	const renderSessionAttendances = useRenderSessionAttendances();
 	const renderBallotParticipation = useRenderBallotParticipation();
 
-	const user = useAppSelector(selectUser);
+	React.useEffect(() => {
+		if (!edited || members.length === 0) {
+			setPreview(null);
+		} else {
+			const email = doSubstitution(
+				edited,
+				members[0],
+				session,
+				renderSessionAttendances,
+				renderBallotParticipation
+			);
+			setPreview(email);
+		}
+	}, [
+		edited,
+		members,
+		session,
+		renderSessionAttendances,
+		renderBallotParticipation,
+	]);
 
 	const debouncedSave = useDebounce(() => {
 		const changes = shallowDiff(saved!, edited!);
@@ -244,36 +262,29 @@ function NotificationEmail() {
 	}
 
 	function togglePreview() {
-		if (!edited) return;
-		if (!preview) {
-			debouncedSave.flush();
-			const email = doSubstitution(
-				edited,
-				members[0],
-				session,
-				renderSessionAttendances,
-				renderBallotParticipation
-			);
-			setEdited(email);
-		} else {
-			setEdited(saved);
-		}
-		setPreview(!preview);
+		setIsPreview(!isPreview);
 	}
 
-	function onSend() {
-		genEmails({
+	async function onSend() {
+		setBusy(true);
+		const emails = genEmails({
 			user,
 			emailTemplate: saved!,
 			members,
 			session,
 			renderSessionAttendances,
 			renderBallotParticipation,
-		}).forEach((email) => dispatch(sendEmail(groupName!, email)));
+		});
+		await Promise.all(
+			emails.map((email) => dispatch(sendEmail(groupName!, email)))
+		);
+		setBusy(false);
 	}
 
+	const email = isPreview ? preview : edited;
+
 	return (
-		<Form style={{ margin: 10, maxWidth: 1000 }}>
+		<Form style={{ margin: 10, maxWidth: 1000 }} busy={busy}>
 			<Row>
 				<div style={{ display: "flex" }}>
 					<Field label="Template">
@@ -290,7 +301,7 @@ function NotificationEmail() {
 					</Field>
 				</div>
 				<div>
-					<Button onClick={togglePreview} isActive={preview}>
+					<Button onClick={togglePreview} isActive={isPreview}>
 						<i className="bi-eye" />
 						<span>&nbsp;Preview</span>
 					</Button>
@@ -300,17 +311,17 @@ function NotificationEmail() {
 					</Button>
 				</div>
 			</Row>
-			{edited && (
+			{email && (
 				<Row>
 					<Editor
-						key={"" + preview + edited.id}
-						subject={edited.subject}
-						body={edited.body}
+						key={"" + isPreview + email.id}
+						subject={email.subject}
+						body={email.body}
 						onChangeSubject={(subject) =>
 							changeTemplate({ subject })
 						}
 						onChangeBody={(body) => changeTemplate({ body })}
-						preview={preview}
+						preview={isPreview}
 					/>
 				</Row>
 			)}

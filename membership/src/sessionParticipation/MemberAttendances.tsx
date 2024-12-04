@@ -72,9 +72,10 @@ export function useRenderSessionAttendances() {
 	return React.useCallback(
 		(SAPIN: number) => {
 			const session_ids = sessionIds as number[];
+			const attendances = membersAttendances[SAPIN] || {};
+
 			const values = session_ids.map((id) => {
 				const session = sessionEntities[id]!;
-				const attendances = membersAttendances[SAPIN];
 				let a = attendances[id] || getNullAttendanceSummary(id, SAPIN);
 
 				let notes = "";
