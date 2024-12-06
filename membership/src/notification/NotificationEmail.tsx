@@ -1,8 +1,8 @@
 import React from "react";
+import { useParams } from "react-router-dom";
 import { Html } from "@react-email/html";
 import { render } from "@react-email/render";
 import {
-	Form,
 	Select,
 	Row,
 	Field,
@@ -13,6 +13,7 @@ import {
 	ActionButton,
 	ConfirmModal,
 	useDebounce,
+	Spinner,
 } from "dot11-components";
 
 import Editor, { replaceClassWithInlineStyle } from "../editor/Editor";
@@ -25,15 +26,28 @@ import {
 	selectEmailTemplatesState,
 	updateEmailTemplate,
 	deleteEmailTemplate,
-	type EmailTemplateCreate,
-	type EmailTemplate,
 } from "../store/emailTemplates";
-import { sendEmail, type Email } from "../store/emailSend";
+import { EmailTemplateCreate, EmailTemplate } from "../schemas/emailTemplates";
+import { sendEmails, type Email } from "../store/emailSend";
 import { selectSelectedMembers, type Member } from "../store/members";
 import { selectMostRecentAttendedSession } from "../store/sessions";
 import { type Session } from "../store/sessions";
 import { selectUser, type User } from "../store/user";
-import { useParams } from "react-router-dom";
+
+import RecipientsEditor from "./RecipientsEditor";
+import SubjectEditor from "./SubjectEditor";
+import css from "./notification.module.css";
+
+const SELECTED_MEMBER = "SelectedMember";
+const SELECTED_MEMBER_KEY = `{{${SELECTED_MEMBER}}}`;
+
+const genEmailAddress = (m: Member | User) => `${m.Name} <${m.Email}>`;
+
+function substituteInAddressField(key: string, member: Member) {
+	if (key !== SELECTED_MEMBER)
+		throw new Error(`To field has invalid key {{${key}}}`);
+	return genEmailAddress(member);
+}
 
 function substitute(
 	key: string,
@@ -61,7 +75,13 @@ function substitute(
 	if (key === "BallotParticipation")
 		return renderBallotParticipation(member.SAPIN);
 
-	return "(Not implemented)";
+	throw new Error(`Invalid key {{${key}}}`);
+}
+
+const keyPattern = "[a-zA-Z_.]+";
+function findKeys(s: string) {
+	const m = s.match(new RegExp(`{{${keyPattern}}}`, "g"));
+	return m ? m.map((s) => s.replace("{{", "").replace("}}", "")) : [];
 }
 
 function doSubstitution(
@@ -71,30 +91,59 @@ function doSubstitution(
 	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>,
 	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
 ) {
-	let body = email.body;
-	const m = body.match(/{{[a-zA-Z]+}}/g);
-	if (m) {
-		for (let i = 0; i < m.length; i++) {
-			const key = m[i].replace("{{", "").replace("}}", "");
-			body = body.replace(
+	let keys: string[];
+
+	let to: string;
+	if (email.to === null) to = SELECTED_MEMBER_KEY;
+	else to = email.to;
+
+	keys = findKeys(to);
+	for (const key of keys)
+		to = to.replace(`{{${key}}}`, substituteInAddressField(key, member));
+	email = { ...email, to };
+
+	if (email.cc) {
+		let cc = email.cc;
+		keys = findKeys(cc);
+		for (const key of keys)
+			cc = cc.replace(
 				`{{${key}}}`,
-				substitute(
-					key,
-					member,
-					session,
-					renderSessionAttendances,
-					renderBallotParticipation
-				)
+				substituteInAddressField(key, member)
 			);
-		}
+		email = { ...email, cc };
+	}
+
+	if (email.bcc) {
+		let bcc = email.bcc;
+		keys = findKeys(bcc);
+		for (const key of keys)
+			bcc = bcc.replace(
+				`{{${key}}}`,
+				substituteInAddressField(key, member)
+			);
+		email = { ...email, bcc };
+	}
+
+	let body = email.body;
+	keys = findKeys(body);
+	for (const key of keys) {
+		body = body.replace(
+			`{{${key}}}`,
+			substitute(
+				key,
+				member,
+				session,
+				renderSessionAttendances,
+				renderBallotParticipation
+			)
+		);
 	}
 
 	body = replaceClassWithInlineStyle(body);
+	email = { ...email, body };
 
-	return { ...email, body };
+	return email;
 }
-
-const genEmailAddress = (m: Member | User) => `${m.Name} <${m.Email}>`;
 
 function genEmails({
 	user,
@@ -122,23 +171,29 @@ function genEmails({
 
 		const html = render(<FormatBody body={email.body} />);
 
+		let ToAddresses = email.to ? email.to.split(";") : [member.Email];
+		let CcAddresses = email.cc ? email.cc.split(";") : undefined;
+		let BccAddresses = email.bcc ? email.bcc.split(";") : undefined;
+
+		const Charset = "UTF-8";
 		const emailOut: Email = {
 			Destination: {
-				CcAddresses: [genEmailAddress(user)],
-				ToAddresses: [genEmailAddress(member)],
+				ToAddresses,
+				CcAddresses,
+				BccAddresses,
 			},
 			Message: {
 				Subject: {
-					Charset: "UTF-8",
+					Charset,
 					Data: email.subject,
 				},
 				Body: {
 					Html: {
-						Charset: "UTF-8",
+						Charset,
 						Data: html,
 					},
 					Text: {
-						Charset: "UTF-8",
+						Charset,
 						Data: email.body,
 					},
 				},
@@ -173,6 +228,9 @@ function SelectEmailTemplate({
 	async function createEmailTemplate({ state }: SelectRendererProps) {
 		const template: EmailTemplateCreate = {
 			name: state.search,
+			to: "{{SelectedMembers}}",
+			cc: null,
+			bcc: null,
 			subject: "",
 			body: "",
 		};
@@ -241,12 +299,15 @@ function NotificationEmail() {
 
 	function setTemplate(emailTemplate: EmailTemplate | null) {
 		debouncedSave.flush();
+		if (emailTemplate && !emailTemplate.to) {
+			emailTemplate = { ...emailTemplate, to: SELECTED_MEMBER_KEY };
+		}
 		setEdited(emailTemplate);
 		setSaved(emailTemplate);
 	}
 
 	function changeTemplate(changes: Partial<EmailTemplate>) {
-		if (preview) return;
+		if (isPreview) return;
 		setEdited((state) => ({ ...state!, ...changes }));
 		debouncedSave();
 	}
@@ -275,16 +336,21 @@ function NotificationEmail() {
 			renderSessionAttendances,
 			renderBallotParticipation,
 		});
-		await Promise.all(
-			emails.map((email) => dispatch(sendEmail(groupName!, email)))
-		);
+		// Send in batches of 50
+		while (emails.length > 0) {
+			const toSend = emails.splice(0, 50);
+			await dispatch(sendEmails(groupName!, toSend));
+		}
 		setBusy(false);
 	}
 
 	const email = isPreview ? preview : edited;
 
 	return (
-		<Form style={{ margin: 10, maxWidth: 1000 }} busy={busy}>
+		<>
+			<Row>
+				<Spinner style={{ visibility: busy ? "visible" : "hidden" }} />
+			</Row>
 			<Row>
 				<div style={{ display: "flex" }}>
 					<Field label="Template">
@@ -312,20 +378,22 @@ function NotificationEmail() {
 				</div>
 			</Row>
 			{email && (
-				<Row>
+				<div className={css.emailContainer}>
+					<RecipientsEditor email={email} onChange={changeTemplate} />
+					<SubjectEditor
+						value={email.subject}
+						onChange={(subject) => changeTemplate({ subject })}
+						readOnly={isPreview}
+					/>
 					<Editor
 						key={"" + isPreview + email.id}
-						subject={email.subject}
 						body={email.body}
-						onChangeSubject={(subject) =>
-							changeTemplate({ subject })
-						}
 						onChangeBody={(body) => changeTemplate({ body })}
-						preview={isPreview}
+						readOnly={isPreview}
 					/>
-				</Row>
+				</div>
 			)}
-		</Form>
+		</>
 	);
 }
 

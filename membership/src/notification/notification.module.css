@@ -1,0 +1,72 @@
+.emailContainer {
+	display: flex;
+	flex-direction: column;
+	max-width: 1000px;
+	max-height: 100%;
+	color: #000;
+	position: relative;
+	line-height: 20px;
+	font-weight: 400;
+	text-align: left;
+	overflow: hidden;
+	max-width: 100%;
+	padding: 10px 5px 10px 10px;
+	margin: 5px;
+	border-radius: 5px;
+	box-shadow: rgba(0, 0, 0, 0.2) 2px 2px 6px;
+}
+
+.subjectContainer {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	padding: 5px 10px;
+	box-shadow: inset 0 -1px 0 0 #eee;
+}
+
+.subjectContainer input {
+	border: none;
+	width: 100%;
+	font-size: inherit;
+}
+
+.subjectContainer input:focus-visible {
+	outline: none;
+}
+
+.recipientsContainer {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	padding: 5px 10px;
+	box-shadow: inset 0 -1px 0 0 #eee;
+}
+
+.recipientSelect {
+	border: unset;
+	background-color: unset;
+	border-radius: unset;
+	min-width: 200px;
+}
+
+.recipientItemSelected {
+	padding: 2px 5px;
+	border: solid 2px #eee;
+	border-radius: 10px;
+	display: flex;
+	align-items: center;
+	margin: 0 3px;
+}
+
+.recipientItemSelected:focus-within {
+	box-shadow: unset;
+}
+
+.recipientItemSelected .close:after {
+	content: "×";
+	margin-left: 5px;
+}
+
+.recipientItemSelected .close:hover {
+	color: tomato;
+}

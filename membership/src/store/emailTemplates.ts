@@ -3,22 +3,15 @@ import {
 	createEntityAdapter,
 	PayloadAction,
 } from "@reduxjs/toolkit";
-import { fetcher, setError, isObject } from "dot11-components";
+import { fetcher, setError } from "dot11-components";
+import {
+	emailTemplatesSchema,
+	EmailTemplate,
+	EmailTemplateCreate,
+	EmailTemplateUpdate,
+} from "../schemas/emailTemplates";
 
 import type { AppThunk, RootState } from ".";
-
-export type EmailTemplate = {
-	id: number;
-	name: string;
-	subject: string;
-	body: string;
-};
-
-export type EmailTemplateCreate = Omit<EmailTemplate, "id">;
-export type EmailTemplateUpdate = {
-	id: number;
-	changes: Partial<EmailTemplate>;
-};
 
 type ExtraState = {
 	valid: boolean;
@@ -64,6 +57,10 @@ const slice = createSlice({
 
 export default slice;
 
+/** Slice actions */
+const { getPending, getSuccess, getFailure, setMany, addMany, removeMany } =
+	slice.actions;
+
 /*
  * Selector
  */
@@ -77,23 +74,6 @@ const selectEmailTemplatesAge = (state: RootState) => {
 /*
  * Actions
  */
-const { getPending, getSuccess, getFailure, setMany, addMany, removeMany } =
-	slice.actions;
-
-function validEmailTemplate(template: any): template is EmailTemplate {
-	return (
-		isObject(template) &&
-		typeof template.id === "number" &&
-		typeof template.name === "string" &&
-		typeof template.subject === "string" &&
-		typeof template.body === "string"
-	);
-}
-
-function validEmailTemplates(templates: any): templates is EmailTemplate[] {
-	return Array.isArray(templates) && templates.every(validEmailTemplate);
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loading = false;
@@ -114,13 +94,12 @@ export const loadEmailTemplates =
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!validEmailTemplates(response))
-					throw new TypeError(`Unexpected response to GET ${url}`);
-				dispatch(getSuccess(response));
+				const templates = emailTemplatesSchema.parse(response);
+				dispatch(getSuccess(templates));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get email templates", error));
+				dispatch(setError(`GET ${url}`, error));
 			})
 			.finally(() => {
 				loading = false;
@@ -133,17 +112,16 @@ export const addEmailTemplate =
 	async (dispatch, getState) => {
 		const { groupName } = selectEmailTemplatesState(getState());
 		const url = `/api/${groupName}/email/templates`;
-		let response: any;
+		let templates: EmailTemplate[];
 		try {
-			response = await fetcher.post(url, [template]);
-			if (!validEmailTemplates(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.post(url, [template]);
+			templates = emailTemplatesSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to add email template", error));
+			dispatch(setError(`POST ${url}`, error));
 			return;
 		}
-		dispatch(addMany(response));
-		return response[0];
+		dispatch(addMany(templates));
+		return templates[0];
 	};
 
 export const updateEmailTemplate =
@@ -151,16 +129,15 @@ export const updateEmailTemplate =
 	async (dispatch, getState) => {
 		const { groupName } = selectEmailTemplatesState(getState());
 		const url = `/api/${groupName}/email/templates`;
-		let response: any;
+		let templates: EmailTemplate[];
 		try {
-			response = await fetcher.patch(url, [update]);
-			if (!validEmailTemplates(response))
-				throw new TypeError("Unexpected response to PATCH");
+			const response = await fetcher.patch(url, [update]);
+			templates = emailTemplatesSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to update email template", error));
+			dispatch(setError(`PATCH ${url}`, error));
 			return;
 		}
-		dispatch(setMany(response));
+		dispatch(setMany(templates));
 	};
 
 export const deleteEmailTemplate =

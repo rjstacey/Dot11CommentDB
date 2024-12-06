@@ -53,11 +53,11 @@ import { $createCodeNode } from "@lexical/code";
 
 import { Select, SelectItemRendererProps } from "dot11-components";
 
-import styles from "./ToolbarPlugin.module.css";
+import css from "./editor.module.css";
 
 const LowPriority = 1;
 
-const Divider = () => <div className={styles["divider"]} />;
+const Divider = () => <div className={css.divider} />;
 
 function getSelectedNode(selection: RangeSelection) {
 	const anchor = selection.anchor;
@@ -145,16 +145,18 @@ function SelectTextBlockType({
 
 	return (
 		<Select
-			style={{width: 200}}
+			style={{ width: 200 }}
 			aria-label="Text Block Type Options"
 			options={blockTypeOptions}
 			values={values}
 			onChange={onChange}
 			itemRenderer={renderBlockTypeOption}
 			dropdownWidth={200}
-			className={styles["select"] + (disabled ? " disabled" : "")}
-			dropdownClassName={styles["select-dropdown"]}
+			className={css.select + (disabled ? " disabled" : "")}
+			dropdownClassName={css["select-dropdown"]}
 			disabled={disabled}
+			dropdownPosition="top"
+			dropdownAlign="right"
 		/>
 	);
 }
@@ -204,7 +206,7 @@ function FormatTextButtons({
 					return false;
 				},
 				LowPriority
-			),
+			)
 		);
 	}, [editor]);
 
@@ -355,12 +357,14 @@ function SelectAlignment({
 			onChange={onChange}
 			searchable={false}
 			placeholder=""
-			className={styles["select"] + (disabled ? " disabled" : "")}
-			dropdownClassName={styles["select-dropdown"]}
+			className={css.select + (disabled ? " disabled" : "")}
+			dropdownClassName={css["select-dropdown"]}
 			itemRenderer={renderAlignmentOption}
 			selectItemRenderer={renderSelectedAlignmentOption}
 			dropdownWidth={150}
 			disabled={disabled}
+			dropdownPosition="top"
+			dropdownAlign="right"
 		/>
 	);
 }
@@ -423,9 +427,11 @@ function SelectFontFamily({
 			selectItemRenderer={renderSelectedFontOption}
 			itemRenderer={renderFontOption}
 			dropdownWidth={150}
-			className={styles["select"] + (disabled ? " disabled" : "")}
-			dropdownClassName={styles["select-dropdown"]}
+			className={css.select + (disabled ? " disabled" : "")}
+			dropdownClassName={css["select-dropdown"]}
 			disabled={disabled}
+			dropdownPosition="top"
+			dropdownAlign="right"
 		/>
 	);
 }
@@ -503,9 +509,11 @@ function SelectFontSize({
 			itemRenderer={renderFontSizeOption}
 			dropdownWidth={90}
 			dropdownHeight={400}
-			className={styles["select"] + (disabled ? " disabled" : "")}
-			dropdownClassName={styles["select-dropdown"]}
+			className={css.select + (disabled ? " disabled" : "")}
+			dropdownClassName={css["select-dropdown"]}
 			disabled={disabled}
+			dropdownPosition="top"
+			dropdownAlign="right"
 		/>
 	);
 }
@@ -596,17 +604,14 @@ export default function ToolbarPlugin() {
 						anchorNode,
 						ListNode
 					);
-					type = parentList
-						? parentList.getTag()
-						: element.getTag();
+					type = parentList ? parentList.getTag() : element.getTag();
 					setBlockType(type);
 				} else {
 					type = $isHeadingNode(element)
 						? element.getTag()
 						: element.getType();
 				}
-				if (!blockTypeOptions.find(o => o.value === type))
-					type = "";
+				if (!blockTypeOptions.find((o) => o.value === type)) type = "";
 				setBlockType(type);
 				setFormatType(element.getFormatType());
 				setFontFamily(
@@ -635,19 +640,19 @@ export default function ToolbarPlugin() {
 			editor.registerCommand(
 				FOCUS_COMMAND,
 				() => {
-				  setHasFocus(true);
-				  return false;
+					setHasFocus(true);
+					return false;
 				},
 				LowPriority
 			),
 			editor.registerCommand(
 				BLUR_COMMAND,
 				() => {
-				  setHasFocus(false);
-				  return false;
+					setHasFocus(false);
+					return false;
 				},
 				LowPriority
-			),
+			)
 		);
 	}, [editor]);
 
@@ -655,13 +660,10 @@ export default function ToolbarPlugin() {
 
 	return (
 		<div
-			className={styles.toolbar}
+			className={css.toolbar}
 			onMouseDown={(event) => event.preventDefault()}
 		>
-			<UndoRedo
-				editor={editor}
-				disabled={disabled}
-			/>
+			<UndoRedo editor={editor} disabled={disabled} />
 			<Divider />
 			<SelectTextBlockType
 				editor={editor}
@@ -680,10 +682,7 @@ export default function ToolbarPlugin() {
 				disabled={disabled}
 			/>
 			<Divider />
-			<FormatTextButtons
-				editor={editor}
-				disabled={disabled}
-			/>
+			<FormatTextButtons editor={editor} disabled={disabled} />
 			<Divider />
 			<SelectAlignment
 				editor={editor}

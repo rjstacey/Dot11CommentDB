@@ -21,7 +21,7 @@ import AutoLinkPlugin from "./AutoLinkPlugin";
 import LinkEditorPlugin from "./LinkEditorPlugin";
 import InportExportPlugin from "./ImportExportPlugin";
 
-import styles from "./editor.module.css";
+import css from "./editor.module.css";
 
 const theme = {
 	ltr: "ltr",
@@ -53,7 +53,7 @@ const theme = {
 };
 
 const emailStylesObj: Record<string, string> = {
-	paragraph: "font-size: 14px; lineHeight: 24px; margin: 16px 0",
+	paragraph: "font-size: 14px; line-height: 24px; margin: 16px 0",
 	link: "color: #067df7; text-decoration: none;",
 	quote: "font-family: 'TimesNewRoman', serif; margin: 10px 20px; padding: 0 0;",
 	code: 'background-color: #f3f3f3; font-family: "Inconsolata", "Menlo", "Consolas", monospace; font-size: 16px; margin: 14px 0;',
@@ -67,7 +67,7 @@ const emailStylesObj: Record<string, string> = {
 };
 
 const emailStylesText = Object.entries(emailStylesObj)
-	.map(([key, value]) => `.${styles.bodyContainer} .${key} {${value}}`)
+	.map(([key, value]) => `.${css.body} .${key} {${value}}`)
 	.join("\n");
 const emailStyles = new CSSStyleSheet();
 emailStyles.replaceSync(emailStylesText);
@@ -122,45 +122,24 @@ const editorConfig = {
 	],
 };
 
-function SubjectEditor({
-	subject,
-	onChangeSubject,
-	readOnly,
-}: {
-	subject: string;
-	onChangeSubject: (value: string) => void;
-	readOnly: boolean;
-}) {
+const PLACEHOLDER_TEXT = "Email body here...";
+
+function Placeholder() {
 	return (
-		<div className={styles.subjectContainer}>
-			<label>Subject:</label>
-			{readOnly ? (
-				<span>{subject}</span>
-			) : (
-				<input
-					type="text"
-					value={subject}
-					onChange={(e) => {
-						onChangeSubject(e.target.value);
-					}}
-				/>
-			)}
+		<div className={css.body + " " + css.placeholder}>
+			<p className="paragraph">{PLACEHOLDER_TEXT}</p>
 		</div>
 	);
 }
 
 function Editor({
-	subject,
 	body,
-	onChangeSubject,
 	onChangeBody,
-	preview,
+	readOnly,
 }: {
-	subject: string;
 	body: string;
-	onChangeSubject: (value: string) => void;
 	onChangeBody: (value: string) => void;
-	preview: boolean;
+	readOnly: boolean;
 }) {
 	React.useEffect(() => {
 		// Add theme stylesheet on mount and remove on unmount
@@ -170,44 +149,35 @@ function Editor({
 		};
 	}, []);
 
-	if (preview) {
+	if (readOnly) {
 		body = replaceClassWithInlineStyle(body);
 		//console.log(body);
 	}
 
 	return (
 		<LexicalComposer initialConfig={editorConfig}>
-			<div className={styles.container}>
-				<ToolbarPlugin />
-				<SubjectEditor
-					subject={subject}
-					onChangeSubject={onChangeSubject}
-					readOnly={preview}
-				/>
-				{preview ? (
+			<div className={css.content}>
+				{readOnly ? (
 					<div
-						className={styles.bodyContainer}
+						className={css.body}
 						dangerouslySetInnerHTML={{ __html: body }}
 					/>
 				) : (
 					<RichTextPlugin
 						contentEditable={
-							<ContentEditable className={styles.bodyContainer} />
+							<ContentEditable className={css.body} />
 						}
-						placeholder={
-							<div className={styles.placeholder}>
-								Email body here...
-							</div>
-						}
+						placeholder={<Placeholder />}
 						ErrorBoundary={LexicalErrorBoundary}
 					/>
 				)}
 			</div>
+			<ToolbarPlugin />
 			<LinkEditorPlugin />
 			<InportExportPlugin
 				value={body}
 				onChange={onChangeBody}
-				readOnly={preview}
+				readOnly={readOnly}
 			/>
 			<HistoryPlugin />
 			<AutoFocusPlugin />

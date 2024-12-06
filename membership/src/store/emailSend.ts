@@ -28,13 +28,13 @@ export interface Email {
 	ReplyToAddresses?: string[];
 }
 
-export const sendEmail =
-	(groupName: string, email: Email): AppThunk =>
+export const sendEmails =
+	(groupName: string, emails: Email[]): AppThunk =>
 	async (dispatch) => {
-		const url = `/api/${groupName}/email/send`;
+		const url = `/api/${groupName}/email/sendMany`;
 		try {
-			await fetcher.post(url, email);
+			await fetcher.post(url, emails);
 		} catch (error) {
-			dispatch(setError("Unable to send email: ", error));
+			dispatch(setError("Unable to send emails: ", error));
 		}
 	};

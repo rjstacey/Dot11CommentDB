@@ -359,7 +359,7 @@ function Members() {
 						actions={membersActions}
 					/>
 				</Panel>
-				<Panel className="details-panel">
+				<Panel className="details-panel" style={{ overflow: "hidden" }}>
 					<NotificationEmail />
 				</Panel>
 			</SplitPanel>
