@@ -459,9 +459,9 @@ function validGetResponse(response: any): response is CommentResolution[] {
 	return Array.isArray(response) && response.every(validCommentResolution);
 }
 
-let loadingPromise: Promise<CommentResolution[]>;
+let loadingPromise: Promise<void>;
 export const loadComments =
-	(ballot_id: number): AppThunk<CommentResolution[]> =>
+	(ballot_id: number): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const { loading, ballot_id: currentBallot_id } = selectCommentsState(
 			getState()
@@ -471,7 +471,7 @@ export const loadComments =
 		}
 		if (!selectIsOnline(getState())) {
 			if (ballot_id !== currentBallot_id) dispatch(clearComments());
-			return Promise.resolve([]);
+			return Promise.resolve();
 		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseCommentsUrl}/${ballot_id}`;
@@ -481,7 +481,6 @@ export const loadComments =
 				if (!validGetResponse(response))
 					throw new TypeError("Unexpected response");
 				dispatch(getSuccess(response));
-				return response;
 			})
 			.catch((error: any) => {
 				const ballot = selectBallotEntities(getState())[ballot_id];
@@ -492,7 +491,6 @@ export const loadComments =
 				dispatch(
 					setError(`Unable to get comments for ${ballotId}`, error)
 				);
-				return [];
 			});
 		return loadingPromise;
 	};

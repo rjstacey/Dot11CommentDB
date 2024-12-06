@@ -193,19 +193,19 @@ function validResponse(
 
 const baseUrl = "/api/results";
 
-let loadingPromise: Promise<Result[]>;
+let loadingPromise: Promise<void>;
 export const loadResults =
-	(ballot_id: number): AppThunk<Result[]> =>
+	(ballot_id: number): AppThunk<void> =>
 	(dispatch, getState) => {
 		const { loading, ballot_id: currentBallot_id } = selectResultsState(
 			getState()
 		);
-		if (loading && currentBallot_id === ballot_id) {
-			return loadingPromise;
+		if (currentBallot_id === ballot_id) {
+			if (loading) return loadingPromise;
 		}
 		if (!selectIsOnline(getState())) {
 			if (ballot_id !== currentBallot_id) dispatch(clearResults());
-			return Promise.resolve([]);
+			return Promise.resolve();
 		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}`;
@@ -217,7 +217,6 @@ export const loadResults =
 				const { ballots, results } = response;
 				dispatch(getSuccess(results));
 				dispatch(updateBallotsLocal(ballots));
-				return results;
 			})
 			.catch((error: any) => {
 				const ballot = selectBallotEntities(getState())[ballot_id];
@@ -231,7 +230,6 @@ export const loadResults =
 						error
 					)
 				);
-				return [];
 			});
 		return loadingPromise;
 	};

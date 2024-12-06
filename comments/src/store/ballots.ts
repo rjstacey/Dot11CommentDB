@@ -571,19 +571,17 @@ function validResponse(response: any): response is Ballot[] {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<Ballot[]>;
+let loadingPromise: Promise<void>;
 export const loadBallots =
-	(groupName: string, force = false): AppThunk<Ballot[]> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const { loading, groupName: currentGroupName } = selectBallotsState(
 			getState()
 		);
-		if (loading && groupName === currentGroupName) {
-			return loadingPromise;
-		}
-		const age = selectBallotsAge(getState());
-		if (age && age < AGE_STALE && !force) {
-			return loadingPromise!;
+		if (groupName === currentGroupName) {
+			if (loading) return loadingPromise;
+			const age = selectBallotsAge(getState());
+			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/ballots`;
@@ -592,16 +590,11 @@ export const loadBallots =
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
-				response.forEach((b: any) => {
-					delete b.BallotID;
-				});
 				dispatch(getSuccess(response));
-				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get ballot list", error));
-				return [];
 			});
 		return loadingPromise;
 	};

@@ -152,19 +152,19 @@ function validGetResponse(response: any): response is Voter[] {
 	return Array.isArray(response) && response.every(validVoter);
 }
 
-let loadingPromise: Promise<Voter[]>;
+let loadingPromise: Promise<void>;
 export const loadVoters =
-	(ballot_id: number): AppThunk<Voter[]> =>
+	(ballot_id: number): AppThunk<void> =>
 	(dispatch, getState) => {
 		const { loading, ballot_id: currentBallot_id } = selectVotersState(
 			getState()
 		);
-		if (loading && currentBallot_id === ballot_id) {
-			return loadingPromise;
+		if (currentBallot_id === ballot_id) {
+			if (loading) return loadingPromise;
 		}
 		if (!selectIsOnline(getState())) {
 			if (ballot_id !== currentBallot_id) dispatch(clearVoters());
-			return Promise.resolve([]);
+			return Promise.resolve();
 		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}`;
@@ -174,12 +174,10 @@ export const loadVoters =
 				if (!validGetResponse(response))
 					throw new TypeError("Unexpected response to GET " + url);
 				dispatch(getSuccess(response));
-				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError(`Unable to get voters`, error));
-				return [];
 			});
 		return loadingPromise;
 	};

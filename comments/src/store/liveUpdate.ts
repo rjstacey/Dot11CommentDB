@@ -78,7 +78,6 @@ const storeChange = (
 };
 
 export function registerLiveUpdate(store: StoreType) {
-
 	function onChange() {
 		store.dispatch(visibilityChange(document.hidden));
 	}

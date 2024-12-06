@@ -103,19 +103,17 @@ function validResponse(response: any): response is UserMember[] {
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Promise<UserMember[]>;
+let loadingPromise: Promise<void>;
 export const loadMembers =
-	(groupName: string, force = false): AppThunk<UserMember[]> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
 		const { loading, groupName: currentGroupName } = selectMembersState(
 			getState()
 		);
-		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
-		}
-		const age = selectMembersAge(getState());
-		if (age && age < AGE_STALE && !force) {
-			return loadingPromise!;
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectMembersAge(getState());
+			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/members/user`;
@@ -125,12 +123,10 @@ export const loadMembers =
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");
 				dispatch(getSuccess(response));
-				return response;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get users list", error));
-				return [];
 			});
 		return loadingPromise;
 	};
