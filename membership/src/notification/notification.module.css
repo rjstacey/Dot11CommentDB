@@ -34,6 +34,11 @@
 	outline: none;
 }
 
+.rowWithExtra {
+	display: flex;
+	justify-content: space-between;
+}
+
 .recipientsContainer {
 	display: flex;
 	flex-wrap: nowrap;
@@ -49,6 +54,19 @@
 	min-width: 200px;
 }
 
+.recipientSelect:focus-within {
+	box-shadow: unset;
+}
+
+.recipientSelect :global .input {
+	display: flex;
+	flex: 1;
+}
+
+.recipientSelectDropdown {
+	max-width: 200px;
+}
+
 .recipientItemSelected {
 	padding: 2px 5px;
 	border: solid 2px #eee;
@@ -58,10 +76,6 @@
 	margin: 0 3px;
 }
 
-.recipientItemSelected:focus-within {
-	box-shadow: unset;
-}
-
 .recipientItemSelected .close:after {
 	content: "×";
 	margin-left: 5px;
@@ -69,4 +83,15 @@
 
 .recipientItemSelected .close:hover {
 	color: tomato;
+}
+
+.recipientsExtra {
+	display: flex;
+	justify-content: center;
+}
+
+.recipientsExtra button {
+	all: unset;
+	padding: 3px;
+	cursor: pointer;
 }

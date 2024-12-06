@@ -379,7 +379,11 @@ function NotificationEmail() {
 			</Row>
 			{email && (
 				<div className={css.emailContainer}>
-					<RecipientsEditor email={email} onChange={changeTemplate} />
+					<RecipientsEditor
+						email={email}
+						onChange={changeTemplate}
+						readOnly={isPreview}
+					/>
 					<SubjectEditor
 						value={email.subject}
 						onChange={(subject) => changeTemplate({ subject })}
