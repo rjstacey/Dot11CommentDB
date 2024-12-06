@@ -29,7 +29,8 @@ import { handleError, pollingSocketEmit } from "./pollingSocket";
 
 type PollState = null | "shown" | "opened" | "closed";
 const eventsAdapter = createEntityAdapter<Event>();
-const pollsAdapter = createEntityAdapter<Poll>();
+const sortComparer = (p1: Poll, p2: Poll) => p1.index - p2.index;
+const pollsAdapter = createEntityAdapter<Poll>({ sortComparer });
 
 /* Create slice */
 const initialState = {
@@ -218,8 +219,21 @@ export const pollingAdminDeleteEvent =
 	};
 
 export const pollingAdminAddPoll =
-	(pollIn: PollCreate): AppThunk =>
-	async (dispatch) => {
+	(eventId: number): AppThunk =>
+	async (dispatch, getState) => {
+		const polls = selectPollingAdminPolls(getState());
+		let maxIndex = polls.reduce(
+			(maxIndex, poll) => (maxIndex > poll.index ? maxIndex : poll.index),
+			0
+		);
+		const type = polls.length > 0 ? polls[polls.length - 1].type : "m";
+		const pollIn: PollCreate = {
+			eventId,
+			index: maxIndex + 1,
+			title: "",
+			body: "",
+			type,
+		};
 		try {
 			const { poll } = await pollingSocketEmit(
 				"poll:create",
@@ -227,6 +241,7 @@ export const pollingAdminAddPoll =
 				pollCreateResponseSchema
 			);
 			dispatch(addPoll(poll));
+			dispatch(setPollId(poll.id));
 		} catch (error: any) {
 			dispatch(handleError(error));
 		}

@@ -7,10 +7,10 @@ import {
 	pollingAdminEventPublish,
 	pollingAdminSelectPoll,
 	selectPollingAdminPollId,
+	pollingAdminAddPoll,
 } from "../store/pollingAdmin";
 import css from "./admin.module.css";
 import editorCss from "../editor/editor.module.css";
-import CreatePollDropdown from "./createPoll";
 
 function EventActions({ event }: { event: Event }) {
 	const dispatch = useAppDispatch();
@@ -24,7 +24,9 @@ function EventActions({ event }: { event: Event }) {
 			<Button isActive={event.isPublished} onClick={toggleIsPublished}>
 				Publish
 			</Button>
-			<CreatePollDropdown />
+			<Button onClick={() => dispatch(pollingAdminAddPoll(event.id))}>
+				Add Poll
+			</Button>
 		</div>
 	);
 }
