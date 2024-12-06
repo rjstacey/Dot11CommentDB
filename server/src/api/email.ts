@@ -7,16 +7,15 @@ import {
 	updateTemplates,
 	deleteTemplates,
 } from "../services/emailTemplates";
-import { sendEmail } from "../services/emailSend";
+import { sendEmail, sendEmails } from "../services/emailSend";
+import { emailSchema, emailsSchema } from "../schemas/email";
 import {
-	Email,
 	EmailTemplateCreate,
 	EmailTemplateUpdate,
-	emailSchema,
 	emailTemplateCreatesSchema,
 	emailTemplateIdsSchema,
 	emailTemplateUpdatesSchema,
-} from "../schemas/email";
+} from "../schemas/emailTemplates";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	const { group, user } = req;
@@ -28,11 +27,22 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	next(new ForbiddenError("Insufficient karma"));
 }
 
-async function postSend(req: Request, res: Response, next: NextFunction) {
+async function sendOne(req: Request, res: Response, next: NextFunction) {
 	const { user, body } = req;
 	try {
 		const email = emailSchema.parse(body);
 		const response = sendEmail(user, email);
+		res.json(response);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function sendMany(req: Request, res: Response, next: NextFunction) {
+	const { user, body } = req;
+	try {
+		const emails = emailsSchema.parse(body);
+		const response = sendEmails(user, emails);
 		res.json(response);
 	} catch (error) {
 		next(error);
@@ -87,7 +97,8 @@ function removeMany(req: Request, res: Response, next: NextFunction) {
 const router = Router();
 router
 	.all("*", validatePermissions)
-	.post("/send", postSend)
+	.post("/send", sendOne)
+	.post("/sendMany", sendMany)
 	.route("/templates")
 	.get(get)
 	.patch(updateMany)

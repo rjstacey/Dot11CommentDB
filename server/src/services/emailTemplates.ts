@@ -5,21 +5,20 @@ import type {
 	EmailTemplateQuery,
 	EmailTemplateCreate,
 	EmailTemplateUpdate,
-} from "../schemas/email";
+} from "../schemas/emailTemplates";
 
 import db from "../utils/database";
 
 export function getTemplates(
 	group: Group,
-	constraints?: EmailTemplateQuery
+	query?: EmailTemplateQuery
 ): Promise<EmailTemplate[]> {
 	let sql =
-		"SELECT id, name, subject, body " +
+		"SELECT `id`, `name`, `to`, `cc`, `bcc`, `subject`, `body` " +
 		"FROM emailTemplates " +
 		`WHERE groupId=UUID_TO_BIN(${db.escape(group.id)})`;
 
-	if (constraints && "id" in constraints)
-		sql += ` AND id IN (${db.escape(constraints.id)})`;
+	if (query && "id" in query) sql += ` AND id IN (${db.escape(query.id)})`;
 
 	return db.query<(RowDataPacket & EmailTemplate)[]>(sql);
 }

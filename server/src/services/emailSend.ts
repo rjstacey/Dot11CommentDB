@@ -62,3 +62,14 @@ export async function sendEmail(user: User, email: Email) {
 	}
 	return data;
 }
+
+/**
+ * Send emails
+ * @param user The user executing the command
+ * @param emails An array of emails to be sent
+ */
+export async function sendEmails(user: User, emails: Email[]) {
+	if (!sesClient) throw new Error("eMail service has not been initialized");
+
+	return Promise.all(emails.map((email) => sendEmail(user, email)));
+}
