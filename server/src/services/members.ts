@@ -31,8 +31,8 @@ import {
 	StatusChangeEntry,
 	ContactEmail,
 	UpdateRosterOptions,
-} from "../schemas/members";
-import { Group } from "../schemas/groups";
+} from "@schemas/members";
+import { Group } from "@schemas/groups";
 import { getRecentAttendances } from "./attendances";
 import { getActiveBallotSeriesParticipation } from "./ballotParticipation";
 

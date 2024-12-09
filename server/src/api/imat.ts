@@ -66,7 +66,7 @@ import {
 	breakoutCreatesSchema,
 	breakoutIdsSchema,
 	breakoutUpdatesSchema,
-} from "../schemas/imat";
+} from "@schemas/imat";
 
 function getCommittees(req: Request, res: Response, next: NextFunction) {
 	getImatCommittees(req.user, req.group!)

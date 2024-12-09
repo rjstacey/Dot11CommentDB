@@ -6,13 +6,13 @@ import { NotFoundError } from "../utils";
 import { getResults } from "./results";
 import { getWorkingGroup } from "./groups";
 import type { User } from "./users";
-import type { Group } from "../schemas/groups";
+import type { Group } from "@schemas/groups";
 import type {
 	Ballot,
 	BallotQuery,
 	BallotCreate,
 	BallotUpdate,
-} from "../schemas/ballots";
+} from "@schemas/ballots";
 
 export const BallotType = {
 	CC: 0, // comment collection

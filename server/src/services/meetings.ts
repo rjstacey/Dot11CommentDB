@@ -8,10 +8,10 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { User } from "./users";
 
 import { getSession } from "./sessions";
-import type { Session } from "../schemas/sessions";
+import type { Session } from "@schemas/sessions";
 
 import { getGroupAndSubgroupIds, getWorkingGroup } from "./groups";
-import type { Group } from "../schemas/groups";
+import type { Group } from "@schemas/groups";
 
 import { getOAuthAccounts } from "./oauthAccounts";
 import {
@@ -25,14 +25,14 @@ import {
 	WebexMeeting,
 	WebexMeetingCreate,
 	WebexMeetingChange,
-} from "../schemas/webex";
+} from "@schemas/webex";
 
 import {
 	deleteImatBreakouts,
 	addImatBreakoutFromMeeting,
 	updateImatBreakoutFromMeeting,
 } from "./imat";
-import type { Breakout } from "../schemas/imat";
+import type { Breakout } from "@schemas/imat";
 
 import {
 	addCalendarEvent,
@@ -47,7 +47,7 @@ import type {
 	MeetingCreate,
 	MeetingUpdate,
 	MeetingChanges,
-} from "../schemas/meetings";
+} from "@schemas/meetings";
 
 function selectMeetingsSql(constraints: MeetingsQuery) {
 	// prettier-ignore

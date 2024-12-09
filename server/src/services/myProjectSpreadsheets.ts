@@ -6,9 +6,9 @@ import { validateSpreadsheetHeader, parseSpreadsheet } from "../utils";
 import { fromHtml } from "./commentsSpreadsheet";
 import type { Response } from "express";
 import { getComments } from "./comments";
-import type { Comment, CommentResolution } from "../schemas/comments";
-import type { Member, UpdateRosterOptions } from "../schemas/members";
-import type { Result } from "../schemas/results";
+import type { Comment, CommentResolution } from "@schemas/comments";
+import type { Member, UpdateRosterOptions } from "@schemas/members";
+import type { Result } from "@schemas/results";
 import type { User } from "./users";
 
 const myProjectCommentsHeader = [

@@ -7,9 +7,9 @@ import { NextFunction, Request, Response, Router } from "express";
 
 import { User } from "../services/users";
 import { getGroups } from "../services/groups";
-import type { Group } from "../schemas/groups";
+import type { Group } from "@schemas/groups";
 import { getBallot } from "../services/ballots";
-import { Ballot } from "../schemas/ballots";
+import { Ballot } from "@schemas/ballots";
 import { authorize } from "../auth/jwt";
 import { NotFoundError } from "../utils";
 

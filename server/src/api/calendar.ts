@@ -44,7 +44,7 @@ import {
 	CalendarAccountCreate,
 	calendarAccountChangeSchema,
 	calendarAccountCreateSchema,
-} from "../schemas/calendar";
+} from "@schemas/calendar";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	if (!req.group) return next(new Error("Group not set"));

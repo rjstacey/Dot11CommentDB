@@ -7,7 +7,7 @@ import {
 	OAuthAccountChange,
 	OAuthAccountsQuery,
 	OAuthParams,
-} from "../schemas/oauthAccounts";
+} from "@schemas/oauthAccounts";
 
 type AuthState = {
 	accountId: number;

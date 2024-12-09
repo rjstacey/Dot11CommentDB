@@ -33,8 +33,7 @@ import Multer from "multer";
 import { ForbiddenError, NotFoundError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import { selectWorkingGroup } from "../services/groups";
-import { resultUpdatesSchema, ResultUpdate } from "../schemas/results";
-
+import { resultUpdatesSchema, ResultUpdate } from "@schemas/results";
 import {
 	getResults,
 	updateResults,

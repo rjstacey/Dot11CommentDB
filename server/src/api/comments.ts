@@ -85,7 +85,7 @@ import {
 	CommentResolutionQuery,
 	commentsExportParamsSchema,
 	CommentsExportParams,
-} from "../schemas/comments";
+} from "@schemas/comments";
 
 function patchStartCommentId(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;

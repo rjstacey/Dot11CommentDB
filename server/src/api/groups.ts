@@ -9,7 +9,7 @@ import {
 	groupIdsSchema,
 	GroupUpdate,
 	GroupCreate,
-} from "../schemas/groups";
+} from "@schemas/groups";
 import {
 	getGroups,
 	addGroups,

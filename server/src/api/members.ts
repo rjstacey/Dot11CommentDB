@@ -14,7 +14,7 @@ import {
 	MemberUpdate,
 	memberIdsSchema,
 	UpdateRosterOptions,
-} from "../schemas/members";
+} from "@schemas/members";
 import {
 	getMembers,
 	getUserMembers,

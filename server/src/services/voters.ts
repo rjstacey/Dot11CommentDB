@@ -8,8 +8,13 @@ import db from "../utils/database";
 
 import { getMembersSnapshot } from "./members";
 import { AccessLevel } from "../auth/access";
-import { User } from "./users";
-import { Voter, VoterQuery, VoterCreate, VoterUpdate } from "../schemas/voters";
+import type { User } from "./users";
+import type {
+	Voter,
+	VoterQuery,
+	VoterCreate,
+	VoterUpdate,
+} from "@schemas/voters";
 
 type VoterFromSpreadsheet = {
 	SAPIN: number;

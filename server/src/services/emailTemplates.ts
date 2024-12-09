@@ -1,11 +1,11 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import type { Group } from "../schemas/groups";
+import type { Group } from "@schemas/groups";
 import type {
 	EmailTemplate,
 	EmailTemplateQuery,
 	EmailTemplateCreate,
 	EmailTemplateUpdate,
-} from "../schemas/emailTemplates";
+} from "@schemas/emailTemplates";
 
 import db from "../utils/database";
 

@@ -8,14 +8,14 @@ import {
 	deleteTemplates,
 } from "../services/emailTemplates";
 import { sendEmail, sendEmails } from "../services/emailSend";
-import { emailSchema, emailsSchema } from "../schemas/email";
+import { emailSchema, emailsSchema } from "@schemas/email";
 import {
 	EmailTemplateCreate,
 	EmailTemplateUpdate,
 	emailTemplateCreatesSchema,
 	emailTemplateIdsSchema,
 	emailTemplateUpdatesSchema,
-} from "../schemas/emailTemplates";
+} from "@schemas/emailTemplates";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	const { group, user } = req;

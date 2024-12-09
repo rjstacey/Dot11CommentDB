@@ -13,7 +13,7 @@ import {
 	GroupCreate,
 	GroupType,
 	GroupUpdate,
-} from "../schemas/groups";
+} from "@schemas/groups";
 
 const GroupTypeLabels: { [K in GroupType]: string } = {
 	r: "Root",

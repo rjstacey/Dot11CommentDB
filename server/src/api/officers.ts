@@ -11,7 +11,7 @@ import {
 	officerCreatesSchema,
 	officerIdsSchema,
 	officerUpdatesSchema,
-} from "../schemas/officers";
+} from "@schemas/officers";
 import {
 	getOfficers,
 	addOfficers,

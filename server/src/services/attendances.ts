@@ -3,16 +3,16 @@ import { NotFoundError } from "../utils";
 import type { Response } from "express";
 
 import { getSessions } from "./sessions";
-import type { Session } from "../schemas/sessions";
+import type { Session } from "@schemas/sessions";
 import { getGroupHierarchy } from "./groups";
-import type { Group } from "../schemas/groups";
+import type { Group } from "@schemas/groups";
 import {
 	getImatMeetingAttendanceSummaryForSession,
 	getImatMeetingDailyAttendance,
 } from "./imat";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { User } from "./users";
-import type { Member } from "../schemas/members";
+import type { Member } from "@schemas/members";
 import { getMembers, getMembersSnapshot } from "./members";
 import { AccessLevel } from "../auth/access";
 import { genAttendanceSpreadsheet } from "./attendancesSpreadsheet";
@@ -23,7 +23,7 @@ import type {
 	SessionAttendanceSummaryUpdate,
 	SessionAttendanceSummaryChanges,
 	SessionAttendanceSummaryQuery,
-} from "../schemas/attendances";
+} from "@schemas/attendances";
 import { parseRegistrationSpreadsheet } from "./registrationSpreadsheet";
 
 type AttendanceSummaryDB = {

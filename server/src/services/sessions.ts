@@ -5,13 +5,13 @@ import { DateTime } from "luxon";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import db from "../utils/database";
-import {
+import type {
 	Room,
 	Session,
 	SessionsQuery,
 	SessionCreate,
 	SessionChanges,
-} from "../schemas/sessions";
+} from "@schemas/sessions";
 
 function getSessionsSQL(groupId?: string | string[]) {
 	let attendanceSql =

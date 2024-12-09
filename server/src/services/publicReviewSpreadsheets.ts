@@ -2,7 +2,7 @@
  * Handle public review comment spreadsheet
  */
 import { parseSpreadsheet } from "../utils";
-import type { Comment } from "../schemas/comments";
+import type { Comment } from "@schemas/comments";
 
 const publicReviewCommentsHeader = [
 	"Comment #",

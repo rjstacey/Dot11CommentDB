@@ -8,7 +8,7 @@ import {
 	PollsQuery,
 	PollCreate,
 	PollUpdate,
-} from "../schemas/poll";
+} from "@schemas/poll";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 
 export async function getPollEvents(query: EventsQuery): Promise<Event[]> {

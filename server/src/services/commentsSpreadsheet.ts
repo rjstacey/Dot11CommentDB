@@ -3,11 +3,8 @@
  */
 import ExcelJS from "exceljs";
 import { isCorrectSpreadsheetHeader } from "../utils";
-import { type Ballot } from "../schemas/ballots";
-import type {
-	CommentResolution,
-	CommentsExportStyle,
-} from "../schemas/comments";
+import type { Ballot } from "@schemas/ballots";
+import type { CommentResolution, CommentsExportStyle } from "@schemas/comments";
 import type { User } from "./users";
 import type { Response } from "express";
 import { BallotType } from "./ballots";

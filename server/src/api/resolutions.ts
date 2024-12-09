@@ -39,6 +39,17 @@ import Multer from "multer";
 import { ForbiddenError, isPlainObject } from "../utils";
 import { AccessLevel } from "../auth/access";
 import {
+	commentResolutionQuerySchema,
+	CommentResolutionQuery,
+} from "@schemas/comments";
+import {
+	ResolutionCreate,
+	ResolutionUpdate,
+	resolutionCreatesSchema,
+	resolutionIdsSchema,
+	resolutionUpdatesSchema,
+} from "@schemas/resolutions";
+import {
 	addResolutions,
 	updateResolutions,
 	deleteResolutions,
@@ -52,17 +63,6 @@ import {
 	MatchUpdate,
 	uploadResolutions,
 } from "../services/uploadResolutions";
-import {
-	commentResolutionQuerySchema,
-	CommentResolutionQuery,
-} from "../schemas/comments";
-import {
-	ResolutionCreate,
-	ResolutionUpdate,
-	resolutionCreatesSchema,
-	resolutionIdsSchema,
-	resolutionUpdatesSchema,
-} from "../schemas/resolutions";
 
 function addMany(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;

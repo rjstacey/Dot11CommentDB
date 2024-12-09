@@ -12,7 +12,7 @@ import {
 	sessionAttendanceSummaryCreatesSchema,
 	sessionAttendanceSummaryUpdatesSchema,
 	sessionAttendanceSummaryIdsSchema,
-} from "../schemas/attendances";
+} from "@schemas/attendances";
 import {
 	getAttendances,
 	getRecentAttendances,

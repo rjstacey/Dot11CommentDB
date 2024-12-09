@@ -15,8 +15,11 @@
 		"sourceMap": true,
 		"moduleResolution": "Node16",
 		"noEmit": false,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"paths": {
+			"@schemas/*": ["../schemas/*"]
+		}
 	},
-	"include": ["src/**/*"],
+	"include": ["src/**/*", "../schemas/*"],
 	"exclude": ["src/setupTests.*", "src/**/*.test.*"]
 }

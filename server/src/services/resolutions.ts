@@ -12,7 +12,7 @@ import type {
 	ResolutionCreate,
 	ResolutionChange,
 	ResolutionUpdate,
-} from "../schemas/resolutions";
+} from "@schemas/resolutions";
 
 export const defaultResolution: Required<ResolutionChange> = {
 	ResolutionID: 0,

@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import { User } from "../services/users";
+import type { User } from "../services/users";
 import {
 	PollingOK,
 	PollingError,
@@ -27,7 +27,7 @@ import {
 	PollUpdateResponse,
 	PollsGetResponse,
 	EventsGetResponse,
-} from "../schemas/poll";
+} from "@schemas/poll";
 import {
 	addPollEvent,
 	getPollEvents,

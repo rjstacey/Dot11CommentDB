@@ -9,7 +9,7 @@ import {
 	sessionUpdateSchema,
 	sessionIdsSchema,
 	sessionsQuerySchema,
-} from "../schemas/sessions";
+} from "@schemas/sessions";
 import {
 	getSessions,
 	updateSession,
@@ -22,8 +22,7 @@ async function get(req: Request, res: Response, next: NextFunction) {
 		const query = sessionsQuerySchema.parse(req.query);
 		const data = await getSessions(query);
 		res.json(data);
-	}
-	catch (error) {
+	} catch (error) {
 		next(error);
 	}
 }
@@ -31,7 +30,7 @@ async function get(req: Request, res: Response, next: NextFunction) {
 async function addOne(req: Request, res: Response, next: NextFunction) {
 	try {
 		const session = sessionCreateSchema.parse(req.body);
-		const response = await addSession(session)
+		const response = await addSession(session);
 		res.json(response);
 	} catch (error) {
 		next(error);
@@ -41,7 +40,7 @@ async function addOne(req: Request, res: Response, next: NextFunction) {
 async function updateOne(req: Request, res: Response, next: NextFunction) {
 	try {
 		const update = sessionUpdateSchema.parse(req.body);
-		const response = await updateSession(update.id, update.changes)
+		const response = await updateSession(update.id, update.changes);
 		res.json(response);
 	} catch (error) {
 		next(error);

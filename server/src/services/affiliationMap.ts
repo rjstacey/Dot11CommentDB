@@ -1,12 +1,12 @@
 import db from "../utils/database";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
+import { Group } from "@schemas/groups";
 import {
 	AffiliationMap,
 	AffiliationMapCreate,
 	AffiliationMapUpdate,
-} from "../schemas/affiliationMap";
-import { Group } from "../schemas/groups";
+} from "@schemas/affiliationMap";
 
 type AffiliationMapQuery = { id?: number | number[] };
 

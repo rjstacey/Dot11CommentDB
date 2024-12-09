@@ -10,9 +10,9 @@ import { genResultsSpreadsheet } from "./resultsSpreadsheet";
 import { getBallotSeries, BallotType } from "./ballots";
 import { AccessLevel } from "../auth/access";
 import { getMember } from "./members";
-import { Group } from "../schemas/groups";
-import { Result, ResultsSummary, ResultUpdate } from "../schemas/results";
-import { Ballot } from "../schemas/ballots";
+import type { Group } from "@schemas/groups";
+import type { Result, ResultsSummary, ResultUpdate } from "@schemas/results";
+import type { Ballot } from "@schemas/ballots";
 
 export type ResultDB = {
 	id: string;

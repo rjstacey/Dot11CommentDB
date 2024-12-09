@@ -12,7 +12,7 @@ import {
 	ballotUpdatesSchema,
 	BallotUpdate,
 	ballotIdsSchema,
-} from "../schemas/ballots";
+} from "@schemas/ballots";
 import {
 	getBallots,
 	updateBallots,

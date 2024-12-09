@@ -15,14 +15,14 @@ import {
 } from "../utils";
 import { webexMeetingImatLocation } from "./meetings";
 import { getGroupHierarchy } from "./groups";
-
-import type { Meeting, MeetingCreate } from "../schemas/meetings";
-import type { WebexMeeting } from "../schemas/webex";
 import { getCredit } from "./sessions";
-import type { Session } from "../schemas/sessions";
-import type { ContactInfo } from "../schemas/members";
-import type { Group } from "../schemas/groups";
-import type { Breakout, BreakoutCreate, BreakoutUpdate } from "../schemas/imat";
+
+import type { Meeting, MeetingCreate } from "@schemas/meetings";
+import type { WebexMeeting } from "@schemas/webex";
+import type { Session } from "@schemas/sessions";
+import type { ContactInfo } from "@schemas/members";
+import type { Group } from "@schemas/groups";
+import type { Breakout, BreakoutCreate, BreakoutUpdate } from "@schemas/imat";
 
 type PageBreakout = {
 	id: number;

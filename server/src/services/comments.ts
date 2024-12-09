@@ -18,8 +18,8 @@ import type {
 	CommentChange,
 	CommentUpdate,
 	CommentCreate,
-} from "../schemas/comments";
-import { Ballot } from "../schemas/ballots";
+} from "@schemas/comments";
+import { Ballot } from "@schemas/ballots";
 
 // prettier-ignore
 const createViewCommentResolutionsSQL =

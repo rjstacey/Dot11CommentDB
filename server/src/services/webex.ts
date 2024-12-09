@@ -1,23 +1,12 @@
 import { DateTime } from "luxon";
 import { URLSearchParams } from "url";
+import { Request } from "express";
 import { NotFoundError } from "../utils";
 
 import axios, { AxiosInstance } from "axios";
-import { User } from "./users";
-
-import {
-	genOAuthState,
-	parseOAuthState,
-	getOAuthAccounts,
-	addOAuthAccount,
-	updateOAuthAccount,
-	deleteOAuthAccount,
-	updateAuthParams,
-} from "./oauthAccounts";
-import { OAuthAccount, OAuthAccountCreate } from "../schemas/oauthAccounts";
-import { Request } from "express";
-import { getSession } from "./sessions";
-import {
+import type { User } from "./users";
+import type { OAuthAccount, OAuthAccountCreate } from "@schemas/oauthAccounts";
+import type {
 	WebexMeeting,
 	WebexMeetingCreate,
 	WebexMeetingChange,
@@ -29,7 +18,17 @@ import {
 	WebexSites,
 	WebexMeetingPreferences,
 	WebexMeetingsQuery,
-} from "../schemas/webex";
+} from "@schemas/webex";
+import {
+	genOAuthState,
+	parseOAuthState,
+	getOAuthAccounts,
+	addOAuthAccount,
+	updateOAuthAccount,
+	deleteOAuthAccount,
+	updateAuthParams,
+} from "./oauthAccounts";
+import { getSession } from "./sessions";
 
 type WebexAccountLocal = Omit<
 	WebexAccount,

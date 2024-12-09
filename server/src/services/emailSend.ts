@@ -8,7 +8,7 @@ import {
 } from "@aws-sdk/client-ses";
 
 import type { User } from "./users";
-import type { Email } from "../schemas/email";
+import type { Email } from "@schemas/email";
 
 const region = "us-west-2";
 let credentials: ReturnType<typeof fromIni>;

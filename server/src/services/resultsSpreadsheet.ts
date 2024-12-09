@@ -4,8 +4,8 @@
 import ExcelJS from "exceljs";
 import type { Response } from "express";
 import type { User } from "./users";
-import type { Ballot } from "../schemas/ballots";
-import type { Result } from "../schemas/results";
+import type { Ballot } from "@schemas/ballots";
+import type { Result } from "@schemas/results";
 import { getSheetName } from "./commentsSpreadsheet";
 
 function populateSummaryWorksheet(ws: ExcelJS.Worksheet, ballots: Ballot[]) {

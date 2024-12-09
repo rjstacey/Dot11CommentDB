@@ -4,13 +4,13 @@ import db from "../utils/database";
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import type { User } from "./users";
 import { getGroupAndSubgroupIds } from "./groups";
-import { Group } from "../schemas/groups";
+import { Group } from "@schemas/groups";
 import {
 	Officer,
 	OfficerQuery,
 	OfficerCreate,
 	OfficerUpdate,
-} from "../schemas/officers";
+} from "@schemas/officers";
 
 export function getOfficers(constraints?: OfficerQuery): Promise<Officer[]> {
 	// prettier-ignore

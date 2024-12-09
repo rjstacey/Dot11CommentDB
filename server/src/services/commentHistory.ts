@@ -1,15 +1,8 @@
 import db from "../utils/database";
-import {
-	commentChangeSchema,
-	Comment,
-	CommentChange,
-} from "../schemas/comments";
+import { commentChangeSchema, Comment, CommentChange } from "@schemas/comments";
 import { defaultResolution } from "./resolutions";
-import {
-	resolutionChangeSchema,
-	ResolutionChange,
-} from "../schemas/resolutions";
-import type { Resolution } from "../schemas/resolutions";
+import { resolutionChangeSchema, ResolutionChange } from "@schemas/resolutions";
+import type { Resolution } from "@schemas/resolutions";
 
 const commentChangeFields = Object.keys(commentChangeSchema.shape);
 const resolutionChangeFields = Object.keys(resolutionChangeSchema.shape);

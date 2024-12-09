@@ -14,7 +14,7 @@ import {
 	voterIdsSchema,
 	voterMemberSnapshotParamsSchema,
 	VoterMemberSnapshotParams,
-} from "../schemas/voters";
+} from "@schemas/voters";
 import {
 	getVoters,
 	addVoters,

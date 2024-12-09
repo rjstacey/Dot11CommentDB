@@ -47,7 +47,7 @@ import {
 	meetingCreatesSchema,
 	meetingUpdatesSchema,
 	meetingIdsSchema,
-} from "../schemas/meetings";
+} from "@schemas/meetings";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	const { group } = req;

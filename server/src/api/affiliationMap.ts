@@ -5,7 +5,7 @@ import {
 	affiliationMapIdsSchema,
 	AffiliationMapCreate,
 	AffiliationMapUpdate,
-} from "../schemas/affiliationMap";
+} from "@schemas/affiliationMap";
 import {
 	getAffiliationMaps,
 	updateAffiliationMaps,

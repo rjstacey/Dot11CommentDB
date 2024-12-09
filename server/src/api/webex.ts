@@ -15,7 +15,7 @@ import {
 	WebexMeetingDelete,
 	WebexMeetingChange,
 	WebexMeetingCreate,
-} from "../schemas/webex";
+} from "@schemas/webex";
 import {
 	getWebexAccounts,
 	updateWebexAccount,

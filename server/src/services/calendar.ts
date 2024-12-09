@@ -14,13 +14,13 @@ import {
 	deleteOAuthAccount,
 	updateAuthParams,
 } from "./oauthAccounts";
-import { OAuthAccount, OAuthAccountCreate } from "../schemas/oauthAccounts";
+import { OAuthAccount, OAuthAccountCreate } from "@schemas/oauthAccounts";
 import {
 	CalendarAccount,
 	CalendarAccountCreate,
 	CalendarAccountChange,
 	CalendarAccountsQuery,
-} from "../schemas/calendar";
+} from "@schemas/calendar";
 import { NotFoundError } from "../utils";
 
 type CalendarAccountLocal = Omit<
