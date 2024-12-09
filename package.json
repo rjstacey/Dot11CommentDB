@@ -1,0 +1,31 @@
+{
+	"name": "802tools",
+	"version": "1.0.0",
+	"description": "802tools server and verious apps",
+	"main": "index.js",
+	"workspaces": [
+		"server",
+		"auth",
+		"home",
+		"comments",
+		"membership",
+		"meetings",
+		"polling"
+	],
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/rjstacey/Dot11CommentDB.git"
+	},
+	"author": "Robert Stacey",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/rjstacey/Dot11CommentDB/issues"
+	},
+	"homepage": "https://github.com/rjstacey/Dot11CommentDB#readme",
+	"dependencies": {
+		"zod": "^3.23.8"
+	}
+}
