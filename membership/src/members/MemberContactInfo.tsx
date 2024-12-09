@@ -4,8 +4,8 @@ import { DateTime } from "luxon";
 import { Col, Checkbox, Input, ActionIcon } from "dot11-components";
 import {
 	Member,
-	MemberContactEmail,
-	MemberContactInfo,
+	ContactEmail,
+	ContactInfo,
 	memberContactInfoEmpty,
 } from "../store/members";
 import { hasChangesStyle, type MultipleMember } from "./MemberEdit";
@@ -13,7 +13,7 @@ import { hasChangesStyle, type MultipleMember } from "./MemberEdit";
 import { EditTable as Table, TableColumn } from "../components/Table";
 
 type ContactInfoFieldType = {
-	key: keyof MemberContactInfo;
+	key: keyof ContactInfo;
 	label: string;
 	size?: number;
 };
@@ -62,7 +62,7 @@ function MemberContactEmails({
 					(maxId, h) => (h.id > maxId ? h.id : maxId),
 					0
 				) + 1;
-			const contactEmail: MemberContactEmail = {
+			const contactEmail: ContactEmail = {
 				id,
 				Email: "",
 				Primary: false,
@@ -75,7 +75,7 @@ function MemberContactEmails({
 
 		function updateContactEmail(
 			id: number,
-			changes: Partial<MemberContactEmail>
+			changes: Partial<ContactEmail>
 		) {
 			const ContactEmails = contactEmails.map((h) =>
 				h.id === id ? { ...h, ...changes } : h
@@ -92,7 +92,7 @@ function MemberContactEmails({
 			let renderCell, label;
 
 			if (col.key === "Email") {
-				renderCell = (entry: MemberContactEmail) => (
+				renderCell = (entry: ContactEmail) => (
 					<Input
 						type="text"
 						style={{ width: "100%" }}
@@ -107,7 +107,7 @@ function MemberContactEmails({
 				);
 			}
 			if (col.key === "Primary") {
-				renderCell = (entry: MemberContactEmail) => (
+				renderCell = (entry: ContactEmail) => (
 					<Checkbox
 						checked={!!entry.Primary}
 						onChange={(e) =>
@@ -120,7 +120,7 @@ function MemberContactEmails({
 				);
 			}
 			if (col.key === "Broken") {
-				renderCell = (entry: MemberContactEmail) => (
+				renderCell = (entry: ContactEmail) => (
 					<Checkbox
 						checked={!!entry.Broken}
 						onChange={(e) =>
@@ -140,7 +140,7 @@ function MemberContactEmails({
 						onClick={addContactEmail}
 					/>
 				);
-				renderCell = (entry: MemberContactEmail) => (
+				renderCell = (entry: ContactEmail) => (
 					<ActionIcon
 						name="delete"
 						onClick={() => deleteContactEmail(entry.id)}

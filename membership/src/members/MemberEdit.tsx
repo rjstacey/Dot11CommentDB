@@ -14,6 +14,7 @@ import {
 	isMultiple,
 	shallowDiff,
 	type Multiple,
+	MULTIPLE,
 	deepMerge,
 	deepDiff,
 } from "dot11-components";
@@ -32,7 +33,7 @@ import {
 	selectMemberEntities,
 	selectMemberWithParticipationSummary,
 	type Member,
-	type MemberAdd,
+	type MemberCreate,
 } from "../store/members";
 
 import IeeeMemberSelector from "./IeeeMemberSelector";
@@ -44,11 +45,13 @@ import MemberBallotParticipation from "../ballotParticipation/MemberBallotPartic
 import { selectIeeeMemberEntities } from "../store/ieeeMembers";
 
 export type MultipleMember = Multiple<
-	Omit<MemberAdd, "StatusChangeHistory" | "ContactEmails" | "ContactInfo">
+	Omit<MemberCreate, "StatusChangeHistory" | "ContactEmails" | "ContactInfo">
 > & {
 	StatusChangeHistory: Member["StatusChangeHistory"];
 	ContactEmails: Member["ContactEmails"];
 	ContactInfo: Multiple<Member["ContactInfo"]>;
+	ReplacedBySAPIN: Member["ReplacedBySAPIN"] | typeof MULTIPLE;
+	ObsoleteSAPINs: Member["ObsoleteSAPINs"] | typeof MULTIPLE;
 };
 
 export type EditAction = "view" | "update" | "add";
@@ -82,7 +85,7 @@ function ShortMemberSummary({ sapins }: { sapins: number[] }) {
 				<td>{m.Email}</td>
 				<td>{m.Affiliation}</td>
 				<td>{m.Status}</td>
-				<td>{displayDate(m.DateAdded)}</td>
+				<td>{m.DateAdded ? displayDate(m.DateAdded) : "-"}</td>
 			</tr>
 		);
 	});
@@ -359,7 +362,9 @@ export function MemberBasicInfo({
 									: member.ReplacedBySAPIN || null
 							}
 							onChange={(value) =>
-								updateMember({ ReplacedBySAPIN: value })
+								updateMember({
+									ReplacedBySAPIN: value || undefined,
+								})
 							}
 							placeholder={
 								isMultiple(member.ReplacedBySAPIN)
@@ -471,7 +476,7 @@ export function MemberEntryForm({
 	function setMember(sapin: number) {
 		const ieeeMember = ieeeMemberEntities[sapin];
 		if (ieeeMember) {
-			const member: MemberAdd = {
+			const member: MemberCreate = {
 				...ieeeMember,
 				Affiliation: "",
 				Status: "Non-Voter",
@@ -586,7 +591,7 @@ export function useMembersUpdate() {
 		async (
 			edited: MultipleMember,
 			saved: MultipleMember,
-			members: MemberAdd[]
+			members: MemberCreate[]
 		) => {
 			const changes = shallowDiff(saved, edited) as Partial<Member>;
 			const p: AppThunk[] = [];
@@ -625,7 +630,7 @@ export function useMembersAdd() {
 		async (
 			edited: MultipleMember,
 			saved: MultipleMember,
-			members: MemberAdd[]
+			members: MemberCreate[]
 		) => {
 			const changes = deepDiff(saved, edited);
 			const newMembers = changes
@@ -641,7 +646,7 @@ export function useMembersAdd() {
 export function useMembersDelete() {
 	const dispatch = useAppDispatch();
 	return React.useCallback(
-		async (members: MemberAdd[]) => {
+		async (members: MemberCreate[]) => {
 			const sapins = members.map((m) => m.SAPIN);
 			await dispatch(deleteMembers(sapins));
 		},

@@ -4,14 +4,15 @@ import {
 	PayloadAction,
 } from "@reduxjs/toolkit";
 import { fetcher, setError } from "dot11-components";
+import type { AppThunk, RootState } from ".";
 import {
 	emailTemplatesSchema,
 	EmailTemplate,
 	EmailTemplateCreate,
 	EmailTemplateUpdate,
-} from "../schemas/emailTemplates";
+} from "@schemas/emailTemplates";
 
-import type { AppThunk, RootState } from ".";
+export type { EmailTemplate, EmailTemplateCreate, EmailTemplateUpdate };
 
 type ExtraState = {
 	valid: boolean;

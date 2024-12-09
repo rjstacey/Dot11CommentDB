@@ -168,6 +168,7 @@ function GroupDetail() {
 		dispatch(setSelected([]));
 		const entry: AffiliationMap = {
 			id: 0,
+			groupId: "",
 			match: "",
 			shortAffiliation: "",
 		};

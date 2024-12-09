@@ -11,12 +11,12 @@ import {
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import {
-	MemberContactInfo,
+	ContactInfo,
 	memberContactInfoEmpty,
 	selectMembersState,
 	selectUserMembersAccess,
 	type Member,
-	type MemberAdd,
+	type MemberCreate,
 } from "../store/members";
 
 import {
@@ -29,7 +29,7 @@ import {
 } from "./MemberEdit";
 import ShowAccess from "../components/ShowAccess";
 
-const defaultMember: MemberAdd & { ContactInfo: MemberContactInfo } = {
+const defaultMember: MemberCreate & { ContactInfo: ContactInfo } = {
 	SAPIN: 0,
 	Name: "",
 	FirstName: "",
@@ -46,7 +46,7 @@ type MemberDetailState = {
 	action: EditAction;
 	edited: MultipleMember | null;
 	saved: MultipleMember | null;
-	originals: MemberAdd[];
+	originals: MemberCreate[];
 	message: string;
 };
 
@@ -65,7 +65,7 @@ function MemberDetail({
 	const initState = React.useCallback((): MemberDetailState => {
 		let action: EditAction = "view",
 			edited: MultipleMember | null = null,
-			originals: MemberAdd[] = [],
+			originals: MemberCreate[] = [],
 			message: string = "";
 
 		if (loading && !valid) {
@@ -154,14 +154,18 @@ function MemberDetail({
 			if (!ok) return;
 		}
 
-		const entry: MemberAdd & {
+		const entry: MemberCreate & {
 			StatusChangeHistory: Member["StatusChangeHistory"];
 			ContactEmails: Member["ContactEmails"];
 			ContactInfo: Member["ContactInfo"];
+			ReplacedBySAPIN: Member["ReplacedBySAPIN"];
+			ObsoleteSAPINs: Member["ObsoleteSAPINs"];
 		} = {
 			...defaultMember,
 			StatusChangeHistory: [],
 			ContactEmails: [],
+			ReplacedBySAPIN: 0,
+			ObsoleteSAPINs: [],
 		};
 		setSelected([]);
 		setState({

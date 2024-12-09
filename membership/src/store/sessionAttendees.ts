@@ -17,7 +17,7 @@ import {
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
-import type { MemberContactInfo } from "./members";
+import type { ContactInfo } from "./members";
 import { selectMemberEntities } from "./members";
 import { selectSessionByNumber, selectSessionEntities } from "./sessions";
 import {
@@ -59,7 +59,7 @@ export type SessionAttendee = {
 	Email: string;
 	Affiliation: string;
 	Employer?: string; // Not present with attendance summary
-	ContactInfo?: MemberContactInfo; // Not present with attendance summary
+	ContactInfo?: ContactInfo; // Not present with attendance summary
 	AttendancePercentage: number;
 };
 
@@ -71,7 +71,7 @@ export type SyncedSessionAttendee = SessionAttendeeWithSummary & {
 	OldAffiliation: string | null;
 	OldEmployer: string | null;
 	OldEmail: string | null;
-	OldContactInfo: MemberContactInfo | null;
+	OldContactInfo: ContactInfo | null;
 };
 
 /*

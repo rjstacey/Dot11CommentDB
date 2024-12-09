@@ -231,9 +231,9 @@ export const selectMemberAttendanceStats = createSelector(
 			? Object.values(attendanceEntities)
 			: [];
 		const member = memberEntities[SAPIN];
-		const since = member?.StatusChangeHistory.find(
-			(h) => h.NewStatus === "Non-Voter"
-		)?.Date;
+		const since =
+			member?.StatusChangeHistory.find((h) => h.NewStatus === "Non-Voter")
+				?.Date || undefined;
 		return recentAttendanceStats(
 			attendances,
 			sessionIds,
@@ -308,9 +308,10 @@ export const selectSessionParticipationWithMembershipAndSummary =
 				let nonVoterDate: string | undefined;
 				if (member) {
 					// Only care about attendance since becoming a 'Non-Voter'
-					nonVoterDate = member.StatusChangeHistory.find(
-						(h) => h.NewStatus === "Non-Voter"
-					)?.Date;
+					nonVoterDate =
+						member.StatusChangeHistory.find(
+							(h) => h.NewStatus === "Non-Voter"
+						)?.Date || undefined;
 					let stats = recentAttendanceStats(
 						entity.sessionAttendanceSummaries,
 						sessionIds,

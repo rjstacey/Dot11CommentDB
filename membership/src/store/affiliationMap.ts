@@ -15,7 +15,14 @@ import {
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
+import {
+	AffiliationMap,
+	AffiliationMapCreate,
+	AffiliationMapUpdate,
+} from "@schemas/affiliationMap";
+export type { AffiliationMap, AffiliationMapCreate, AffiliationMapUpdate };
 
+/*
 export type AffiliationMap = {
 	id: number;
 	match: string;
@@ -28,7 +35,7 @@ export type AffiliationMapUpdate = {
 	id: number;
 	changes: Partial<AffiliationMap>;
 };
-
+*/
 export const fields = {
 	id: { label: "id", type: FieldType.NUMERIC },
 	match: { label: "Match", type: FieldType.STRING },

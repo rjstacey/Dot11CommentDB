@@ -26,8 +26,9 @@ import {
 	selectEmailTemplatesState,
 	updateEmailTemplate,
 	deleteEmailTemplate,
+	EmailTemplateCreate,
+	EmailTemplate,
 } from "../store/emailTemplates";
-import { EmailTemplateCreate, EmailTemplate } from "../schemas/emailTemplates";
 import { sendEmails, type Email } from "../store/emailSend";
 import { selectSelectedMembers, type Member } from "../store/members";
 import { selectMostRecentAttendedSession } from "../store/sessions";

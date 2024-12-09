@@ -9,7 +9,7 @@ import {
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
-import type { MemberContactEmail, MemberContactInfo } from "./members";
+import type { ContactEmail, ContactInfo } from "./members";
 
 export type IeeeMember = {
 	SAPIN: number;
@@ -19,8 +19,8 @@ export type IeeeMember = {
 	MI: string;
 	Email: string;
 	Employer: string;
-	ContactEmails: MemberContactEmail[];
-	ContactInfo: MemberContactInfo;
+	ContactEmails: ContactEmail[];
+	ContactInfo: ContactInfo;
 };
 
 export const fields = {

@@ -6,19 +6,14 @@ import type { RootState, AppThunk } from ".";
 
 import { fetcher, setError } from "dot11-components";
 import { GroupType } from "./groups";
-
-export type OfficerId = string;
-export type Officer = {
-	id: OfficerId;
-	sapin: number;
-	position: string;
-	group_id: string;
-};
-export type OfficerCreate = Omit<Officer, "id"> & Partial<Pick<Officer, "id">>;
-export type OfficerUpdate = {
-	id: OfficerId;
-	changes: Partial<Officer>;
-};
+import {
+	officersSchema,
+	OfficerId,
+	Officer,
+	OfficerCreate,
+	OfficerUpdate,
+} from "@schemas/officers";
+export type { OfficerId, Officer, OfficerCreate, OfficerUpdate };
 
 export const officerPositions = [
 	"Chair",
@@ -155,9 +150,8 @@ export const loadOfficers =
 		loading = true;
 		loadingPromise = fetcher
 			.get(`/api/${groupName}/officers`)
-			.then((officers: any) => {
-				if (!Array.isArray(officers))
-					throw new TypeError("Unexpected response");
+			.then((response: any) => {
+				const officers = officersSchema.parse(response);
 				dispatch(getSuccess(officers));
 			})
 			.catch((error: any) => {

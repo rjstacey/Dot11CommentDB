@@ -6,7 +6,7 @@ import {
 } from "dot11-components";
 import { useAppSelector } from "../store/hooks";
 import { selectActiveMembers } from "../store/members";
-import { EmailTemplate } from "../schemas/emailTemplates";
+import { EmailTemplate } from "../store/emailTemplates";
 
 import css from "./notification.module.css";
 

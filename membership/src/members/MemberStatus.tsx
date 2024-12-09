@@ -11,7 +11,7 @@ import {
 	isMultiple,
 } from "dot11-components";
 
-import type { Member, StatusChangeType, StatusType } from "../store/members";
+import type { Member, StatusChangeEntry, StatusType } from "../store/members";
 
 import { EditTable as Table } from "../components/Table";
 
@@ -29,15 +29,15 @@ function MemberStatusChangeForm({
 	onChange,
 	close,
 }: {
-	entry: StatusChangeType;
-	onChange: (entry: StatusChangeType) => void;
+	entry: StatusChangeEntry;
+	onChange: (entry: StatusChangeEntry) => void;
 	close: () => void;
 }) {
-	function change(changes: Partial<StatusChangeType>) {
+	function change(changes: Partial<StatusChangeEntry>) {
 		onChange({ ...entry, ...changes });
 	}
 
-	const date = entry.Date.substring(0, 10);
+	const date = entry.Date?.substring(0, 10);
 
 	return (
 		<>
@@ -87,8 +87,8 @@ export function MemberStatusChangeDropdown({
 	onChange,
 	readOnly,
 }: {
-	entry: StatusChangeType;
-	onChange: (entry: StatusChangeType) => void;
+	entry: StatusChangeEntry;
+	onChange: (entry: StatusChangeEntry) => void;
 	readOnly?: boolean;
 }) {
 	return (
@@ -121,7 +121,8 @@ const statusChangeHistoryColumns = [
 	{
 		key: "Date",
 		label: "Date",
-		renderCell: (entry: StatusChangeType) => displayDate(entry.Date),
+		renderCell: (entry: StatusChangeEntry) =>
+			entry.Date ? displayDate(entry.Date) : "-",
 	},
 	{ key: "OldStatus", label: "Old status" },
 	{ key: "NewStatus", label: "New status" },
@@ -152,7 +153,7 @@ function MemberStatusChangeHistory({
 			DateTime.fromISO(member.StatusChangeDate).toISODate() || "";
 
 	const columns = React.useMemo(() => {
-		function update(id: number, changes: Partial<StatusChangeType>) {
+		function update(id: number, changes: Partial<StatusChangeEntry>) {
 			const StatusChangeHistory = statusChangeHistory.map((h) =>
 				h.id === id ? { ...h, ...changes } : h
 			);
@@ -162,7 +163,7 @@ function MemberStatusChangeHistory({
 		function addClick() {
 			let id = 0;
 			for (const h of statusChangeHistory) if (h.id > id) id = h.id + 1;
-			const entry: StatusChangeType = {
+			const entry: StatusChangeEntry = {
 				id,
 				Date: new Date().toISOString(),
 				NewStatus: member.Status as StatusType,
@@ -183,11 +184,11 @@ function MemberStatusChangeHistory({
 		const columns = statusChangeHistoryColumns.map((col) => {
 			if (col.key === "actions") {
 				const label = <ActionIcon type="add" onClick={addClick} />;
-				const renderCell = (entry: StatusChangeType) => (
+				const renderCell = (entry: StatusChangeEntry) => (
 					<>
 						<MemberStatusChangeDropdown
 							entry={entry}
-							onChange={(changes: StatusChangeType) =>
+							onChange={(changes: StatusChangeEntry) =>
 								update(entry.id, changes)
 							}
 							readOnly={readOnly}

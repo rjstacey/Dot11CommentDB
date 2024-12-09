@@ -255,7 +255,7 @@ export function memberBallotParticipationCount(
 			ballotSeriesParticipationSummaries.filter(
 				(s) =>
 					DateTime.fromISO(ballotSeriesEntities[s.series_id]!.start) >
-					DateTime.fromISO(h.Date)
+					DateTime.fromISO(h.Date!)
 			);
 
 	const count = ballotSeriesParticipationSummaries.reduce(

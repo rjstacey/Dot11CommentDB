@@ -68,8 +68,13 @@ function GroupTypeSelector({
 		parent_id ? selectGroup(state, parent_id) : undefined
 	);
 
-	let options = parentGroup? getSubgroupTypes(parentGroup.type!).map(type => ({value: type, label: GroupTypeLabels[type]})): [];
-	
+	let options = parentGroup
+		? getSubgroupTypes(parentGroup.type!).map((type) => ({
+				value: type,
+				label: GroupTypeLabels[type],
+		  }))
+		: [];
+
 	function handleChange(values: typeof options) {
 		const newValue: GroupType | null =
 			values.length > 0 ? values[0].value : null;
@@ -153,18 +158,17 @@ export function GroupEntryForm({
 			changes.project = "P" + (s ? s[s.length - 1] : s);
 		}
 		if ("parent_id" in changes) {
-			const {parent_id} = changes;
-			const parentGroup = parent_id? entities[parent_id]: undefined;
+			const { parent_id } = changes;
+			const parentGroup = parent_id ? entities[parent_id] : undefined;
 			if (parentGroup) {
 				const types = getSubgroupTypes(parentGroup.type!);
 				if (
 					parentGroup.type !== entry.type &&
 					(isMultiple(entry.type) || !types.includes(entry.type!))
 				) {
-						changes.type = types[0] || null;
+					changes.type = types[0] || null;
 				}
-			}
-			else {
+			} else {
 				changes.type = null;
 			}
 		}
@@ -229,7 +233,7 @@ export function GroupEntryForm({
 			<Row>
 				<Field label="Status:">
 					<GroupStatusSelector
-						value={isMultiple(entry.status) ? 1 : entry.status}
+						value={isMultiple(entry.status) ? 1 : entry.status || 0}
 						onChange={(status) => change({ status })}
 						placeholder={
 							isMultiple(entry.status) ? MULTIPLE_STR : undefined
@@ -274,7 +278,11 @@ export function GroupEntryForm({
 				<Row>
 					<Field label={"IMAT committee:"}>
 						<ImatCommitteeSelector
-							value={isMultiple(entry.symbol) ? "" : entry.symbol}
+							value={
+								isMultiple(entry.symbol)
+									? ""
+									: entry.symbol || ""
+							}
 							onChange={(symbol) => change({ symbol })}
 							type={
 								entry.type === "wg"
@@ -321,7 +329,10 @@ export function useGroupsUpdate() {
 		const edits = shallowDiff(savedEntry, editedEntry);
 		const updates: GroupUpdate[] = [];
 		for (const group of groups) {
-			const changes = shallowDiff(group, { ...group, ...edits }) as Partial<Group>;
+			const changes = shallowDiff(group, {
+				...group,
+				...edits,
+			}) as Partial<Group>;
 			if (Object.keys(changes).length > 0) {
 				updates.push({ id: group.id, changes });
 			}

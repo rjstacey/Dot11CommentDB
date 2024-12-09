@@ -25,7 +25,15 @@ import {
 } from "./officers";
 import { AccessLevel } from "./user";
 
-export const GroupTypeLabels = {
+import type {
+	GroupType,
+	Group,
+	GroupCreate,
+	GroupUpdate,
+} from "@schemas/groups";
+export type { GroupType, Group, GroupCreate, GroupUpdate };
+
+export const GroupTypeLabels: Record<GroupType, string> = {
 	r: "Root",
 	c: "Committee",
 	wg: "Working Group",
@@ -36,7 +44,7 @@ export const GroupTypeLabels = {
 	tig: "Topic of Interest Group",
 } as const;
 
-export type GroupType = keyof typeof GroupTypeLabels;
+//export type GroupType = keyof typeof GroupTypeLabels;
 
 export function getSubgroupTypes(parentType: GroupType): GroupType[] {
 	if (parentType === "r") {
@@ -65,7 +73,7 @@ export const GroupStatusOptions = [
 	{ value: 1, label: "Active" },
 ];
 
-export type Group = {
+/*export type Group = {
 	id: string;
 	parent_id: string | null;
 	name: string;
@@ -84,6 +92,7 @@ export type GroupUpdate = {
 	id: EntityId;
 	changes: Partial<Group>;
 };
+*/
 
 export type GroupWithOfficers = Group & {
 	officers: Officer[];

@@ -48,7 +48,7 @@ const defaultEntry: GroupEntry = {
 	color: "white",
 	symbol: null,
 	project: null,
-	officerSAPINs: [],
+	//officerSAPINs: [],
 	officers: [],
 };
 

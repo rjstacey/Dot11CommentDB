@@ -24,12 +24,12 @@ import { AccessLevel } from "../store/user";
 import {
 	selectMemberEntities,
 	selectUserMembersAccess,
-	type Member,
-	type MemberAdd,
-	MemberContactEmail,
-	MemberContactInfo,
+	Member,
+	MemberCreate,
+	ContactEmail,
+	ContactInfo,
 	memberContactInfoEmpty,
-	StatusChangeType,
+	StatusChangeEntry,
 } from "../store/members";
 import { selectSessionByNumber, Session } from "../store/sessions";
 import {
@@ -96,23 +96,23 @@ export function sessionAttendeeToNewMember(
 		zone: session.timezone,
 	}).toISO()!;
 	const status = "Non-Voter";
-	const contactEmail: MemberContactEmail = {
+	const contactEmail: ContactEmail = {
 		id: 0,
 		Email: attendee.Email,
 		Primary: true,
 		Broken: false,
 		DateAdded: date,
 	};
-	const contactInfo: MemberContactInfo =
+	const contactInfo: ContactInfo =
 		attendee.ContactInfo || memberContactInfoEmpty;
-	const statusChange: StatusChangeType = {
+	const statusChange: StatusChangeEntry = {
 		id: 0,
 		OldStatus: status,
 		NewStatus: status,
 		Reason: "New member",
 		Date: date,
 	};
-	const member: MemberAdd = {
+	const member: MemberCreate = {
 		SAPIN: attendee.SAPIN,
 		Name: attendee.Name,
 		FirstName: attendee.FirstName,
@@ -410,7 +410,7 @@ type MemberAttendanceDetailState = {
 	editedMember: MultipleMember | null;
 	createdMember: MultipleMember | null;
 	savedMember: MultipleMember | null;
-	members: MemberAdd[];
+	members: MemberCreate[];
 	editedAttendance: MultipleSessionAttendanceSummary | null;
 	savedAttendance: MultipleSessionAttendanceSummary | null;
 	attendances: SessionAttendanceSummary[];
@@ -432,7 +432,7 @@ function initStateForSession(session: Session) {
 	let action: EditAction = "view",
 		editedMember: MultipleMember | null = null,
 		savedMember: MultipleMember | null = null,
-		members: MemberAdd[] = [],
+		members: MemberCreate[] = [],
 		editedAttendance: MultipleSessionAttendanceSummary | null = null,
 		attendances: SessionAttendanceSummary[] = [],
 		message: string = "";

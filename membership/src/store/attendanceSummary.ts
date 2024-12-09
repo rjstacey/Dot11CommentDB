@@ -18,6 +18,20 @@ import {
 	updateSession,
 } from "./sessions";
 
+import {
+	SessionAttendanceSummary,
+	SessionAttendanceSummaryCreate,
+	SessionAttendanceSummaryChanges,
+	SessionAttendanceSummaryUpdate,
+} from "@schemas/attendances";
+export type {
+	SessionAttendanceSummary,
+	SessionAttendanceSummaryCreate,
+	SessionAttendanceSummaryChanges,
+	SessionAttendanceSummaryUpdate,
+};
+
+/*
 export type SessionAttendanceSummary = {
 	id: number;
 	session_id: number; // Session identifier
@@ -65,7 +79,7 @@ export type SessionAttendanceSummaryUpdate = {
 	id: number;
 	changes: SessionAttendanceSummaryChanges;
 };
-
+*/
 export function getNullAttendanceSummary(
 	session_id: number,
 	SAPIN: number

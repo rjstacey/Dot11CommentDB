@@ -1,6 +1,15 @@
 import { fetcher, setError } from "dot11-components";
 import type { AppThunk } from ".";
+import type {
+	Destination,
+	Content,
+	Body,
+	Message,
+	Email,
+} from "@schemas/email";
+export type { Destination, Content, Body, Message, Email };
 
+/*
 export interface Destination {
 	ToAddresses?: string[];
 	CcAddresses?: string[];
@@ -27,7 +36,7 @@ export interface Email {
 	Message: Message | undefined;
 	ReplyToAddresses?: string[];
 }
-
+*/
 export const sendEmails =
 	(groupName: string, emails: Email[]): AppThunk =>
 	async (dispatch) => {

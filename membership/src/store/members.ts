@@ -1,5 +1,5 @@
 import { createSelector, createAction } from "@reduxjs/toolkit";
-import type { Dictionary, Update, EntityId, Action } from "@reduxjs/toolkit";
+import type { Dictionary, EntityId, Action } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -11,12 +11,31 @@ import {
 	displayDate,
 	Fields,
 } from "dot11-components";
+import {
+	StatusChangeEntry,
+	StatusType,
+	ContactInfo,
+	ContactEmail,
+	Member,
+	MemberCreate,
+	MemberUpdate,
+} from "@schemas/members";
 
 import type { RootState, AppThunk } from ".";
 import { selectSessionParticipationWithMembershipAndSummary } from "./sessionParticipation";
 import { selectBallotParticipationWithMembershipAndSummary } from "./ballotParticipation";
 import { selectTopLevelGroupByName } from "./groups";
 import { AccessLevel } from "./user";
+
+export type {
+	Member,
+	StatusChangeEntry,
+	ContactInfo,
+	ContactEmail,
+	MemberCreate,
+	MemberUpdate,
+	StatusType,
+};
 
 const statusTypes = [
 	"Non-Voter",
@@ -26,7 +45,6 @@ const statusTypes = [
 	"ExOfficio",
 	"Obsolete",
 ] as const;
-export type StatusType = (typeof statusTypes)[number];
 export type ExpectedStatusType = StatusType | "";
 
 export const statusOptions = statusTypes.map((v) => ({
@@ -34,6 +52,7 @@ export const statusOptions = statusTypes.map((v) => ({
 	label: v,
 }));
 
+/*
 export type StatusChangeType = {
 	id: number;
 	Date: string;
@@ -94,7 +113,7 @@ export type MemberUpdateExtra = {
 export type MemberAdd = MemberCommon & Partial<MemberExtra>;
 export type MemberUpdate = Update<Member & MemberUpdateExtra>;
 export type Member = MemberCommon & MemberExtra;
-
+*/
 export type MemberWithParticipation = Member & {
 	AttendancesSummary: string;
 	BallotParticipationSummary: string;
@@ -102,7 +121,7 @@ export type MemberWithParticipation = Member & {
 
 export type MembersDictionary = Dictionary<Member>;
 
-export const memberContactInfoEmpty: MemberContactInfo = {
+export const memberContactInfoEmpty: ContactInfo = {
 	StreetLine1: "",
 	StreetLine2: "",
 	City: "",
@@ -302,7 +321,9 @@ export function selectMembersStatusChangeSinceDate(
 ) {
 	const { ids, entities } = selectMembersState(state);
 	const date = new Date(dateStr);
-	return ids.filter((id) => new Date(entities[id]!.StatusChangeDate) > date);
+	return ids.filter(
+		(id) => new Date(entities[id]!.StatusChangeDate || "") > date
+	);
 }
 
 export const membersSelectors = getAppTableDataSelectors(selectMembersState, {
@@ -385,11 +406,11 @@ export const updateMembers =
 
 type StatusChangeEntryUpdate = {
 	id: number;
-	changes: Partial<StatusChangeType>;
+	changes: Partial<StatusChangeEntry>;
 };
 
 export const addMemberStatusChangeEntries =
-	(sapin: number, entries: StatusChangeType[]): AppThunk =>
+	(sapin: number, entries: StatusChangeEntry[]): AppThunk =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
@@ -440,7 +461,7 @@ export const deleteMemberStatusChangeEntries =
 	};
 
 export const addMembers =
-	(members: MemberAdd[]): AppThunk<number[]> =>
+	(members: MemberCreate[]): AppThunk<number[]> =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members`;

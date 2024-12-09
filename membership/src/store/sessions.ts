@@ -7,10 +7,14 @@ import {
 } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
-import { fetcher, setError, isObject } from "dot11-components";
+import { fetcher, setError } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
 
+import { sessionsSchema, Session } from "@schemas/sessions";
+export type { Session };
+
+/*
 export interface Session {
 	id: number;
 	number: number | null;
@@ -24,6 +28,7 @@ export interface Session {
 	endDate: string;
 	attendees: number;
 }
+	*/
 
 export type SessionAdd = Omit<Session, "id" | "Attendees">;
 
@@ -40,7 +45,7 @@ export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 	([value, label]) =>
 		({ value, label } as { value: SessionType; label: string })
 );
-
+/*
 function validSession(session: any): session is Session {
 	return (
 		isObject(session) &&
@@ -56,7 +61,7 @@ function validSession(session: any): session is Session {
 		typeof session.timezone === "string"
 	);
 }
-
+*/
 export const displaySessionType = (type: SessionType | null) =>
 	type ? SessionTypeLabels[type] : "";
 
@@ -178,11 +183,11 @@ export const selectSession = (state: RootState, id: EntityId) =>
 /*
  * Thunk actions
  */
-
+/*
 function validSessions(sessions: any): sessions is Session[] {
 	return Array.isArray(sessions) && sessions.every(validSession);
 }
-
+*/
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loading = false;
@@ -203,13 +208,12 @@ export const loadSessions =
 		loadingPromise = fetcher
 			.get(url, { type: ["p", "i"], limit: 20 })
 			.then((response: any) => {
-				if (!validSessions(response))
-					throw new TypeError("Unexpected response to GET " + url);
-				dispatch(getSuccess(response));
+				const sessions = sessionsSchema.parse(response);
+				dispatch(getSuccess(sessions));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get sessions", error));
+				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
 				loading = false;
