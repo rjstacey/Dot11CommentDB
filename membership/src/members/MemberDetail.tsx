@@ -51,19 +51,9 @@ type MemberDetailState = {
 	message: string;
 };
 
-function MemberDetail({
-	selected,
-	setSelected,
-}: {
-	selected: EntityId[];
-	setSelected: (ids: EntityId[]) => void;
-}) {
-	const access = useAppSelector(selectUserMembersAccess);
-	const readOnly = access < AccessLevel.rw;
-
+function useInitState(selected: EntityId[]) {
 	let { entities, loading, valid } = useAppSelector(selectMembersState);
-
-	const initState = React.useCallback((): MemberDetailState => {
+	return React.useCallback((): MemberDetailState => {
 		let action: EditAction = "view",
 			edited: MultipleMember | null = null,
 			originals: MemberCreate[] = [],
@@ -99,6 +89,19 @@ function MemberDetail({
 			message,
 		};
 	}, [loading, valid, selected, entities]);
+}
+
+function MemberDetail({
+	selected,
+	setSelected,
+}: {
+	selected: EntityId[];
+	setSelected: (ids: EntityId[]) => void;
+}) {
+	const access = useAppSelector(selectUserMembersAccess);
+	const readOnly = access < AccessLevel.rw;
+
+	const initState = useInitState(selected); // Callback to initialize state
 
 	const [state, setState] = React.useState<MemberDetailState>(initState);
 
@@ -107,19 +110,15 @@ function MemberDetail({
 		const ids = originals.map((m) => m.SAPIN);
 		if (action === "view" && selected.join() !== ids.join()) {
 			setState(initState);
-		} else if (action === "update" && selected.join() !== ids.join()) {
+		} else if (
+			(action === "update" && selected.join() !== ids.join()) ||
+			(action === "add" && selected.length > 0)
+		) {
 			ConfirmModal.show(
 				"Changes not applied! Do you want to discard changes?"
 			).then((ok) => {
 				if (ok) setState(initState);
 				else setSelected(ids);
-			});
-		} else if (action === "add" && selected.length > 0) {
-			ConfirmModal.show(
-				"Changes not applied! Do you want to discard changes?"
-			).then((ok) => {
-				if (ok) setState(initState);
-				else setSelected([]);
 			});
 		}
 	}, [state, selected, setSelected, initState]);
@@ -188,9 +187,15 @@ function MemberDetail({
 				originals.map((o) => `${o.SAPIN} ${o.Name}`).join("\n");
 			const ok = await ConfirmModal.show(str);
 			if (ok) {
-				await membersDelete(originals);
 				setSelected([]);
-				setState(initState);
+				setState({
+					action: "view",
+					edited: null,
+					saved: null,
+					originals: [],
+					message: "Nothing selected...",
+				});
+				await membersDelete(originals);
 			}
 		}
 	};
@@ -203,9 +208,15 @@ function MemberDetail({
 			console.warn("Add with unexpected state");
 			return;
 		}
+		setState({
+			action: "view",
+			edited: null,
+			saved: null,
+			originals: [],
+			message: "Adding...",
+		});
 		const ids = await membersAdd(edited, saved, originals);
 		setSelected(ids);
-		setState(initState);
 	};
 
 	const membersUpdate = useMembersUpdate();
@@ -216,16 +227,16 @@ function MemberDetail({
 			console.warn("Update with unexpected state");
 			return;
 		}
-		await membersUpdate(edited, saved, originals);
-		//setState(initState);
-		setState((state) => ({
-			...state,
+		setSelected([]);
+		setState({
 			action: "view",
-			saved: null, //edited,
+			saved: null,
 			edited: null,
 			originals: [],
 			message: "Updating...",
-		}));
+		});
+		await membersUpdate(edited, saved, originals);
+		setSelected(selected);
 	};
 
 	const cancel = () => {
@@ -251,7 +262,7 @@ function MemberDetail({
 							<ActionButton
 								name="add"
 								title="Add member"
-								disabled={loading || readOnly}
+								disabled={readOnly}
 								isActive={state.action === "add"}
 								onClick={clickAdd}
 							/>
@@ -259,8 +270,8 @@ function MemberDetail({
 								name="delete"
 								title="Delete member"
 								disabled={
-									loading ||
-									state.originals.length === 0 ||
+									(state.action === "view" &&
+										Boolean(state.message)) ||
 									readOnly
 								}
 								onClick={clickDelete}
