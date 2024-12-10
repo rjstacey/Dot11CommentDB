@@ -33,10 +33,14 @@ export const sessionSchema = z.object({
 	timezone: z.string(),
 	startDate: z.string().date(),
 	endDate: z.string().date(),
+	attendees: z.number(),
+});
+export const sessionsSchema = sessionSchema.array();
+
+export const sessionAdminSchema = sessionSchema.extend({
 	rooms: roomSchema.array(),
 	timeslots: timeslotSchema.array(),
 	defaultCredits: z.string().array().array(),
-	attendees: z.number(),
 });
 
 export const sessionsQuerySchema = z

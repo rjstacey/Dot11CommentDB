@@ -10,7 +10,7 @@ export const groupTypeSchema = z.enum([
 	"sg", // Study group
 	"sc", // Standing committee
 	"ah", // Ad-hoc group
-	"tig", // Topic of interest group
+	"tig", // Topic interest group
 ]);
 
 export const groupSchema = z.object({

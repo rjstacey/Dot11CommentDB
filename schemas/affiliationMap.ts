@@ -9,6 +9,7 @@ export const affiliationMapSchema = z.object({
 	match: z.string(),
 	shortAffiliation: z.string(),
 });
+export const affiliationMapsSchema = affiliationMapSchema.array();
 
 const affiliationMapCreateSchema = affiliationMapSchema.omit({
 	id: true,

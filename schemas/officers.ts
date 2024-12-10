@@ -9,6 +9,7 @@ export const officerSchema = z.object({
 	sapin: z.number(),
 	position: z.string(),
 });
+export const officersSchema = officerSchema.array();
 
 export const officerQuerySchema = z
 	.object({
@@ -32,6 +33,7 @@ export const officerUpdateSchema = z.object({
 export const officerUpdatesSchema = z.array(officerUpdateSchema);
 export const officerIdsSchema = z.array(z.string().uuid());
 
+export type OfficerId = z.infer<typeof officerIdSchema>;
 export type Officer = z.infer<typeof officerSchema>;
 export type OfficerQuery = z.infer<typeof officerQuerySchema>;
 export type OfficerUpdate = z.infer<typeof officerUpdateSchema>;

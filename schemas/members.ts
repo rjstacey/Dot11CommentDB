@@ -1,9 +1,26 @@
 import { z } from "zod";
 import { datetimeSchema } from "./common";
 
+export const statusValues = [
+	"Non-Voter",
+	"Aspirant",
+	"Potential Voter",
+	"Voter",
+	"ExOfficio",
+	"Obsolete",
+] as const;
+const statusSchema = z.enum(statusValues);
+
+// Historically we allowed additional values
+const statusExtendedSchema = z.enum([
+	...statusSchema.options,
+	"Nearly Voter",
+	"",
+]);
+
 const statusChangeEntrySchema = z.object({
 	id: z.number(),
-	Date: z.nullable(datetimeSchema),
+	Date: z.union([datetimeSchema, z.string().date()]).nullable(),
 	OldStatus: z.string(),
 	NewStatus: z.string(),
 	Reason: z.string(),
@@ -11,7 +28,7 @@ const statusChangeEntrySchema = z.object({
 
 const contactEmailSchema = z.object({
 	id: z.number(),
-	Email: z.string().email(),
+	Email: z.string(), //.email(),
 	DateAdded: z.nullable(datetimeSchema),
 	Primary: z.boolean(),
 	Broken: z.boolean(),
@@ -34,9 +51,9 @@ const userSchema = z.object({
 	FirstName: z.string(),
 	MI: z.string(),
 	LastName: z.string(),
-	Email: z.string().email(), // Member account email (alternate unique identifier for IEEE SA account)
+	Email: z.string(), //.email(), // Member account email (alternate unique identifier for IEEE SA account)
 	Employer: z.string(), // Member declared employer
-	ContactInfo: contactInfoSchema,
+	ContactInfo: contactInfoSchema.nullable(),
 	ContactEmails: z.array(contactEmailSchema),
 });
 
@@ -44,19 +61,20 @@ const groupMemberSchema = z.object({
 	SAPIN: z.number(),
 	groupId: z.string().uuid(),
 	Affiliation: z.string(),
-	Status: z.string(), // Group member status
+	Status: statusSchema, // Group member status
 	ObsoleteSAPINs: z.array(z.number()), // Array of SAPINs previously used by member
-	ReplacedBySAPIN: z.number(), // SAPIN that replaces this one
+	ReplacedBySAPIN: z.number().nullable(), // SAPIN that replaces this one
 	StatusChangeDate: z.nullable(datetimeSchema), // Date of last status change
 	StatusChangeHistory: z.array(statusChangeEntrySchema), // History of status change
 	StatusChangeOverride: z.boolean(), // Manually maintain status; don't update based on attendance/participation
 	DateAdded: z.nullable(datetimeSchema), // Date member was added
-	MemberID: z.number(), // Member identifier from Adrian's Access database
-	Notes: z.string(),
+	MemberID: z.number().nullable(), // Member identifier from Adrian's Access database
+	Notes: z.string().nullable(),
 	InRoster: z.boolean(), // Present in MyProject roster
 });
 
 export const memberSchema = userSchema.merge(groupMemberSchema);
+export const membersSchema = memberSchema.array();
 
 export const memberQuerySchema = z
 	.object({
@@ -107,7 +125,7 @@ export const memberCreateSchema = userSchema
 export const memberCreatesSchema = z.array(memberCreateSchema);
 export const memberUpdateSchema = z.object({
 	id: z.number(),
-	changes: memberSchema.partial(),
+	changes: memberSchema.extend({ StatusChangeReason: z.string() }).partial(),
 });
 export const memberUpdatesSchema = z.array(memberUpdateSchema);
 export const memberIdsSchema = z.array(z.number());
@@ -120,6 +138,8 @@ export type UpdateRosterOptions = {
 export type StatusChangeEntry = z.infer<typeof statusChangeEntrySchema>;
 export type ContactEmail = z.infer<typeof contactEmailSchema>;
 export type ContactInfo = z.infer<typeof contactInfoSchema>;
+export type StatusType = z.infer<typeof statusSchema>;
+export type StatusExtendedType = z.infer<typeof statusExtendedSchema>;
 export type UserType = z.infer<typeof userSchema>;
 export type GroupMember = z.infer<typeof groupMemberSchema>;
 export type Member = z.infer<typeof memberSchema>;
