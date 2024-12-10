@@ -8,7 +8,7 @@ import {
 } from "@reduxjs/toolkit";
 import isEqual from "lodash.isequal";
 
-import { fetcher, setError, isObject } from "dot11-components";
+import { fetcher, setError } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
 import { selectMemberEntities } from "./members";
@@ -23,6 +23,7 @@ import {
 	SessionAttendanceSummaryCreate,
 	SessionAttendanceSummaryChanges,
 	SessionAttendanceSummaryUpdate,
+	sessionAttendanceSummariesSchema,
 } from "@schemas/attendances";
 export type {
 	SessionAttendanceSummary,
@@ -31,55 +32,6 @@ export type {
 	SessionAttendanceSummaryUpdate,
 };
 
-/*
-export type SessionAttendanceSummary = {
-	id: number;
-	session_id: number; // Session identifier
-	AttendancePercentage: number | null; // Percentage of meeting slots attended
-	IsRegistered: boolean; // Registered for session
-	InPerson: boolean; // Attended in-person (not remotely)
-	DidAttend: boolean; // Declare attendance criteria met
-	DidNotAttend: boolean; // Declare attendance criteria not met
-	SAPIN: number; // SA PIN under which attendance was logged
-	CurrentSAPIN: number; // Current SA PIN
-	Notes: string | null;
-};
-
-export type SessionAttendanceSummaryCreate = Pick<
-	SessionAttendanceSummary,
-	"session_id" | "SAPIN"
-> &
-	Partial<
-		Pick<
-			SessionAttendanceSummary,
-			| "AttendancePercentage"
-			| "IsRegistered"
-			| "InPerson"
-			| "DidAttend"
-			| "DidNotAttend"
-			| "Notes"
-		>
-	>;
-
-export type SessionAttendanceSummaryChanges = Partial<
-	Pick<
-		SessionAttendanceSummary,
-		| "session_id"
-		| "SAPIN"
-		| "AttendancePercentage"
-		| "IsRegistered"
-		| "InPerson"
-		| "DidAttend"
-		| "DidNotAttend"
-		| "Notes"
-	>
->;
-
-export type SessionAttendanceSummaryUpdate = {
-	id: number;
-	changes: SessionAttendanceSummaryChanges;
-};
-*/
 export function getNullAttendanceSummary(
 	session_id: number,
 	SAPIN: number
@@ -242,32 +194,6 @@ export const selectMemberAttendances = createSelector(
  * Thunk actions
  */
 
-/** Validate as attendance summary object */
-function validAttendanceSummary(entry: any): entry is SessionAttendanceSummary {
-	return (
-		isObject(entry) &&
-		typeof entry.id === "number" &&
-		typeof entry.session_id === "number" &&
-		typeof entry.SAPIN === "number" &&
-		(entry.AttendancePercentage === null ||
-			typeof entry.AttendancePercentage === "number") &&
-		typeof entry.IsRegistered === "boolean" &&
-		typeof entry.InPerson === "boolean" &&
-		typeof entry.DidAttend === "boolean" &&
-		typeof entry.DidNotAttend === "boolean" &&
-		(entry.Notes === null || typeof entry.Notes === "string")
-	);
-}
-
-/** Validate as array of attendance summary objects */
-export function validAttendanceSummaries(
-	attendances: unknown
-): attendances is SessionAttendanceSummary[] {
-	return (
-		Array.isArray(attendances) && attendances.every(validAttendanceSummary)
-	);
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loading = false;
@@ -289,18 +215,16 @@ export const loadRecentAttendanceSummaries =
 			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName, sessionIds }));
+		const baseUrl = `/api/${groupName}/attendances`;
 		loading = true;
 		loadingPromise = Promise.all(
 			sessions.map((session) => {
-				const url = `/api/${groupName}/attendances/${session.id}`;
-				return fetcher.get(url).then((response: any) => {
-					if (!validAttendanceSummaries(response)) {
-						throw new TypeError(
-							"Unexpected response to GET " + url
-						);
-					}
-					return response;
-				});
+				const url = `${baseUrl}/${session.id}`;
+				return fetcher
+					.get(url)
+					.then((response: any) =>
+						sessionAttendanceSummariesSchema.parse(response)
+					);
 			})
 		)
 			.then((all) => {
@@ -311,9 +235,7 @@ export const loadRecentAttendanceSummaries =
 			})
 			.catch((error) => {
 				dispatch(getFailure());
-				dispatch(
-					setError(`Unable to get recent attendance summaries`, error)
-				);
+				dispatch(setError(`GET ${baseUrl}/:session_id`, error));
 			})
 			.finally(() => {
 				loading = false;
@@ -333,28 +255,21 @@ export const importAttendanceSummary =
 		}
 		let url = `/api/${groupName}/attendances/${session.id}/import`;
 		if (useDaily) url += "?use=daily-attendance";
-		let response: any;
+		let attendances: SessionAttendanceSummary[];
 		try {
-			response = await fetcher.post(url);
-			if (!validAttendanceSummaries(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.post(url);
+			attendances = sessionAttendanceSummariesSchema.parse(response);
 		} catch (error) {
-			dispatch(
-				setError(
-					"Unable to import attendance summary for session " +
-						sessionNumber,
-					error
-				)
-			);
+			dispatch(setError("POST " + url, error));
 			return;
 		}
 		dispatch(
 			updateSession({
 				id: session.id,
-				changes: { attendees: response.length },
+				changes: { attendees: attendances.length },
 			})
 		);
-		dispatch(setMany(response));
+		dispatch(setMany(attendances));
 	};
 
 export const addAttendanceSummaries =
@@ -362,16 +277,15 @@ export const addAttendanceSummaries =
 	async (dispatch, getState) => {
 		const groupName = selectAttendanceSummaryGroupName(getState());
 		const url = `/api/${groupName}/attendances`;
-		let response: unknown;
+		let attendances: SessionAttendanceSummary[];
 		try {
-			response = await fetcher.post(url, adds);
-			if (!validAttendanceSummaries(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.post(url, adds);
+			attendances = sessionAttendanceSummariesSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to add attendance summaries", error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(setMany(response));
+		dispatch(setMany(attendances));
 	};
 
 export const updateAttendanceSummaries =
@@ -380,17 +294,15 @@ export const updateAttendanceSummaries =
 		dispatch(updateMany(updates));
 		const groupName = selectAttendanceSummaryGroupName(getState());
 		const url = `/api/${groupName}/attendances`;
-		let response: unknown;
+		let attendances: SessionAttendanceSummary[];
 		try {
-			response = await fetcher.patch(url, updates);
-			console.log(response);
-			if (!validAttendanceSummaries(response))
-				throw new TypeError("Unexpected response to PATCH " + url);
+			const response = await fetcher.patch(url, updates);
+			attendances = sessionAttendanceSummariesSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to update attendance summaries", error));
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		dispatch(setMany(response));
+		dispatch(setMany(attendances));
 	};
 
 export const deleteAttendanceSummaries =
@@ -402,6 +314,6 @@ export const deleteAttendanceSummaries =
 		try {
 			await fetcher.delete(url, ids);
 		} catch (error) {
-			dispatch(setError("Unable to update attendance summaries", error));
+			dispatch(setError("DELETE " + url, error));
 		}
 	};

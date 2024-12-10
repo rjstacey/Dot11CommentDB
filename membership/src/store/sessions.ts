@@ -11,63 +11,27 @@ import { fetcher, setError } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
 
-import { sessionsSchema, Session } from "@schemas/sessions";
+import { sessionsSchema, Session, SessionType } from "@schemas/sessions";
 export type { Session };
-
-/*
-export interface Session {
-	id: number;
-	number: number | null;
-	name: string;
-	type: SessionType;
-	groupId: string | null;
-	imatMeetingId: number | null;
-	OrganizerID: string;
-	timezone: string;
-	startDate: string;
-	endDate: string;
-	attendees: number;
-}
-	*/
 
 export type SessionAdd = Omit<Session, "id" | "Attendees">;
 
-export const SessionTypeLabels = {
+export const SessionTypeLabels: Record<SessionType, string> = {
 	p: "Plenary",
 	i: "Interim",
 	o: "Other",
 	g: "General",
 } as const;
 
-export type SessionType = keyof typeof SessionTypeLabels;
-
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 	([value, label]) =>
 		({ value, label } as { value: SessionType; label: string })
 );
-/*
-function validSession(session: any): session is Session {
-	return (
-		isObject(session) &&
-		typeof session.id === "number" &&
-		(session.number === null || typeof session.number === "number") &&
-		typeof session.name === "string" &&
-		["p", "i", "o", "g"].includes(session.type) &&
-		(session.groupId === null || typeof session.groupId === "string") &&
-		(session.imatMeetingId === null ||
-			typeof session.imatMeetingId === "number") &&
-		/\d{4}-\d{2}-\d{2}/.test(session.startDate) &&
-		/\d{4}-\d{2}-\d{2}/.test(session.endDate) &&
-		typeof session.timezone === "string"
-	);
-}
-*/
+
 export const displaySessionType = (type: SessionType | null) =>
 	type ? SessionTypeLabels[type] : "";
 
-/*
- * Slice
- */
+/** Slice */
 const dataSet = "sessions";
 
 type ExtraState = {
@@ -122,11 +86,8 @@ const slice = createSlice({
 
 export default slice;
 
-/*
- * Slice actions
- */
+/** Slice actions */
 export const sessionsActions = slice.actions;
-
 const {
 	getPending,
 	getSuccess,
@@ -135,12 +96,9 @@ const {
 	upsertMany: upsertSessions,
 	updateOne: updateSession,
 } = slice.actions;
-
 export { clearSessions, upsertSessions, updateSession };
 
-/*
- * Selectors
- */
+/** Selectors */
 export const selectSessionsState = (state: RootState) => state[dataSet];
 export const selectSessionIds = (state: RootState) =>
 	selectSessionsState(state).ids;
@@ -180,14 +138,7 @@ export const selectMostRecentAttendedSession = (state: RootState) => {
 export const selectSession = (state: RootState, id: EntityId) =>
 	selectSessionEntities(state)[id];
 
-/*
- * Thunk actions
- */
-/*
-function validSessions(sessions: any): sessions is Session[] {
-	return Array.isArray(sessions) && sessions.every(validSession);
-}
-*/
+/** Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loading = false;

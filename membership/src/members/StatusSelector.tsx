@@ -12,7 +12,7 @@ function StatusSelector({
 	onChange,
 	...otherProps
 }: {
-	value: StatusType | "" | typeof MULTIPLE;
+	value: string | typeof MULTIPLE;
 	onChange: (value: StatusType) => void;
 } & Omit<
 	React.ComponentProps<typeof Select>,

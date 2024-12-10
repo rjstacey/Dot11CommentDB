@@ -62,9 +62,7 @@ export default slice;
 const { getPending, getSuccess, getFailure, setMany, addMany, removeMany } =
 	slice.actions;
 
-/*
- * Selector
- */
+/** Selector */
 export const selectEmailTemplatesState = (state: RootState) => state[dataSet];
 const selectEmailTemplatesAge = (state: RootState) => {
 	let lastLoad = selectEmailTemplatesState(state).lastLoad;
@@ -72,9 +70,7 @@ const selectEmailTemplatesAge = (state: RootState) => {
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
 
-/*
- * Actions
- */
+/** Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loading = false;
@@ -100,7 +96,7 @@ export const loadEmailTemplates =
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError(`GET ${url}`, error));
+				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
 				loading = false;
@@ -118,7 +114,7 @@ export const addEmailTemplate =
 			const response = await fetcher.post(url, [template]);
 			templates = emailTemplatesSchema.parse(response);
 		} catch (error) {
-			dispatch(setError(`POST ${url}`, error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
 		dispatch(addMany(templates));
@@ -135,7 +131,7 @@ export const updateEmailTemplate =
 			const response = await fetcher.patch(url, [update]);
 			templates = emailTemplatesSchema.parse(response);
 		} catch (error) {
-			dispatch(setError(`PATCH ${url}`, error));
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
 		dispatch(setMany(templates));
@@ -150,6 +146,6 @@ export const deleteEmailTemplate =
 		try {
 			await fetcher.delete(url, [id]);
 		} catch (error) {
-			dispatch(setError(`Unable to delete email template`, error));
+			dispatch(setError("DELETE " + url, error));
 		}
 	};

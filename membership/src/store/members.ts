@@ -6,19 +6,22 @@ import {
 	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	FieldType,
-	isObject,
 	displayDate,
+	FieldType,
 	Fields,
 } from "dot11-components";
 import {
 	StatusChangeEntry,
 	StatusType,
+	StatusExtendedType,
 	ContactInfo,
 	ContactEmail,
 	Member,
 	MemberCreate,
 	MemberUpdate,
+	statusValues,
+	membersSchema,
+	memberSchema,
 } from "@schemas/members";
 
 import type { RootState, AppThunk } from ".";
@@ -35,85 +38,16 @@ export type {
 	MemberCreate,
 	MemberUpdate,
 	StatusType,
+	StatusExtendedType,
 };
 
-const statusTypes = [
-	"Non-Voter",
-	"Aspirant",
-	"Potential Voter",
-	"Voter",
-	"ExOfficio",
-	"Obsolete",
-] as const;
 export type ExpectedStatusType = StatusType | "";
 
-export const statusOptions = statusTypes.map((v) => ({
+export const statusOptions = statusValues.map((v) => ({
 	value: v,
 	label: v,
 }));
 
-/*
-export type StatusChangeType = {
-	id: number;
-	Date: string;
-	OldStatus: StatusType | "";
-	NewStatus: StatusType;
-	Reason: string;
-};
-
-export type MemberContactEmail = {
-	id: number;
-	Email: string;
-	Primary: boolean;
-	Broken: boolean;
-	DateAdded: string;
-};
-
-export type MemberContactInfo = {
-	StreetLine1: string;
-	StreetLine2: string;
-	City: string;
-	State: string;
-	Zip: string;
-	Country: string;
-	Phone: string;
-	Fax: string;
-};
-
-export type MemberCommon = {
-	SAPIN: number;
-	Name: string;
-	FirstName: string;
-	LastName: string;
-	MI: string;
-	Email: string;
-	Employer: string;
-	Affiliation: string;
-	Status: StatusType;
-};
-
-export type MemberExtra = {
-	ContactEmails: MemberContactEmail[];
-	ContactInfo: MemberContactInfo;
-	StatusChangeOverride: boolean;
-	StatusChangeHistory: StatusChangeType[];
-	StatusChangeDate: string;
-	BallotSeriesCount: number;
-	BallotSeriesTotal: number;
-	AttendanceCount: number;
-	DateAdded: string;
-	ObsoleteSAPINs: number[];
-	ReplacedBySAPIN: number | null;
-};
-
-export type MemberUpdateExtra = {
-	StatusChangeReason: string;
-};
-
-export type MemberAdd = MemberCommon & Partial<MemberExtra>;
-export type MemberUpdate = Update<Member & MemberUpdateExtra>;
-export type Member = MemberCommon & MemberExtra;
-*/
 export type MemberWithParticipation = Member & {
 	AttendancesSummary: string;
 	BallotParticipationSummary: string;
@@ -342,18 +276,6 @@ export const selectUserMembersAccess = (state: RootState) => {
 };
 
 /* Thunk actions */
-function validMember(member: any): member is Member {
-	return (
-		isObject(member) &&
-		typeof member.SAPIN === "number" &&
-		Array.isArray(member.StatusChangeHistory)
-	);
-}
-
-function validResponse(members: unknown): members is Member[] {
-	return Array.isArray(members) && members.every(validMember);
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loading = false;
@@ -369,17 +291,17 @@ export const loadMembers =
 			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
+		const url = `/api/${groupName}/members`;
 		loading = true;
 		loadingPromise = fetcher
-			.get(`/api/${groupName}/members`)
+			.get(url)
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response to GET");
-				dispatch(getSuccess(response));
+				const members = membersSchema.parse(response);
+				dispatch(getSuccess(members));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get members list", error));
+				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
 				loading = false;
@@ -392,16 +314,15 @@ export const updateMembers =
 	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members`;
-		let response: any;
+		let members: Member[];
 		try {
-			response = await fetcher.patch(url, updates);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response to PATCH");
+			const response = await fetcher.patch(url, updates);
+			members = membersSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to update members", error));
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		dispatch(setMany(response));
+		dispatch(setMany(members));
 	};
 
 type StatusChangeEntryUpdate = {
@@ -414,16 +335,15 @@ export const addMemberStatusChangeEntries =
 	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
-		let response: any;
+		let member: Member;
 		try {
-			response = await fetcher.put(url, entries);
-			if (!validMember(response))
-				throw new TypeError("Unexpected response to PUT " + url);
+			const response = await fetcher.put(url, entries);
+			member = memberSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to update member", error));
+			dispatch(setError("PUT " + url, error));
 			return;
 		}
-		dispatch(setOne(response));
+		dispatch(setOne(member));
 	};
 
 export const updateMemberStatusChangeEntries =
@@ -431,16 +351,15 @@ export const updateMemberStatusChangeEntries =
 	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
-		let response: any;
+		let member: Member;
 		try {
-			response = await fetcher.patch(url, updates);
-			if (!validMember(response))
-				throw new TypeError("Unexpected response to PATCH " + url);
+			const response = await fetcher.patch(url, updates);
+			member = memberSchema.parse(response);
 		} catch (error) {
 			dispatch(setError("Unable to update member", error));
 			return;
 		}
-		dispatch(setOne(response));
+		dispatch(setOne(member));
 	};
 
 export const deleteMemberStatusChangeEntries =
@@ -448,34 +367,32 @@ export const deleteMemberStatusChangeEntries =
 	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members/${sapin}/StatusChangeHistory`;
-		let response: any;
+		let member: Member;
 		try {
-			response = await fetcher.delete(url, ids);
-			if (!validMember(response))
-				throw new TypeError("Unexpected response to DELETE " + url);
+			const response = await fetcher.delete(url, ids);
+			member = memberSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to delete member", error));
+			dispatch(setError("DELETE " + url, error));
 			return;
 		}
-		dispatch(setOne(response));
+		dispatch(setOne(member));
 	};
 
 export const addMembers =
-	(members: MemberCreate[]): AppThunk<number[]> =>
+	(adds: MemberCreate[]): AppThunk<number[]> =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		const url = `/api/${groupName}/members`;
-		let response: any;
+		let members: Member[];
 		try {
-			response = await fetcher.post(url, members);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.post(url, adds);
+			members = membersSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to add members", error));
+			dispatch(setError("POST " + url, error));
 			return [];
 		}
-		dispatch(addMany(response));
-		return response.map((m) => m.SAPIN);
+		dispatch(addMany(members));
+		return members.map((m) => m.SAPIN);
 	};
 
 export const deleteMembers =
@@ -487,7 +404,7 @@ export const deleteMembers =
 		try {
 			await fetcher.delete(url, ids);
 		} catch (error) {
-			dispatch(setError(`Unable to delete members ${ids}`, error));
+			dispatch(setError("DELETE " + url, error));
 		}
 	};
 
@@ -511,17 +428,16 @@ export const uploadMembers =
 		}
 		const url = `/api/${groupName}/members/upload/${format}`;
 		dispatch(getPending({ groupName }));
-		let response: any;
+		let members: Member[];
 		try {
-			response = await fetcher.postFile(url, file);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.postFile(url, file);
+			members = membersSchema.parse(response);
 		} catch (error) {
 			dispatch(getFailure());
-			dispatch(setError("Unable to upload users", error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(getSuccess(response));
+		dispatch(getSuccess(members));
 	};
 
 export const deleteSelectedMembers =
@@ -544,7 +460,7 @@ export const exportMyProjectRoster =
 		try {
 			await fetcher.getFile(url);
 		} catch (error) {
-			dispatch(setError("Unable to get file", error));
+			dispatch(setError("GET " + url, error));
 		}
 	};
 
@@ -561,7 +477,7 @@ export const exportMembersPublic =
 		try {
 			await fetcher.getFile(url);
 		} catch (error) {
-			dispatch(setError("Unable to get file", error));
+			dispatch(setError("GET " + url, error));
 		}
 	};
 
@@ -578,7 +494,7 @@ export const exportMembersPrivate =
 		try {
 			await fetcher.getFile(url);
 		} catch (error) {
-			dispatch(setError("Unable to get file", error));
+			dispatch(setError("GET " + url, error));
 		}
 	};
 
@@ -597,6 +513,6 @@ export const exportVotingMembers =
 		try {
 			await fetcher.getFile(url);
 		} catch (error) {
-			dispatch(setError("Unable to get file", error));
+			dispatch(setError("GET " + url, error));
 		}
 	};

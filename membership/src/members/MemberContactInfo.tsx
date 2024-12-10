@@ -196,7 +196,7 @@ function MemberContactInfoEdit({
 			<Input
 				style={hasChangesStyle(
 					editedContactInfo,
-					savedContactInfo,
+					savedContactInfo || undefined,
 					f.key
 				)}
 				type="text"

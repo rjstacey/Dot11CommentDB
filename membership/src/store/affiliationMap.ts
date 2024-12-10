@@ -9,8 +9,8 @@ import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
+	Fields,
 	FieldType,
-	isObject,
 	getAppTableDataSelectors,
 } from "dot11-components";
 
@@ -19,24 +19,11 @@ import {
 	AffiliationMap,
 	AffiliationMapCreate,
 	AffiliationMapUpdate,
+	affiliationMapsSchema,
 } from "@schemas/affiliationMap";
 export type { AffiliationMap, AffiliationMapCreate, AffiliationMapUpdate };
 
-/*
-export type AffiliationMap = {
-	id: number;
-	match: string;
-	shortAffiliation: string;
-};
-
-export type AffiliationMapCreate = Omit<AffiliationMap, "id">;
-
-export type AffiliationMapUpdate = {
-	id: number;
-	changes: Partial<AffiliationMap>;
-};
-*/
-export const fields = {
+export const fields: Fields = {
 	id: { label: "id", type: FieldType.NUMERIC },
 	match: { label: "Match", type: FieldType.STRING },
 	shortAffiliation: { label: "Name" },
@@ -76,7 +63,7 @@ const slice = createAppTableDataSlice({
 });
 export default slice;
 
-/* Slice actions */
+/** Slice actions */
 const { getSuccess, getFailure, addMany, setMany, removeMany, setSelected } =
 	slice.actions;
 export { setSelected };
@@ -86,9 +73,7 @@ const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
 
 export const affiliationMapActions = slice.actions;
 
-/*
- * Selectors
- */
+/** Selectors */
 export const selectAffiliationMapState = (state: RootState) => state[dataSet];
 
 export const selectAffiliationMapIds = (state: RootState) =>
@@ -111,13 +96,7 @@ export const selectAffiliationMaps = createSelector(
 	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
-/*
- * Thunk actions
- */
-function validResponse(response: any): response is AffiliationMap[] {
-	return Array.isArray(response) && response.every(isObject);
-}
-
+/** Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loading = false;
@@ -139,15 +118,12 @@ export const loadAffiliationMap =
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response to GET " + url);
-				dispatch(getSuccess(response));
+				const affiliationMaps = affiliationMapsSchema.parse(response);
+				dispatch(getSuccess(affiliationMaps));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(
-					setError(`Unable to get ballot series participation`, error)
-				);
+				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
 				loading = false;
@@ -157,43 +133,41 @@ export const loadAffiliationMap =
 	};
 
 export const addAffiliationMaps =
-	(adds: AffiliationMapCreate[]): AppThunk<AffiliationMap[] | void> =>
+	(adds: AffiliationMapCreate[]): AppThunk<AffiliationMap[]> =>
 	(dispatch, getState) => {
 		const { groupName } = selectAffiliationMapState(getState());
 		const url = `/api/${groupName}/affiliationMap`;
 		return fetcher
 			.post(url, adds)
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError(`Unexpected response to POST ${url}`);
-				dispatch(addMany(response));
-				return response;
+				const affiliationMaps = affiliationMapsSchema.parse(response);
+				dispatch(addMany(affiliationMaps));
+				return affiliationMaps;
 			})
 			.catch((error: any) => {
-				dispatch(setError("Unable to add affiliation map", error));
+				dispatch(setError("POST " + url, error));
+				return [];
 			});
 	};
 
 export const updateAffiliationMaps =
-	(updates: AffiliationMapUpdate[]): AppThunk<AffiliationMap[] | void> =>
+	(updates: AffiliationMapUpdate[]): AppThunk<void> =>
 	(dispatch, getState) => {
 		const { groupName } = selectAffiliationMapState(getState());
 		const url = `/api/${groupName}/affiliationMap`;
 		return fetcher
 			.patch(url, updates)
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError(`Unexpected response to POST ${url}`);
-				dispatch(setMany(response));
-				return response;
+				const affiliationMaps = affiliationMapsSchema.parse(response);
+				dispatch(setMany(affiliationMaps));
 			})
 			.catch((error: any) => {
-				dispatch(setError("Unable to update officer", error));
+				dispatch(setError("PATCH " + url, error));
 			});
 	};
 
 export const deleteAffiliationMaps =
-	(ids: EntityId[]): AppThunk =>
+	(ids: EntityId[]): AppThunk<void> =>
 	(dispatch, getState) => {
 		const { groupName } = selectAffiliationMapState(getState());
 		const url = `/api/${groupName}/affiliationMap`;
@@ -203,6 +177,6 @@ export const deleteAffiliationMaps =
 				dispatch(removeMany(ids));
 			})
 			.catch((error: any) => {
-				dispatch(setError("Unable to delete officer", error));
+				dispatch(setError("DELETE " + url, error));
 			});
 	};

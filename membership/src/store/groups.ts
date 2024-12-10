@@ -44,8 +44,6 @@ export const GroupTypeLabels: Record<GroupType, string> = {
 	tig: "Topic of Interest Group",
 } as const;
 
-//export type GroupType = keyof typeof GroupTypeLabels;
-
 export function getSubgroupTypes(parentType: GroupType): GroupType[] {
 	if (parentType === "r") {
 		return ["c", "wg"];
@@ -73,27 +71,6 @@ export const GroupStatusOptions = [
 	{ value: 1, label: "Active" },
 ];
 
-/*export type Group = {
-	id: string;
-	parent_id: string | null;
-	name: string;
-	status: number;
-	symbol: string | null;
-	color: string | null;
-	type: GroupType | null;
-	project: string | null;
-	officerSAPINs: number[];
-	permissions: Record<string, number>;
-};
-
-export type GroupCreate = Omit<Group, "id" | "permissions"> & { id?: string };
-
-export type GroupUpdate = {
-	id: EntityId;
-	changes: Partial<Group>;
-};
-*/
-
 export type GroupWithOfficers = Group & {
 	officers: Officer[];
 };
@@ -110,7 +87,7 @@ export const fields = {
 	symbol: { label: "Committee" },
 };
 
-/* Create slice */
+/** Create slice */
 const initialState: {
 	topLevelGroupId: string | null;
 	lastLoad: Record<string, string | null>;
@@ -191,7 +168,7 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/* Slice actions */
+/** Slice actions */
 export const groupsActions = slice.actions;
 
 const {

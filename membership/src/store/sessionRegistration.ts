@@ -4,25 +4,26 @@ import {
 	Action,
 	Dictionary,
 } from "@reduxjs/toolkit";
-
 import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
-	isObject,
 	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
+import { upsertAttendanceSummaries } from "./attendanceSummary";
 import {
-	SessionAttendanceSummary,
-	validAttendanceSummaries,
-	upsertAttendanceSummaries,
-} from "./attendanceSummary";
+	uploadSessionRegistrationResponseSchema,
+	SessionRegistration,
+	UploadSessionRegistrationResponse,
+} from "@schemas/registration";
 import { Member, selectMemberEntities } from "./members";
 import { selectSessionByNumber } from "./sessions";
+
+export type { SessionRegistration };
 
 export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
@@ -35,16 +36,6 @@ export const fields: Fields = {
 		label: "Registration type",
 	},
 	Matched: { label: "Matched", type: FieldType.STRING },
-};
-
-export type SessionRegistration = {
-	id: number;
-	SAPIN: number | null;
-	Name: string;
-	FirstName: string;
-	LastName: string;
-	Email: string;
-	RegType: string;
 };
 
 export type SyncedSessionRegistration = SessionRegistration & {
@@ -178,37 +169,6 @@ export const sessionRegistrationSelectors = getAppTableDataSelectors(
 );
 
 /** Thunk actions */
-function validSessionRegistration(entry: any): entry is SessionRegistration {
-	return (
-		isObject(entry) &&
-		typeof entry.id === "number" &&
-		(entry.SAPIN === null || typeof entry.SAPIN === "number") &&
-		typeof entry.Email === "string" &&
-		typeof entry.Name === "string" &&
-		typeof entry.RegType === "string"
-	);
-}
-
-function validSessionRegistrations(
-	registrations: any
-): registrations is SessionRegistration[] {
-	return (
-		Array.isArray(registrations) &&
-		registrations.every(validSessionRegistration)
-	);
-}
-
-function validUploadRestrationResponse(response: any): response is {
-	attendances: SessionAttendanceSummary[];
-	registrations: SessionRegistration[];
-} {
-	return (
-		isObject(response) &&
-		validSessionRegistrations(response.registrations) &&
-		validAttendanceSummaries(response.attendances)
-	);
-}
-
 export const uploadSessionRegistration =
 	(groupName: string, sessionNumber: number, file: File): AppThunk =>
 	async (dispatch, getState) => {
@@ -221,22 +181,15 @@ export const uploadSessionRegistration =
 		}
 		let url = `/api/${groupName}/attendances/${session.id}/uploadRegistration`;
 		dispatch(getPending({ groupName, sessionId: session.id }));
-		let response: unknown;
+		let r: UploadSessionRegistrationResponse;
 		try {
-			response = await fetcher.postFile(url, file);
-			if (!validUploadRestrationResponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.postFile(url, file);
+			r = uploadSessionRegistrationResponseSchema.parse(response);
 		} catch (error) {
 			dispatch(getFailure());
-			dispatch(
-				setError(
-					"Unable to import registration for session " +
-						sessionNumber,
-					error
-				)
-			);
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(getSuccess(response.registrations));
-		dispatch(upsertAttendanceSummaries(response.attendances));
+		dispatch(getSuccess(r.registrations));
+		dispatch(upsertAttendanceSummaries(r.attendances));
 	};

@@ -34,6 +34,7 @@ import {
 	selectMemberWithParticipationSummary,
 	type Member,
 	type MemberCreate,
+	type ContactInfo,
 } from "../store/members";
 
 import IeeeMemberSelector from "./IeeeMemberSelector";
@@ -49,7 +50,7 @@ export type MultipleMember = Multiple<
 > & {
 	StatusChangeHistory: Member["StatusChangeHistory"];
 	ContactEmails: Member["ContactEmails"];
-	ContactInfo: Multiple<Member["ContactInfo"]>;
+	ContactInfo: Multiple<ContactInfo> | null;
 	ReplacedBySAPIN: Member["ReplacedBySAPIN"] | typeof MULTIPLE;
 	ObsoleteSAPINs: Member["ObsoleteSAPINs"] | typeof MULTIPLE;
 };

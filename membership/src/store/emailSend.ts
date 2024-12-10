@@ -9,34 +9,6 @@ import type {
 } from "@schemas/email";
 export type { Destination, Content, Body, Message, Email };
 
-/*
-export interface Destination {
-	ToAddresses?: string[];
-	CcAddresses?: string[];
-	BccAddresses?: string[];
-}
-
-export interface Content {
-	Data: string | undefined;
-	Charset?: string;
-}
-
-export interface Body {
-	Text?: Content;
-	Html?: Content;
-}
-
-export interface Message {
-	Subject: Content | undefined;
-	Body: Body | undefined;
-}
-
-export interface Email {
-	Destination: Destination | undefined;
-	Message: Message | undefined;
-	ReplyToAddresses?: string[];
-}
-*/
 export const sendEmails =
 	(groupName: string, emails: Email[]): AppThunk =>
 	async (dispatch) => {
