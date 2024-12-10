@@ -21,15 +21,16 @@ import {
 	getGroupOfficers,
 	selectOfficerEntities,
 	selectOfficerIds,
-	type Officer,
+	Officer,
 } from "./officers";
 import { AccessLevel } from "./user";
 
-import type {
+import {
 	GroupType,
 	Group,
 	GroupCreate,
 	GroupUpdate,
+	groupsSchema,
 } from "@schemas/groups";
 export type { GroupType, Group, GroupCreate, GroupUpdate };
 
@@ -362,14 +363,13 @@ export const loadGroups =
 		loadingPromise[groupName] = fetcher
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response to GET " + url);
-				dispatch(getSuccess2({ groupName, groups: response }));
-				return response;
+				const groups = groupsSchema.parse(response);
+				dispatch(getSuccess2({ groupName, groups }));
+				return groups;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get groups", error));
+				dispatch(setError("GET " + url, error));
 				return [];
 			})
 			.finally(() => {
@@ -386,16 +386,17 @@ export const addGroup =
 		return fetcher
 			.post(baseUrl, [group])
 			.then((response: any) => {
-				if (!validResponse(response) || response.length !== 1)
+				const groups = groupsSchema.parse(response);
+				if (groups.length !== 1)
 					throw new TypeError(
 						`Unexpected response to POST ${baseUrl}`
 					);
-				const group: Group = response[0];
+				const group: Group = groups[0];
 				dispatch(updateOne({ id: group.id, changes: group }));
 				return group;
 			})
 			.catch((error: any) => {
-				dispatch(setError("Unable to add group", error));
+				dispatch(setError("POST " + baseUrl, error));
 				dispatch(removeOne(group.id!));
 			});
 	};
@@ -409,14 +410,13 @@ export const updateGroups =
 		return fetcher
 			.patch(baseUrl, updates)
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response");
+				const groups = groupsSchema.parse(response);
 				dispatch(
-					updateMany(response.map((e) => ({ id: e.id, changes: e })))
+					updateMany(groups.map((e) => ({ id: e.id, changes: e })))
 				);
 			})
 			.catch((error: any) => {
-				dispatch(setError("Unable to update groups", error));
+				dispatch(setError("PATCH " + baseUrl, error));
 				dispatch(
 					updateMany(originals.map((e) => ({ id: e.id, changes: e })))
 				);
@@ -430,7 +430,7 @@ export const deleteGroups =
 		const originals = ids.map((id) => entities[id]!);
 		dispatch(removeMany(ids));
 		return fetcher.delete(baseUrl, ids).catch((error: any) => {
-			dispatch(setError("Unable to delete group", error));
+			dispatch(setError("DELETE " + baseUrl, error));
 			dispatch(addMany(originals));
 		});
 	};

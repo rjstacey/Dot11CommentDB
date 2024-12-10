@@ -127,10 +127,7 @@ const selectOfficersAge = (state: RootState) => {
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
 
-/*
- * Thunk actions
- */
-
+/* Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loading = false;
@@ -177,15 +174,13 @@ export const addOfficers =
 		dispatch(addMany(newOfficers));
 		return fetcher
 			.post(url, newOfficers)
-			.then((entities: any) => {
-				if (
-					!Array.isArray(entities) ||
-					entities.length !== newOfficers.length
-				)
+			.then((response: any) => {
+				const officers = officersSchema.parse(response);
+				if (officers.length !== newOfficers.length)
 					throw new TypeError(`Unexpected response to POST ${url}`);
 			})
 			.catch((error: any) => {
-				dispatch(setError("Unable to add officer", error));
+				dispatch(setError("POST " + url, error));
 				dispatch(removeMany(newOfficers.map((o) => o.id)));
 			});
 	};
@@ -200,15 +195,13 @@ export const updateOfficers =
 		dispatch(updateMany(updates));
 		return fetcher
 			.patch(url, updates)
-			.then((entities: any) => {
-				if (
-					!Array.isArray(entities) ||
-					entities.length !== updates.length
-				)
-					throw new TypeError(`Unexpected response to POST ${url}`);
+			.then((response: any) => {
+				const officers = officersSchema.parse(response);
+				if (officers.length !== updates.length)
+					throw new TypeError(`Unexpected response to PATCH ${url}`);
 			})
 			.catch((error: any) => {
-				dispatch(setError("Unable to update officer", error));
+				dispatch(setError("PATCH " + url, error));
 				dispatch(setMany(originals));
 			});
 	};
@@ -222,7 +215,7 @@ export const deleteOfficers =
 		const originals = ids.map((id) => entities[id]!);
 		dispatch(removeMany(ids));
 		return fetcher.delete(url, ids).catch((error: any) => {
-			dispatch(setError("Unable to delete officer", error));
+			dispatch(setError("DELETE " + url, error));
 			dispatch(addMany(originals));
 		});
 	};

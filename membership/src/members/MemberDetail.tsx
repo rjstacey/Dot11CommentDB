@@ -40,6 +40,7 @@ const defaultMember: MemberCreate & { ContactInfo: ContactInfo } = {
 	Affiliation: "",
 	Employer: "",
 	ContactInfo: memberContactInfoEmpty,
+	StatusChangeOverride: false,
 };
 
 type MemberDetailState = {
@@ -164,7 +165,7 @@ function MemberDetail({
 			...defaultMember,
 			StatusChangeHistory: [],
 			ContactEmails: [],
-			ReplacedBySAPIN: 0,
+			ReplacedBySAPIN: null,
 			ObsoleteSAPINs: [],
 		};
 		setSelected([]);

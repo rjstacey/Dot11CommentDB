@@ -29,6 +29,7 @@ import { selectSessionParticipationWithMembershipAndSummary } from "./sessionPar
 import { selectBallotParticipationWithMembershipAndSummary } from "./ballotParticipation";
 import { selectTopLevelGroupByName } from "./groups";
 import { AccessLevel } from "./user";
+import { loadIeeeMembers } from "./ieeeMembers";
 
 export type {
 	Member,
@@ -406,6 +407,7 @@ export const deleteMembers =
 		} catch (error) {
 			dispatch(setError("DELETE " + url, error));
 		}
+		await dispatch(loadIeeeMembers(true));
 	};
 
 export const UploadFormat = {

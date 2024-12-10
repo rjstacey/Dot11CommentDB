@@ -16,6 +16,7 @@ import {
 	FieldType,
 	getAppTableDataSelectors,
 	isObject,
+	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
@@ -26,7 +27,7 @@ import {
 	StatusType,
 } from "./members";
 
-export const fields = {
+export const fields: Fields = {
 	id: { label: "id", type: FieldType.NUMERIC },
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	Name: { label: "Name" },
