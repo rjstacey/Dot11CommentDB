@@ -34,11 +34,13 @@ import {
 	deleteWebexMeetings,
 	setSelected,
 	defaultWebexMeetingParams,
-	webexMeetingToWebexMeetingParams,
-	WebexMeetingParams,
+	WebexMeeting,
 	WebexMeetingOptions,
-	WebexMeetingAudioConnectionOptions,
+	WebexAudioConnectionOptions,
 	WebexMeetingUpdate,
+	WebexEntryExitTone,
+	WebexMeetingChange,
+	SyncedWebexMeeting,
 } from "../store/webexMeetings";
 import { updateMeetings, Meeting } from "../store/meetings";
 import { selectWebexAccountDefaultId } from "../store/webexAccounts";
@@ -61,7 +63,7 @@ export const defaultWebexMeeting: WebexMeetingEntry = {
 	date: "",
 	startTime: "",
 	endTime: "02:00",
-	templateId: null,
+	//templateId: null,
 };
 
 export function WebexMeetingAccount({
@@ -104,7 +106,11 @@ export function WebexMeetingAccount({
 	);
 }
 
-const entryToneOptions = [
+type EntryToneOption = {
+	value: WebexEntryExitTone;
+	label: string;
+};
+const entryToneOptions: EntryToneOption[] = [
 	{ value: "noTone", label: "No tone" },
 	{ value: "beep", label: "Beep" },
 	{ value: "announceName", label: "Announce name" },
@@ -119,8 +125,8 @@ function SelectEntryAndExitTone({
 	onChange,
 	...otherProps
 }: {
-	value: string | null;
-	onChange: (value: string) => void;
+	value: WebexEntryExitTone | null;
+	onChange: (value: WebexEntryExitTone) => void;
 } & Omit<
 	React.ComponentProps<typeof Select>,
 	"values" | "onChange" | "options"
@@ -148,7 +154,7 @@ function SelectJoinBeforeHostMinutes({
 	onChange,
 	...otherProps
 }: {
-	value: number | null;
+	value: number | null | undefined;
 	onChange: (value: number) => void;
 } & Omit<
 	React.ComponentProps<typeof Select>,
@@ -177,8 +183,8 @@ function SelectJoinBeforeHostMinutes({
 }
 
 type WebexMeetingTitleDateTime = {
-	title: string;
-	timezone: string;
+	title?: string;
+	timezone?: string;
 	date: string;
 	startTime: string;
 	endTime: string;
@@ -212,7 +218,11 @@ function WebexMeetingTitleDateTimeEdit({
 				<Field label="Time zone:">
 					<TimeZoneSelector
 						style={{ width: 200 }}
-						value={isMultiple(entry.timezone) ? "" : entry.timezone}
+						value={
+							isMultiple(entry.timezone) || !entry.timezone
+								? ""
+								: entry.timezone
+						}
 						onChange={(timezone) => changeEntry({ timezone })}
 						placeholder={
 							isMultiple(entry.timezone)
@@ -282,8 +292,8 @@ function WebexMeetingAudioOptionsEdit({
 	changeEntry,
 	readOnly,
 }: {
-	entry: Multiple<WebexMeetingAudioConnectionOptions>;
-	changeEntry: (changes: Partial<WebexMeetingAudioConnectionOptions>) => void;
+	entry: Multiple<WebexAudioConnectionOptions>;
+	changeEntry: (changes: Partial<WebexAudioConnectionOptions>) => void;
 	readOnly?: boolean;
 }) {
 	return (
@@ -681,31 +691,32 @@ function WebexMeetingEntryForm({
 }
 
 export type WebexMeetingEntry = Omit<
-	WebexMeetingParams,
+	WebexMeetingChange,
 	"accountId" | "id" | "start" | "end"
 > & {
 	accountId: number | null;
 	date: string;
 	startTime: string;
 	endTime: string;
+	meetingId?: number;
 };
 
 export type PartialWebexMeetingEntry = Partial<
 	Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">
 > & {
 	meetingOptions?: Partial<WebexMeetingOptions>;
-	audioConnectionOptions?: Partial<WebexMeetingAudioConnectionOptions>;
+	audioConnectionOptions?: Partial<WebexAudioConnectionOptions>;
 };
 
 export type MultipleWebexMeetingEntry = Multiple<
 	Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">
 > & {
 	meetingOptions: Multiple<WebexMeetingOptions>;
-	audioConnectionOptions: Multiple<WebexMeetingAudioConnectionOptions>;
+	audioConnectionOptions: Multiple<WebexAudioConnectionOptions>;
 };
 
 function convertWebexMeetingToEntry(
-	webexMeeting: WebexMeetingParams
+	webexMeeting: SyncedWebexMeeting
 ): WebexMeetingEntry {
 	let { start, end, ...rest } = webexMeeting;
 
@@ -729,7 +740,7 @@ function convertWebexMeetingToEntry(
 
 export function convertEntryToWebexMeeting(
 	entry: WebexMeetingEntry
-): Omit<WebexMeetingParams, "id"> {
+): Omit<WebexMeetingChange, "id"> {
 	let { date, startTime, endTime, accountId, ...rest } = entry;
 	const webexMeeting = { ...rest };
 
@@ -760,7 +771,7 @@ type WebexMeetingDetailState = {
 	action: Actions;
 	entry: MultipleWebexMeetingEntry;
 	saved: MultipleWebexMeetingEntry;
-	webexMeetings: WebexMeetingParams[];
+	webexMeetings: WebexMeeting[];
 	busy: boolean;
 };
 
@@ -797,7 +808,7 @@ class WebexMeetingDetail extends React.Component<
 	initState = (action: Actions): WebexMeetingDetailState => {
 		const { entities, selected, defaultWebexAccountId } = this.props;
 
-		const webexMeetings: WebexMeetingParams[] = selected
+		const webexMeetings: SyncedWebexMeeting[] = selected
 			.filter((id) => entities[id])
 			.map((id) => {
 				// Redo 'start' and 'end' - there is an extra zero on the milliseconds
@@ -811,7 +822,8 @@ class WebexMeetingDetail extends React.Component<
 						zone: webexMeeting.timezone,
 					}).toISO()!,
 				};
-				return webexMeetingToWebexMeetingParams(webexMeeting);
+				//return webexMeetingToWebexMeetingParams(webexMeeting);
+				return webexMeeting;
 			});
 		let entry: MultipleWebexMeetingEntry;
 		if (action === "update") {
@@ -828,7 +840,7 @@ class WebexMeetingDetail extends React.Component<
 				Object.values(entryMerge.meetingOptions).includes(MULTIPLE)
 					? defaultWebexMeeting.meetingOptions
 					: entryMerge.meetingOptions;
-			const audioConnectionOptions: WebexMeetingAudioConnectionOptions =
+			const audioConnectionOptions: WebexAudioConnectionOptions =
 				!entryMerge.audioConnectionOptions ||
 				Object.values(entryMerge.audioConnectionOptions).includes(
 					MULTIPLE
@@ -839,6 +851,9 @@ class WebexMeetingDetail extends React.Component<
 		} else {
 			entry = {
 				...defaultWebexMeeting,
+				meetingOptions: defaultWebexMeeting.meetingOptions!,
+				audioConnectionOptions:
+					defaultWebexMeeting.audioConnectionOptions!,
 				accountId: defaultWebexAccountId,
 			};
 		}
@@ -870,7 +885,7 @@ class WebexMeetingDetail extends React.Component<
 				diff
 			);
 			const updated = convertEntryToWebexMeeting(local);
-			const changes: Partial<WebexMeetingParams> =
+			const changes: Partial<SyncedWebexMeeting> =
 				deepDiff(webexMeeting, updated) || {};
 			console.log(local, updated, changes);
 			if (changes.meetingId) {
@@ -896,11 +911,13 @@ class WebexMeetingDetail extends React.Component<
 	changeEntry = (changes: PartialWebexMeetingEntry) => {
 		//console.log('change', changes)
 		this.setState((state) => {
-			let entry = deepMerge(state.entry, changes);
+			let entry: MultipleWebexMeetingEntry = deepMerge(
+				state.entry,
+				changes
+			);
 			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
 			changes = deepDiff(state.saved, entry) || {};
-			if (Object.keys(changes).length === 0)
-				entry = state.saved as WebexMeetingEntry;
+			if (Object.keys(changes).length === 0) entry = state.saved;
 			return { ...state, entry };
 		});
 	};

@@ -5,7 +5,7 @@ import type { AppThunk } from ".";
 import {
 	selectWebexMeetingsState,
 	WebexMeeting,
-	WebexMeetingParams,
+	WebexMeetingChange,
 } from "./webexMeetingsSelectors";
 import { LoadMeetingsConstraints } from "./meetingsSelectors";
 
@@ -27,7 +27,7 @@ export {
 	upsertMany as upsertWebexMeetings,
 	setSelected,
 	setProperty as setUiProperty,
-	clearWebexMeetings
+	clearWebexMeetings,
 };
 
 function validateResponse(
@@ -41,7 +41,10 @@ function validateResponse(
 let loadingUrl: string;
 let loadingPromise: Promise<WebexMeeting[]> | undefined;
 export const loadWebexMeetings =
-	(groupName: string, constraints?: LoadMeetingsConstraints): AppThunk<WebexMeeting[]> =>
+	(
+		groupName: string,
+		constraints?: LoadMeetingsConstraints
+	): AppThunk<WebexMeeting[]> =>
 	(dispatch, getState) => {
 		const url =
 			`/api/${groupName}/webex/meetings` +
@@ -72,7 +75,7 @@ export const loadWebexMeetings =
 export const addWebexMeeting =
 	(
 		accountId: number,
-		webexMeeting: Omit<WebexMeetingParams, "accountId" | "id">
+		webexMeeting: Omit<WebexMeetingChange, "accountId" | "id">
 	): AppThunk<string | null> =>
 	async (dispatch, getState) => {
 		const { groupName } = selectWebexMeetingsState(getState());
@@ -90,7 +93,7 @@ export const addWebexMeeting =
 		return response[0].id;
 	};
 
-export type WebexMeetingUpdate = Partial<WebexMeetingParams> & {
+export type WebexMeetingUpdate = Partial<WebexMeetingChange> & {
 	accountId: number;
 	id: string;
 };

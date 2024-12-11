@@ -5,15 +5,23 @@ import {
 } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
-import { fetcher, isObject, setError } from "dot11-components";
+import { fetcher, setError } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
+import {
+	WebexAccount,
+	WebexAccountCreate,
+	webexAccountSchema,
+	webexAccountsSchema,
+} from "@schemas/webex";
 
+export type { WebexAccount, WebexAccountCreate };
+
+/*
 export type WebexTemplate = {
 	id: string;
 	isDefault: boolean;
 };
-
 export interface WebexAccount {
 	id: number;
 	name: string;
@@ -40,7 +48,7 @@ export type WebexAccountCreate = {
 	name: string;
 	groups: string[];
 };
-
+*/
 type ExtraState = {
 	valid: boolean;
 	loading: boolean;
@@ -133,14 +141,9 @@ export const selectWebexAccounts = createSelector(
 );
 
 /* Thunk actions */
-
-function validGetResponse(response: any): response is WebexAccount[] {
-	return Array.isArray(response) && response.every(validWebexAccount);
-}
-
-let loadingPromise: Promise<WebexAccount[]>;
+let loadingPromise: Promise<void>;
 export const loadWebexAccounts =
-	(groupName: string): AppThunk<WebexAccount[]> =>
+	(groupName: string): AppThunk<void> =>
 	(dispatch, getState) => {
 		const { loading, groupName: currentGroupName } =
 			selectWebexAccountsState(getState());
@@ -148,20 +151,16 @@ export const loadWebexAccounts =
 			return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
+		const url = `/api/${groupName}/webex/accounts`;
 		loadingPromise = fetcher
-			.get(`/api/${groupName}/webex/accounts`)
+			.get(url)
 			.then((response: any) => {
-				if (!validGetResponse(response))
-					throw new TypeError("Unexpected response to GET");
-				dispatch(getSuccess(response));
-				return response;
+				const accounts = webexAccountsSchema.parse(response);
+				dispatch(getSuccess(accounts));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(
-					setError("Unable to get list of webex accounts", error)
-				);
-				return [];
+				dispatch(setError("GET " + url, error));
 			});
 		return loadingPromise;
 	};
@@ -178,35 +177,33 @@ export const updateWebexAccount =
 	(id: number, changes: Partial<WebexAccount>): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWebexAccountsGroupName(getState());
-		const url = `/api/${groupName}/webex/accounts/${id}`;
 		dispatch(updateOne({ id, changes }));
-		let response: any;
+		const url = `/api/${groupName}/webex/accounts/${id}`;
+		let account: WebexAccount;
 		try {
-			response = await fetcher.patch(url, changes);
-			if (!validWebexAccount(response))
-				throw new TypeError("Unexpected response to PATCH");
+			const response = await fetcher.patch(url, changes);
+			account = webexAccountSchema.parse(response);
 		} catch (error: any) {
 			dispatch(setError("Unable to update webex account", error));
 			return;
 		}
-		dispatch(updateOne({ id, changes: response }));
+		dispatch(setOne(account));
 	};
 
 export const addWebexAccount =
-	(account: WebexAccountCreate): AppThunk =>
+	(accountIn: WebexAccountCreate): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectWebexAccountsGroupName(getState());
 		const url = `/api/${groupName}/webex/accounts`;
-		let response;
+		let account: WebexAccount;
 		try {
-			response = await fetcher.post(url, account);
-			if (!validWebexAccount(response))
-				throw new TypeError("Unexpected response to POST");
+			const response = await fetcher.post(url, accountIn);
+			account = webexAccountSchema.parse(response);
 		} catch (error: any) {
-			dispatch(setError("Unable to add webex account", error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(addOne(response));
+		dispatch(addOne(account));
 	};
 
 export const deleteWebexAccount =
@@ -218,7 +215,7 @@ export const deleteWebexAccount =
 		try {
 			await fetcher.delete(url);
 		} catch (error: any) {
-			dispatch(setError("Unable to delete webex account", error));
+			dispatch(setError("DELETE " + url, error));
 		}
 	};
 
@@ -227,14 +224,13 @@ export const revokeAuthWebexAccount =
 	async (dispatch, getState) => {
 		const groupName = selectWebexAccountsGroupName(getState());
 		const url = `/api/${groupName}/webex/accounts/${id}/revoke`;
-		let response: any;
+		let account: WebexAccount;
 		try {
-			response = await fetcher.patch(url);
-			if (!validWebexAccount(response))
-				throw new TypeError("Unexpected response to PATCH");
+			const response = await fetcher.patch(url);
+			account = webexAccountSchema.parse(response);
 		} catch (error) {
-			dispatch(setError(`Unable to deauthorize webex account`, error));
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		dispatch(setOne(response));
+		dispatch(setOne(account));
 	};

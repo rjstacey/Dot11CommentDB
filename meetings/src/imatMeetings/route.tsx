@@ -1,7 +1,7 @@
 import { LoaderFunction, RouteObject } from "react-router-dom";
 
 import { store } from "../store";
-import { selectWorkingGroupByName } from "../store/groups";
+import { selectTopLevelGroupByName } from "../store/groups";
 import { AccessLevel } from "../store/user";
 import { loadImatMeetings } from "../store/imatMeetings";
 
@@ -12,7 +12,7 @@ const imatMeetingsLoader: LoaderFunction = async ({ params }) => {
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;
-	const group = selectWorkingGroupByName(getState(), groupName);
+	const group = selectTopLevelGroupByName(getState(), groupName);
 	if (!group) throw new Error("Invalid group: " + groupName);
 	const access = group.permissions.meetings || AccessLevel.none;
 	if (access < AccessLevel.ro)

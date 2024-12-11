@@ -1,9 +1,9 @@
 import {
-	Action,
-	EntityId,
-	PayloadAction,
 	createAction,
 	createSelector,
+	Action,
+	PayloadAction,
+	EntityId,
 } from "@reduxjs/toolkit";
 
 import {
@@ -11,22 +11,29 @@ import {
 	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	isObject,
+	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
+import {
+	GroupType,
+	Group,
+	GroupCreate,
+	GroupUpdate,
+	groupsSchema,
+} from "@schemas/groups";
+export type { GroupType, Group, GroupCreate, GroupUpdate };
 
-const GroupTypeLabels = {
-	c: "Standards Committee",
+export const GroupTypeLabels: Record<GroupType, string> = {
+	r: "Root",
+	c: "Committee",
 	wg: "Working Group",
 	sg: "Study Group",
 	tg: "Task Group",
 	sc: "Standing Committee",
 	ah: "Ad-hoc Group",
-	tig: "Topic of Interest Group",
-};
-
-export type GroupType = keyof typeof GroupTypeLabels;
+	tig: "Topic Interest Group",
+} as const;
 
 export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(
 	([value, label]) =>
@@ -39,33 +46,7 @@ export const GroupStatusOptions = [
 	{ value: 1, label: "Active" },
 ];
 
-export type Group = {
-	id: string;
-	parent_id: string | null;
-	name: string;
-	status: number;
-	symbol: string | null;
-	color: string | null;
-	type: GroupType | null;
-	project: string | null;
-	permissions: Record<string, number>;
-};
-
-export type GroupCreate = Omit<Group, "id"> & { id?: string };
-
-function validGroup(group: any): group is Group {
-	const isGood =
-		isObject(group) &&
-		typeof group.id === "string" &&
-		(group.parent_id === null || typeof group.parent_id === "string") &&
-		typeof group.name === "string" &&
-		(group.symbol === null || typeof group.symbol === "string") &&
-		(group.color === null || typeof group.color === "string");
-	if (!isGood) console.log(group);
-	return isGood;
-}
-
-export const fields = {
+export const fields: Fields = {
 	id: {},
 	parent_id: {},
 	name: { label: "Group" },
@@ -80,10 +61,10 @@ export const fields = {
 /* Create slice */
 const dataSet = "groups";
 const initialState: {
-	workingGroupId: string | null;
+	topLevelGroupId: string | null;
 	lastLoad: Record<string, string | null>;
 } = {
-	workingGroupId: null,
+	topLevelGroupId: null,
 	lastLoad: {},
 };
 const slice = createAppTableDataSlice({
@@ -92,8 +73,8 @@ const slice = createAppTableDataSlice({
 	initialState,
 	selectId: (e: Group) => e.id,
 	reducers: {
-		setWorkingGroupId(state, action: PayloadAction<string | null>) {
-			state.workingGroupId = action.payload;
+		setTopLevelGroupId(state, action: PayloadAction<string | null>) {
+			state.topLevelGroupId = action.payload;
 		},
 	},
 	extraReducers: (builder, dataAdapter) => {
@@ -166,13 +147,14 @@ const {
 	setSelected,
 	setFilter,
 	clearFilter,
-	setWorkingGroupId,
+	setTopLevelGroupId,
 } = slice.actions;
 
-export { setSelected, setFilter, clearFilter, setWorkingGroupId };
 const getSuccess2 = createAction<{ groupName: string; groups: Group[] }>(
 	dataSet + "/getSuccess2"
 );
+
+export { setSelected, setFilter, clearFilter, setTopLevelGroupId };
 
 /* Selectors */
 export const selectGroupsState = (state: RootState) => state[dataSet];
@@ -190,21 +172,27 @@ export const selectWorkingGroups = (state: RootState) => {
 	const { ids, entities } = selectGroupsState(state);
 	return ids
 		.map((id) => entities[id]!)
-		.filter((g) => g.type === "c" || g.type === "wg");
+		.filter((g) => ["r", "c", "wg"].includes(g.type!));
 };
-export const selectWorkingGroupByName = (
+
+/** Select top level group by name. Only for root ("r"), committee (c) and working group (wg). Root is selected with groupName = "". */
+export const selectTopLevelGroupByName = (
 	state: RootState,
 	groupName: string
 ) => {
 	const groups = selectWorkingGroups(state);
-	return groups.find((g) => g.name === groupName);
+	return groups.find((g) =>
+		groupName
+			? (g.type === "c" || g.type === "wg") && g.name === groupName
+			: g.type === "r"
+	);
 };
 
-export const selectWorkingGroupId = (state: RootState) =>
-	selectGroupsState(state).workingGroupId;
+export const selectTopLevelGroupId = (state: RootState) =>
+	selectGroupsState(state).topLevelGroupId;
 export const selectWorkingGroup = (state: RootState) => {
-	const { workingGroupId, entities } = selectGroupsState(state);
-	return (workingGroupId && entities[workingGroupId]) || undefined;
+	const { topLevelGroupId, entities } = selectGroupsState(state);
+	return (topLevelGroupId && entities[topLevelGroupId]) || undefined;
 };
 export const selectWorkingGroupName = (state: RootState) =>
 	selectWorkingGroup(state)?.name || "";
@@ -212,17 +200,23 @@ export const selectWorkingGroupName = (state: RootState) =>
 export const selectWorkingGroupIds = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
-	selectWorkingGroupId,
-	(ids, entities, workingGroupId) => {
-		if (workingGroupId) {
+	selectTopLevelGroupId,
+	(ids, entities, topLevelGroupId) => {
+		if (topLevelGroupId) {
+			const parent = entities[topLevelGroupId];
+			if (parent && (parent.type === "r" || parent.type === "c")) {
+				ids = ids.filter((id) =>
+					["r", "c", "wg"].includes(entities[id]!.type!)
+				);
+			}
 			function isWorkingGroupDescendent(id: EntityId) {
-				if (id === workingGroupId) return true;
+				if (id === topLevelGroupId) return true;
 				let g: Group | undefined = entities[id]!;
 				do {
-					if (g.parent_id === workingGroupId) return true; // id is descendent of workingGroupId
+					if (g.parent_id === topLevelGroupId) return true; // id is descendent of ownerGroupId
 					g = g.parent_id ? entities[g.parent_id] : undefined;
 				} while (g);
-				return false; // id is not an descendent of workingGroupId
+				return false; // id is not an descendent of ownerGroupId
 			}
 			return ids.filter(isWorkingGroupDescendent);
 		} else {
@@ -242,16 +236,16 @@ export const selectGroups = createSelector(
 
 export const selectGroupParents = createSelector(
 	selectGroupEntities,
-	selectWorkingGroupId,
-	(entities, workingGroupId) => {
+	selectTopLevelGroupId,
+	(entities, topLevelGroupId) => {
 		const groups: Group[] = [];
-		while (workingGroupId) {
-			const group = entities[workingGroupId];
+		while (topLevelGroupId) {
+			const group = entities[topLevelGroupId];
 			if (group) {
 				groups.unshift(group);
-				workingGroupId = group.parent_id;
+				topLevelGroupId = group.parent_id;
 			} else {
-				workingGroupId = null;
+				topLevelGroupId = null;
 			}
 		}
 		return groups;
@@ -263,16 +257,26 @@ export const groupsSelectors = getAppTableDataSelectors(selectGroupsState);
 /* Thunk actions */
 const baseUrl = "/api/groups";
 
-function validResponse(response: any): response is Group[] {
-	return Array.isArray(response) && response.every(validGroup);
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loadingPromise: Record<string, Promise<void> | undefined> = {};
+const loadingPromise: Record<string, Promise<Group[]> | undefined> = {};
 export const loadGroups =
-	(groupName: string = ""): AppThunk<void> =>
-	(dispatch, getState) => {
+	(groupName: string = ""): AppThunk<Group[]> =>
+	async (dispatch, getState) => {
+		if (groupName) {
+			await loadingPromise[""];
+			if (selectWorkingGroup(getState())?.name !== groupName) {
+				const group = selectTopLevelGroupByName(getState(), groupName);
+				if (!group) {
+					setError(
+						"Unable to load subgroups",
+						"Invalid top level group: " + groupName
+					);
+					return [];
+				}
+				dispatch(setTopLevelGroupId(group.id));
+			}
+		}
 		if (loadingPromise[groupName]) {
 			return loadingPromise[groupName]!;
 		}
@@ -285,16 +289,17 @@ export const loadGroups =
 		loadingPromise[groupName] = fetcher
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response");
-				dispatch(getSuccess2({ groupName, groups: response }));
+				const groups = groupsSchema.parse(response);
+				dispatch(getSuccess2({ groupName, groups }));
+				return groups;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get groups", error));
+				dispatch(setError("GET " + url, error));
+				return [];
 			})
 			.finally(() => {
-				loadingPromise[groupName] = undefined;
+				delete loadingPromise[groupName];
 			});
 		return loadingPromise[groupName]!;
 	};

@@ -5,13 +5,18 @@ import slice, { getPending, clearMeetings } from "./meetingsSlice";
 
 import type { AppThunk } from ".";
 import { setWebexMeetings, upsertWebexMeetings } from "./webexMeetings";
-import { setBreakouts, upsertBreakouts } from "./imatBreakouts";
+import { upsertBreakouts } from "./imatBreakouts";
 import {
 	selectMeetingsState,
 	Meeting,
-	MeetingAdd,
+	MeetingCreate,
 	LoadMeetingsConstraints,
 } from "./meetingsSelectors";
+import {
+	meetingsGetResponse,
+	meetingsUpdateResponse,
+	MeetingsUpdateResponse,
+} from "@schemas/meetings";
 
 export const meetingsActions = slice.actions;
 
@@ -42,7 +47,7 @@ export {
 	setSelectedSlots,
 	toggleSelectedSlots,
 	upsertMany as upsertMeetings,
-	clearMeetings
+	clearMeetings,
 };
 
 function validateResponse(method: string, response: any) {
@@ -56,13 +61,13 @@ function validateResponse(method: string, response: any) {
 	}
 }
 
-let loadingUrl: string;
-let loadingPromise: Promise<Meeting[]> | undefined;
+let loadingUrl: string | undefined;
+let loadingPromise: Promise<void> | undefined;
 export const loadMeetings =
 	(
 		groupName: string,
 		constraints?: LoadMeetingsConstraints
-	): AppThunk<Meeting[]> =>
+	): AppThunk<void> =>
 	(dispatch) => {
 		const url =
 			`/api/${groupName}/meetings` +
@@ -75,18 +80,15 @@ export const loadMeetings =
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				validateResponse("GET", response);
-				const { meetings, webexMeetings, breakouts } = response;
+				const { meetings, webexMeetings } =
+					meetingsGetResponse.parse(response);
 				dispatch(getSuccess(meetings));
 				dispatch(setSelectedSlots([]));
-				if (webexMeetings) dispatch(setWebexMeetings(webexMeetings));
-				if (breakouts) dispatch(setBreakouts(breakouts));
-				return meetings;
+				dispatch(setWebexMeetings(webexMeetings));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get list of meetings", error));
-				return [];
+				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
 				loadingPromise = undefined;
@@ -100,26 +102,26 @@ type Update<T> = {
 };
 
 export const updateMeetings =
-	(updates: Update<MeetingAdd>[]): AppThunk =>
+	(updates: Update<MeetingCreate>[]): AppThunk =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMeetingsState(getState());
 		const url = `/api/${groupName}/meetings`;
-		let response: any;
+		let r: MeetingsUpdateResponse;
 		try {
-			response = await fetcher.patch(url, updates);
-			validateResponse("PATCH", response);
+			const response = await fetcher.patch(url, updates);
+			r = meetingsUpdateResponse.parse(response);
 		} catch (error) {
-			dispatch(setError(`Unable to update meetings`, error));
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		const { meetings, webexMeetings, breakouts } = response;
+		const { meetings, webexMeetings, breakouts } = r;
 		dispatch(setMany(meetings));
-		if (webexMeetings) dispatch(upsertWebexMeetings(webexMeetings));
-		if (breakouts) dispatch(upsertBreakouts(breakouts));
+		dispatch(upsertWebexMeetings(webexMeetings));
+		dispatch(upsertBreakouts(breakouts));
 	};
 
 export const addMeetings =
-	(meetingsToAdd: MeetingAdd[]): AppThunk<EntityId[]> =>
+	(meetingsToAdd: MeetingCreate[]): AppThunk<EntityId[]> =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMeetingsState(getState());
 		const url = `/api/${groupName}/meetings`;

@@ -4,11 +4,15 @@ import { DateTime } from "luxon";
 import { Select } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
-import { selectMeetingsState, getField, Meeting } from "../store/meetings";
+import {
+	selectMeetingsState,
+	getField,
+	SyncedMeeting,
+} from "../store/meetings";
 
 import styles from "./MeetingSelector.module.css";
 
-const renderItem = ({ item }: { item: Meeting }) => {
+const renderItem = ({ item }: { item: SyncedMeeting }) => {
 	let summary = item.summary;
 	if (item.isCancelled) summary = "🚫 " + summary;
 	return (

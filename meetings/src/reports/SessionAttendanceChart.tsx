@@ -11,7 +11,7 @@ import {
 	selectBreakoutEntities,
 	selectBreakoutTimeslots,
 	type Breakout,
-	type Timeslot,
+	type ImatTimeslot,
 } from "../store/imatBreakouts";
 import { selectMeetingAttendanceCountsByBreakout } from "../store/imatMeetingAttendance";
 import { Group, selectGroupEntities } from "../store/groups";
@@ -80,7 +80,7 @@ export type BreakoutAttendanceEntry = {
 export function generateBreakoutAttendanceEntries(
 	breakoutIds: EntityId[],
 	breakoutEntities: Dictionary<Breakout>,
-	timeslots: Timeslot[],
+	timeslots: ImatTimeslot[],
 	meetingEntities: Dictionary<Meeting>,
 	groupEntities: Dictionary<Group>,
 	attendanceCountEntities: Record<number, number>

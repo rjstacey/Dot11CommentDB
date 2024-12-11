@@ -11,8 +11,8 @@ export function GroupSelector({
 	types,
 	...otherProps
 }: {
-	value: string | null;
-	onChange: (value: string | null) => void;
+	value: string;
+	onChange: (value: string) => void;
 	types?: string[];
 } & Omit<
 	React.ComponentProps<typeof Select>,

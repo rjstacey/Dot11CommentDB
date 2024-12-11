@@ -4,8 +4,8 @@ import { store } from "../store";
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import {
-	selectWorkingGroupByName,
-	setWorkingGroupId,
+	selectTopLevelGroupByName,
+	setTopLevelGroupId,
 	loadGroups,
 } from "../store/groups";
 import { loadCalendarAccounts } from "../store/calendarAccounts";
@@ -50,8 +50,8 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 
 	await dispatch(loadGroups());
-	const group = selectWorkingGroupByName(getState(), groupName);
-	dispatch(setWorkingGroupId(group?.id || null));
+	const group = selectTopLevelGroupByName(getState(), groupName);
+	dispatch(setTopLevelGroupId(group?.id || null));
 	await dispatch(loadGroups(groupName));
 	dispatch(loadCalendarAccounts(groupName));
 	dispatch(loadWebexAccounts(groupName));

@@ -1,6 +1,6 @@
 import { LoaderFunction, RouteObject } from "react-router-dom";
 import { store } from "../store";
-import { selectWorkingGroupByName, loadGroups } from "../store/groups";
+import { selectTopLevelGroupByName, loadGroups } from "../store/groups";
 import { AccessLevel } from "../store/user";
 import { loadSessions } from "../store/sessions";
 import { loadImatMeetings } from "../store/imatMeetings";
@@ -14,7 +14,7 @@ const sessionsLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 
 	await dispatch(loadGroups());
-	const group = selectWorkingGroupByName(getState(), groupName);
+	const group = selectTopLevelGroupByName(getState(), groupName);
 	if (!group) throw new Error("Invalid group: " + groupName);
 	const access = group.permissions.meetings || AccessLevel.none;
 	if (access < AccessLevel.ro)

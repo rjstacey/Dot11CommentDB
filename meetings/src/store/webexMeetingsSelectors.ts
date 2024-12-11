@@ -9,9 +9,29 @@ import {
 
 import type { RootState } from ".";
 import { selectMeetingEntities } from "./meetingsSelectors";
-import { selectWorkingGroupByName } from "./groups";
+import { selectTopLevelGroupByName } from "./groups";
 import { AccessLevel } from "./user";
 
+import {
+	WebexMeeting,
+	WebexMeetingOptions,
+	WebexAudioConnectionOptions,
+	WebexMeetingChange,
+	WebexMeetingCreate,
+	WebexEntryExitTone,
+} from "@schemas/webex";
+import { MeetingChangeWebexParams } from "./meetingsSelectors";
+
+export type {
+	WebexMeeting,
+	WebexMeetingOptions,
+	WebexAudioConnectionOptions,
+	WebexMeetingChange,
+	WebexMeetingCreate,
+	WebexEntryExitTone,
+};
+
+/*
 export type WebexMeetingOptions = {
 	enabledChat: boolean;
 	enabledVideo: boolean;
@@ -30,12 +50,13 @@ export type WebexMeetingAudioConnectionOptions = {
 	enabledGlobalCallIn?: boolean;
 	enabledTollFreeCallIn: boolean;
 };
-
+*/
 /** Configurable Webex meeting paramters */
+/*
 export type WebexMeetingParams = {
 	accountId: number;
 	id: string;
-	templateId: string | null;
+	templateId?: string;
 	title: string;
 	start: string;
 	end: string;
@@ -47,13 +68,14 @@ export type WebexMeetingParams = {
 	enableConnectAudioBeforeHost: boolean;
 	publicMeeting: boolean;
 	meetingOptions: WebexMeetingOptions;
-	audioConnectionOptions: WebexMeetingAudioConnectionOptions;
+	audioConnectionOptions: WebexAudioConnectionOptions;
 	integrationTags?: string[];
-	/** Indentifier for the associated meeting */
+	/** Indentifier for the associated meeting * /
 	meetingId?: number;
 };
-
+*/
 /** All Webex meeting info */
+/*
 export type WebexMeeting = WebexMeetingParams & {
 	accountName: string;
 	meetingNumber: number;
@@ -61,13 +83,12 @@ export type WebexMeeting = WebexMeetingParams & {
 	hostKey: string;
 	telephony: { callInNumbers: any[] };
 };
-
 export const webexMeetingToWebexMeetingParams = (
 	i: WebexMeeting
 ): WebexMeetingParams => ({
 	accountId: i.accountId,
 	id: i.id,
-	templateId: i.templateId,
+	//templateId: i.templateId,
 	title: i.title,
 	start: i.start,
 	end: i.end,
@@ -83,12 +104,20 @@ export const webexMeetingToWebexMeetingParams = (
 	...(i.integrationTags ? { integrationTags: i.integrationTags } : {}),
 	...(i.meetingId ? { meetingId: i.meetingId } : {}),
 });
+*/
+
+export function webexMeetingToWebexMeetingParams(
+	i: WebexMeeting
+): MeetingChangeWebexParams {
+	const { title, start, end, timezone, ...params } = i;
+	return params;
+}
 
 export type SyncedWebexMeeting = WebexMeeting & {
 	meetingId?: number;
 };
 
-export const defaultWebexMeetingParams: WebexMeetingParams = {
+export const defaultWebexMeetingParams = {
 	accountId: 0,
 	id: "",
 	title: "",
@@ -118,11 +147,11 @@ export const defaultWebexMeetingParams: WebexMeetingParams = {
 		enabledClosedCaptions: true,
 		enabledFileTransfer: false,
 	},
-	templateId: null,
-};
+	//templateId: null,
+} satisfies WebexMeetingChange;
 
-export function displayMeetingNumber(meetingNumber: number) {
-	const s = meetingNumber.toString();
+export function displayMeetingNumber(meetingNumber: string) {
+	const s = meetingNumber; //.toString();
 	return s.substring(0, 4) + " " + s.substring(4, 7) + " " + s.substring(7);
 }
 
@@ -222,7 +251,7 @@ export const webexMeetingsSelectors = getAppTableDataSelectors(
 export const selectUserWebexMeetingsAccess = (state: RootState) => {
 	const { groupName } = selectWebexMeetingsState(state);
 	const group = groupName
-		? selectWorkingGroupByName(state, groupName)
+		? selectTopLevelGroupByName(state, groupName)
 		: undefined;
 	return group?.permissions.meetings || AccessLevel.none;
 };

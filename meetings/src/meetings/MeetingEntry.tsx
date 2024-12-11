@@ -1,44 +1,62 @@
-import * as React from 'react';
-import { Duration } from 'luxon';
+import * as React from "react";
+import { Duration } from "luxon";
 
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
-	Form, Row, Field, Select, Input, InputDates, InputTime, Checkbox,
-	isMultiple, Multiple,
-	setError
-} from 'dot11-components';
+	Form,
+	Row,
+	Field,
+	Select,
+	Input,
+	InputDates,
+	InputTime,
+	Checkbox,
+	isMultiple,
+	Multiple,
+	setError,
+} from "dot11-components";
 
 import {
 	selectCurrentSession,
 	selectCurrentSessionDates,
 	Session,
-} from '../store/sessions';
+} from "../store/sessions";
 
-import { selectGroupEntities } from '../store/groups';
+import { selectGroupEntities } from "../store/groups";
 
-import TimeZoneSelector from '../components/TimeZoneSelector';
-import GroupSelector from '../components/GroupSelector';
-import CalendarAccountSelector from '../components/CalendarAccountSelector';
-import ImatMeetingSelector from '../components/ImatMeetingSelector';
+import TimeZoneSelector from "../components/TimeZoneSelector";
+import GroupSelector from "../components/GroupSelector";
+import CalendarAccountSelector from "../components/CalendarAccountSelector";
+import ImatMeetingSelector from "../components/ImatMeetingSelector";
 
-import { PartialWebexMeetingEntry, WebexMeetingAccount, WebexMeetingParamsEdit } from '../webexMeetings/WebexMeetingDetail';
-import type { MultipleMeetingEntry, PartialMeetingEntry } from './MeetingDetails';
+import {
+	PartialWebexMeetingEntry,
+	WebexMeetingAccount,
+	WebexMeetingParamsEdit,
+} from "../webexMeetings/WebexMeetingDetail";
+import type {
+	MultipleMeetingEntry,
+	PartialMeetingEntry,
+} from "./MeetingDetails";
 
-const MULTIPLE_STR = '(Multiple)';
-const BLANK_STR = '(Blank)';
+const MULTIPLE_STR = "(Multiple)";
+const BLANK_STR = "(Blank)";
 
-const isSessionMeeting = (session: Session | undefined) => session? (session.type === 'p' || session.type === 'i'): false;
+const isSessionMeeting = (session: Session | undefined) =>
+	session ? session.type === "p" || session.type === "i" : false;
 
 function validDuration(duration: string) {
-	if (!duration)
-		return false;
+	if (!duration) return false;
 	let d = duration.trim();
 	let m = /^(\d*):(\d{2})$/.exec(d);
 	try {
-		let dt = Duration.fromObject(m? {hours: m[1]? Number(m[1]): 0, minutes: Number(m[2])}: {hours: Number(d)});
+		let dt = Duration.fromObject(
+			m
+				? { hours: m[1] ? Number(m[1]) : 0, minutes: Number(m[2]) }
+				: { hours: Number(d) }
+		);
 		return dt.isValid;
-	}
-	catch (error) {
+	} catch (error) {
 		return false;
 	}
 }
@@ -48,13 +66,13 @@ type TeleconTime = {
 	dates: string[];
 	startTime: string;
 	duration: string;
-}
+};
 
 function TeleconMeetingTime({
 	action,
 	entry,
 	changeEntry,
-	readOnly
+	readOnly,
 }: {
 	action: "add" | "update";
 	entry: Multiple<TeleconTime>;
@@ -64,51 +82,73 @@ function TeleconMeetingTime({
 	return (
 		<>
 			<Row>
-				<Field label='Time zone:'>
+				<Field label="Time zone:">
 					<TimeZoneSelector
-						style={{width: 200}}
-						value={isMultiple(entry.timezone)? '': entry.timezone || ''}
-						onChange={(timezone) => changeEntry({timezone})}
-						placeholder={isMultiple(entry.timezone)? MULTIPLE_STR: undefined}
+						style={{ width: 200 }}
+						value={
+							isMultiple(entry.timezone)
+								? ""
+								: entry.timezone || ""
+						}
+						onChange={(timezone) => changeEntry({ timezone })}
+						placeholder={
+							isMultiple(entry.timezone)
+								? MULTIPLE_STR
+								: undefined
+						}
 						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label={action === 'add'? 'Dates:': 'Date:'}>
+				<Field label={action === "add" ? "Dates:" : "Date:"}>
 					<InputDates
 						disablePast
-						multi={action === 'add'}
-						value={isMultiple(entry.dates)? []: entry.dates}
-						onChange={dates => changeEntry({dates})}
-						placeholder={isMultiple(entry.dates)? MULTIPLE_STR: undefined}
+						multi={action === "add"}
+						value={isMultiple(entry.dates) ? [] : entry.dates}
+						onChange={(dates) => changeEntry({ dates })}
+						placeholder={
+							isMultiple(entry.dates) ? MULTIPLE_STR : undefined
+						}
 						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='Start time:'>
+				<Field label="Start time:">
 					<InputTime
-						value={isMultiple(entry.startTime)? '': entry.startTime}
-						onChange={startTime => changeEntry({startTime})}
-						placeholder={isMultiple(entry.startTime)? MULTIPLE_STR: undefined}
+						value={
+							isMultiple(entry.startTime) ? "" : entry.startTime
+						}
+						onChange={(startTime) => changeEntry({ startTime })}
+						placeholder={
+							isMultiple(entry.startTime)
+								? MULTIPLE_STR
+								: undefined
+						}
 						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='Duration:'>
+				<Field label="Duration:">
 					<Input
-						type='text'
-						value={isMultiple(entry.duration)? '': entry.duration}
-						onChange={e => changeEntry({duration: e.target.value})}
+						type="text"
+						value={isMultiple(entry.duration) ? "" : entry.duration}
+						onChange={(e) =>
+							changeEntry({ duration: e.target.value })
+						}
 						disabled={readOnly}
-						placeholder={isMultiple(entry.duration)? MULTIPLE_STR: 'H or H:mm'}
+						placeholder={
+							isMultiple(entry.duration)
+								? MULTIPLE_STR
+								: "H or H:mm"
+						}
 					/>
 				</Field>
 			</Row>
 		</>
-	)
+	);
 }
 
 function SessionDateSelector({
@@ -118,10 +158,17 @@ function SessionDateSelector({
 }: {
 	value: string | null;
 	onChange: (date: string | null) => void;
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">) {
-	const options = useAppSelector(selectCurrentSessionDates).map(date => ({value: date, label: date}))
-	const handleChange = (values: typeof options) => onChange(values.length > 0? values[0].value: null);
-	const values = options.filter(d => d.value === value);
+} & Omit<
+	React.ComponentProps<typeof Select>,
+	"values" | "onChange" | "options"
+>) {
+	const options = useAppSelector(selectCurrentSessionDates).map((date) => ({
+		value: date,
+		label: date,
+	}));
+	const handleChange = (values: typeof options) =>
+		onChange(values.length > 0 ? values[0].value : null);
+	const values = options.filter((d) => d.value === value);
 	return (
 		<Select
 			options={options}
@@ -129,7 +176,7 @@ function SessionDateSelector({
 			onChange={handleChange}
 			{...otherProps}
 		/>
-	)
+	);
 }
 
 function TimeslotSelector({
@@ -139,20 +186,24 @@ function TimeslotSelector({
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">) {
+} & Omit<
+	React.ComponentProps<typeof Select>,
+	"values" | "onChange" | "options"
+>) {
 	const timeslots = useAppSelector(selectCurrentSession)?.timeslots || [];
-	const handleChange = (values: typeof timeslots) => onChange(values.length > 0? values[0].id: null);
-	const values = timeslots.filter(slot => slot.id === value);
+	const handleChange = (values: typeof timeslots) =>
+		onChange(values.length > 0 ? values[0].id : null);
+	const values = timeslots.filter((slot) => slot.id === value);
 	return (
 		<Select
 			options={timeslots}
 			values={values}
 			onChange={handleChange}
-			labelField='name'
-			valueField='id'
+			labelField="name"
+			valueField="id"
 			{...otherProps}
 		/>
-	)
+	);
 }
 
 function RoomSelector({
@@ -162,20 +213,24 @@ function RoomSelector({
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
-} & Omit<React.ComponentProps<typeof Select>, "values" | "onChange" | "options">) {
+} & Omit<
+	React.ComponentProps<typeof Select>,
+	"values" | "onChange" | "options"
+>) {
 	const rooms = useAppSelector(selectCurrentSession)?.rooms || [];
-	const handleChange = (values: typeof rooms) => onChange(values.length > 0? values[0].id: null);
-	const values = rooms.filter(room => room.id === value);
+	const handleChange = (values: typeof rooms) =>
+		onChange(values.length > 0 ? values[0].id : null);
+	const values = rooms.filter((room) => room.id === value);
 	return (
 		<Select
 			options={rooms}
 			values={values}
 			onChange={handleChange}
-			labelField='name'
-			valueField='id'
+			labelField="name"
+			valueField="id"
 			{...otherProps}
 		/>
-	)
+	);
 }
 
 type MeetingTime = {
@@ -183,12 +238,12 @@ type MeetingTime = {
 	startSlotId: number | null;
 	startTime: string;
 	endTime: string;
-}
+};
 
 function SessionMeetingTime({
 	entry,
 	changeEntry,
-	readOnly
+	readOnly,
 }: {
 	entry: Multiple<MeetingTime>;
 	changeEntry: (changes: Partial<MeetingTime>) => void;
@@ -197,49 +252,68 @@ function SessionMeetingTime({
 	return (
 		<>
 			<Row>
-				<Field label='Session day:'>
+				<Field label="Session day:">
 					<SessionDateSelector
-						value={entry.dates.length === 1? entry.dates[0]: ''}
-						onChange={date => changeEntry({dates: date? [date]: []})}
-						placeholder={entry.dates.length > 1? MULTIPLE_STR: undefined}
+						value={entry.dates.length === 1 ? entry.dates[0] : ""}
+						onChange={(date) =>
+							changeEntry({ dates: date ? [date] : [] })
+						}
+						placeholder={
+							entry.dates.length > 1 ? MULTIPLE_STR : undefined
+						}
 						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='Start slot:'>
+				<Field label="Start slot:">
 					<TimeslotSelector
-						value={isMultiple(entry.startSlotId)? null: entry.startSlotId}
-						onChange={startSlotId => changeEntry({startSlotId})}
-						placeholder={isMultiple(entry.startSlotId)? MULTIPLE_STR: undefined}
+						value={
+							isMultiple(entry.startSlotId)
+								? null
+								: entry.startSlotId
+						}
+						onChange={(startSlotId) => changeEntry({ startSlotId })}
+						placeholder={
+							isMultiple(entry.startSlotId)
+								? MULTIPLE_STR
+								: undefined
+						}
 						readOnly={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='Start time:'>
+				<Field label="Start time:">
 					<InputTime
-						value={isMultiple(entry.startTime)? '': entry.startTime}
-						onChange={startTime => changeEntry({startTime})}
-						placeholder={isMultiple(entry.startTime)? MULTIPLE_STR: undefined}
+						value={
+							isMultiple(entry.startTime) ? "" : entry.startTime
+						}
+						onChange={(startTime) => changeEntry({ startTime })}
+						placeholder={
+							isMultiple(entry.startTime)
+								? MULTIPLE_STR
+								: undefined
+						}
 						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label='End time:'>
+				<Field label="End time:">
 					<InputTime
-						value={isMultiple(entry.endTime)? '': entry.endTime}
-						onChange={endTime => changeEntry({endTime})}
-						placeholder={isMultiple(entry.endTime)? MULTIPLE_STR: undefined}
+						value={isMultiple(entry.endTime) ? "" : entry.endTime}
+						onChange={(endTime) => changeEntry({ endTime })}
+						placeholder={
+							isMultiple(entry.endTime) ? MULTIPLE_STR : undefined
+						}
 						disabled={readOnly}
 					/>
 				</Field>
 			</Row>
 		</>
-	)
+	);
 }
-
 
 export function MeetingEntryForm({
 	entry,
@@ -248,7 +322,7 @@ export function MeetingEntryForm({
 	action,
 	submit,
 	cancel,
-	readOnly
+	readOnly,
 }: {
 	entry: MultipleMeetingEntry;
 	changeEntry: (changes: PartialMeetingEntry) => void;
@@ -264,27 +338,22 @@ export function MeetingEntryForm({
 
 	const isSession = isSessionMeeting(session);
 
-	let errMsg = '';
-	if (entry.dates.length === 0)
-		errMsg = 'Date not set';
-	else if (!entry.startTime)
-		errMsg = 'Start time not set';
-	else if (isSession && !entry.endTime)
-		errMsg = 'End time not set';
+	let errMsg = "";
+	if (!entry.organizationId) errMsg = "Group not set";
+	else if (entry.dates.length === 0) errMsg = "Date not set";
+	else if (!entry.startTime) errMsg = "Start time not set";
+	else if (isSession && !entry.endTime) errMsg = "End time not set";
 	else if (!isSession && !validDuration(entry.duration))
-		errMsg = 'Duration not set';
-	else if (!entry.timezone)
-		errMsg = 'Time zone not set';
+		errMsg = "Duration not set";
+	else if (!entry.timezone) errMsg = "Time zone not set";
 
 	let submitForm, cancelForm, submitLabel;
 	if (submit) {
-		if (action === 'add-by-slot') {
+		if (action === "add-by-slot") {
 			submitLabel = "Add";
-		}
-		else if (action === 'add-by-date') {
+		} else if (action === "add-by-date") {
 			submitLabel = "Add";
-		}
-		else {
+		} else {
 			submitLabel = "Update";
 		}
 		submitForm = () => {
@@ -298,156 +367,244 @@ export function MeetingEntryForm({
 	}
 
 	function handleChange(changes: PartialMeetingEntry) {
-		changes = {...changes};
-		if ('organizationId' in changes) {
-			const subgroup = changes.organizationId && groupEntities[changes.organizationId];
-			if (subgroup)
-				changes.summary = subgroup.name;
+		changes = { ...changes };
+		if ("organizationId" in changes) {
+			const subgroup =
+				changes.organizationId && groupEntities[changes.organizationId];
+			if (subgroup) changes.summary = subgroup.name;
 		}
-		if ('startSlotId' in changes) {
-			const slot = session?.timeslots.find(slot => slot.id === changes.startSlotId);
+		if ("startSlotId" in changes) {
+			const slot = session?.timeslots.find(
+				(slot) => slot.id === changes.startSlotId
+			);
 			if (slot) {
 				changes.startTime = slot.startTime;
 				changes.endTime = slot.endTime;
 			}
 		}
-		if ('roomId' in changes) {
-			changes.location = '';
+		if ("roomId" in changes) {
+			changes.location = "";
 		}
 		changeEntry(changes);
 	}
 
-	function handleWebexMeetingChange(webexMeetingChanges: PartialWebexMeetingEntry) {
-		const changes: PartialMeetingEntry = {webexMeeting: webexMeetingChanges};
-		if ('accountId' in webexMeetingChanges)
+	function handleWebexMeetingChange(
+		webexMeetingChanges: PartialWebexMeetingEntry
+	) {
+		const changes: PartialMeetingEntry = {
+			webexMeeting: webexMeetingChanges,
+		};
+		if ("accountId" in webexMeetingChanges)
 			changes.webexAccountId = webexMeetingChanges.accountId;
 		handleChange(changes);
 	}
 
 	return (
 		<Form
-			style={{flex: 1, overflow: 'hidden'}}
+			style={{ flex: 1, overflow: "hidden" }}
 			busy={busy}
 			submitLabel={submitLabel}
 			submit={submitForm}
 			cancel={cancelForm}
 			errorText={errMsg}
 		>
-			<div style={{overflow: 'auto'}}>
+			<div style={{ overflow: "auto" }}>
 				<Row>
-					<Field label='Cancel meeting:'>
+					<Field label="Cancel meeting:">
 						<Checkbox
 							checked={!!entry.isCancelled}
 							indeterminate={isMultiple(entry.isCancelled)}
-							onChange={(e) => handleChange({isCancelled: e.target.checked})}
+							onChange={(e) =>
+								handleChange({ isCancelled: e.target.checked })
+							}
 							disabled={readOnly}
 						/>
 					</Field>
 				</Row>
 				<Row>
-					<Field label='Subgroup:'>
+					<Field label="Subgroup:">
 						<GroupSelector
-							style={{minWidth: 200}}
-							value={isMultiple(entry.organizationId)? '': entry.organizationId || ''}
-							onChange={(organizationId) => handleChange({organizationId})}
-							placeholder={isMultiple(entry.organizationId)? MULTIPLE_STR: BLANK_STR}
+							style={{ minWidth: 200 }}
+							value={
+								isMultiple(entry.organizationId)
+									? ""
+									: entry.organizationId || ""
+							}
+							onChange={(organizationId) =>
+								handleChange({ organizationId })
+							}
+							placeholder={
+								isMultiple(entry.organizationId)
+									? MULTIPLE_STR
+									: BLANK_STR
+							}
 							readOnly={readOnly}
 						/>
 					</Field>
 				</Row>
 				<Row>
-					<Field label='Summary:'>
+					<Field label="Summary:">
 						<Input
-							type='search'
-							style={{width: 200}}
-							value={isMultiple(entry.summary)? '': entry.summary || ''}
-							onChange={(e) => handleChange({summary: e.target.value})}
-							placeholder={isMultiple(entry.summary)? MULTIPLE_STR: BLANK_STR}
+							type="search"
+							style={{ width: 200 }}
+							value={
+								isMultiple(entry.summary)
+									? ""
+									: entry.summary || ""
+							}
+							onChange={(e) =>
+								handleChange({ summary: e.target.value })
+							}
+							placeholder={
+								isMultiple(entry.summary)
+									? MULTIPLE_STR
+									: BLANK_STR
+							}
 							disabled={readOnly}
 						/>
 					</Field>
 				</Row>
-				{action !== 'add-by-slot' &&
-						(isSession?
-							<SessionMeetingTime
-								entry={entry}
-								changeEntry={handleChange}
-								readOnly={readOnly}
-							/>:
-							<TeleconMeetingTime
-								action={action === 'update'? 'update': 'add'}
-								entry={entry}
-								changeEntry={handleChange}
-								readOnly={readOnly}
-							/>)}
-				{action !== 'add-by-slot' &&
+				{action !== "add-by-slot" &&
+					(isSession ? (
+						<SessionMeetingTime
+							entry={entry}
+							changeEntry={handleChange}
+							readOnly={readOnly}
+						/>
+					) : (
+						<TeleconMeetingTime
+							action={action === "update" ? "update" : "add"}
+							entry={entry}
+							changeEntry={handleChange}
+							readOnly={readOnly}
+						/>
+					))}
+				{action !== "add-by-slot" && (
 					<Row>
-						<Field label='Location:'>
-							{isSession?
+						<Field label="Location:">
+							{isSession ? (
 								<RoomSelector
-									value={isMultiple(entry.roomId)? null: entry.roomId}
-									onChange={(roomId) => handleChange({roomId})}
-									placeholder={isMultiple(entry.roomId)? MULTIPLE_STR: BLANK_STR}
+									value={
+										isMultiple(entry.roomId)
+											? null
+											: entry.roomId
+									}
+									onChange={(roomId) =>
+										handleChange({ roomId })
+									}
+									placeholder={
+										isMultiple(entry.roomId)
+											? MULTIPLE_STR
+											: BLANK_STR
+									}
 									readOnly={readOnly}
-								/>:
+								/>
+							) : (
 								<Input
-									type='search'
-									style={{width: 200}}
-									value={isMultiple(entry.location)? '': entry.location || ''}
-									onChange={(e) => handleChange({location: e.target.value})}
-									placeholder={isMultiple(entry.location)? MULTIPLE_STR: BLANK_STR}
+									type="search"
+									style={{ width: 200 }}
+									value={
+										isMultiple(entry.location)
+											? ""
+											: entry.location || ""
+									}
+									onChange={(e) =>
+										handleChange({
+											location: e.target.value,
+										})
+									}
+									placeholder={
+										isMultiple(entry.location)
+											? MULTIPLE_STR
+											: BLANK_STR
+									}
 									disabled={readOnly}
-								/>}
+								/>
+							)}
 						</Field>
-					</Row>}
-				{!isSession &&
+					</Row>
+				)}
+				{!isSession && (
 					<Row>
-						<Field label='Agenda includes motions:'>
+						<Field label="Agenda includes motions:">
 							<Checkbox
 								indeterminate={isMultiple(entry.hasMotions)}
-								checked={isMultiple(entry.hasMotions)? false: entry.hasMotions}
-								onChange={(e) => handleChange({hasMotions: e.target.checked})}
+								checked={
+									isMultiple(entry.hasMotions)
+										? false
+										: entry.hasMotions
+								}
+								onChange={(e) =>
+									handleChange({
+										hasMotions: e.target.checked,
+									})
+								}
 								disabled={readOnly}
 							/>
 						</Field>
-					</Row>}
+					</Row>
+				)}
 				<Row>
-					<Field label='IMAT meeting:'>
+					<Field label="IMAT meeting:">
 						<ImatMeetingSelector
-							value={isMultiple(entry.imatMeetingId)? null: entry.imatMeetingId}
-							onChange={(imatMeetingId) => handleChange({imatMeetingId})}
-							placeholder={isMultiple(entry.imatMeetingId)? MULTIPLE_STR: BLANK_STR}
+							value={
+								isMultiple(entry.imatMeetingId)
+									? null
+									: entry.imatMeetingId
+							}
+							onChange={(imatMeetingId) =>
+								handleChange({ imatMeetingId })
+							}
+							placeholder={
+								isMultiple(entry.imatMeetingId)
+									? MULTIPLE_STR
+									: BLANK_STR
+							}
 							readOnly={readOnly}
 						/>
 					</Field>
 				</Row>
 				<WebexMeetingAccount
-					entry={entry.webexMeeting? entry.webexMeeting: {accountId: entry.webexAccountId}}
+					entry={
+						entry.webexMeeting
+							? entry.webexMeeting
+							: { accountId: entry.webexAccountId }
+					}
 					changeEntry={handleWebexMeetingChange}
 					readOnly={readOnly}
 				/>
-				{(entry.webexMeeting && entry.webexMeeting.accountId)?
+				{entry.webexMeeting && entry.webexMeeting.accountId ? (
 					<WebexMeetingParamsEdit
 						entry={entry.webexMeeting}
 						changeEntry={handleWebexMeetingChange}
 						readOnly={readOnly}
-					/>:
-					null}
+					/>
+				) : null}
 				<Row>
-					<Field label='Calendar:'>
+					<Field label="Calendar:">
 						<CalendarAccountSelector
-							value={isMultiple(entry.calendarAccountId)? null: entry.calendarAccountId}
-							onChange={(calendarAccountId) => handleChange({calendarAccountId})}
-							placeholder={isMultiple(entry.calendarAccountId)? MULTIPLE_STR: undefined}
-							portal={document.querySelector('#root')}
-							dropdownPosition='top'
+							value={
+								isMultiple(entry.calendarAccountId)
+									? null
+									: entry.calendarAccountId
+							}
+							onChange={(calendarAccountId) =>
+								handleChange({ calendarAccountId })
+							}
+							placeholder={
+								isMultiple(entry.calendarAccountId)
+									? MULTIPLE_STR
+									: undefined
+							}
+							portal={document.querySelector("#root")}
+							dropdownPosition="top"
 							readOnly={readOnly}
 						/>
 					</Field>
 				</Row>
 			</div>
 		</Form>
-	)
+	);
 }
 
 export default MeetingEntryForm;

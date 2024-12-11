@@ -5,10 +5,15 @@ import {
 	displayDate,
 	getAppTableDataSelectors,
 	FieldType,
+	Fields,
 } from "dot11-components";
 
 import type { RootState } from ".";
-import { selectGroupEntities, selectWorkingGroupByName, type Group } from "./groups";
+import {
+	selectGroupEntities,
+	selectTopLevelGroupByName,
+	type Group,
+} from "./groups";
 import { selectWebexAccountEntities, WebexAccount } from "./webexAccounts";
 import {
 	selectCalendarAccountEntities,
@@ -18,15 +23,24 @@ import { selectImatMeetingEntities, ImatMeeting } from "./imatMeetings";
 import {
 	selectWebexMeetingEntities,
 	WebexMeeting,
-	WebexMeetingParams,
+	displayMeetingNumber,
 } from "./webexMeetingsSelectors";
 import { selectSessionEntities } from "./sessions";
 import { selectCurrentSessionId, selectShowDateRange } from "./current";
 import { AccessLevel } from "./user";
 
-export interface Meeting {
+import {
+	Meeting,
+	MeetingCreate,
+	MeetingChangeWebexParams,
+} from "@schemas/meetings";
+
+export type { Meeting, MeetingCreate, MeetingChangeWebexParams };
+
+/*
+export interface Meeting extends Meeting1 {
 	id: number;
-	organizationId: string | null;
+	organizationId: string;
 	start: string;
 	end: string;
 	timezone: string;
@@ -41,21 +55,19 @@ export interface Meeting {
 	calendarEventId: string | null;
 	imatMeetingId: number | null;
 	imatBreakoutId: number | null;
-	sessionId: number | null;
+	//sessionId: number | null;
 	roomId: number | null;
 }
 
 export type MeetingAdd = Omit<
 	Meeting,
-	| "id"
-	| "imatBreakoutId"
-	| "webexMeetingId"
-	| "webexMeeting"
+	"id" | "imatBreakoutId" | "webexMeetingId" | "webexMeeting"
 > & {
 	imatBreakoutId: Meeting["imatBreakoutId"] | "$add";
 	webexMeetingId: Meeting["webexMeetingId"] | "$add";
 	webexMeeting?: WebexMeetingParams;
 };
+*/
 
 /** `Meeting` record with additional fields from referenced entities */
 export type SyncedMeeting = Meeting & {
@@ -77,12 +89,7 @@ export type DerivedMeeting = SyncedMeeting & {
 	location: string;
 };
 
-export function displayMeetingNumber(meetingNumber: number) {
-	const s = meetingNumber.toString();
-	return s.substring(0, 4) + " " + s.substring(4, 7) + " " + s.substring(7);
-}
-
-export const fields = {
+export const fields: Fields = {
 	id: { label: "ID" },
 	organizationId: { label: "Group ID" },
 	groupName: { label: "Group" },
@@ -107,7 +114,7 @@ export const fields = {
 /*
  * Fields derived from other fields
  */
-export function getField(entity: SyncedMeeting | Meeting, key: string): any {
+export function getField(entity: SyncedMeeting, key: string): any {
 	if (key === "day")
 		return DateTime.fromISO(entity.start, { zone: entity.timezone })
 			.weekdayShort;
@@ -283,7 +290,9 @@ export const selectLoadMeetingsContstraints = createSelector(
 );
 
 export const selectUserMeetingsAccess = (state: RootState) => {
-	const {groupName} = selectMeetingsState(state);
-	const group = groupName? selectWorkingGroupByName(state, groupName): undefined;
+	const { groupName } = selectMeetingsState(state);
+	const group = groupName
+		? selectTopLevelGroupByName(state, groupName)
+		: undefined;
 	return group?.permissions.meetings || AccessLevel.none;
-}
+};

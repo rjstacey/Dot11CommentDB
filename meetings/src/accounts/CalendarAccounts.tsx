@@ -35,7 +35,6 @@ const displayDate = (d: string) =>
 
 const defaultAccount: CalendarAccountCreate = {
 	name: "",
-	groups: [],
 };
 
 type CellProps = {

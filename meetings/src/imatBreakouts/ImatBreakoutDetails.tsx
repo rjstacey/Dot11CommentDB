@@ -49,7 +49,11 @@ import {
 import { ImatMeeting } from "../store/imatMeetings";
 import { selectCurrentSession, Session } from "../store/sessions";
 import { updateMeetings, addMeetings } from "../store/meetings";
-import { selectGroupEntities, Group } from "../store/groups";
+import {
+	selectGroupEntities,
+	Group,
+	selectTopLevelGroupId,
+} from "../store/groups";
 import { AccessLevel } from "../store/user";
 
 const MULTIPLE_STR = "(Multiple)";
@@ -66,6 +70,7 @@ function convertBreakoutToMeetingEntry(
 	breakout: Breakout,
 	imatMeeting: ImatMeeting,
 	session: Session,
+	groupId: string,
 	groupEntities: Dictionary<Group>
 ) {
 	const start = DateTime.fromFormat(
@@ -84,7 +89,7 @@ function convertBreakoutToMeetingEntry(
 		groups.find((g) => breakout.name.match(new RegExp(g.name, "i"))) || // case invariant substring match
 		groups.find((g) => g.name.match(bNameRe)); // both ways
 
-	let organizationId = group?.id || null;
+	let organizationId = group?.id || groupId;
 
 	const entry: MultipleMeetingEntry = {
 		summary: breakout.name,
@@ -744,6 +749,7 @@ class BreakoutDetails extends React.Component<
 			imatMeetingId,
 			imatMeeting,
 			session,
+			groupId,
 			groupEntities,
 		} = this.props;
 
@@ -768,6 +774,7 @@ class BreakoutDetails extends React.Component<
 				breakout,
 				imatMeeting!,
 				session!,
+				groupId,
 				groupEntities
 			);
 			return {
@@ -1043,6 +1050,7 @@ const connector = connect(
 		selected: selectBreakoutsState(state).selected,
 		entities: selectSyncedBreakoutEntities(state),
 		session: selectCurrentSession(state),
+		groupId: selectTopLevelGroupId(state)!,
 		groupEntities: selectGroupEntities(state),
 		access: selectUserMeetingsAccess(state),
 	}),

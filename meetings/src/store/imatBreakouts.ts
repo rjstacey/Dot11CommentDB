@@ -9,63 +9,31 @@ import { DateTime } from "luxon";
 import {
 	fetcher,
 	setError,
-	isObject,
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
+	Fields,
 } from "dot11-components";
 
 import type { AppThunk, RootState } from ".";
 import { selectMeetingEntities } from "./meetings";
-import { ImatMeeting, selectSyncedImatMeetingEntities } from "./imatMeetings";
+import { selectSyncedImatMeetingEntities } from "./imatMeetings";
+import {
+	Breakout,
+	ImatTimeslot,
+	ImatCommittee,
+	breakoutsSchema,
+	getImatBreakoutsResponseSchema,
+} from "@schemas/imat";
 
-export type Breakout = {
-	id: number;
-	name: string;
-	location: string;
-	day: number;
-
-	groupId: number /** Committee identifier */;
-	groupShortName?: string /** Committee short name */;
-	symbol: string /** Committee sumbol */;
-
-	start: string;
-	startTime: string;
-	startSlotId: number;
-
-	end: string;
-	endTime: string;
-	endSlotId: number;
-
-	credit: string;
-	creditOverrideNumerator: number;
-	creditOverrideDenominator: number;
-
-	facilitator: string /** Facilitator email */;
-};
-
-export type Timeslot = {
-	id: number;
-	name: string;
-	startTime: string;
-	endTime: string;
-};
-
-type Committee = {
-	id: number;
-	parentId: string;
-	type: string;
-	symbol: string;
-	shortName: string;
-	name: string;
-};
+export type { Breakout, ImatTimeslot, ImatCommittee };
 
 const displayGroup = (group: string) => {
 	const parts = group.split("/");
 	return parts[parts.length - 1];
 };
 
-export const fields = {
+export const fields: Fields = {
 	id: { label: "Breakout ID", type: FieldType.NUMERIC },
 	imatMeetingId: { label: "Meeting number", type: FieldType.NUMERIC },
 	start: { label: "Start", type: FieldType.DATE },
@@ -110,8 +78,8 @@ export const getField = (entity: Breakout, dataKey: string) => {
 			DateTime.fromISO(entity.end, { setZone: true }).toFormat("HH:mm")
 		);
 	if (dataKey === "duration")
-		return DateTime.fromISO(entity.end).diff(
-			DateTime.fromISO(entity.start),
+		return DateTime.fromFormat(entity.endTime, "HH:mm").diff(
+			DateTime.fromFormat(entity.startTime, "HH:mm"),
 			"hours"
 		).hours;
 	return entity[dataKey as keyof Breakout];
@@ -121,14 +89,12 @@ export const getField = (entity: Breakout, dataKey: string) => {
 
 const sortComparer = (a: Breakout, b: Breakout) => {
 	// Sort by start
-	const v1 =
-		DateTime.fromISO(a.start).toMillis() -
-		DateTime.fromISO(b.start).toMillis();
+	const v1 = a.day - b.day;
 	if (v1 === 0) {
 		// If equal, sort by end
 		return (
-			DateTime.fromISO(a.end).toMillis() -
-			DateTime.fromISO(b.end).toMillis()
+			DateTime.fromFormat(a.endTime, "HH:mm").toMillis() -
+			DateTime.fromFormat(b.endTime, "HH:mm").toMillis()
 		);
 	}
 	return v1;
@@ -137,8 +103,8 @@ const sortComparer = (a: Breakout, b: Breakout) => {
 type ExtraState = {
 	groupName: string | null;
 	imatMeetingId: number | null;
-	timeslots: Timeslot[];
-	committees: Committee[];
+	timeslots: ImatTimeslot[];
+	committees: ImatCommittee[];
 };
 
 const initialState: ExtraState = {
@@ -274,38 +240,6 @@ export const imatBreakoutsSelectors = getAppTableDataSelectors(
 );
 
 /* Thunk actions */
-function validBreakout(b: any): b is Breakout {
-	return (
-		isObject(b) &&
-		typeof b.id === "number" &&
-		typeof b.name === "string" &&
-		typeof b.location === "string" &&
-		typeof b.day === "number"
-	);
-}
-
-type ImatMeetingDetails = {
-	imatMeeting: ImatMeeting;
-	breakouts: Breakout[];
-	timeslots: Timeslot[];
-	committees: Committee[];
-};
-
-function validGetResponse(response: any): response is ImatMeetingDetails {
-	return (
-		isObject(response) &&
-		isObject(response.imatMeeting) &&
-		Array.isArray(response.breakouts) &&
-		response.breakouts.every(validBreakout) &&
-		Array.isArray(response.timeslots) &&
-		Array.isArray(response.committees)
-	);
-}
-
-function validResponse(response: any): response is Breakout[] {
-	return Array.isArray(response) && response.every(validBreakout);
-}
-
 let loadingPromise: Promise<Breakout[]>;
 export const loadBreakouts =
 	(groupName: string, imatMeetingId: number): AppThunk<Breakout[]> =>
@@ -327,59 +261,51 @@ export const loadBreakouts =
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!validGetResponse(response))
-					throw new TypeError("Unexpected response");
-				dispatch(getSuccess(response.breakouts));
-				const { timeslots, committees } = response;
+				const { breakouts, timeslots, committees } =
+					getImatBreakoutsResponseSchema.parse(response);
+				dispatch(getSuccess(breakouts));
 				dispatch(setDetails({ timeslots, committees }));
-				return response.breakouts;
+				return breakouts;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(
-					setError(
-						`Unable to get breakouts for ${imatMeetingId}`,
-						error
-					)
-				);
+				dispatch(setError("GET " + url, error));
 				return [];
 			});
 		return loadingPromise;
 	};
 
 export const addBreakouts =
-	(imatMeetingId: number, breakouts: Breakout[]): AppThunk<number[]> =>
+	(imatMeetingId: number, breakoutsIn: Breakout[]): AppThunk<number[]> =>
 	async (dispatch, getState) => {
 		const { groupName } = selectBreakoutsState(getState());
 		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
-		let response: any;
+		let breakouts: Breakout[];
 		try {
-			response = await fetcher.post(url, breakouts);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response");
+			const response = await fetcher.post(url, breakoutsIn);
+			breakouts = breakoutsSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to add breakouts", error));
+			dispatch(setError("POST " + url, error));
 			return [];
 		}
-		dispatch(addMany(response));
-		return response.map((b: Breakout) => b.id);
+		dispatch(addMany(breakouts));
+		return breakouts.map((b: Breakout) => b.id);
 	};
 
 export const updateBreakouts =
-	(imatMeetingId: number, breakouts: Partial<Breakout>[]): AppThunk =>
+	(imatMeetingId: number, breakoutsIn: Partial<Breakout>[]): AppThunk =>
 	async (dispatch, getState) => {
 		const { groupName } = selectBreakoutsState(getState());
 		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;
-		let response: any;
+		let breakouts: Breakout[];
 		try {
-			response = await fetcher.put(url, breakouts);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response");
+			const response = await fetcher.put(url, breakoutsIn);
+			breakouts = breakoutsSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to update breakouts", error));
+			dispatch(setError("PUT " + url, error));
 			return;
 		}
-		dispatch(setMany(response));
+		dispatch(setMany(breakouts));
 	};
 
 export const deleteBreakouts =
@@ -390,7 +316,7 @@ export const deleteBreakouts =
 		try {
 			await fetcher.delete(url, ids);
 		} catch (error) {
-			dispatch(setError("Unable to delete breakouts", error));
+			dispatch(setError("DELETE " + url, error));
 			return;
 		}
 		dispatch(removeMany(ids));

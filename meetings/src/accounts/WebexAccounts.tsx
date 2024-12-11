@@ -34,7 +34,6 @@ const displayDate = (d: string) =>
 
 const defaultAccount: WebexAccountCreate = {
 	name: "",
-	groups: [],
 };
 
 type CellProps = {

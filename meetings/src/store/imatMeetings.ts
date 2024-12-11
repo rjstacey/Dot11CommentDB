@@ -1,8 +1,4 @@
-import {
-	createSelector,
-	createAction,
-	EntityId,
-} from "@reduxjs/toolkit";
+import { createSelector, createAction, EntityId } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -11,24 +7,14 @@ import {
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	FieldType,
-	isObject,
 	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
 import { selectCurrentSession, selectSessionEntities } from "./sessions";
+import { ImatMeeting, imatMeetingsSchema } from "@schemas/imat";
 
-export type ImatMeeting = {
-	id: number;
-	organizerId: string;
-	organizerSymbol: string;
-	organizerName: string;
-	name: string;
-	type: string;
-	start: string;
-	end: string;
-	timezone: string;
-};
+export type { ImatMeeting };
 
 export type SyncedImatMeeting = ImatMeeting & {
 	sessionId: number | null;
@@ -36,18 +22,20 @@ export type SyncedImatMeeting = ImatMeeting & {
 
 export const fields: Fields = {
 	id: { label: "Meeting number", type: FieldType.NUMERIC },
-	start: { label: "Start", dataRenderer: /*displayDate*/ (d: any) => `Here: ${d}`, type: FieldType.DATE },
+	start: {
+		label: "Start",
+		dataRenderer: /*displayDate*/ (d: any) => `Here: ${d}`,
+		type: FieldType.DATE,
+	},
 	end: { label: "End", dataRenderer: displayDate, type: FieldType.DATE },
 	name: { label: "Name" },
-	type: {	label: "Type" },
+	type: { label: "Type" },
 	timezone: { label: "Time zone" },
 	sessionId: { label: "Session" },
 };
 
-const initialState: {
-	groupName: string | null;
-} = {
-	groupName: null,
+const initialState = {
+	groupName: null as string | null,
 };
 const dataSet = "imatMeetings";
 const selectId = (d: ImatMeeting) => d.id;
@@ -58,29 +46,30 @@ const slice = createAppTableDataSlice({
 	selectId,
 	reducers: {},
 	extraReducers(builder, dataAdapter) {
-		builder.addMatcher(
-			(action) => action.type === getPending.toString(),
-			(state, action: ReturnType<typeof getPending>) => {
-				const { groupName } = action.payload;
-				if (state.groupName !== groupName) {
-					state.groupName = groupName;
-					dataAdapter.removeAll(state);
+		builder
+			.addMatcher(
+				(action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { groupName } = action.payload;
+					if (state.groupName !== groupName) {
+						state.groupName = groupName;
+						dataAdapter.removeAll(state);
+					}
 				}
-			}
-		)
-		.addMatcher(
-			(action) => action.type === clearImatMeetings.toString(),
-			(state) => {
-				dataAdapter.removeAll(state);
-				state.valid = false;
-			}
-		);
+			)
+			.addMatcher(
+				(action) => action.type === clearImatMeetings.toString(),
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.valid = false;
+				}
+			);
 	},
 });
 
 export default slice;
 
-/* Basic actions */
+/* Slice actions */
 export const imatMeetingsActions = slice.actions;
 
 const { getSuccess, getFailure } = slice.actions;
@@ -131,25 +120,9 @@ export const imatMeetingsSelectors = getAppTableDataSelectors(
 );
 
 /* Thunk actions */
-function validImatMeeting(imatMeeting: any): imatMeeting is ImatMeeting {
-	return (
-		isObject(imatMeeting) &&
-		typeof imatMeeting.id === "number" &&
-		typeof imatMeeting.name === "string" &&
-		typeof imatMeeting.type === "string" &&
-		typeof imatMeeting.start === "string" &&
-		typeof imatMeeting.end === "string" &&
-		typeof imatMeeting.timezone === "string"
-	);
-}
-
-function validGetResponse(response: any): response is ImatMeeting[] {
-	return Array.isArray(response) && response.every(validImatMeeting);
-}
-
-let loadingPromise: Promise<ImatMeeting[]>;
+let loadingPromise: Promise<void>;
 export const loadImatMeetings =
-	(groupName: string): AppThunk<ImatMeeting[]> =>
+	(groupName: string): AppThunk<void> =>
 	(dispatch, getState) => {
 		const { loading, groupName: currentGroupName } =
 			selectImatMeetingsState(getState());
@@ -157,18 +130,16 @@ export const loadImatMeetings =
 			return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
+		const url = `/api/${groupName}/imat/meetings`;
 		loadingPromise = fetcher
-			.get(`/api/${groupName}/imat/meetings`)
+			.get(url)
 			.then((response: any) => {
-				if (!validGetResponse(response))
-					throw new TypeError("Unexpected response to GET");
-				dispatch(getSuccess(response));
-				return response;
+				const imatMeetings = imatMeetingsSchema.parse(response);
+				dispatch(getSuccess(imatMeetings));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get meetings list", error));
-				return [];
+				dispatch(setError("GET " + url, error));
 			});
 		return loadingPromise;
 	};

@@ -5,44 +5,16 @@ import {
 } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
-import { fetcher, setError, isObject } from "dot11-components";
+import { fetcher, setError } from "dot11-components";
 import type { AppThunk, RootState } from ".";
+import {
+	CalendarAccount,
+	CalendarAccountCreate,
+	calendarAccountSchema,
+	calendarAccountsSchema,
+} from "@schemas/calendar";
 
-/* Google Calendar Schema: https://developers.google.com/calendar/api/v3/reference/calendars */
-type GoogleCalendarSchema = {
-	/** Type of the resource ("calendar#calendar"). */
-	kind: "calendar#calendar";
-	/** ETag of the resource. */
-	etag: string;
-	/** Identifier of the calendar. */
-	id: string;
-	/** Title of the calendar. */
-	summary: string;
-	/** Description of the calendar. */
-	description: string;
-	/** Geographic location of the calendar as free-form text. */
-	location: string;
-	/** The time zone of the calendar. (Formatted as an IANA Time Zone Database name, e.g. "Europe/Zurich".) */
-	timeZone: string;
-};
-
-export type CalendarAccount = {
-	id: number;
-	name: string;
-	groupId: string;
-	authDate?: string;
-	authUrl?: string;
-	authUserId: number | null;
-	displayName?: string;
-	userName?: string;
-	primaryCalendar?: GoogleCalendarSchema;
-	lastAccessed: string | null;
-};
-
-export type CalendarAccountCreate = {
-	name: string;
-	groups: string[];
-};
+export type { CalendarAccount, CalendarAccountCreate };
 
 type ExtraState = {
 	valid: boolean;
@@ -103,7 +75,7 @@ const slice = createSlice({
 
 export default slice;
 
-/* Basic actions */
+/* Slice actions */
 const {
 	getPending,
 	getSuccess,
@@ -133,22 +105,9 @@ export const selectCalendarAccounts = createSelector(
 );
 
 /* Thunk actions */
-function validCalendarAccount(account: any): account is CalendarAccount {
-	return (
-		isObject(account) &&
-		typeof account.id === "number" &&
-		typeof account.name === "string" &&
-		typeof account.groupId === "string"
-	);
-}
-
-function validGetResponse(response: any): response is CalendarAccount[] {
-	return Array.isArray(response) && response.every(validCalendarAccount);
-}
-
-let loadingPromise: Promise<CalendarAccount[]>;
+let loadingPromise: Promise<void>;
 export const loadCalendarAccounts =
-	(groupName: string): AppThunk<CalendarAccount[]> =>
+	(groupName: string): AppThunk<void> =>
 	(dispatch, getState) => {
 		const { loading, groupName: currentGroupName } =
 			selectCalendarAccountsState(getState());
@@ -156,23 +115,16 @@ export const loadCalendarAccounts =
 			return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
+		const url = `/api/${groupName}/calendar/accounts`;
 		loadingPromise = fetcher
-			.get(`/api/${groupName}/calendar/accounts`)
+			.get(url)
 			.then((response: any) => {
-				if (!validGetResponse(response))
-					throw new TypeError("Unexpected response to GET");
-				dispatch(getSuccess(response));
-				return response;
+				const calendar = calendarAccountsSchema.parse(response);
+				dispatch(getSuccess(calendar));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(
-					setError(
-						"Unable to get list of Google calendar accounts",
-						error
-					)
-				);
-				return [];
+				dispatch(setError("GET " + url, error));
 			});
 		return loadingPromise;
 	};
@@ -182,16 +134,15 @@ export const addCalendarAccount =
 	async (dispatch, getState) => {
 		const groupName = selectCalendarAccountsGroupName(getState());
 		const url = `/api/${groupName}/calendar/accounts`;
-		let response: any;
+		let calendar: CalendarAccount;
 		try {
-			response = await fetcher.post(url, account);
-			if (!validCalendarAccount(response))
-				throw new TypeError("Unexpected response to POST");
+			const response = await fetcher.post(url, account);
+			calendar = calendarAccountSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to add Google calendar account", error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(addOne(response));
+		dispatch(addOne(calendar));
 	};
 
 export const updateCalendarAccount =
@@ -200,18 +151,15 @@ export const updateCalendarAccount =
 		const groupName = selectCalendarAccountsGroupName(getState());
 		const url = `/api/${groupName}/calendar/accounts/${id}`;
 		dispatch(updateOne({ id, changes }));
-		let response: any;
+		let calendar: CalendarAccount;
 		try {
-			response = await fetcher.patch(url, changes);
-			if (!validCalendarAccount(response))
-				throw new TypeError("Unexpected response to PATCH");
+			const response = await fetcher.patch(url, changes);
+			calendar = calendarAccountSchema.parse(response);
 		} catch (error) {
-			dispatch(
-				setError(`Unable to update Google calendar account`, error)
-			);
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		dispatch(updateOne({ id, changes: response }));
+		dispatch(setOne(calendar));
 	};
 
 export const revokeAuthCalendarAccount =
@@ -219,18 +167,15 @@ export const revokeAuthCalendarAccount =
 	async (dispatch, getState) => {
 		const groupName = selectCalendarAccountsGroupName(getState());
 		const url = `/api/${groupName}/calendar/accounts/${id}/revoke`;
-		let response: any;
+		let calendar: CalendarAccount;
 		try {
-			response = await fetcher.patch(url);
-			if (!validCalendarAccount(response))
-				throw new TypeError("Unexpected response to PATCH");
+			const response = await fetcher.patch(url);
+			calendar = calendarAccountSchema.parse(response);
 		} catch (error) {
-			dispatch(
-				setError(`Unable to deauthorize google calendar account`, error)
-			);
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		dispatch(setOne(response));
+		dispatch(setOne(calendar));
 	};
 
 export const deleteCalendarAccount =
@@ -241,9 +186,7 @@ export const deleteCalendarAccount =
 		try {
 			await fetcher.delete(url);
 		} catch (error) {
-			dispatch(
-				setError(`Unable to delete Google calendar account`, error)
-			);
+			dispatch(setError("DELETE " + url, error));
 			return;
 		}
 		dispatch(removeOne(id));

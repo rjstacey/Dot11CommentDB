@@ -16,10 +16,10 @@ import {
 	type SyncedMeeting,
 } from "../store/meetings";
 import { selectOfficersState, type Officer } from "../store/officers";
-import { selectMember, type Member } from "../store/members";
+import { selectMember, type UserMember } from "../store/members";
 import { selectGroupsState, selectGroups } from "../store/groups";
 import { WebexMeeting, displayMeetingNumber } from "../store/webexMeetings";
-import { sendEmail, type Email } from "../store/emailActions";
+import { sendEmails, type Email } from "../store/emailActions";
 
 import styles from "./meetings.module.css";
 
@@ -71,7 +71,7 @@ function genTable(meetings: SyncedMeeting[]) {
 	return table;
 }
 
-function genEmailBody(user: User, officers: Member[], tableHtml: string) {
+function genEmailBody(user: User, officers: UserMember[], tableHtml: string) {
 	const sender = user.Name;
 	const names = officers.map((o) => o.Name).join(", ");
 
@@ -87,9 +87,10 @@ ${sender}<br>\
 `;
 }
 
-const genEmailAddress = (m: Member | User) => `${m.Name} <${m.Email}>`;
+const genEmailAddress = (m: UserMember | User) => `${m.Name} <${m.Email}>`;
 
-const genEmailToList = (officers: Member[]) => officers.map(genEmailAddress);
+const genEmailToList = (officers: UserMember[]) =>
+	officers.map(genEmailAddress);
 
 function selectOfficers(state: RootState, groupId: EntityId) {
 	const { ids, entities } = selectOfficersState(state);
@@ -110,7 +111,7 @@ function selectOfficers(state: RootState, groupId: EntityId) {
 		)
 		.sort(officerCompare)
 		.map((o) => selectMember(state, o.sapin))
-		.filter((o) => !!o) as Member[];
+		.filter((o) => !!o) as UserMember[];
 
 	return officers;
 }
@@ -210,11 +211,7 @@ function MeetingEmail({ close }: { close: () => void }) {
 
 	async function send() {
 		setBusy(true);
-		await Promise.all(
-			Object.values(emails).map((email) => {
-				return dispatch(sendEmail(groupName!, email));
-			})
-		);
+		await dispatch(sendEmails(groupName!, Object.values(emails)));
 		setBusy(false);
 		close();
 	}

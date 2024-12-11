@@ -18,7 +18,7 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { selectCurrentSessionId } from "./current";
-import { selectGroupEntities, selectWorkingGroupByName } from "./groups";
+import { selectGroupEntities, selectTopLevelGroupByName } from "./groups";
 import { AccessLevel } from "./user";
 
 export type Room = {
@@ -253,7 +253,7 @@ export const sessionsSelectors = getAppTableDataSelectors(selectSessionsState, {
 export const selectUserSessionsAccess = (state: RootState) => {
 	const { groupName } = selectSessionsState(state);
 	const group = groupName
-		? selectWorkingGroupByName(state, groupName)
+		? selectTopLevelGroupByName(state, groupName)
 		: undefined;
 	return group?.permissions.meetings || AccessLevel.none;
 };

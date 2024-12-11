@@ -4,16 +4,12 @@ import {
 	PayloadAction,
 	createSelector,
 } from "@reduxjs/toolkit";
-import { fetcher, isObject, setError } from "dot11-components";
+import { fetcher, setError } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
+import { UserMember, userMembersSchema } from "@schemas/members";
 
-export interface Member {
-	SAPIN: number;
-	Name: string;
-	Email: string;
-	Status: string;
-}
+export type { UserMember };
 
 type ExtraState = {
 	valid: boolean;
@@ -22,8 +18,8 @@ type ExtraState = {
 	lastLoad: string | null;
 };
 
-const selectId = (user: Member) => user.SAPIN;
-const dataAdapter = createEntityAdapter<Member>({ selectId });
+const selectId = (user: UserMember) => user.SAPIN;
+const dataAdapter = createEntityAdapter<UserMember>({ selectId });
 const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
@@ -88,43 +84,32 @@ export const selectMemberName = (state: RootState, sapin: number) => {
 };
 
 /* Thunk actions */
-function validUser(user: any): user is Member {
-	return isObject(user);
-}
-
-function validUsers(users: any): users is Member[] {
-	return Array.isArray(users) && users.every(validUser);
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-
-let loadingPromise: Promise<Member[]>;
+let loadingPromise: Promise<UserMember[]>;
 export const loadMembers =
-	(groupName: string): AppThunk<Member[]> =>
+	(groupName: string): AppThunk<UserMember[]> =>
 	(dispatch, getState) => {
 		const state = getState();
 		const { loading, groupName: currentGroupName } =
 			selectMembersState(state);
-		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
-		}
-		const age = selectMembersAge(state);
-		if (age && age < AGE_STALE) {
-			return Promise.resolve(selectMembers(state));
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectMembersAge(state);
+			if (age && age < AGE_STALE)
+				return Promise.resolve(selectMembers(state));
 		}
 		const url = `/api/${groupName}/members/user`;
 		dispatch(getPending({ groupName }));
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!validUsers(response))
-					throw new TypeError("Unexpected response");
-				dispatch(getSuccess(response));
-				return response;
+				const userMembers = userMembersSchema.parse(response);
+				dispatch(getSuccess(userMembers));
+				return userMembers;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get users list", error));
+				dispatch(setError("GET " + url, error));
 				return [];
 			});
 		return loadingPromise;

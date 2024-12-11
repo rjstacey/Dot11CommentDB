@@ -4,10 +4,12 @@ import type { RootState, AppThunk } from ".";
 
 import { fetcher, setError } from "dot11-components";
 
+import { timeZonesSchema } from "@schemas/timeZones";
+
 interface TimeZonesState {
 	loading: boolean;
 	valid: boolean;
-	timeZones: Array<string>;
+	timeZones: string[];
 	timeZone: string;
 	lastLoad: string | null;
 }
@@ -69,18 +71,15 @@ const AGE_STALE = 60 * 60 * 1000; // 1 hour
 const url = "/api/timeZones";
 export const loadTimeZones = (): AppThunk => async (dispatch, getState) => {
 	const age = selectTimeZonesAge(getState());
-	if (age && age < AGE_STALE) {
-		return;
-	}
+	if (age && age < AGE_STALE) return;
 	dispatch(getPending());
-	let timeZones;
+	let timeZones: string[];
 	try {
-		timeZones = await fetcher.get(url);
-		if (!Array.isArray(timeZones))
-			throw new TypeError("Unexpected response to GET " + url);
+		const response = await fetcher.get(url);
+		timeZones = timeZonesSchema.parse(response);
 	} catch (error) {
 		dispatch(getFailure());
-		dispatch(setError("Unable to get time zones list", error));
+		dispatch(setError("GET " + url, error));
 		return;
 	}
 	dispatch(getSuccess(timeZones));

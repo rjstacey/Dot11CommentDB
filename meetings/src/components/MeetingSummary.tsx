@@ -1,11 +1,11 @@
 import { useAppSelector } from "../store/hooks";
 
-import { selectMeetingEntities, getField } from "../store/meetings";
+import { selectSyncedMeetingEntities, getField } from "../store/meetings";
 
 import styles from "./MeetingSummary.module.css";
 
 function MeetingSummary({ meetingId }: { meetingId?: number | null }) {
-	const meetingEntities = useAppSelector(selectMeetingEntities);
+	const meetingEntities = useAppSelector(selectSyncedMeetingEntities);
 	const meeting = meetingId ? meetingEntities[meetingId] : undefined;
 	let content: JSX.Element | null = null;
 	if (meeting) {

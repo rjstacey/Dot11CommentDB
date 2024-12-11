@@ -7,6 +7,7 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	isObject,
+	Fields,
 } from "dot11-components";
 
 import type { AppThunk, RootState } from ".";
@@ -24,7 +25,7 @@ export type ImatBreakoutAttendance = {
 	Timestamp: string;
 };
 
-export const fields = {
+export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	Name: { label: "Name" },
 	Email: { label: "Email" },
@@ -57,7 +58,8 @@ const slice = createAppTableDataSlice({
 			.addMatcher(
 				(action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
-					const { groupName, imatMeetingId, imatBreakoutId } = action.payload;
+					const { groupName, imatMeetingId, imatBreakoutId } =
+						action.payload;
 					if (
 						state.groupName !== groupName ||
 						state.imatMeetingId !== imatMeetingId ||
@@ -105,7 +107,7 @@ export const selectBreakoutAttendanceState = (state: RootState) =>
 export const selectImatMeeting = (state: RootState) => {
 	const { imatMeetingId } = selectBreakoutAttendanceState(state);
 	const imatMeetingEntities = selectImatMeetingEntities(state);
-	return imatMeetingId? imatMeetingEntities[imatMeetingId]: undefined;
+	return imatMeetingId ? imatMeetingEntities[imatMeetingId] : undefined;
 };
 
 export const selectImatBreakout = (state: RootState) => {
@@ -113,7 +115,9 @@ export const selectImatBreakout = (state: RootState) => {
 		selectBreakoutAttendanceState(state);
 	if (imatMeetingId === selectBreakoutMeetingId(state)) {
 		const imatBreakoutEntities = selectBreakoutEntities(state);
-		return imatBreakoutId? imatBreakoutEntities[imatBreakoutId]: undefined;
+		return imatBreakoutId
+			? imatBreakoutEntities[imatBreakoutId]
+			: undefined;
 	}
 };
 
@@ -158,7 +162,9 @@ export const loadBreakoutAttendance =
 		}
 		dispatch(getPending({ groupName, imatMeetingId, imatBreakoutId }));
 		loadingPromise = fetcher
-			.get(`/api/${groupName}/imat/attendance/${imatMeetingId}/${imatBreakoutId}`)
+			.get(
+				`/api/${groupName}/imat/attendance/${imatMeetingId}/${imatBreakoutId}`
+			)
 			.then((response: any) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response");

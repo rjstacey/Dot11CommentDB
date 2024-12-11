@@ -19,7 +19,7 @@ import {
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { selectGroupEntities, selectWorkingGroupId } from "../store/groups";
+import { selectGroupEntities, selectTopLevelGroupId } from "../store/groups";
 import { updateMeetings, addMeetings } from "../store/meetings";
 import {
 	fields,
@@ -85,7 +85,7 @@ function MeetingAdd({
 }) {
 	const dispatch = useAppDispatch();
 	const groupEntities = useAppSelector(selectGroupEntities);
-	const groupId = useAppSelector(selectWorkingGroupId);
+	const groupId = useAppSelector(selectTopLevelGroupId)!;
 	const [entry, setEntry] = React.useState<MeetingEntry>(initState);
 
 	function initState(): MeetingEntry {
@@ -100,8 +100,8 @@ function MeetingAdd({
 		const endTime = toTimeStr(end.hour, end.minute);
 		const duration = end.diff(start, "hours").hours.toString();
 
-		let subgroupId = null;
-		const parentGroup = groupId && groupEntities[groupId];
+		let subgroupId = groupId;
+		const parentGroup = groupEntities[groupId];
 		if (parentGroup) {
 			const m = webexMeeting.title.match(`${parentGroup.name} (.*)`);
 			if (m) {
@@ -123,7 +123,7 @@ function MeetingAdd({
 			organizationId: subgroupId,
 			webexAccountId: webexMeeting.accountId,
 			webexMeetingId: webexMeeting.id,
-			sessionId: null,
+			sessionId: 0, //null, --- need to fix
 			imatMeetingId: null,
 			imatBreakoutId: null,
 			location: "",

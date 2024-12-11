@@ -17,10 +17,10 @@ import type { AppThunk, RootState } from ".";
 import { selectGroupsState, selectWorkingGroup } from "./groups";
 import { selectCurrentSessionId } from "./current";
 import { selectSessionEntities, selectCurrentSession } from "./sessions";
-import { addMeetings, selectMeetingEntities, MeetingAdd } from "./meetings";
+import { addMeetings, selectMeetingEntities, MeetingCreate } from "./meetings";
 import {
 	defaultWebexMeetingParams,
-	WebexMeetingParams,
+	WebexMeetingCreate,
 } from "./webexMeetingsSelectors";
 import { selectWebexAccountDefaultId } from "./webexAccounts";
 import { selectCalendarAccountDefaultId } from "./calendarAccounts";
@@ -207,7 +207,7 @@ export const importSelectedAsMeetings =
 			return;
 		}
 
-		const meetings: MeetingAdd[] = [];
+		const meetings: MeetingCreate[] = [];
 		for (const id of selected) {
 			const entry = entities[id]!;
 
@@ -247,7 +247,7 @@ export const importSelectedAsMeetings =
 
 			const room = session.rooms.find((r) => r.name === entry.mtgRoom);
 
-			let webexMeeting: WebexMeetingParams | undefined;
+			let webexMeeting: WebexMeetingCreate | undefined;
 			if (defaultWebexAccountId) {
 				webexMeeting = {
 					...defaultWebexMeetingParams,
@@ -255,7 +255,7 @@ export const importSelectedAsMeetings =
 				};
 			}
 
-			const meeting: MeetingAdd = {
+			const meeting: MeetingCreate = {
 				organizationId,
 				summary: subgroupName.trim(),
 				start: DateTime.fromFormat(

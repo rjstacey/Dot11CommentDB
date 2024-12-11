@@ -4,6 +4,7 @@ import {
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	FieldType,
+	Fields,
 } from "dot11-components";
 
 import type { AppThunk, RootState } from ".";
@@ -19,7 +20,7 @@ export type ImatMeetingAttendance = {
 	breakoutId: number;
 } & ImatBreakoutAttendance;
 
-export const fields = {
+export const fields: Fields = {
 	breakoutId: { label: "Breakout" },
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	Name: { label: "Name" },

@@ -9,14 +9,9 @@ import type { EntityId } from "@reduxjs/toolkit";
 import { fetcher, setError } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
+import { OfficerId, Officer, officersSchema } from "@schemas/officers";
 
-export type OfficerId = string;
-export type Officer = {
-	id: OfficerId;
-	sapin: number;
-	position: string;
-	group_id: string;
-};
+export type { OfficerId, Officer };
 
 type ExtraState = {
 	valid: boolean;
@@ -96,9 +91,7 @@ export const createGroupOfficersSelector = (
 ) => createSelector(selectOfficersState, () => group_id, selectGroupOfficers);
 
 /* Thunk actions */
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-
 let loadingPromise: Promise<Officer[]>;
 export const loadOfficers =
 	(groupName: string): AppThunk<Officer[]> =>
@@ -113,19 +106,18 @@ export const loadOfficers =
 		if (age && age < AGE_STALE) {
 			return Promise.resolve(selectOfficers(state));
 		}
-		const url = `/api/${groupName}/officers`;
 		dispatch(getPending({ groupName }));
+		const url = `/api/${groupName}/officers`;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!Array.isArray(response))
-					throw new TypeError(`Unexpected response to GET ${url}`);
-				dispatch(getSuccess(response));
-				return response;
+				const officers = officersSchema.parse(response);
+				dispatch(getSuccess(officers));
+				return officers;
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get groups", error));
+				dispatch(setError("GET " + url, error));
 				return [];
 			});
 		return loadingPromise;

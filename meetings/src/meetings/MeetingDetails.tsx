@@ -16,8 +16,8 @@ import {
 
 import type { RootState } from "../store";
 import { selectCurrentGroupDefaults } from "../store/current";
-import { selectGroupEntities, selectWorkingGroupId } from "../store/groups";
-import { selectUserMeetingsAccess } from "../store/meetings";
+import { selectGroupEntities, selectTopLevelGroupId } from "../store/groups";
+import { selectUserMeetingsAccess, SyncedMeeting } from "../store/meetings";
 import { AccessLevel } from "../store/user";
 
 import {
@@ -40,12 +40,12 @@ import {
 	selectSelectedMeetings,
 	selectSelectedSlots,
 	Meeting,
-	MeetingAdd,
+	MeetingCreate,
 } from "../store/meetings";
 
 import {
+	WebexMeetingChange,
 	webexMeetingToWebexMeetingParams,
-	type WebexMeetingParams,
 } from "../store/webexMeetings";
 
 import {
@@ -90,7 +90,7 @@ const isSessionMeeting = (session: Session | undefined) =>
 	session && (session.type === "p" || session.type === "i");
 
 export type MeetingEntry = Omit<
-	MeetingAdd,
+	MeetingCreate,
 	"id" | "start" | "end" | "webexMeeting"
 > & {
 	date: string;
@@ -98,7 +98,7 @@ export type MeetingEntry = Omit<
 	endTime: string;
 	startSlotId: number | null;
 	duration: string;
-	webexMeeting?: WebexMeetingParams;
+	webexMeeting?: WebexMeetingChange;
 };
 
 export type PartialMeetingEntry = Partial<
@@ -116,7 +116,7 @@ export type MultipleMeetingEntry = Multiple<
 };
 
 function convertMeetingToEntry(
-	meeting: Meeting,
+	meeting: SyncedMeeting,
 	session?: Session
 ): MeetingEntry {
 	let { start: startIn, end: endIn, webexMeeting, ...rest } = meeting;
@@ -179,7 +179,7 @@ function convertMeetingToEntry(
 export function convertEntryToMeeting(
 	entry: MeetingEntry,
 	session?: Session
-): MeetingAdd {
+): MeetingCreate {
 	let { date, startTime, endTime, startSlotId, duration, ...rest } = entry;
 
 	let zone;
@@ -214,7 +214,7 @@ type MeetingDetailsState = {
 	entry: MultipleMeetingEntry;
 	saved: MultipleMeetingEntry;
 	session: Session | undefined;
-	meetings: Meeting[];
+	meetings: SyncedMeeting[];
 	slots: string[];
 	busy: boolean;
 };
@@ -279,7 +279,6 @@ class MeetingDetails extends React.Component<
 			entities,
 			selectedMeetings,
 			selectedSlots,
-			defaults,
 			defaultWebexAccountId,
 			defaultCalenderAccountId,
 			groupId,
@@ -287,21 +286,9 @@ class MeetingDetails extends React.Component<
 			groupEntities,
 		} = this.props;
 
-		// Get meetings without superfluous webex params
-		const meetings = (
-			selectedMeetings
-				.map((id) => entities[id])
-				.filter((meeting) => meeting) as Meeting[]
-		).map((meeting) =>
-			meeting.webexMeeting
-				? ({
-						...meeting!,
-						webexMeeting: webexMeetingToWebexMeetingParams(
-							meeting.webexMeeting
-						),
-				  } as Meeting)
-				: meeting
-		);
+		const meetings = selectedMeetings
+			.map((id) => entities[id])
+			.filter(Boolean);
 
 		let entry: MultipleMeetingEntry = meetings.reduce(
 			(accumulatedEntry, meeting) => {
@@ -379,15 +366,15 @@ class MeetingDetails extends React.Component<
 					startTime: "",
 					endTime: "",
 					duration: "",
-					organizationId: null,
+					organizationId: groupId,
 					hasMotions: false,
 				};
 			}
 		}
 
 		if (action !== "update") {
-			entry.sessionId = session ? session.id : null;
-			entry.timezone = session ? session.timezone : defaults.timezone;
+			entry.sessionId = session.id;
+			entry.timezone = session.timezone;
 			entry.isCancelled = false;
 			const subgroup =
 				entry.organizationId && groupEntities[entry.organizationId];
@@ -400,6 +387,9 @@ class MeetingDetails extends React.Component<
 			entry.imatBreakoutId = null;
 			entry.webexMeeting = {
 				...defaultWebexMeeting,
+				meetingOptions: defaultWebexMeeting.meetingOptions!,
+				audioConnectionOptions:
+					defaultWebexMeeting.audioConnectionOptions!,
 				accountId: defaultWebexAccountId,
 			};
 		}
@@ -433,7 +423,10 @@ class MeetingDetails extends React.Component<
 				diff
 			) as MeetingEntry;
 			const updated = convertEntryToMeeting(local, session);
-			const changes = deepDiff(meeting, updated) as Partial<MeetingAdd>;
+			const changes = deepDiff(
+				meeting,
+				updated
+			) as Partial<MeetingCreate>;
 
 			// If a (new) webex account is given, add a webex meeting
 			if (changes.webexAccountId) changes.webexMeetingId = "$add";
@@ -528,7 +521,7 @@ class MeetingDetails extends React.Component<
 		// If an IMAT meeting ID is given then create a breakout
 		if (entry.imatMeetingId) entry = { ...entry, imatBreakoutId: "$add" };
 
-		let meetings: MeetingAdd[];
+		let meetings: MeetingCreate[];
 		if (action === "add-by-slot") {
 			const { dates, startSlotId, startTime, endTime, roomId, ...rest } =
 				entry;
@@ -678,8 +671,8 @@ class MeetingDetails extends React.Component<
 
 const connector = connect(
 	(state: RootState) => ({
-		groupId: selectWorkingGroupId(state),
-		session: selectCurrentSession(state),
+		groupId: selectTopLevelGroupId(state)!,
+		session: selectCurrentSession(state)!,
 		loading: selectMeetingsState(state).loading,
 		selectedMeetings: selectSelectedMeetings(state),
 		selectedSlots: selectSelectedSlots(state),

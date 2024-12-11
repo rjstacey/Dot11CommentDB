@@ -5,7 +5,7 @@ import { Dropdown, DropdownRendererProps } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
-import { selectWorkingGroupByName } from "../store/groups";
+import { selectTopLevelGroupByName } from "../store/groups";
 import { selectBreakoutMeetingId } from "../store/imatBreakouts";
 
 import routes, { AppRoute } from "./routes";
@@ -53,7 +53,7 @@ function useMenuPaths() {
 function useMenuLinks() {
 	const groupName = useParams().groupName || "*";
 	const group = useAppSelector((state) =>
-		selectWorkingGroupByName(state, groupName!)
+		selectTopLevelGroupByName(state, groupName!)
 	);
 	const access = group?.permissions.meetings || AccessLevel.none;
 	const imatBreakoutMeetingId = useAppSelector(selectBreakoutMeetingId);
