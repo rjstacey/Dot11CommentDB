@@ -52,23 +52,34 @@ export const webexMeetingOptionsSchema = z.object({
 });
 export type WebexMeetingOptions = z.infer<typeof webexMeetingOptionsSchema>;
 
+const entryAndExitToneSchema = z.enum([
+	"beep", // All call-in users joining the meeting will hear the beep.
+	"announceName", // All call-in users joining the meeting will hear their names.
+	"noTone", // Turn off beeps and name announcements.
+]);
+export type WebexEntryExitTone = z.infer<typeof entryAndExitToneSchema>;
+
+const audioConnectionTypeSchema = z.enum([
+	"webexAudio",
+	"VoIP",
+	"other",
+	"none",
+]);
+export type WebexAudioConnectionType = z.infer<
+	typeof audioConnectionTypeSchema
+>;
+
 export const webexAudioConnectionOptionsSchema = z.object({
 	/** Whether or not to allow attendees to unmute themselves. */
 	allowAttendeeToUnmuteSelf: z.boolean(),
 	/** Whether or not to auto-mute attendees when attendees enter meetings. */
 	muteAttendeeUponEntry: z.boolean(),
 	/** Select the sound you want users who have a phone audio connection to hear when someone enters or exits the meeting. */
-	entryAndExitTone: z.enum([
-		"beep", // All call-in users joining the meeting will hear the beep.
-		"announceName", // All call-in users joining the meeting will hear their names.
-		"noTone", // Turn off beeps and name announcements.
-	]),
+	entryAndExitTone: entryAndExitToneSchema,
 	/** Whether or not to allow the host to unmute participants. */
 	allowHostToUnmuteParticipants: z.boolean(),
 	/** Choose how meeting attendees join the audio portion of the meeting. */
-	audioConnectionType: z
-		.enum(["webexAudio", "VoIP", "other", "none"])
-		.optional(),
+	audioConnectionType: audioConnectionTypeSchema.optional(),
 	/** Whether or not to allow attendees to receive a call-back and call-in is available. Can only be set true for a webinar. */
 	enabledAudienceCallBack: z.boolean(),
 	/** Whether or not to show global call-in numbers to attendees. */
@@ -205,6 +216,7 @@ export const webexMeetingSchema = webexMeetingChangeSchema.required().extend({
 	/** Display name for the meeting host. */
 	hostDisplayName: z.string(),
 });
+export const webexMeetingsSchema = webexMeetingSchema.array();
 
 export const webexMeetingDeleteSchema = webexMeetingSchema.pick({
 	accountId: true,
@@ -223,22 +235,13 @@ export const webexMeetingsQuerySchema = z.object({
 export type WebexMeetingsQuery = z.infer<typeof webexMeetingsQuerySchema>;
 
 export const webexMeetingTemplateSchema = z.object({
-	/** Unique identifier for meeting template. */
-	id: z.string(),
-	/** Meeting template name. */
-	name: z.string(),
-	/** Meeting template locale. */
-	locale: z.string(),
-	/** Site URL for the meeting template. */
-	siteUrl: z.string(),
+	id: z.string(), // Unique identifier for meeting template.
+	name: z.string(), // Meeting template name.
+	locale: z.string(), // Meeting template locale.
+	siteUrl: z.string(), // Site URL for the meeting template.
 	templateType: z.enum(["meeting", "webinar"]),
-	/** Whether or not the meeting template is a default template. */
-	isDefault: z.boolean(),
-	/** Whether or not the meeting template is a standard template. */
-	isStandard: z.boolean(),
-	/** Meeting object which is used to create a meeting by the meeting template.
-	 * Please note that the meeting object should be used to create a meeting immediately after retrieval since the start and end may be invalid quickly after generation. */
-	meeting: z.object({}),
+	isDefault: z.boolean(), // Whether or not the meeting template is a default template.
+	isStandard: z.boolean(), // Whether or not the meeting template is a standard template.
 });
 type WebexMeetingTemplate = z.infer<typeof webexMeetingTemplateSchema>;
 
@@ -292,18 +295,18 @@ export type WebexSites = z.infer<typeof webexSitesSchema>;
 
 export const webexAccountSchema = oAuthAccountSchema
 	.omit({ authParams: true })
-	.merge(
-		z.object({
-			authUrl: z.string().url(),
-			displayName: z.string().optional(),
-			userName: z.string().optional(),
-			owner: webexPersonSchema.optional(),
-			siteUrl: z.string().url().optional(),
-			preferences: webexMeetingPreferencesSchema.optional(),
-			templates: webexMeetingTemplateSchema.array(),
-			lastAccessed: z.string().datetime().nullable(),
-		})
-	);
+	.extend({
+		authUrl: z.string().url(),
+		displayName: z.string().optional(),
+		userName: z.string().optional(),
+		owner: webexPersonSchema.optional(),
+		siteUrl: z.string().url().optional(),
+		preferences: webexMeetingPreferencesSchema.optional(),
+		templates: webexMeetingTemplateSchema.array().optional(),
+		lastAccessed: z.string().datetime().nullable(),
+	});
+export const webexAccountsSchema = webexAccountSchema.array();
+
 export type WebexAccount = z.infer<typeof webexAccountSchema>;
 
 export type WebexMeeting = z.infer<typeof webexMeetingSchema>;

@@ -16,6 +16,11 @@ export const timeslotSchema = z.object({
 });
 export type Timeslot = z.infer<typeof timeslotSchema>;
 
+// To fix: some entries are string[][] and some are {}[]
+export const defaultCreditsSchema = z.array(
+	z.union([z.string().array(), z.object({})])
+);
+
 export const sessionTypeSchema = z.enum(["p", "i", "o", "g"]);
 export type SessionType = z.infer<typeof sessionTypeSchema>;
 
@@ -34,14 +39,11 @@ export const sessionSchema = z.object({
 	startDate: z.string().date(),
 	endDate: z.string().date(),
 	attendees: z.number(),
-});
-export const sessionsSchema = sessionSchema.array();
-
-export const sessionAdminSchema = sessionSchema.extend({
 	rooms: roomSchema.array(),
 	timeslots: timeslotSchema.array(),
-	defaultCredits: z.string().array().array(),
+	defaultCredits: defaultCreditsSchema,
 });
+export const sessionsSchema = sessionSchema.array();
 
 export const sessionsQuerySchema = z
 	.object({

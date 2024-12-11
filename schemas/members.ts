@@ -135,6 +135,15 @@ export type UpdateRosterOptions = {
 	removeUnchanged?: boolean;
 };
 
+/* Member info available to all */
+export const userMemberSchema = z.object({
+	SAPIN: z.number(),
+	Name: z.string(),
+	Status: statusSchema,
+	Email: z.string().optional(), // Only available to users with admin rights
+});
+export const userMembersSchema = userMemberSchema.array();
+
 export type StatusChangeEntry = z.infer<typeof statusChangeEntrySchema>;
 export type ContactEmail = z.infer<typeof contactEmailSchema>;
 export type ContactInfo = z.infer<typeof contactInfoSchema>;
@@ -146,3 +155,4 @@ export type Member = z.infer<typeof memberSchema>;
 export type MemberQuery = z.infer<typeof memberQuerySchema>;
 export type MemberCreate = z.infer<typeof memberCreateSchema>;
 export type MemberUpdate = z.infer<typeof memberUpdateSchema>;
+export type UserMember = z.infer<typeof userMemberSchema>;

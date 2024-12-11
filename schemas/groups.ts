@@ -15,15 +15,15 @@ export const groupTypeSchema = z.enum([
 
 export const groupSchema = z.object({
 	id: groupIdSchema,
-	parent_id: z.nullable(groupIdSchema),
+	parent_id: groupIdSchema.nullable(),
 	name: z.string(),
-	type: z.nullable(groupTypeSchema),
+	type: groupTypeSchema.nullable(),
 	status: z.number(),
-	color: z.string(),
-	symbol: z.nullable(z.string()),
-	project: z.nullable(z.string()),
+	color: z.string().nullable(),
+	symbol: z.string().nullable(),
+	project: z.string().nullable(),
 	permissions: z.record(z.number()),
-	officerSAPINs: z.array(z.number()),
+	officerSAPINs: z.number().array(),
 });
 export const groupsSchema = z.array(groupSchema);
 
