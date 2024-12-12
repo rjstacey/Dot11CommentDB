@@ -17,7 +17,11 @@ import {
 import type { RootState } from "../store";
 import { selectCurrentGroupDefaults } from "../store/current";
 import { selectGroupEntities, selectTopLevelGroupId } from "../store/groups";
-import { selectUserMeetingsAccess, SyncedMeeting } from "../store/meetings";
+import {
+	selectUserMeetingsAccess,
+	SyncedMeeting,
+	MeetingUpdate,
+} from "../store/meetings";
 import { AccessLevel } from "../store/user";
 
 import {
@@ -416,7 +420,7 @@ class MeetingDetails extends React.Component<
 
 		// Find differences
 		const diff = deepDiff(saved, e) as Partial<MeetingEntry>;
-		const updates = [];
+		const updates: MeetingUpdate[] = [];
 		for (const meeting of meetings) {
 			const local = deepMerge(
 				convertMeetingToEntry(meeting, session),
@@ -426,7 +430,7 @@ class MeetingDetails extends React.Component<
 			const changes = deepDiff(
 				meeting,
 				updated
-			) as Partial<MeetingCreate>;
+			) as MeetingUpdate["changes"];
 
 			// If a (new) webex account is given, add a webex meeting
 			if (changes.webexAccountId) changes.webexMeetingId = "$add";

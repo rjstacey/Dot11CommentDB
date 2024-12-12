@@ -6,8 +6,9 @@ import { createAppTableDataSlice, shallowEqual } from "dot11-components";
 import {
 	dataSet,
 	fields,
-	LoadMeetingsConstraints,
+	//LoadMeetingsConstraints,
 	Meeting,
+	MeetingsQuery,
 } from "./meetingsSelectors";
 
 const sortComparer = (a: Meeting, b: Meeting) => {
@@ -35,7 +36,7 @@ function toggleListItems(list: string[], items: string[]) {
 
 const initialState: {
 	groupName: string | null;
-	query?: LoadMeetingsConstraints;
+	query?: MeetingsQuery; //LoadMeetingsConstraints;
 	selectedSlots: string[];
 	lastLoad: string | null;
 } = {
@@ -89,7 +90,7 @@ const slice = createAppTableDataSlice({
 // Override the default getPending()
 export const getPending = createAction<{
 	groupName: string;
-	query?: LoadMeetingsConstraints;
+	query?: MeetingsQuery; //LoadMeetingsConstraints;
 }>(slice.name + "/getPending");
 export const clearMeetings = createAction(slice.name + "/clear");
 

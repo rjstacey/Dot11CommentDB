@@ -1,5 +1,5 @@
 import { EntityId } from "@reduxjs/toolkit";
-import { fetcher, setError, isObject, shallowEqual } from "dot11-components";
+import { fetcher, setError, shallowEqual } from "dot11-components";
 
 import slice, { getPending, clearMeetings } from "./meetingsSlice";
 
@@ -9,9 +9,9 @@ import { upsertBreakouts } from "./imatBreakouts";
 import {
 	selectMeetingsState,
 	selectMeetingsAge,
-	Meeting,
 	MeetingCreate,
-	LoadMeetingsConstraints,
+	MeetingUpdate,
+	MeetingsQuery,
 } from "./meetingsSelectors";
 import {
 	meetingsGetResponse,
@@ -51,24 +51,13 @@ export {
 	clearMeetings,
 };
 
-function validateResponse(method: string, response: any) {
-	if (
-		!isObject(response) ||
-		!Array.isArray(response.meetings) ||
-		(response.webexMeetings && !Array.isArray(response.webexMeetings)) ||
-		(response.breakouts && !Array.isArray(response.breakouts))
-	) {
-		throw new TypeError(`Unexpected response to ${method}`);
-	}
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 let loading = false;
 let loadingPromise: Promise<void>;
 export const loadMeetings =
 	(
 		groupName: string,
-		query?: LoadMeetingsConstraints,
+		query?: MeetingsQuery, //LoadMeetingsConstraints,
 		force = false
 	): AppThunk<void> =>
 	(dispatch, getState) => {
@@ -83,12 +72,10 @@ export const loadMeetings =
 			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ groupName, query }));
-		const url =
-			`/api/${groupName}/meetings` +
-			(query ? "?" + new URLSearchParams(query) : "");
+		const url = `/api/${groupName}/meetings`;
 		loading = true;
 		loadingPromise = fetcher
-			.get(url)
+			.get(url, query)
 			.then((response: any) => {
 				const { meetings, webexMeetings } =
 					meetingsGetResponse.parse(response);
@@ -106,13 +93,8 @@ export const loadMeetings =
 		return loadingPromise;
 	};
 
-type Update<T> = {
-	id: EntityId;
-	changes: Partial<T>;
-};
-
 export const updateMeetings =
-	(updates: Update<MeetingCreate>[]): AppThunk =>
+	(updates: MeetingUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMeetingsState(getState());
 		const url = `/api/${groupName}/meetings`;
@@ -135,19 +117,19 @@ export const addMeetings =
 	async (dispatch, getState) => {
 		const { groupName } = selectMeetingsState(getState());
 		const url = `/api/${groupName}/meetings`;
-		let response: any;
+		let r: MeetingsUpdateResponse;
 		try {
-			response = await fetcher.post(url, meetingsToAdd);
-			validateResponse("POST", response);
+			const response = await fetcher.post(url, meetingsToAdd);
+			r = meetingsUpdateResponse.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to add meetings:", error));
+			dispatch(setError("POST " + url, error));
 			return [];
 		}
-		const { meetings, webexMeetings, breakouts } = response;
+		const { meetings, webexMeetings, breakouts } = r;
 		dispatch(addMany(meetings));
 		if (webexMeetings) dispatch(upsertWebexMeetings(webexMeetings));
 		if (breakouts) dispatch(upsertBreakouts(breakouts));
-		return meetings.map((e: Meeting) => e.id);
+		return meetings.map((e) => e.id);
 	};
 
 export const deleteMeetings =

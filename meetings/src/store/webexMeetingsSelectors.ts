@@ -19,6 +19,7 @@ import {
 	WebexMeetingChange,
 	WebexMeetingCreate,
 	WebexEntryExitTone,
+	WebexMeetingsQuery,
 } from "@schemas/webex";
 import { MeetingChangeWebexParams } from "./meetingsSelectors";
 
@@ -29,6 +30,7 @@ export type {
 	WebexMeetingChange,
 	WebexMeetingCreate,
 	WebexEntryExitTone,
+	WebexMeetingsQuery,
 };
 
 export function webexMeetingToWebexMeetingParams(

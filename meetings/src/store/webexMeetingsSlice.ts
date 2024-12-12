@@ -2,11 +2,11 @@ import { createAction } from "@reduxjs/toolkit";
 import { createAppTableDataSlice, shallowEqual } from "dot11-components";
 
 import { dataSet, fields } from "./webexMeetingsSelectors";
-import { LoadMeetingsConstraints } from "./meetingsSelectors";
+import { WebexMeetingsQuery } from "@schemas/webex";
 
 const initialState: {
 	groupName: string | null;
-	query?: LoadMeetingsConstraints;
+	query?: WebexMeetingsQuery;
 	lastLoad: string | null;
 } = {
 	groupName: null,
@@ -52,6 +52,6 @@ export default slice;
 // Override getPending() with one the sets groupName
 export const getPending = createAction<{
 	groupName: string;
-	query?: LoadMeetingsConstraints;
+	query?: WebexMeetingsQuery;
 }>(slice.name + "/getPending");
 export const clearWebexMeetings = createAction(slice.name + "/clear");

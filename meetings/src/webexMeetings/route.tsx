@@ -14,7 +14,7 @@ import {
 	loadWebexMeetings,
 	selectWebexMeetingsState,
 } from "../store/webexMeetings";
-import { LoadMeetingsConstraints } from "../store/meetingsSelectors";
+import { WebexMeetingsQuery } from "../store/webexMeetingsSelectors";
 import { setCurrentSessionId, setShowDateRange } from "../store/current";
 
 import WebexMeetingsLayout from "./layout";
@@ -55,15 +55,15 @@ const webexMeetingsLoader: LoaderFunction = async ({
 		if (session) {
 			dispatch(setCurrentSessionId(session.id));
 			dispatch(setShowDateRange(showDateRange));
-			const constraints: LoadMeetingsConstraints = {};
+			const query: WebexMeetingsQuery = {};
 			if (showDateRange) {
-				constraints.fromDate = session.startDate;
-				constraints.toDate = session.endDate;
-				constraints.timezone = session.timezone;
+				query.fromDate = session.startDate;
+				query.toDate = session.endDate;
+				query.timezone = session.timezone;
 			} else {
-				constraints.sessionId = "" + session.id;
+				query.sessionId = session.id;
 			}
-			dispatch(loadWebexMeetings(groupName, constraints));
+			dispatch(loadWebexMeetings(groupName, query));
 			return session;
 		} else {
 			dispatch(

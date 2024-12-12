@@ -11,9 +11,9 @@ import {
 } from "../store/sessions";
 import { loadImatMeetings } from "../store/imatMeetings";
 import {
-	loadMeetings,
-	LoadMeetingsConstraints,
 	selectMeetingsState,
+	loadMeetings,
+	MeetingsQuery,
 } from "../store/meetings";
 import { setCurrentSessionId, setShowDateRange } from "../store/current";
 
@@ -55,15 +55,15 @@ const meetingsLoader: LoaderFunction<LoaderData> = async ({
 		if (session) {
 			dispatch(setCurrentSessionId(session.id));
 			dispatch(setShowDateRange(showDateRange));
-			const constraints: LoadMeetingsConstraints = {};
+			const query: MeetingsQuery = {};
 			if (showDateRange) {
-				constraints.fromDate = session.startDate;
-				constraints.toDate = session.endDate;
-				constraints.timezone = session.timezone;
+				query.fromDate = session.startDate;
+				query.toDate = session.endDate;
+				query.timezone = session.timezone;
 			} else {
-				constraints.sessionId = "" + session.id;
+				query.sessionId = session.id;
 			}
-			dispatch(loadMeetings(groupName, constraints));
+			dispatch(loadMeetings(groupName, query));
 			return session;
 		} else {
 			dispatch(

@@ -26,48 +26,24 @@ import {
 	displayMeetingNumber,
 } from "./webexMeetingsSelectors";
 import { selectSessionEntities } from "./sessions";
-import { selectCurrentSessionId, selectShowDateRange } from "./current";
+//import { selectCurrentSessionId, selectShowDateRange } from "./current";
 import { AccessLevel } from "./user";
 
 import {
 	Meeting,
 	MeetingCreate,
+	MeetingUpdate,
 	MeetingChangeWebexParams,
+	MeetingsQuery,
 } from "@schemas/meetings";
 
-export type { Meeting, MeetingCreate, MeetingChangeWebexParams };
-
-/*
-export interface Meeting extends Meeting1 {
-	id: number;
-	organizationId: string;
-	start: string;
-	end: string;
-	timezone: string;
-	summary: string;
-	location: string;
-	isCancelled: boolean;
-	hasMotions: boolean;
-	webexAccountId: number | null;
-	webexMeetingId: string | null;
-	webexMeeting?: WebexMeeting;
-	calendarAccountId: number | null;
-	calendarEventId: string | null;
-	imatMeetingId: number | null;
-	imatBreakoutId: number | null;
-	//sessionId: number | null;
-	roomId: number | null;
-}
-
-export type MeetingAdd = Omit<
+export type {
 	Meeting,
-	"id" | "imatBreakoutId" | "webexMeetingId" | "webexMeeting"
-> & {
-	imatBreakoutId: Meeting["imatBreakoutId"] | "$add";
-	webexMeetingId: Meeting["webexMeetingId"] | "$add";
-	webexMeeting?: WebexMeetingParams;
+	MeetingCreate,
+	MeetingUpdate,
+	MeetingChangeWebexParams,
+	MeetingsQuery,
 };
-*/
 
 /** `Meeting` record with additional fields from referenced entities */
 export type SyncedMeeting = Meeting & {
@@ -264,35 +240,6 @@ export const selectSelectedSlots = (state: RootState) =>
 	selectMeetingsState(state).selectedSlots;
 export const selectUiProperties = (state: RootState) =>
 	selectMeetingsState(state).ui;
-
-export type LoadMeetingsConstraints = {
-	fromDate?: string;
-	toDate?: string;
-	timezone?: string;
-	sessionId?: string;
-};
-
-export const selectLoadMeetingsContstraints = createSelector(
-	selectCurrentSessionId,
-	selectSessionEntities,
-	selectShowDateRange,
-	(sessionId, sessionEntities, showDateRange) => {
-		if (sessionId) {
-			const session = sessionEntities[sessionId];
-			const constraints: LoadMeetingsConstraints = {};
-			if (showDateRange) {
-				if (session) {
-					constraints.fromDate = session.startDate;
-					constraints.toDate = session.endDate;
-					constraints.timezone = session.timezone;
-				}
-			} else {
-				constraints.sessionId = "" + sessionId;
-			}
-			return constraints;
-		}
-	}
-);
 
 export const selectUserMeetingsAccess = (state: RootState) => {
 	const { groupName } = selectMeetingsState(state);

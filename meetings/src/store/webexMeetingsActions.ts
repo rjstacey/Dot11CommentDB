@@ -8,8 +8,7 @@ import {
 	WebexMeeting,
 	WebexMeetingChange,
 } from "./webexMeetingsSelectors";
-import { LoadMeetingsConstraints } from "./meetingsSelectors";
-import { webexMeetingsSchema } from "@schemas/webex";
+import { webexMeetingsSchema, WebexMeetingsQuery } from "@schemas/webex";
 
 export const webexMeetingsActions = slice.actions;
 
@@ -38,7 +37,7 @@ let loadingPromise: Promise<void>;
 export const loadWebexMeetings =
 	(
 		groupName: string,
-		query?: LoadMeetingsConstraints,
+		query?: WebexMeetingsQuery,
 		force = false
 	): AppThunk<void> =>
 	(dispatch, getState) => {
@@ -53,12 +52,10 @@ export const loadWebexMeetings =
 			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ groupName, query }));
-		const url =
-			`/api/${groupName}/webex/meetings` +
-			(query ? "?" + new URLSearchParams(query) : "");
+		const url = `/api/${groupName}/webex/meetings`;
 		loading = true;
 		loadingPromise = fetcher
-			.get(url)
+			.get(url, query)
 			.then((response: any) => {
 				const webexMeetings = webexMeetingsSchema.parse(response);
 				dispatch(getSuccess(webexMeetings));
