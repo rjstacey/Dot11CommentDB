@@ -1423,6 +1423,7 @@ export async function getImatMeetingAttendanceSummaryForSession(
 	session: Session
 ) {
 	const zone = session.timezone;
+
 	let start: DateTime | string;
 	start = DateTime.fromISO(session.startDate, { zone });
 	if (!start.isValid)
