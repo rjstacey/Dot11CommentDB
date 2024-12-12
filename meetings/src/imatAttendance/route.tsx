@@ -3,7 +3,10 @@ import { LoaderFunction, RouteObject } from "react-router-dom";
 import { store } from "../store";
 import { selectTopLevelGroupByName, loadGroups } from "../store/groups";
 import { AccessLevel } from "../store/user";
-import { loadImatMeetings } from "../store/imatMeetings";
+import {
+	loadImatMeetings,
+	selectImatMeetingsState,
+} from "../store/imatMeetings";
 import { loadImatMeetingAttendance } from "../store/imatMeetingAttendance";
 import {
 	clearBreakoutAttendance,
@@ -13,6 +16,28 @@ import {
 import ImatAttendanceLayout from "./layout";
 import ImatMeetingAttendance from "./ImatMeetingAttendance";
 import ImatBreakoutAttendance from "./ImatBreakoutAttendance";
+
+export function refresh(
+	meetingNumber: number | undefined,
+	breakoutNumber: number | undefined
+) {
+	const { dispatch, getState } = store;
+	const groupName = selectImatMeetingsState(getState()).groupName;
+	if (!groupName) throw Error("Refresh error; no groupName");
+	dispatch(loadImatMeetings(groupName));
+	if (meetingNumber && breakoutNumber) {
+		dispatch(
+			loadBreakoutAttendance(
+				groupName,
+				meetingNumber,
+				breakoutNumber,
+				true
+			)
+		);
+	} else if (meetingNumber) {
+		dispatch(loadImatMeetingAttendance(groupName, meetingNumber));
+	}
+}
 
 const imatAttendanceLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
@@ -48,9 +73,8 @@ const imatBreakoutAttendanceLoader: LoaderFunction = async ({ params }) => {
 	const breakoutNumber = Number(params.breakoutNumber);
 	if (!groupName || !meetingNumber || !breakoutNumber)
 		throw new Error("Route error: groupName or meetingNumber not set");
-	store.dispatch(
-		loadBreakoutAttendance(groupName, meetingNumber, breakoutNumber)
-	);
+	const { dispatch } = store;
+	dispatch(loadBreakoutAttendance(groupName, meetingNumber, breakoutNumber));
 	return null;
 };
 

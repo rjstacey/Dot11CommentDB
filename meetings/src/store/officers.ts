@@ -64,6 +64,11 @@ const { getPending, getSuccess, getFailure } = slice.actions;
 
 /* Selectors */
 export const selectOfficersState = (state: RootState) => state[dataSet];
+const selectOfficersAge = (state: RootState) => {
+	let lastLoad = selectOfficersState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectOfficerIds = (state: RootState) =>
 	selectOfficersState(state).ids;
 export const selectOfficerEntities = (state: RootState) =>
@@ -80,11 +85,6 @@ const selectOfficers = createSelector(
 	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
-const selectOfficersAge = (state: RootState) => {
-	let lastLoad = selectOfficersState(state).lastLoad;
-	if (!lastLoad) return NaN;
-	return new Date().valueOf() - new Date(lastLoad).valueOf();
-};
 export const createGroupOfficersSelector = (
 	state: RootState,
 	group_id: EntityId
@@ -92,33 +92,36 @@ export const createGroupOfficersSelector = (
 
 /* Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
 let loadingPromise: Promise<Officer[]>;
 export const loadOfficers =
 	(groupName: string): AppThunk<Officer[]> =>
 	(dispatch, getState) => {
 		const state = getState();
-		const { loading, groupName: currentGroupName } =
-			selectOfficersState(state);
-		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
-		}
-		const age = selectOfficersAge(state);
-		if (age && age < AGE_STALE) {
-			return Promise.resolve(selectOfficers(state));
+		const { groupName: currentGroupName } = selectOfficersState(state);
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectOfficersAge(state);
+			if (age && age < AGE_STALE)
+				return Promise.resolve(selectOfficers(state));
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/officers`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
 				const officers = officersSchema.parse(response);
 				dispatch(getSuccess(officers));
-				return officers;
+				return selectOfficers(getState());
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
-				return [];
+				return selectOfficers(getState());
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};

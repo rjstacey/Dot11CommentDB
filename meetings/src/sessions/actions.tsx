@@ -18,13 +18,13 @@ import {
 } from "../store/sessions";
 
 import { tableColumns } from "./table";
+import { refresh } from "./route";
 
 function SessionsActions() {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const { groupName } = useParams();
 	const { selected } = useAppSelector(selectSessionsState);
-	const refresh = () => navigate(0);
 	const showImatMeetings = () => navigate(`/${groupName}/imatMeetings`);
 	const handleRemoveSelected = async () => {
 		if (selected.length) {

@@ -53,6 +53,7 @@ type ExtraState = {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
+	lastLoad: string | null;
 	defaultId: number | null;
 };
 
@@ -61,6 +62,7 @@ const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
 	groupName: null,
+	lastLoad: null,
 	defaultId: null,
 });
 
@@ -72,6 +74,7 @@ const slice = createSlice({
 		getPending(state, action: PayloadAction<{ groupName: string | null }>) {
 			const { groupName } = action.payload;
 			state.loading = true;
+			state.lastLoad = new Date().toISOString();
 			if (state.groupName !== groupName) {
 				state.groupName = groupName;
 				state.valid = false;
@@ -125,6 +128,11 @@ export const setWebexAccountDefaultId = slice.actions.setDefaultId;
 
 /* Selectors */
 export const selectWebexAccountsState = (state: RootState) => state[dataSet];
+const selectWebexAccountsAge = (state: RootState) => {
+	let lastLoad = selectWebexAccountsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectWebexAccountIds = (state: RootState) =>
 	selectWebexAccountsState(state).ids;
 export const selectWebexAccountEntities = (state: RootState) =>
@@ -141,14 +149,18 @@ export const selectWebexAccounts = createSelector(
 );
 
 /* Thunk actions */
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
 let loadingPromise: Promise<void>;
 export const loadWebexAccounts =
-	(groupName: string): AppThunk<void> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
-		const { loading, groupName: currentGroupName } =
-			selectWebexAccountsState(getState());
-		if (loading && groupName === currentGroupName) {
-			return loadingPromise;
+		const state = getState();
+		const currentGroupName = selectWebexAccountsState(state).groupName;
+		if (groupName === currentGroupName) {
+			if (loading) return loadingPromise;
+			const age = selectWebexAccountsAge(state);
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/webex/accounts`;
@@ -169,7 +181,9 @@ export const refreshWebexAccounts =
 	(): AppThunk => async (dispatch, getState) => {
 		const groupName = selectWebexAccountsGroupName(getState());
 		dispatch(
-			groupName ? loadWebexAccounts(groupName) : clearWebexAccounts()
+			groupName
+				? loadWebexAccounts(groupName, true)
+				: clearWebexAccounts()
 		);
 	};
 

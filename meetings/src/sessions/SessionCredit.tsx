@@ -9,7 +9,7 @@ import {
 	Session,
 	Timeslot,
 	selectSessionEntities,
-	getCredit
+	getCredit,
 } from "../store/sessions";
 
 import { RawSessionSelector } from "../components/SessionSelector";
@@ -111,10 +111,7 @@ const creditOptions = ["Normal", "Extra", "Other 2/1", "Zero"];
 const defaultCredit = "Extra";
 
 function validDayCredits(dayCredits: string[], timeslots: Timeslot[]) {
-	return (
-		Array.isArray(dayCredits) &&
-		dayCredits.length === timeslots.length
-	);
+	return Array.isArray(dayCredits) && dayCredits.length === timeslots.length;
 }
 
 function defaultDayCredits(timeslots: Timeslot[]) {
@@ -126,10 +123,8 @@ function CreditTotals({ defaultCredits }: { defaultCredits: string[][] }) {
 	for (const dayCredit of defaultCredits) {
 		for (const credit of dayCredit) {
 			const c = getCredit(credit);
-			if (c.credit === "Other")
-				credits += c.creditOverrideDenominator;
-			else if (c.credit === "Normal")
-				credits++;
+			if (c.credit === "Other") credits += c.creditOverrideDenominator;
+			else if (c.credit === "Normal") credits++;
 		}
 	}
 
@@ -277,9 +272,7 @@ function SessionCredit({
 									width: "100%",
 									background: "transparent",
 								}}
-								onClick={() =>
-									toggleDefaultCredit(x, y)
-								}
+								onClick={() => toggleDefaultCredit(x, y)}
 								credit={defaultCredits[x][y]}
 								disabled={readOnly}
 							/>

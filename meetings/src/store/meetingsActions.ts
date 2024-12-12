@@ -1,5 +1,5 @@
 import { EntityId } from "@reduxjs/toolkit";
-import { fetcher, setError, isObject } from "dot11-components";
+import { fetcher, setError, isObject, shallowEqual } from "dot11-components";
 
 import slice, { getPending, clearMeetings } from "./meetingsSlice";
 
@@ -8,6 +8,7 @@ import { setWebexMeetings, upsertWebexMeetings } from "./webexMeetings";
 import { upsertBreakouts } from "./imatBreakouts";
 import {
 	selectMeetingsState,
+	selectMeetingsAge,
 	Meeting,
 	MeetingCreate,
 	LoadMeetingsConstraints,
@@ -61,22 +62,31 @@ function validateResponse(method: string, response: any) {
 	}
 }
 
-let loadingUrl: string | undefined;
-let loadingPromise: Promise<void> | undefined;
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
+let loadingPromise: Promise<void>;
 export const loadMeetings =
 	(
 		groupName: string,
-		constraints?: LoadMeetingsConstraints
+		query?: LoadMeetingsConstraints,
+		force = false
 	): AppThunk<void> =>
-	(dispatch) => {
-		const url =
-			`/api/${groupName}/meetings` +
-			(constraints ? "?" + new URLSearchParams(constraints) : "");
-		if (loadingPromise && loadingUrl === url) {
-			return loadingPromise;
+	(dispatch, getState) => {
+		const state = getState();
+		const current = selectMeetingsState(state);
+		if (
+			current.groupName === groupName &&
+			shallowEqual(current.query, query)
+		) {
+			if (loading) return loadingPromise;
+			const age = selectMeetingsAge(state);
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ groupName }));
-		loadingUrl = url;
+		const url =
+			`/api/${groupName}/meetings` +
+			(query ? "?" + new URLSearchParams(query) : "");
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
@@ -91,9 +101,9 @@ export const loadMeetings =
 				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
-				loadingPromise = undefined;
+				loading = false;
 			});
-		return loadingPromise!;
+		return loadingPromise;
 	};
 
 type Update<T> = {

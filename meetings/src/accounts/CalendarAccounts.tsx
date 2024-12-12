@@ -12,7 +12,7 @@ import {
 	selectCalendarAccounts,
 	CalendarAccountCreate,
 	CalendarAccount,
-	loadCalendarAccounts,
+	refreshCalendarAccounts,
 	selectCalendarAccountDefaultId,
 	setCalendarAccountDefaultId,
 } from "../store/calendarAccounts";
@@ -21,7 +21,6 @@ import { selectMemberEntities } from "../store/members";
 import { EditTable as Table, TableColumn } from "../components/Table";
 
 import styles from "./accounts.module.css";
-import { useParams } from "react-router-dom";
 
 const displayDate = (d: string) =>
 	new Intl.DateTimeFormat("default", {
@@ -166,13 +165,12 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 };
 
 function CalendarAccounts() {
-	const { groupName } = useParams();
 	const dispatch = useAppDispatch();
 	const { loading } = useAppSelector(selectCalendarAccountsState);
 	const accounts = useAppSelector(selectCalendarAccounts);
 
 	const [readOnly, setReadOnly] = React.useState(true);
-	const refresh = () => dispatch(loadCalendarAccounts(groupName!));
+	const refresh = () => dispatch(refreshCalendarAccounts());
 
 	const colProps = React.useMemo(
 		() => accounts.map((account) => ({ account, readOnly })),

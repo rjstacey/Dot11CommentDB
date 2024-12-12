@@ -31,14 +31,10 @@ export const fields: Fields = {
 
 const selectId = (entity: ImatMeetingAttendance) => entity.id;
 
-type ExtraState = {
-	groupName: string | null;
-	imatMeetingId: number | null;
-};
-
-const initialState: ExtraState = {
-	groupName: null,
-	imatMeetingId: null,
+const initialState = {
+	groupName: null as string | null,
+	imatMeetingId: null as number | null,
+	lastLoad: null as string | null,
 };
 
 const dataSet = "imatMeetingAttendance";
@@ -54,6 +50,7 @@ const slice = createAppTableDataSlice({
 				(action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
 					const { groupName, imatMeetingId } = action.payload;
+					state.lastLoad = new Date().toISOString();
 					if (
 						state.groupName !== groupName ||
 						state.imatMeetingId !== imatMeetingId
@@ -92,9 +89,22 @@ export const clearImatMeetingAttendance = createAction(dataSet + "/clear");
 /* Selectors */
 export const selectMeetingAttendanceState = (state: RootState) =>
 	state[dataSet];
+const selectMeetingAttendanceAge = (state: RootState) => {
+	let lastLoad = selectMeetingAttendanceState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectAttendanceMeetingId = (state: RootState) =>
 	selectMeetingAttendanceState(state).imatMeetingId;
-
+const selectMeetingAttendanceIds = (state: RootState) =>
+	selectMeetingAttendanceState(state).ids;
+const selectMeetingAttendanceEntities = (state: RootState) =>
+	selectMeetingAttendanceState(state).entities;
+const seelctMeetingAttendances = createSelector(
+	selectMeetingAttendanceIds,
+	selectMeetingAttendanceEntities,
+	(ids, entities) => ids.map((id) => entities[id]!)
+);
 export const selectImatMeeting = (state: RootState) => {
 	const { imatMeetingId } = selectMeetingAttendanceState(state);
 	const imatMeetingEntities = selectImatMeetingEntities(state);
@@ -129,25 +139,29 @@ export const imatMeetingAttendanceSelectors = getAppTableDataSelectors(
 );
 
 /* Thunk actions */
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
 let loadingPromise: Promise<ImatMeetingAttendance[]>;
 export const loadImatMeetingAttendance =
 	(
 		groupName: string,
-		imatMeetingId: number
+		imatMeetingId: number,
+		force = false
 	): AppThunk<ImatMeetingAttendance[]> =>
 	(dispatch, getState) => {
-		const { loading, ...current } = selectMeetingAttendanceState(
-			getState()
-		);
+		const state = getState();
+		const current = selectMeetingAttendanceState(state);
 		if (
-			loading &&
 			groupName === current.groupName &&
 			imatMeetingId === current.imatMeetingId
 		) {
-			return loadingPromise;
+			if (loading) return loadingPromise;
+			const age = selectMeetingAttendanceAge(state);
+			if (!force && age && age < AGE_STALE)
+				return Promise.resolve(seelctMeetingAttendances(state));
 		}
 		dispatch(getPending({ groupName, imatMeetingId }));
-
+		loading = true;
 		loadingPromise = dispatch(loadBreakouts(groupName, imatMeetingId))
 			.then(
 				async (
@@ -193,12 +207,15 @@ export const loadImatMeetingAttendance =
 						}
 					}
 					dispatch(getSuccess(allAttendances));
-					return allAttendances;
+					return seelctMeetingAttendances(getState());
 				}
 			)
 			.catch((error: any) => {
 				dispatch(getFailure());
 				return [];
+			})
+			.finally(() => {
+				loading = false;
 			});
 
 		return loadingPromise;

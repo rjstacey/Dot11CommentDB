@@ -85,32 +85,36 @@ export const selectMemberName = (state: RootState, sapin: number) => {
 
 /* Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
 let loadingPromise: Promise<UserMember[]>;
 export const loadMembers =
 	(groupName: string): AppThunk<UserMember[]> =>
 	(dispatch, getState) => {
 		const state = getState();
-		const { loading, groupName: currentGroupName } =
-			selectMembersState(state);
+		const currentGroupName = selectMembersState(state).groupName;
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
 			const age = selectMembersAge(state);
 			if (age && age < AGE_STALE)
 				return Promise.resolve(selectMembers(state));
 		}
-		const url = `/api/${groupName}/members/user`;
 		dispatch(getPending({ groupName }));
+		const url = `/api/${groupName}/members/user`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
 				const userMembers = userMembersSchema.parse(response);
 				dispatch(getSuccess(userMembers));
-				return userMembers;
+				return selectMembers(getState());
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
-				return [];
+				return selectMembers(getState());
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};

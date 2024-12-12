@@ -177,6 +177,11 @@ export function getField(entity: SyncedMeeting, key: string): any {
 export const dataSet = "meetings";
 
 export const selectMeetingsState = (state: RootState) => state[dataSet];
+export const selectMeetingsAge = (state: RootState) => {
+	let lastLoad = selectMeetingsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export function selectMeetingEntities(state: RootState) {
 	return selectMeetingsState(state).entities;
 }

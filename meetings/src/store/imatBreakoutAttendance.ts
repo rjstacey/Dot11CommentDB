@@ -1,4 +1,4 @@
-import { createAction } from "@reduxjs/toolkit";
+import { createAction, createSelector } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -6,7 +6,6 @@ import {
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	FieldType,
-	isObject,
 	Fields,
 } from "dot11-components";
 
@@ -16,14 +15,12 @@ import {
 	selectBreakoutMeetingId,
 	selectBreakoutEntities,
 } from "./imatBreakouts";
+import {
+	imatBreakoutAttendancesSchema,
+	ImatBreakoutAttendance,
+} from "@schemas/imat";
 
-export type ImatBreakoutAttendance = {
-	SAPIN: number;
-	Name: string;
-	Email: string;
-	Affiliation: string;
-	Timestamp: string;
-};
+export type { ImatBreakoutAttendance };
 
 export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
@@ -37,12 +34,14 @@ type ExtraState = {
 	groupName: string | null;
 	imatMeetingId: number | null;
 	imatBreakoutId: number | null;
+	lastLoad: string | null;
 };
 
 const initialState: ExtraState = {
 	groupName: null,
 	imatMeetingId: null,
 	imatBreakoutId: null,
+	lastLoad: null,
 };
 
 const selectId = (entity: ImatBreakoutAttendance) => entity.SAPIN;
@@ -70,6 +69,7 @@ const slice = createAppTableDataSlice({
 						state.imatBreakoutId = imatBreakoutId;
 						dataAdapter.removeAll(state);
 					}
+					state.lastLoad = new Date().toISOString();
 				}
 			)
 			.addMatcher(
@@ -91,6 +91,7 @@ export default slice;
 export const imatBreakoutAttendanceActions = slice.actions;
 
 const { getSuccess, getFailure } = slice.actions;
+
 // Override the default getPending()
 const getPending = createAction<{
 	groupName: string;
@@ -103,7 +104,20 @@ export const clearBreakoutAttendance = createAction(dataSet + "/clear");
 /* Selectors */
 export const selectBreakoutAttendanceState = (state: RootState) =>
 	state[dataSet];
-
+const selectBreakoutAttendanceAge = (state: RootState) => {
+	let lastLoad = selectBreakoutAttendanceState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
+const selectBreakoutAttendanceIds = (state: RootState) =>
+	selectBreakoutAttendanceState(state).ids;
+const selectBreakoutAttendanceEntities = (state: RootState) =>
+	selectBreakoutAttendanceState(state).entities;
+export const selectImatBreakoutAttendances = createSelector(
+	selectBreakoutAttendanceIds,
+	selectBreakoutAttendanceEntities,
+	(ids, entities) => ids.map((id) => entities[id]!)
+);
 export const selectImatMeeting = (state: RootState) => {
 	const { imatMeetingId } = selectBreakoutAttendanceState(state);
 	const imatMeetingEntities = selectImatMeetingEntities(state);
@@ -125,61 +139,47 @@ export const imatBreakoutAttendanceSelectors = getAppTableDataSelectors(
 	selectBreakoutAttendanceState
 );
 
-/* Actions */
-function validImatBreakoutAttendance(a: any): a is ImatBreakoutAttendance {
-	return (
-		isObject(a) &&
-		typeof a.SAPIN === "number" &&
-		typeof a.Name === "string" &&
-		typeof a.Affiliation === "string"
-	);
-}
-
-function validResponse(response: any): response is ImatBreakoutAttendance[] {
-	return (
-		Array.isArray(response) && response.every(validImatBreakoutAttendance)
-	);
-}
-
+/* Thunk actions */
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
 let loadingPromise: Promise<ImatBreakoutAttendance[]>;
 export const loadBreakoutAttendance =
 	(
 		groupName: string,
 		imatMeetingId: number,
-		imatBreakoutId: number
+		imatBreakoutId: number,
+		force = false
 	): AppThunk<ImatBreakoutAttendance[]> =>
 	async (dispatch, getState) => {
-		const { loading, ...current } = selectBreakoutAttendanceState(
-			getState()
-		);
+		const state = getState();
+		const current = selectBreakoutAttendanceState(state);
 		if (
-			loading &&
 			groupName === current.groupName &&
 			imatMeetingId === current.imatMeetingId &&
 			imatBreakoutId === current.imatBreakoutId
 		) {
-			return loadingPromise;
+			if (loading) return loadingPromise;
+			const age = selectBreakoutAttendanceAge(state);
+			if (!force && age && age < AGE_STALE)
+				return Promise.resolve(selectImatBreakoutAttendances(state));
 		}
 		dispatch(getPending({ groupName, imatMeetingId, imatBreakoutId }));
+		const url = `/api/${groupName}/imat/attendance/${imatMeetingId}/${imatBreakoutId}`;
 		loadingPromise = fetcher
-			.get(
-				`/api/${groupName}/imat/attendance/${imatMeetingId}/${imatBreakoutId}`
-			)
+			.get(url)
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response");
-				dispatch(getSuccess(response));
-				return response;
+				const imatBreakoutAttendances =
+					imatBreakoutAttendancesSchema.parse(response);
+				dispatch(getSuccess(imatBreakoutAttendances));
+				return selectImatBreakoutAttendances(getState());
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(
-					setError(
-						`Unable to get attendance for ${imatMeetingId}/${imatBreakoutId}`,
-						error
-					)
-				);
+				dispatch(setError("GET " + url, error));
 				return [];
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};

@@ -31,81 +31,6 @@ export type {
 	WebexEntryExitTone,
 };
 
-/*
-export type WebexMeetingOptions = {
-	enabledChat: boolean;
-	enabledVideo: boolean;
-	enabledNote: boolean;
-	enabledClosedCaptions?: boolean;
-	enabledFileTransfer: boolean;
-};
-
-export type WebexMeetingAudioConnectionOptions = {
-	allowAttendeeToUnmuteSelf: boolean;
-	muteAttendeeUponEntry: boolean;
-	entryAndExitTone: string;
-	allowHostToUnmuteParticipants: boolean;
-	audioConnectionType?: "webexAudio" | "VoIP" | "other" | "none";
-	enabledAudienceCallBack: boolean;
-	enabledGlobalCallIn?: boolean;
-	enabledTollFreeCallIn: boolean;
-};
-*/
-/** Configurable Webex meeting paramters */
-/*
-export type WebexMeetingParams = {
-	accountId: number;
-	id: string;
-	templateId?: string;
-	title: string;
-	start: string;
-	end: string;
-	timezone: string;
-	password: string;
-	enabledAutoRecordMeeting: boolean;
-	enabledJoinBeforeHost: boolean;
-	joinBeforeHostMinutes: number;
-	enableConnectAudioBeforeHost: boolean;
-	publicMeeting: boolean;
-	meetingOptions: WebexMeetingOptions;
-	audioConnectionOptions: WebexAudioConnectionOptions;
-	integrationTags?: string[];
-	/** Indentifier for the associated meeting * /
-	meetingId?: number;
-};
-*/
-/** All Webex meeting info */
-/*
-export type WebexMeeting = WebexMeetingParams & {
-	accountName: string;
-	meetingNumber: number;
-	webLink: string;
-	hostKey: string;
-	telephony: { callInNumbers: any[] };
-};
-export const webexMeetingToWebexMeetingParams = (
-	i: WebexMeeting
-): WebexMeetingParams => ({
-	accountId: i.accountId,
-	id: i.id,
-	//templateId: i.templateId,
-	title: i.title,
-	start: i.start,
-	end: i.end,
-	timezone: i.timezone,
-	password: i.password,
-	enabledAutoRecordMeeting: i.enabledAutoRecordMeeting,
-	enabledJoinBeforeHost: i.enabledJoinBeforeHost,
-	joinBeforeHostMinutes: i.joinBeforeHostMinutes,
-	enableConnectAudioBeforeHost: i.enableConnectAudioBeforeHost,
-	publicMeeting: i.publicMeeting,
-	meetingOptions: i.meetingOptions,
-	audioConnectionOptions: i.audioConnectionOptions,
-	...(i.integrationTags ? { integrationTags: i.integrationTags } : {}),
-	...(i.meetingId ? { meetingId: i.meetingId } : {}),
-});
-*/
-
 export function webexMeetingToWebexMeetingParams(
 	i: WebexMeeting
 ): MeetingChangeWebexParams {
@@ -223,6 +148,13 @@ export function getField(entity: WebexMeeting, key: string) {
 export const dataSet = "webexMeetings";
 
 export const selectWebexMeetingsState = (state: RootState) => state[dataSet];
+export const selectWebexMeetingsAge = (state: RootState) => {
+	let lastLoad = selectWebexMeetingsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
+export const selectWebexMeetingIds = (state: RootState) =>
+	selectWebexMeetingsState(state).ids;
 export const selectWebexMeetingEntities = (state: RootState) =>
 	selectWebexMeetingsState(state).entities;
 

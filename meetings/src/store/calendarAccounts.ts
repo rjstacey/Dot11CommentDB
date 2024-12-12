@@ -20,6 +20,7 @@ type ExtraState = {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
+	lastLoad: string | null;
 	defaultId: number | null;
 };
 
@@ -28,6 +29,7 @@ const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
 	groupName: null,
+	lastLoad: null,
 	defaultId: null,
 });
 const dataSet = "calendarAccounts";
@@ -38,6 +40,7 @@ const slice = createSlice({
 		getPending(state, action: PayloadAction<{ groupName: string | null }>) {
 			const { groupName } = action.payload;
 			state.loading = true;
+			state.lastLoad = new Date().toISOString();
 			if (state.groupName !== groupName) {
 				state.groupName = groupName;
 				state.valid = false;
@@ -80,6 +83,7 @@ const {
 	getPending,
 	getSuccess,
 	getFailure,
+	clear: clearCalendarAccounts,
 	updateOne,
 	setOne,
 	removeOne,
@@ -90,6 +94,11 @@ export const setCalendarAccountDefaultId = slice.actions.setDefaultId;
 
 /* Selectors */
 export const selectCalendarAccountsState = (state: RootState) => state[dataSet];
+const selectCalendarAccountsAge = (state: RootState) => {
+	let lastLoad = selectCalendarAccountsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectCalendarAccountIds = (state: RootState) =>
 	selectCalendarAccountsState(state).ids;
 export const selectCalendarAccountEntities = (state: RootState) =>
@@ -105,16 +114,21 @@ export const selectCalendarAccounts = createSelector(
 );
 
 /* Thunk actions */
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
 let loadingPromise: Promise<void>;
 export const loadCalendarAccounts =
-	(groupName: string): AppThunk<void> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
-		const { loading, groupName: currentGroupName } =
-			selectCalendarAccountsState(getState());
-		if (loading && groupName === currentGroupName) {
-			return loadingPromise;
+		const state = getState();
+		const currentGroupName = selectCalendarAccountsState(state).groupName;
+		if (groupName === currentGroupName) {
+			if (loading) return loadingPromise;
+			const age = selectCalendarAccountsAge(state);
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ groupName }));
+		loading = true;
 		const url = `/api/${groupName}/calendar/accounts`;
 		loadingPromise = fetcher
 			.get(url)
@@ -125,8 +139,21 @@ export const loadCalendarAccounts =
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
+	};
+
+export const refreshCalendarAccounts =
+	(): AppThunk => async (dispatch, getState) => {
+		const groupName = selectCalendarAccountsGroupName(getState());
+		dispatch(
+			groupName
+				? loadCalendarAccounts(groupName, true)
+				: clearCalendarAccounts()
+		);
 	};
 
 export const addCalendarAccount =

@@ -37,15 +37,10 @@ const sessionsLoader: LoaderFunction = async ({
 	if (access < AccessLevel.ro)
 		throw new Error("You don't have permission to view this data");
 
-	const p1 = dispatch(loadSessions(groupName));
 	dispatch(loadImatMeetings(groupName));
+	await dispatch(loadSessions(groupName));
 	if (sessionNumber) {
 		let session = selectSessionByNumber(getState(), sessionNumber);
-		if (!session) {
-			// If we don't get the session wait to see the load returns it
-			await p1;
-			session = selectSessionByNumber(getState(), sessionNumber);
-		}
 		if (session) {
 			const imatMeetingId = session.imatMeetingId;
 			console.log(imatMeetingId);

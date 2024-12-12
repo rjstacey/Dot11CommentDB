@@ -37,8 +37,8 @@ const webexMeetingsLoader: LoaderFunction = async ({
 	if (access < AccessLevel.ro)
 		throw new Error("You don't have permission to view this data");
 
-	dispatch(loadSessions(groupName));
 	dispatch(loadImatMeetings(groupName));
+	await dispatch(loadSessions(groupName));
 	if (sessionNumber) {
 		const session = selectSessionByNumber(getState(), sessionNumber);
 		if (session) {

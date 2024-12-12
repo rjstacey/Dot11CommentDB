@@ -1,9 +1,14 @@
 import { createAction, PayloadAction } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
-import { createAppTableDataSlice } from "dot11-components";
+import { createAppTableDataSlice, shallowEqual } from "dot11-components";
 
-import { dataSet, fields, Meeting } from "./meetingsSelectors";
+import {
+	dataSet,
+	fields,
+	LoadMeetingsConstraints,
+	Meeting,
+} from "./meetingsSelectors";
 
 const sortComparer = (a: Meeting, b: Meeting) => {
 	// Sort by start
@@ -31,9 +36,12 @@ function toggleListItems(list: string[], items: string[]) {
 const initialState: {
 	groupName: string | null;
 	selectedSlots: string[];
+	query?: LoadMeetingsConstraints;
+	lastLoad: string | null;
 } = {
 	groupName: null,
 	selectedSlots: [],
+	lastLoad: null,
 };
 
 const slice = createAppTableDataSlice({
@@ -51,32 +59,36 @@ const slice = createAppTableDataSlice({
 	},
 	extraReducers(builder, dataAdapter) {
 		builder
-		.addMatcher(
-			(action) => action.type === getPending.toString(),
-			(state, action: ReturnType<typeof getPending>) => {
-				const {groupName} = action.payload;
-				if (state.groupName !== groupName) {
-					state.groupName = groupName;
-					dataAdapter.removeAll(state);
+			.addMatcher(
+				(action) => action.type === getPending.toString(),
+				(state, action: ReturnType<typeof getPending>) => {
+					const { groupName, query } = action.payload;
+					if (
+						state.groupName !== groupName ||
+						!shallowEqual(state.query, query)
+					) {
+						state.groupName = groupName;
+						dataAdapter.removeAll(state);
+					}
 				}
-			}
-		)
-		.addMatcher(
-			(action) => action.type === clearMeetings.toString(),
-			(state) => {
-				dataAdapter.removeAll(state);
-				state.groupName = null;
-				state.valid = false;
-			}
-		)
-	}
+			)
+			.addMatcher(
+				(action) => action.type === clearMeetings.toString(),
+				(state) => {
+					dataAdapter.removeAll(state);
+					state.groupName = null;
+					state.valid = false;
+				}
+			);
+	},
 });
 
 /* Slice actions */
 // Override the default getPending()
-export const getPending = createAction<{ groupName: string }>(
-	slice.name + "/getPending"
-);
+export const getPending = createAction<{
+	groupName: string;
+	query?: LoadMeetingsConstraints;
+}>(slice.name + "/getPending");
 export const clearMeetings = createAction(slice.name + "/clear");
 
 export default slice;

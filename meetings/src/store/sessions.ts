@@ -13,7 +13,6 @@ import {
 	setError,
 	displayDate,
 	getAppTableDataSelectors,
-	isObject,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
@@ -21,6 +20,17 @@ import { selectCurrentSessionId } from "./current";
 import { selectGroupEntities, selectTopLevelGroupByName } from "./groups";
 import { AccessLevel } from "./user";
 
+import {
+	Session,
+	Room,
+	Timeslot,
+	SessionCreate,
+	sessionSchema,
+	sessionsSchema,
+} from "@schemas/sessions";
+
+export type { Session, Room, Timeslot, SessionCreate };
+/*
 export type Room = {
 	id: number;
 	name: string;
@@ -51,8 +61,7 @@ export interface Session {
 	defaultCredits: string[][];
 	attendees: number;
 }
-
-export type SessionAdd = Omit<Session, "id" | "attendees">;
+*/
 
 export const SessionTypeLabels = {
 	p: "Plenary",
@@ -125,8 +134,9 @@ export const fields = {
  */
 type ExtraState = {
 	groupName: string | null;
+	lastLoad: string | null;
 };
-const initialState: ExtraState = { groupName: null };
+const initialState: ExtraState = { groupName: null, lastLoad: null };
 const sortComparer = (a: Session, b: Session) =>
 	DateTime.fromISO(b.startDate).toMillis() -
 	DateTime.fromISO(a.startDate).toMillis();
@@ -143,6 +153,7 @@ const slice = createAppTableDataSlice({
 				(action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
 					const { groupName } = action.payload;
+					state.lastLoad = new Date().toISOString();
 					if (state.groupName !== groupName) {
 						state.groupName = groupName;
 						dataAdapter.removeAll(state);
@@ -178,8 +189,17 @@ const {
 
 export { setSelected, setUiProperties, setPanelIsSplit };
 
+// Override the default getPending()
+const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
+export const clearSessions = createAction(dataSet + "/clear");
+
 /* Selectors */
 export const selectSessionsState = (state: RootState) => state[dataSet];
+const selectSessionsAge = (state: RootState) => {
+	let lastLoad = selectSessionsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectSessionIds = (state: RootState) =>
 	selectSessionsState(state).ids;
 export const selectSessionEntities = (state: RootState) =>
@@ -258,54 +278,37 @@ export const selectUserSessionsAccess = (state: RootState) => {
 	return group?.permissions.meetings || AccessLevel.none;
 };
 
-// Override the default getPending()
-const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
-export const clearSessions = createAction(dataSet + "/clear");
-
 /* Thunk actions */
-function validSession(session: any): session is Session {
-	return (
-		isObject(session) &&
-		typeof session.id === "number" &&
-		(session.number === null || typeof session.number === "number") &&
-		typeof session.name === "string" &&
-		["p", "i", "o", "g"].includes(session.type) &&
-		(session.groupId === null || typeof session.groupId === "string") &&
-		(session.imatMeetingId === null ||
-			typeof session.imatMeetingId === "number") &&
-		/\d{4}-\d{2}-\d{2}/.test(session.startDate) &&
-		/\d{4}-\d{2}-\d{2}/.test(session.endDate) &&
-		typeof session.timezone === "string"
-	);
-}
-
-function validSessions(sessions: any): sessions is Session[] {
-	return Array.isArray(sessions) && sessions.every(validSession);
-}
-
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
 let loadingPromise: Promise<Session[]>;
 export const loadSessions =
-	(groupName: string): AppThunk<Session[]> =>
+	(groupName: string, force = false): AppThunk<Session[]> =>
 	(dispatch, getState) => {
-		const { loading, groupName: currnetGroupName } = selectSessionsState(
-			getState()
-		);
-		if (loading && currnetGroupName === groupName) {
-			return loadingPromise;
+		const state = getState();
+		const currentGroupName = selectSessionsState(state).groupName;
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectSessionsAge(state);
+			if (!force && age && age < AGE_STALE)
+				return Promise.resolve(selectSessions(state));
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/sessions`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!validSessions(response))
-					throw new TypeError("Unexpected response to GET " + url);
-				dispatch(getSuccess(response));
+				const sessions = sessionsSchema.parse(response);
+				dispatch(getSuccess(sessions));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get sessions", error));
+				dispatch(setError("GET " + url, error));
 				return [];
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};
@@ -317,34 +320,32 @@ export const updateSession =
 		dispatch(updateOne(update));
 		const groupName = selectSessionsGroupName(getState());
 		const url = `/api/${groupName}/sessions`;
-		let response: any;
+		let session: Session;
 		try {
-			response = await fetcher.patch(url, update);
-			if (!validSession(response))
-				throw new TypeError("Unexpected response to PATCH " + url);
+			const response = await fetcher.patch(url, update);
+			session = sessionSchema.parse(response);
 		} catch (error) {
-			dispatch(setError(`Unable to update session`, error));
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		dispatch(setOne(response));
+		dispatch(setOne(session));
 	};
 
 export const addSession =
-	(session: SessionAdd): AppThunk<EntityId | undefined> =>
+	(sessionIn: SessionCreate): AppThunk<EntityId | undefined> =>
 	async (dispatch, getState) => {
 		const groupName = selectSessionsGroupName(getState());
 		const url = `/api/${groupName}/sessions`;
-		let response: any;
+		let session: Session;
 		try {
-			response = await fetcher.post(url, session);
-			if (!validSession(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.post(url, sessionIn);
+			session = sessionSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to add session", error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(addOne(response));
-		return response.id;
+		dispatch(addOne(session));
+		return session.id;
 	};
 
 export const deleteSessions =
@@ -355,7 +356,7 @@ export const deleteSessions =
 		try {
 			await fetcher.delete(url, ids);
 		} catch (error) {
-			dispatch(setError(`Unable to delete meetings ${ids}`, error));
+			dispatch(setError("DELETE " + url, error));
 		}
 		dispatch(removeMany(ids));
 	};

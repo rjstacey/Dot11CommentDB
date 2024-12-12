@@ -36,6 +36,7 @@ export const fields: Fields = {
 
 const initialState = {
 	groupName: null as string | null,
+	lastLoad: null as string | null,
 };
 const dataSet = "imatMeetings";
 const selectId = (d: ImatMeeting) => d.id;
@@ -51,6 +52,7 @@ const slice = createAppTableDataSlice({
 				(action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
 					const { groupName } = action.payload;
+					state.lastLoad = new Date().toISOString();
 					if (state.groupName !== groupName) {
 						state.groupName = groupName;
 						dataAdapter.removeAll(state);
@@ -80,6 +82,11 @@ export const clearImatMeetings = createAction(dataSet + "/clear");
 
 /* Selectors */
 export const selectImatMeetingsState = (state: RootState) => state[dataSet];
+const selectImatMeetingsAge = (state: RootState) => {
+	let lastLoad = selectImatMeetingsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectImatMeetingEntities = (state: RootState) =>
 	selectImatMeetingsState(state).entities;
 export const selectImatMeetingIds = (state: RootState) =>
@@ -120,17 +127,22 @@ export const imatMeetingsSelectors = getAppTableDataSelectors(
 );
 
 /* Thunk actions */
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
 let loadingPromise: Promise<void>;
 export const loadImatMeetings =
-	(groupName: string): AppThunk<void> =>
+	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
-		const { loading, groupName: currentGroupName } =
-			selectImatMeetingsState(getState());
-		if (loading && currentGroupName === groupName) {
-			return loadingPromise;
+		const state = getState();
+		const currentGroupName = selectImatMeetingsState(state).groupName;
+		if (currentGroupName === groupName) {
+			if (loading) return loadingPromise;
+			const age = selectImatMeetingsAge(state);
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/imat/meetings`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
@@ -140,6 +152,9 @@ export const loadImatMeetings =
 			.catch((error: any) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};

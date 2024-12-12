@@ -2,10 +2,20 @@ import { LoaderFunction, RouteObject } from "react-router-dom";
 import { store } from "../store";
 import { selectTopLevelGroupByName, loadGroups } from "../store/groups";
 import { AccessLevel } from "../store/user";
-import { loadSessions } from "../store/sessions";
+import { loadSessions, selectSessionsState } from "../store/sessions";
 import { loadImatMeetings } from "../store/imatMeetings";
 
 import SessionsLayout from "./layout";
+
+export function refresh() {
+	const { dispatch, getState } = store;
+
+	const groupName = selectSessionsState(getState()).groupName;
+	if (!groupName) throw new Error("Refresh error: no groupName");
+
+	dispatch(loadSessions(groupName, true));
+	dispatch(loadImatMeetings(groupName, true));
+}
 
 const sessionsLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;

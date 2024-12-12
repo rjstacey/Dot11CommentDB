@@ -1,13 +1,15 @@
-import { fetcher, setError } from "dot11-components";
+import { fetcher, setError, shallowEqual } from "dot11-components";
 
 import slice, { getPending, clearWebexMeetings } from "./webexMeetingsSlice";
 import type { AppThunk } from ".";
 import {
+	selectWebexMeetingsAge,
 	selectWebexMeetingsState,
 	WebexMeeting,
 	WebexMeetingChange,
 } from "./webexMeetingsSelectors";
 import { LoadMeetingsConstraints } from "./meetingsSelectors";
+import { webexMeetingsSchema } from "@schemas/webex";
 
 export const webexMeetingsActions = slice.actions;
 
@@ -30,46 +32,45 @@ export {
 	clearWebexMeetings,
 };
 
-function validateResponse(
-	method: string,
-	response: any
-): asserts response is WebexMeeting[] {
-	if (!Array.isArray(response))
-		throw new TypeError(`Unexpected response to ${method}`);
-}
-
-let loadingUrl: string;
-let loadingPromise: Promise<WebexMeeting[]> | undefined;
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
+let loadingPromise: Promise<void>;
 export const loadWebexMeetings =
 	(
 		groupName: string,
-		constraints?: LoadMeetingsConstraints
-	): AppThunk<WebexMeeting[]> =>
+		query?: LoadMeetingsConstraints,
+		force = false
+	): AppThunk<void> =>
 	(dispatch, getState) => {
+		const state = getState();
+		const current = selectWebexMeetingsState(state);
+		if (
+			current.groupName === groupName &&
+			shallowEqual(current.query, query)
+		) {
+			if (loading) return loadingPromise;
+			const age = selectWebexMeetingsAge(state);
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
+		}
+		dispatch(getPending({ groupName, query }));
 		const url =
 			`/api/${groupName}/webex/meetings` +
-			(constraints ? "?" + new URLSearchParams(constraints) : "");
-		if (loadingPromise && loadingUrl === url) {
-			return loadingPromise;
-		}
-		dispatch(getPending({ groupName }));
-		loadingUrl = url;
+			(query ? "?" + new URLSearchParams(query) : "");
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				validateResponse("GET", response);
-				dispatch(getSuccess(response));
-				return response;
+				const webexMeetings = webexMeetingsSchema.parse(response);
+				dispatch(getSuccess(webexMeetings));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get list of meetings", error));
-				return [];
+				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
-				loadingPromise = undefined;
+				loading = false;
 			});
-		return loadingPromise!;
+		return loadingPromise;
 	};
 
 export const addWebexMeeting =
@@ -81,16 +82,18 @@ export const addWebexMeeting =
 		const { groupName } = selectWebexMeetingsState(getState());
 		const url = `/api/${groupName}/webex/meetings`;
 		const meetings = [{ accountId, ...webexMeeting }];
-		let response: any;
+		let webexMeetings: WebexMeeting[];
 		try {
-			response = await fetcher.post(url, meetings);
-			validateResponse("POST", response);
+			const response = await fetcher.post(url, meetings);
+			webexMeetings = webexMeetingsSchema.parse(response);
+			if (webexMeetings.length !== 1)
+				throw new Error("Unexpected response to POST " + url);
 		} catch (error) {
-			dispatch(setError("Unable to add webex meeting", error));
+			dispatch(setError("POST " + url, error));
 			return null;
 		}
-		dispatch(addMany(response));
-		return response[0].id;
+		dispatch(addMany(webexMeetings));
+		return webexMeetings[0].id;
 	};
 
 export type WebexMeetingUpdate = Partial<WebexMeetingChange> & {
@@ -103,15 +106,15 @@ export const updateWebexMeetings =
 	async (dispatch, getState) => {
 		const { groupName } = selectWebexMeetingsState(getState());
 		const url = `/api/${groupName}/webex/meetings`;
-		let response: any;
+		let webexMeetings: WebexMeeting[];
 		try {
-			response = await fetcher.patch(url, webexMeetingsIn);
-			validateResponse("PATCH", response);
+			const response = await fetcher.patch(url, webexMeetingsIn);
+			webexMeetings = webexMeetingsSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to add webex meeting", error));
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		dispatch(setMany(response));
+		dispatch(setMany(webexMeetings));
 	};
 
 export const deleteWebexMeetings =
@@ -127,7 +130,7 @@ export const deleteWebexMeetings =
 		try {
 			await fetcher.delete(url, meetings);
 		} catch (error) {
-			dispatch(setError(`Unable to delete webex meetings ${ids}`, error));
+			dispatch(setError("DELETE " + url, error));
 			return;
 		}
 		dispatch(removeMany(ids));

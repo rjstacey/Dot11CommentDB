@@ -41,7 +41,7 @@ import {
 	selectSessionsState,
 	selectUserSessionsAccess,
 	Session,
-	SessionAdd,
+	SessionCreate,
 	SessionType,
 } from "../store/sessions";
 
@@ -50,7 +50,7 @@ import ShowAccess from "../components/ShowAccess";
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";
 
-const defaultSession: SessionAdd = {
+const defaultSession: SessionCreate = {
 	number: null,
 	name: "New session",
 	type: "p",
@@ -72,14 +72,14 @@ function SessionTypeSelector({
 	...otherProps
 }: {
 	value: SessionType | null;
-	onChange: (value: SessionType | null) => void;
+	onChange: (value: SessionType) => void;
 } & Omit<
 	React.ComponentProps<typeof Select>,
 	"values" | "options" | "onChange"
 >) {
 	const values = SessionTypeOptions.filter((o) => o.value === value);
 	const handleChange = (values: typeof SessionTypeOptions) =>
-		onChange(values.length > 0 ? values[0].value : null);
+		onChange(values.length > 0 ? values[0].value : "o");
 	return (
 		<Select
 			values={values}
@@ -171,7 +171,11 @@ function SessionBasics({
 			<Row>
 				<Field label="Session type:">
 					<SessionTypeSelector
-						value={isMultiple(session.type) ? null : session.type}
+						value={
+							!session.type || isMultiple(session.type)
+								? null
+								: session.type
+						}
 						onChange={(type) => handleChange({ type })}
 						readOnly={readOnly}
 					/>
