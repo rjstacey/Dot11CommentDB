@@ -174,48 +174,51 @@ const telephonySchema = z.object({
 	/** Array of call-in numbers for joining a teleconference from a phone. */
 	callInNumbers: callInNumberSchema.array(),
 	/** HATEOAS information of global call-in numbers for joining a teleconference from a phone. */
-	link: linksForTelephonySchema.array(),
+	links: linksForTelephonySchema.array(),
 });
 
-export const webexMeetingSchema = webexMeetingChangeSchema.required().extend({
-	/** Meeting number. Applies to meeting series, scheduled meeting, and meeting instances, but not to meeting instances which have ended.*/
-	meetingNumber: z.string(),
-	/** Meeting type. */
-	meetingType: z.enum([
-		"meetingSeries", // Instance from a primary meeting series.
-		"scheduledMeeting", // Meeting instance that is in progress or has completed.
-		"meeting", // Meeting instance that is in progress or has completed.
-	]),
-	/** Meeting state */
-	state: z.enum([
-		"active", // Only applies to a meeting series. Indicates that one or more future scheduled meetings exist for this meeting series.
-		"scheduled", // Only applies to scheduled meeting. Indicates that the meeting is scheduled in the future.
-		"ready", // Only applies to scheduled meeting. Indicates that this scheduled meeting is ready to start or join immediately.
-		"lobby", // Only applies to meeting instances. Indicates that a locked meeting has been joined by participants, but no hosts have joined.
-		"inProgress", // Applies to meeting series and meeting instances. For a meeting series, indicates that an instance of this series is happening now.
-		// For a meeting instance, indicates that the meeting has been joined and unlocked.
-		"ended", // Applies to scheduled meetings and meeting instances. For scheduled meetings, indicates that the meeting was started and is now over.
-		// For meeting instances, indicates that the meeting instance has concluded.
-		"missed", // This state only applies to scheduled meetings. Indicates that the meeting was scheduled in the past but never happened.
-		"expired", // This state only applies to a meeting series. Indicates that all scheduled meetings of this series have passed.
-	]),
-	/** Link to a meeting information page where the meeting client is launched if the meeting is ready to start or join. */
-	webLink: z.string(),
-	/** Site URL for the meeting. */
-	siteUrls: z.string(),
-	/** SIP address for callback from a video system. */
-	sipAddress: z.string(),
-	/** Information for callbacks from a meeting to phone or for joining a teleconference using a phone. */
-	telephony: telephonySchema,
-	/** Key for joining the meeting as host. */
-	hostKey: z.string(),
-	/** Unique identifier for the meeting host. */
-	hostUserId: z.string(),
-	/** Email address for the meeting host. */
-	hostEmail: z.string(),
-	/** Display name for the meeting host. */
-	hostDisplayName: z.string(),
-});
+export const webexMeetingSchema = webexMeetingCreateSchema
+	.omit({ templateId: true })
+	.extend({ id: z.string() })
+	.extend({
+		/** Meeting number. Applies to meeting series, scheduled meeting, and meeting instances, but not to meeting instances which have ended.*/
+		meetingNumber: z.string(),
+		/** Meeting type. */
+		meetingType: z.enum([
+			"meetingSeries", // Instance from a primary meeting series.
+			"scheduledMeeting", // Meeting instance that is in progress or has completed.
+			"meeting", // Meeting instance that is in progress or has completed.
+		]),
+		/** Meeting state */
+		state: z.enum([
+			"active", // Only applies to a meeting series. Indicates that one or more future scheduled meetings exist for this meeting series.
+			"scheduled", // Only applies to scheduled meeting. Indicates that the meeting is scheduled in the future.
+			"ready", // Only applies to scheduled meeting. Indicates that this scheduled meeting is ready to start or join immediately.
+			"lobby", // Only applies to meeting instances. Indicates that a locked meeting has been joined by participants, but no hosts have joined.
+			"inProgress", // Applies to meeting series and meeting instances. For a meeting series, indicates that an instance of this series is happening now.
+			// For a meeting instance, indicates that the meeting has been joined and unlocked.
+			"ended", // Applies to scheduled meetings and meeting instances. For scheduled meetings, indicates that the meeting was started and is now over.
+			// For meeting instances, indicates that the meeting instance has concluded.
+			"missed", // This state only applies to scheduled meetings. Indicates that the meeting was scheduled in the past but never happened.
+			"expired", // This state only applies to a meeting series. Indicates that all scheduled meetings of this series have passed.
+		]),
+		/** Link to a meeting information page where the meeting client is launched if the meeting is ready to start or join. */
+		webLink: z.string(),
+		/** Site URL for the meeting. */
+		siteUrl: z.string(),
+		/** SIP address for callback from a video system. */
+		sipAddress: z.string(),
+		/** Information for callbacks from a meeting to phone or for joining a teleconference using a phone. */
+		telephony: telephonySchema,
+		/** Key for joining the meeting as host. */
+		hostKey: z.string(),
+		/** Unique identifier for the meeting host. */
+		hostUserId: z.string(),
+		/** Email address for the meeting host. */
+		hostEmail: z.string(),
+		/** Display name for the meeting host. */
+		hostDisplayName: z.string(),
+	});
 export const webexMeetingsSchema = webexMeetingSchema.array();
 
 export const webexMeetingDeleteSchema = webexMeetingSchema.pick({
@@ -224,14 +227,17 @@ export const webexMeetingDeleteSchema = webexMeetingSchema.pick({
 });
 export const webexMeetingDeletesSchema = webexMeetingDeleteSchema.array();
 
-export const webexMeetingsQuerySchema = z.object({
-	groupId: groupIdSchema.optional(),
-	sessionId: sessionIdSchema.optional(),
-	fromDate: z.string().date().optional(),
-	toDate: z.string().date().optional(),
-	timezone: z.string().optional(),
-	ids: webexMeetingSchema.shape.id.array().optional(),
-});
+export const webexMeetingsQuerySchema = z
+	.object({
+		groupId: groupIdSchema,
+		sessionId: z.coerce.number(),
+		fromDate: z.string().date(),
+		toDate: z.string().date(),
+		timezone: z.string(),
+		ids: webexMeetingSchema.shape.id.array(),
+	})
+	.partial();
+
 export type WebexMeetingsQuery = z.infer<typeof webexMeetingsQuerySchema>;
 
 export const webexMeetingTemplateSchema = z.object({
@@ -243,7 +249,7 @@ export const webexMeetingTemplateSchema = z.object({
 	isDefault: z.boolean(), // Whether or not the meeting template is a default template.
 	isStandard: z.boolean(), // Whether or not the meeting template is a standard template.
 });
-type WebexMeetingTemplate = z.infer<typeof webexMeetingTemplateSchema>;
+export type WebexMeetingTemplate = z.infer<typeof webexMeetingTemplateSchema>;
 
 export const webexAudioPreferencesSchema = z.object({
 	defaultAudioType: z.enum([
@@ -259,14 +265,16 @@ export const webexAudioPreferencesSchema = z.object({
 	officeNumber: z.any(),
 	mobileNumber: z.any(),
 });
-type WebexAudioPreferences = z.infer<typeof webexAudioPreferencesSchema>;
+export type WebexAudioPreferences = z.infer<typeof webexAudioPreferencesSchema>;
 
 export const webexSchedulingOptionsSchema = z.object({
 	enabledJoinBeforeHost: z.boolean(),
 	joinBeforeHostMinutes: z.number(),
 	enabledAutoShareRecording: z.boolean(),
 });
-type WebexSchedulingOptions = z.infer<typeof webexSchedulingOptionsSchema>;
+export type WebexSchedulingOptions = z.infer<
+	typeof webexSchedulingOptionsSchema
+>;
 
 export const webexPersonSchema = z.object({
 	id: z.string(),

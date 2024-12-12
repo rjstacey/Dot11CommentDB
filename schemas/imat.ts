@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { contactInfoSchema } from "./members";
 
 export const imatMeetingSchema = z.object({
 	id: z.number(),
@@ -34,14 +35,8 @@ export const imatCommitteeSchema = z.object({
 	name: z.string(),
 });
 export const imatCommitteesSchema = imatCommitteeSchema.array();
-export const imatPageCommitteeSchema = z.object({
-	id: z.number(),
-	symbolName: z.string(), // Committee symbol concatenated with the committee name
-});
-export const imatPageCommitteesSchema = imatPageCommitteeSchema.array();
 
 export type ImatCommittee = z.infer<typeof imatCommitteeSchema>;
-export type ImatPageCommittee = z.infer<typeof imatPageCommitteeSchema>;
 
 export const breakoutIdSchema = z.number();
 export const breakoutIdsSchema = breakoutIdSchema.array();
@@ -97,12 +92,65 @@ export type Breakout = z.infer<typeof breakoutSchema>;
 export type BreakoutCreate = z.infer<typeof breakoutCreateSchema>;
 export type BreakoutUpdate = z.infer<typeof breakoutUpdateSchema>;
 
+export const imatMeetingAttendanceSchema = z.object({
+	id: z.number(),
+	committee: z.string(),
+	breakoutName: z.string(),
+	SAPIN: z.number(),
+	Name: z.string(),
+	Email: z.string(),
+	Timestamp: z.string(),
+	Affiliation: z.string(),
+});
+export const imatMeetingAttendancesSchema = imatMeetingAttendanceSchema.array();
+
+export type ImatMeetingAttendance = z.infer<typeof imatMeetingAttendanceSchema>;
+
+export const imatBreakoutAttendanceSchema = z.object({
+	SAPIN: z.number(),
+	Name: z.string(),
+	Email: z.string(),
+	Timestamp: z.string().nullable(), // ISO datetime
+	Affiliation: z.string(),
+});
+export const imatBreakoutAttendancesSchema =
+	imatBreakoutAttendanceSchema.array();
+
+export type ImatBreakoutAttendance = z.infer<
+	typeof imatBreakoutAttendanceSchema
+>;
+
+export const imatAttendanceSummarySchema = z.object({
+	SAPIN: z.number(),
+	Name: z.string(),
+	FirstName: z.string(),
+	MI: z.string(),
+	LastName: z.string(),
+	Email: z.string(),
+	Affiliation: z.string(),
+	Status: z.string(),
+	AttendancePercentage: z.number(),
+});
+export const imatAttendanceSummariesSchema =
+	imatAttendanceSummarySchema.array();
+
+export type ImatAttendanceSummary = z.infer<typeof imatAttendanceSummarySchema>;
+
+export const imatDailyAttendanceSummarySchema =
+	imatAttendanceSummarySchema.extend({
+		Employer: z.string(),
+		ContactInfo: contactInfoSchema,
+	});
+
+export type ImatDailyAttendanceSummary = z.infer<
+	typeof imatDailyAttendanceSummarySchema
+>;
+
 export const getImatBreakoutsResponseSchema = z.object({
 	imatMeeting: imatMeetingSchema,
 	breakouts: breakoutsSchema,
 	timeslots: imatTimeslotsSchema,
 	committees: imatCommitteesSchema,
-	pageCommittees: imatPageCommitteesSchema,
 });
 export type GetImatBreakoutsResponse = z.infer<
 	typeof getImatBreakoutsResponseSchema

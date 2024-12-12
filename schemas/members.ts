@@ -34,7 +34,7 @@ const contactEmailSchema = z.object({
 	Broken: z.boolean(),
 });
 
-const contactInfoSchema = z.object({
+export const contactInfoSchema = z.object({
 	StreetLine1: z.string(),
 	StreetLine2: z.string(),
 	City: z.string(),

@@ -16,10 +16,10 @@ export const timeslotSchema = z.object({
 });
 export type Timeslot = z.infer<typeof timeslotSchema>;
 
-// To fix: some entries are string[][] and some are {}[]
-export const defaultCreditsSchema = z.array(
-	z.union([z.string().array(), z.object({})])
-);
+const creditSchema = z.enum(["Normal", "Extra", "Zero", "Other"]);
+export type Credit = z.infer<typeof creditSchema>;
+
+export const defaultCreditsSchema = z.string().array().array();
 
 export const sessionTypeSchema = z.enum(["p", "i", "o", "g"]);
 export type SessionType = z.infer<typeof sessionTypeSchema>;

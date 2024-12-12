@@ -32,15 +32,17 @@ export const meetingSchema = z.object({
 });
 export const meetingsSchema = meetingSchema.array();
 
-export const meetingsQuerySchema = z.object({
-	id: z.union([z.number(), z.number().array()]).optional(),
-	groupId: groupIdSchema.optional(),
-	sessionId: z.number().optional(),
-	fromDate: z.string().date().optional(),
-	toDate: z.string().date().optional(),
-	timezone: z.string().optional(),
-	organizationId: z.union([z.string(), z.string().array()]).optional(),
-});
+export const meetingsQuerySchema = z
+	.object({
+		id: z.union([z.coerce.number(), z.coerce.number().array()]),
+		groupId: groupIdSchema,
+		sessionId: z.coerce.number(),
+		fromDate: z.string().date(),
+		toDate: z.string().date(),
+		timezone: z.string(),
+		organizationId: z.union([z.string(), z.string().array()]),
+	})
+	.partial();
 
 export const meetingCreateWebexParamsSchema = webexMeetingCreateSchema.omit({
 	start: true,
@@ -50,11 +52,13 @@ export const meetingCreateWebexParamsSchema = webexMeetingCreateSchema.omit({
 	integrationTags: true,
 });
 
-export const meetingCreateSchema = meetingSchema.omit({ id: true }).extend({
-	webexMeetingId: z.union([z.string(), z.null(), z.literal("$add")]),
-	imatBreakoutId: z.union([z.number(), z.null(), z.literal("$add")]),
-	webexMeeting: meetingCreateWebexParamsSchema.optional(),
-});
+export const meetingCreateSchema = meetingSchema
+	.omit({ id: true, roomName: true })
+	.extend({
+		webexMeetingId: z.union([z.string(), z.null(), z.literal("$add")]),
+		imatBreakoutId: z.union([z.number(), z.null(), z.literal("$add")]),
+		webexMeeting: meetingCreateWebexParamsSchema.optional(),
+	});
 export const meetingCreatesSchema = meetingCreateSchema.array();
 
 export const meetingChangeWebexParamsSchema = webexMeetingChangeSchema.omit({
@@ -64,7 +68,7 @@ export const meetingChangeWebexParamsSchema = webexMeetingChangeSchema.omit({
 	title: true,
 	integrationTags: true,
 });
-export const meetingChangesSchema = meetingCreateSchema
+export const meetingChangeSchema = meetingCreateSchema
 	.omit({ webexMeeting: true })
 	.extend({
 		webexMeeting: meetingChangeWebexParamsSchema.optional(),
@@ -73,7 +77,7 @@ export const meetingChangesSchema = meetingCreateSchema
 
 export const meetingUpdateSchema = z.object({
 	id: z.number(),
-	changes: meetingChangesSchema,
+	changes: meetingChangeSchema,
 });
 export const meetingUpdatesSchema = meetingUpdateSchema.array();
 
@@ -91,7 +95,7 @@ export const meetingsUpdateResponse = z.object({
 export type Meeting = z.infer<typeof meetingSchema>;
 export type MeetingsQuery = z.infer<typeof meetingsQuerySchema>;
 export type MeetingCreate = z.infer<typeof meetingCreateSchema>;
-export type MeetingChanges = z.infer<typeof meetingChangesSchema>;
+export type MeetingChange = z.infer<typeof meetingChangeSchema>;
 export type MeetingUpdate = z.infer<typeof meetingUpdateSchema>;
 export type MeetingCreateWebexParams = z.infer<
 	typeof meetingCreateWebexParamsSchema
