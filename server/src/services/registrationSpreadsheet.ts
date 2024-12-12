@@ -1,15 +1,6 @@
 import ExcelJS from "exceljs";
 import { csvParse } from "../utils";
-
-type SessionRegistration = {
-	id: number;
-	SAPIN: number | null;
-	Name: string;
-	FirstName: string;
-	LastName: string;
-	Email: string;
-	RegType: string;
-};
+import type { SessionRegistration } from "@schemas/registration";
 
 export async function parseRegistrationSpreadsheet(file: {
 	originalname: string;

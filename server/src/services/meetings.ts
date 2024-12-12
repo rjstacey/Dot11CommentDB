@@ -47,6 +47,8 @@ import type {
 	MeetingCreate,
 	MeetingUpdate,
 	MeetingChanges,
+	MeetingsGetResponse,
+	MeetingsUpdateResponse,
 } from "@schemas/meetings";
 
 function selectMeetingsSql(constraints: MeetingsQuery) {
@@ -159,7 +161,10 @@ async function selectMeetings(constraints: MeetingsQuery) {
  * Returns an object with shape {meetings, webexMeetings} where @meetings is array of meetings that meet the
  * constraints and @webexMeetings is an array of Webex meetings referenced by the meetings.
  */
-export async function getMeetings(user: User, constraints: MeetingsQuery) {
+export async function getMeetings(
+	user: User,
+	constraints: MeetingsQuery
+): Promise<MeetingsGetResponse> {
 	const meetings = await selectMeetings(constraints);
 	const ids = meetings.reduce(
 		(ids, m) => (m.webexMeetingId ? ids.concat([m.webexMeetingId]) : ids),
@@ -1048,7 +1053,10 @@ export async function updateMeeting(
  * @param updates An array of update objects with shape {id, changes}
  * @returns An object that includes an array of meeting objects as updated, an array of webex Meeting events as updated and an array of IMAT breakouts as updated.
  */
-export async function updateMeetings(user: User, updates: MeetingUpdate[]) {
+export async function updateMeetings(
+	user: User,
+	updates: MeetingUpdate[]
+): Promise<MeetingsUpdateResponse> {
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
 
 	const entries = await Promise.all(

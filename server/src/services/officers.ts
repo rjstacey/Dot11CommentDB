@@ -110,7 +110,7 @@ export async function addOfficers(
  * @param update Update object with shape {id, changes}
  * @param update.id Officer identifier
  * @param update.changes Partial officer object with parameters to change
- * @returns Officer object as updated
+ * @returns Updated officer object
  */
 async function updateOfficer({ id, changes }: OfficerUpdate): Promise<Officer> {
 	if (Object.keys(changes).length > 0)
@@ -127,7 +127,7 @@ async function updateOfficer({ id, changes }: OfficerUpdate): Promise<Officer> {
  * Update officers.
  *
  * @param updates An array of objects with shape {id, changes}
- * @returns An array of officer objects as updated
+ * @returns An array of update officer objects
  */
 export async function updateOfficers(
 	user: User,
@@ -161,9 +161,14 @@ export async function removeOfficers(
 	workingGroup: Group,
 	ids: string[]
 ): Promise<number> {
-	const result = await db.query<ResultSetHeader>(
-		"DELETE officers FROM officers LEFT JOIN organization org ON officers.group_id=org.id WHERE BIN_TO_UUID(officers.id) IN (?) AND UUID_TO_BIN(?) IN (org.id, org.parent_id)",
+	const sql = db.format(
+		// prettier-ignore
+		"DELETE officers " +
+		"FROM officers " +
+			"LEFT JOIN organization org ON officers.group_id=org.id " +
+		"WHERE BIN_TO_UUID(officers.id) IN (?) AND UUID_TO_BIN(?) IN (org.id, org.parent_id)",
 		[ids, workingGroup.id]
 	);
+	const result = await db.query<ResultSetHeader>(sql);
 	return result.affectedRows;
 }

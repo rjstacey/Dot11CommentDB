@@ -3,8 +3,6 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import {
-	SessionCreate,
-	SessionUpdate,
 	sessionCreateSchema,
 	sessionUpdateSchema,
 	sessionIdsSchema,

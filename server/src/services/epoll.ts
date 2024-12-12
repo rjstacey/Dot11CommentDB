@@ -3,7 +3,7 @@
  */
 
 import { DateTime } from "luxon";
-import * as cheerio from "cheerio";
+import { load as cheerioLoad } from "cheerio";
 import { AuthError, parseSpreadsheet, BasicFile } from "../utils";
 
 import type { User } from "./users";
@@ -29,7 +29,7 @@ export type Epoll = {
 
 function parseClosedEpollsPage(body: string): Epoll[] {
 	var epolls: Epoll[] = [];
-	var $ = cheerio.load(body);
+	var $ = cheerioLoad(body);
 
 	// If we get the "ePolls" page then parse the data table
 	// (use cheerio, which provides jQuery parsing)
@@ -72,9 +72,8 @@ export async function getEpolls(user: User, groupName: string, n: number) {
 	async function recursivePageGet(epolls: Epoll[], n: number, page: number) {
 		//console.log('get epolls n=', n)
 
-		const { data } = await ieeeClient!.get(
-			`https://mentor.ieee.org/${groupName}/polls/closed?n=${page}`
-		);
+		const url = `https://mentor.ieee.org/${groupName}/polls/closed?n=${page}`;
+		const { data } = await ieeeClient!.get(url);
 
 		var epollsPage = parseClosedEpollsPage(data);
 		var end = n - epolls.length;
@@ -102,7 +101,7 @@ type PageResult = {
 };
 
 export function parseEpollResultsHtml(body: string) {
-	var $ = cheerio.load(body);
+	var $ = cheerioLoad(body);
 	// If we get the "ePoll Status" page then parse the data table
 	// (use cheerio, which provides jQuery parsing)
 	if ($("div.title").length && $("div.title").html() == "ePoll Status") {

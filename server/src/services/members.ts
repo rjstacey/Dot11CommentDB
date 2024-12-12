@@ -31,10 +31,14 @@ import {
 	StatusChangeEntry,
 	ContactEmail,
 	UpdateRosterOptions,
+	StatusType,
+	UserMember,
+	statusValues,
 } from "@schemas/members";
 import { Group } from "@schemas/groups";
 import { getRecentAttendances } from "./attendances";
 import { getActiveBallotSeriesParticipation } from "./ballotParticipation";
+import { sourceMapsEnabled } from "process";
 
 type UserTypeDB = Omit<UserType, "ContactInfo" | "ContactEmails"> & {
 	ContactInfo: string; // JSON
@@ -107,7 +111,7 @@ function selectMembersSql(query: MemberQuery) {
 				"Employer, " +
 				"'Non-Voter' as Status, " +
 				"NULL as StatusChangeDate, " +
-				"NULL as StatusChangeOverride, " +
+				"CAST(FALSE as JSON) as StatusChangeOverride, " +
 				"NULL as ReplacedBySAPIN, " +
 				"NULL as DateAdded, " +
 				"'' as Notes, " +
@@ -115,7 +119,7 @@ function selectMembersSql(query: MemberQuery) {
 				"ContactEmails, " +
 				"JSON_ARRAY() as StatusChangeHistory, " +
 				"JSON_ARRAY() AS ObsoleteSAPINs, " +
-				"FALSE as InRoster " +
+				"CAST(FALSE as JSON) as InRoster " +
 			"FROM users";
 
 		Object.entries(rest).forEach(([key, value]) => {
@@ -219,13 +223,6 @@ export function getUsers() {
 	return db.query(sql) as Promise<UserType[]>;
 }
 
-export type UserMember = {
-	SAPIN: number;
-	Name: string;
-	Status: string;
-	Email?: string;
-};
-
 /*
  * A list of members is available to any member (for reassigning comments, etc.).
  * We only care about members with status Aspirant, Potential Voter, Voter or ExOfficial.
@@ -244,6 +241,10 @@ export function getUserMembers(
 		'AND Status IN ("Aspirant", "Potential Voter", "Voter", "ExOfficio")';
 
 	return db.query<(RowDataPacket & UserMember)[]>(sql);
+}
+
+function isValidStatus(status: any): status is StatusType {
+	return statusValues.includes(status);
 }
 
 /*
@@ -280,7 +281,12 @@ export async function getMembersSnapshot(
 			//console.log(`${m.SAPIN}:`)
 			for (const h of history) {
 				//console.log(`${h.Date.toISOString().substr(0,10)} ${h.OldStatus} -> ${h.NewStatus}`)
-				if (h.Date > fromDate && h.OldStatus && h.NewStatus) {
+				if (
+					h.Date > fromDate &&
+					h.OldStatus &&
+					h.NewStatus &&
+					isValidStatus(h.OldStatus)
+				) {
 					if (status !== h.NewStatus)
 						console.warn(
 							`${m.SAPIN}: Status mismatch; status=${status} but new status=${h.NewStatus}`
@@ -300,7 +306,7 @@ export async function getMembersSnapshot(
 	return members;
 }
 
-const statusMap = {
+const statusMap: Record<StatusType, string> = {
 	"Non-Voter": "Non-Voter",
 	Aspirant: "Aspirant",
 	"Potential Voter": "Potential Voter",
@@ -366,7 +372,7 @@ function memberEntry(m: Partial<Member>) {
 	}
 
 	if (entry.Status && statusMap[entry.Status] === undefined)
-		entry.Status = Object.keys(statusMap)[0];
+		entry.Status = "Non-Voter";
 
 	return entry;
 }
@@ -706,12 +712,27 @@ export async function updateMembers(
 }
 
 export async function deleteMembers(groupId: string, ids: number[]) {
+	let sql: string;
 	if (ids.length > 0) {
-		const sql = db.format(
+		sql = db.format(
 			"DELETE FROM groupMembers WHERE groupId=UUID_TO_BIN(?) AND SAPIN IN (?)",
 			[groupId, ids]
 		);
 		const result = await db.query<ResultSetHeader>(sql);
+
+		// SAPINs that are no longer referenced from any groupMembers table, must be removed them from the users table
+		sql = db.format("SELECT SAPIN FROM groupMembers WHERE SAPIN IN (?)", [
+			ids,
+		]);
+		const inUseIds = (
+			await db.query<(RowDataPacket & { SAPIN: number })[]>(sql)
+		).map((row) => row.SAPIN);
+		ids = ids.filter((id) => !inUseIds.includes(id));
+		if (ids.length) {
+			sql = db.format("DELETE FROM users WHERE SAPIN IN (?)", [ids]);
+			await db.query(sql);
+		}
+
 		return result.affectedRows;
 	}
 	return 0;

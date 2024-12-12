@@ -6,7 +6,6 @@
  */
 import { Router } from "express";
 import { DateTime } from "luxon";
-// @ts-ignore
 import { zones } from "tzdata";
 
 const timezones = Object.keys(zones)
