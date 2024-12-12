@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import {
 	ActionButton,
 	ActionButtonDropdown,
@@ -22,6 +21,7 @@ import MeetingsEmail from "./MeetingsEmail";
 import CopyMeetingListButton from "./CopyMeetingList";
 
 import { tableColumns } from "./table";
+import { refresh } from "./route";
 
 const DisplayFormat = {
 	0: "Table view",
@@ -59,8 +59,6 @@ function SelectDisplayFormat({
 
 function MeetingsActions() {
 	const dispatch = useAppDispatch();
-	const navigate = useNavigate();
-	const refresh = () => navigate(0);
 
 	let showDays: number = useAppSelector(selectUiProperties).showDays | 0;
 	const setShowDays = (showDays: number) =>

@@ -14,10 +14,10 @@ import ImatMeetingSelector from "../components/ImatMeetingSelector";
 import ImatMeetingInfo from "../components/ImatMeetingInfo";
 
 import { tableColumns } from "./table";
+import { refresh } from "./route";
 
 function ImatBreakoutsActions() {
 	const navigate = useNavigate();
-	const refresh = () => navigate(0);
 
 	const imatMeetingId = Number(useParams().meetingNumber);
 	const setImatMeetingId = (imatMeetingId: number | null) => {

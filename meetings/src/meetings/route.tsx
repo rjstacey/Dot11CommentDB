@@ -10,10 +10,22 @@ import {
 	Session,
 } from "../store/sessions";
 import { loadImatMeetings } from "../store/imatMeetings";
-import { loadMeetings, LoadMeetingsConstraints } from "../store/meetings";
+import {
+	loadMeetings,
+	LoadMeetingsConstraints,
+	selectMeetingsState,
+} from "../store/meetings";
 import { setCurrentSessionId, setShowDateRange } from "../store/current";
 
 import MeetingsLayout from "./layout";
+
+export function refresh() {
+	const { dispatch, getState } = store;
+
+	const { groupName, query } = selectMeetingsState(getState());
+	if (!groupName) throw Error("Refresh error: groupName not set");
+	dispatch(loadMeetings(groupName, query, true));
+}
 
 export type LoaderData = Session | null;
 

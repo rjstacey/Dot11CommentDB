@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import {
 	ActionButton,
 	ButtonGroup,
@@ -12,10 +11,9 @@ import {
 } from "../store/imatMeetings";
 
 import { tableColumns } from "./table";
+import { refresh } from "./route";
 
 function ImatMeetingsActions() {
-	const navigate = useNavigate();
-	const refresh = () => navigate(0);
 	return (
 		<div className="top-row">
 			<div>IMAT Sessions</div>

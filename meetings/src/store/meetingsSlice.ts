@@ -35,8 +35,8 @@ function toggleListItems(list: string[], items: string[]) {
 
 const initialState: {
 	groupName: string | null;
-	selectedSlots: string[];
 	query?: LoadMeetingsConstraints;
+	selectedSlots: string[];
 	lastLoad: string | null;
 } = {
 	groupName: null,
@@ -63,11 +63,13 @@ const slice = createAppTableDataSlice({
 				(action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
 					const { groupName, query } = action.payload;
+					state.lastLoad = new Date().toISOString();
 					if (
 						state.groupName !== groupName ||
 						!shallowEqual(state.query, query)
 					) {
 						state.groupName = groupName;
+						state.query = query;
 						dataAdapter.removeAll(state);
 					}
 				}

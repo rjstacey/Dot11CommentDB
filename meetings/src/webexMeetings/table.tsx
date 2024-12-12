@@ -115,7 +115,7 @@ function MeetingAdd({
 		return {
 			webexMeeting,
 			summary: webexMeeting.title,
-			timezone: webexMeeting.timezone,
+			timezone: webexMeeting.timezone || "America/New_York",
 			date,
 			startTime,
 			endTime,

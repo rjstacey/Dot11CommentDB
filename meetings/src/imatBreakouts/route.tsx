@@ -4,10 +4,22 @@ import { store } from "../store";
 import { selectTopLevelGroupByName, loadGroups } from "../store/groups";
 import { AccessLevel } from "../store/user";
 import { loadImatMeetings } from "../store/imatMeetings";
-import { loadBreakouts, clearBreakouts } from "../store/imatBreakouts";
+import {
+	loadBreakouts,
+	clearBreakouts,
+	selectBreakoutsState,
+} from "../store/imatBreakouts";
 
 import ImatBreakoutsLayout from "./layout";
 import ImatBreakoutsTable from "./table";
+
+export function refresh() {
+	const { dispatch, getState } = store;
+	const { groupName, imatMeetingId } = selectBreakoutsState(getState());
+	if (!groupName) throw Error("Refresh error; no groupName");
+	dispatch(loadImatMeetings(groupName, true));
+	if (imatMeetingId) dispatch(loadBreakouts(groupName, imatMeetingId));
+}
 
 const imatBreakoutsLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;

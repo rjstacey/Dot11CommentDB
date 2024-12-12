@@ -3,9 +3,19 @@ import { LoaderFunction, RouteObject } from "react-router-dom";
 import { store } from "../store";
 import { selectTopLevelGroupByName } from "../store/groups";
 import { AccessLevel } from "../store/user";
-import { loadImatMeetings } from "../store/imatMeetings";
+import {
+	loadImatMeetings,
+	selectImatMeetingsState,
+} from "../store/imatMeetings";
 
 import ImatMeetingsLayout from "./layout";
+
+export function refresh() {
+	const { dispatch, getState } = store;
+	const groupName = selectImatMeetingsState(getState()).groupName;
+	if (!groupName) throw Error("Refresh error; no groupName");
+	dispatch(loadImatMeetings(groupName, true));
+}
 
 const imatMeetingsLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;

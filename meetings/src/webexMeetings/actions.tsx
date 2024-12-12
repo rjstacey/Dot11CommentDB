@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import {
 	ActionButton,
 	SplitPanelButton,
@@ -14,11 +13,9 @@ import SessionSelectorNav from "../components/SessionSelectorNav";
 import CopyWebexMeetingListButton from "./CopyWebexMeetingList";
 
 import { tableColumns } from "./table";
+import { refresh } from "./route";
 
 function WebexMeetingsActions() {
-	const navigate = useNavigate();
-	const refresh = () => navigate(0);
-
 	return (
 		<div className="top-row">
 			<SessionSelectorNav allowShowDateRange />

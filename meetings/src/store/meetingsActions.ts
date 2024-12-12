@@ -82,7 +82,7 @@ export const loadMeetings =
 			const age = selectMeetingsAge(state);
 			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
-		dispatch(getPending({ groupName }));
+		dispatch(getPending({ groupName, query }));
 		const url =
 			`/api/${groupName}/meetings` +
 			(query ? "?" + new URLSearchParams(query) : "");

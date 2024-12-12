@@ -10,11 +10,22 @@ import {
 	Session,
 } from "../store/sessions";
 import { loadImatMeetings } from "../store/imatMeetings";
-import { loadWebexMeetings } from "../store/webexMeetings";
+import {
+	loadWebexMeetings,
+	selectWebexMeetingsState,
+} from "../store/webexMeetings";
 import { LoadMeetingsConstraints } from "../store/meetingsSelectors";
 import { setCurrentSessionId, setShowDateRange } from "../store/current";
 
 import WebexMeetingsLayout from "./layout";
+
+export function refresh() {
+	const { dispatch, getState } = store;
+
+	const { groupName, query } = selectWebexMeetingsState(getState());
+	if (!groupName) throw Error("Refresh error: groupName not set");
+	dispatch(loadWebexMeetings(groupName, query, true));
+}
 
 export type LoaderData = Session | null;
 
