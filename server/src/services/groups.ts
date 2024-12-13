@@ -9,7 +9,7 @@ import { getBallots } from "./ballots";
 import { getSessions } from "./sessions";
 import {
 	Group,
-	GroupQuery,
+	GroupsQuery,
 	GroupCreate,
 	GroupType,
 	GroupUpdate,
@@ -155,7 +155,7 @@ function rollupGroupUserPermissions(
  * @param constraints.parentName (Optional) Group and subgroups with the parent with this name
  * @returns An array of group objects that includes the user permissions for each group
  */
-export async function getGroups(user: User, query?: GroupQuery) {
+export async function getGroups(user: User, query?: GroupsQuery) {
 	let sql = selectGroupsSql;
 
 	if (query) {

@@ -61,76 +61,99 @@ import {
 	getImatMeetingAttendanceSummary,
 } from "../services/imat";
 import {
-	BreakoutCreate,
-	BreakoutUpdate,
 	breakoutCreatesSchema,
 	breakoutIdsSchema,
 	breakoutUpdatesSchema,
 } from "@schemas/imat";
 
-function getCommittees(req: Request, res: Response, next: NextFunction) {
-	getImatCommittees(req.user, req.group!)
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function getMeetings(req: Request, res: Response, next: NextFunction) {
-	getImatMeetings(req.user)
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function getBreakouts(req: Request, res: Response, next: NextFunction) {
-	const imatMeetingId = Number(req.params.imatMeetingId);
-	getImatBreakouts(req.user, imatMeetingId)
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function addBreakouts(req: Request, res: Response, next: NextFunction) {
-	const imatMeetingId = Number(req.params.imatMeetingId);
-	let breakouts: BreakoutCreate[];
+async function getCommittees(req: Request, res: Response, next: NextFunction) {
+	const { user, group } = req;
 	try {
-		breakouts = breakoutCreatesSchema.parse(req.body);
+		const data = await getImatCommittees(user, group!);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addImatBreakouts(req.user, imatMeetingId, breakouts)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateBreakouts(req: Request, res: Response, next: NextFunction) {
-	const imatMeetingId = Number(req.params.imatMeetingId);
-	let breakouts: BreakoutUpdate[];
+async function getMeetings(req: Request, res: Response, next: NextFunction) {
+	const { user } = req;
 	try {
-		breakouts = breakoutUpdatesSchema.parse(req.body);
+		const data = await getImatMeetings(user);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateImatBreakouts(req.user, imatMeetingId, breakouts)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeBreakouts(req: Request, res: Response, next: NextFunction) {
-	const imatMeetingId = Number(req.params.imatMeetingId);
-	let ids: number[];
+async function getBreakouts(req: Request, res: Response, next: NextFunction) {
+	const { user, params } = req;
+	const imatMeetingId = Number(params.imatMeetingId);
 	try {
-		ids = breakoutIdsSchema.parse(req.body);
+		const data = await getImatBreakouts(user, imatMeetingId);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	deleteImatBreakouts(req.user, imatMeetingId, ids)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function getMeetingAttendance(req: Request, res: Response, next: NextFunction) {
-	const imatMeetingId = Number(req.params.imatMeetingId);
-	getImatMeetingAttendance(req.user, imatMeetingId)
-		.then((data) => res.json(data))
-		.catch(next);
+async function addBreakouts(req: Request, res: Response, next: NextFunction) {
+	const { user, params, body } = req;
+	const imatMeetingId = Number(params.imatMeetingId);
+	try {
+		const breakouts = breakoutCreatesSchema.parse(body);
+		const data = await addImatBreakouts(user, imatMeetingId, breakouts);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function updateBreakouts(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const { user, params, body } = req;
+	const imatMeetingId = Number(params.imatMeetingId);
+	try {
+		const breakouts = breakoutUpdatesSchema.parse(body);
+		const data = await updateImatBreakouts(user, imatMeetingId, breakouts);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function removeBreakouts(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const { user, params, body } = req;
+	const imatMeetingId = Number(params.imatMeetingId);
+	try {
+		const ids = breakoutIdsSchema.parse(body);
+		const data = await deleteImatBreakouts(user, imatMeetingId, ids);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function getMeetingAttendance(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const { user, params } = req;
+	const imatMeetingId = Number(params.imatMeetingId);
+	try {
+		const data = await getImatMeetingAttendance(user, imatMeetingId);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 async function getMeetingAttendanceSummary(
@@ -138,29 +161,38 @@ async function getMeetingAttendanceSummary(
 	res: Response,
 	next: NextFunction
 ) {
+	const { user, group, params, query } = req;
 	try {
-		const imatMeetingId = Number(req.params.imatMeetingId);
-		const useDaily = req.query.useDaily !== "false";
+		const imatMeetingId = Number(params.imatMeetingId);
+		const useDaily = query.useDaily !== "false";
 		const getAttendance = useDaily
 			? getImatMeetingDailyAttendance
 			: getImatMeetingAttendanceSummary;
-		const data = await getAttendance(req.user, req.group!, imatMeetingId);
+		const data = await getAttendance(user, group!, imatMeetingId);
 		res.json(data);
 	} catch (error) {
 		next(error);
 	}
 }
 
-function getBreakoutAttendance(
+async function getBreakoutAttendance(
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) {
-	const imatMeetingId = Number(req.params.imatMeetingId);
-	const imatBreakoutId = Number(req.params.imatBreakoutId);
-	getImatBreakoutAttendance(req.user, imatMeetingId, imatBreakoutId)
-		.then((data) => res.json(data))
-		.catch(next);
+	const { user, params } = req;
+	const imatMeetingId = Number(params.imatMeetingId);
+	const imatBreakoutId = Number(params.imatBreakoutId);
+	try {
+		const data = await getImatBreakoutAttendance(
+			user,
+			imatMeetingId,
+			imatBreakoutId
+		);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 const router = Router();

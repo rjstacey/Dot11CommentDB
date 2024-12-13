@@ -7,8 +7,6 @@ import Multer from "multer";
 import { AccessLevel } from "../auth/access";
 import { ForbiddenError } from "../utils";
 import {
-	SessionAttendanceSummaryCreate,
-	SessionAttendanceSummaryUpdate,
 	sessionAttendanceSummaryCreatesSchema,
 	sessionAttendanceSummaryUpdatesSchema,
 	sessionAttendanceSummaryIdsSchema,
@@ -25,99 +23,124 @@ import {
 } from "../services/attendances";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	if (!req.group) return next(new Error("Group not set"));
+	try {
+		if (!req.group) throw new Error("Group not set");
 
-	const access = req.group.permissions.members || AccessLevel.none;
-	if (req.method === "GET" && access >= AccessLevel.ro) return next();
-	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-	if (
-		(req.method === "DELETE" || req.method === "POST") &&
-		access >= AccessLevel.admin
-	)
-		return next();
+		const access = req.group.permissions.members || AccessLevel.none;
+		const grant =
+			(req.method === "GET" && access >= AccessLevel.ro) ||
+			(req.method === "PATCH" && access >= AccessLevel.rw) ||
+			((req.method === "DELETE" || req.method === "POST") &&
+				access >= AccessLevel.admin);
 
-	next(new ForbiddenError("Insufficient karma"));
+		if (grant) return next();
+		throw new ForbiddenError();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function getForSession(req: Request, res: Response, next: NextFunction) {
+async function getForSession(req: Request, res: Response, next: NextFunction) {
+	const groupId = req.group!.id;
+	const session_id = Number(req.params.session_id);
+	try {
+		const data = await getAttendances({ groupId, session_id });
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function getForMinutes(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
 	const group = req.group!;
 	const session_id = Number(req.params.session_id);
-	getAttendances({ groupId: group.id, session_id })
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		await exportAttendancesForMinutes(user, group, session_id, res);
+		res.end();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function getForMinutes(req: Request, res: Response, next: NextFunction) {
-	const session_id = Number(req.params.session_id);
-	exportAttendancesForMinutes(req.user, req.group!, session_id, res)
-		.then(() => res.end())
-		.catch(next);
-}
-
-function importAll(req: Request, res: Response, next: NextFunction) {
+async function importAll(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
+	const group = req.group!;
 	const session_id = Number(req.params.session_id);
 	const { use } = req.query;
-	let useDailyAttendance =
+	let useDaily =
 		typeof use === "string" && use.toLowerCase().startsWith("daily");
-	importAttendances(req.user, req.group!, session_id, useDailyAttendance)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const data = await importAttendances(user, group, session_id, useDaily);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function uploadRegistrationRequest(
+async function uploadRegistrationRequest(
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) {
-	const session_id = Number(req.params.session_id);
-	uploadRegistration(req.user, req.group!, session_id, req.file)
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function getRecent(req: Request, res: Response, next: NextFunction) {
 	const user = req.user;
 	const group = req.group!;
-	getRecentAttendances(user, group.id)
-		.then((data) => res.json(data))
-		.catch(next);
+	const session_id = Number(req.params.session_id);
+	try {
+		const data = await uploadRegistration(
+			user,
+			group,
+			session_id,
+			req.file
+		);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function addMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	let attendances: SessionAttendanceSummaryCreate[];
+async function getRecent(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
+	const groupId = req.group!.id;
 	try {
-		attendances = sessionAttendanceSummaryCreatesSchema.parse(req.body);
+		const data = await getRecentAttendances(user, groupId);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addAttendances(group.id, attendances)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateMany(req: Request, res: Response, next: NextFunction) {
-	let updates: SessionAttendanceSummaryUpdate[];
+async function addMany(req: Request, res: Response, next: NextFunction) {
+	const groupId = req.group!.id;
 	try {
-		updates = sessionAttendanceSummaryUpdatesSchema.parse(req.body);
+		const attendances = sessionAttendanceSummaryCreatesSchema.parse(
+			req.body
+		);
+		const data = await addAttendances(groupId, attendances);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateAttendances(updates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeMany(req: Request, res: Response, next: NextFunction) {
-	let ids: number[];
+async function updateMany(req: Request, res: Response, next: NextFunction) {
 	try {
-		ids = sessionAttendanceSummaryIdsSchema.parse(req.body);
+		const updates = sessionAttendanceSummaryUpdatesSchema.parse(req.body);
+		const data = await updateAttendances(updates);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	deleteAttendances(ids)
-		.then((data) => res.json(data))
-		.catch(next);
+}
+
+async function removeMany(req: Request, res: Response, next: NextFunction) {
+	try {
+		const ids = sessionAttendanceSummaryIdsSchema.parse(req.body);
+		const data = await deleteAttendances(ids);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 const upload = Multer();

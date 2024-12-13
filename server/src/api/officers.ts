@@ -6,8 +6,6 @@ import { Request, Response, NextFunction, Router } from "express";
 import { ForbiddenError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import {
-	OfficerCreate,
-	OfficerUpdate,
 	officerCreatesSchema,
 	officerIdsSchema,
 	officerUpdatesSchema,
@@ -20,64 +18,71 @@ import {
 } from "../services/officers";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	const { group } = req;
-	if (!group) return next(new Error("Group not set"));
+	try {
+		const { group } = req;
+		if (!group) throw new Error("Group not set");
 
-	const access = group.permissions.members || AccessLevel.none;
+		const access = group.permissions.members || AccessLevel.none;
+		const grant = access >= AccessLevel.admin;
 
-	if (access >= AccessLevel.admin) return next();
-
-	next(new ForbiddenError("Insufficient karma"));
+		if (grant) return next();
+		throw new ForbiddenError();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function get(req: Request, res: Response, next: NextFunction) {
+async function get(req: Request, res: Response, next: NextFunction) {
 	const parentGroupId = req.group!.id;
-	getOfficers({ parentGroupId })
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const data = await getOfficers({ parentGroupId });
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function addMany(req: Request, res: Response, next: NextFunction) {
+async function addMany(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	let officers: OfficerCreate[];
 	try {
-		officers = officerCreatesSchema.parse(req.body);
+		const officers = officerCreatesSchema.parse(req.body);
+		const data = await addOfficers(req.user, group, officers);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addOfficers(req.user, group, officers)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateMany(req: Request, res: Response, next: NextFunction) {
+async function updateMany(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	let updates: OfficerUpdate[];
 	try {
-		updates = officerUpdatesSchema.parse(req.body);
+		const updates = officerUpdatesSchema.parse(req.body);
+		const data = await updateOfficers(req.user, group, updates);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateOfficers(req.user, group, updates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeMany(req: Request, res: Response, next: NextFunction) {
+async function removeMany(req: Request, res: Response, next: NextFunction) {
+	const { user, body } = req;
 	const group = req.group!;
-	let ids: string[];
 	try {
-		ids = officerIdsSchema.parse(req.body);
+		const ids = officerIdsSchema.parse(body);
+		const data = await removeOfficers(user, group, ids);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	removeOfficers(req.user, group, ids)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
 const router = Router();
-router.all("*", validatePermissions);
-router.route("/").get(get).post(addMany).patch(updateMany).delete(removeMany);
+router
+	.all("*", validatePermissions)
+	.route("/")
+	.get(get)
+	.post(addMany)
+	.patch(updateMany)
+	.delete(removeMany);
 
 export default router;

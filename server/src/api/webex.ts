@@ -7,8 +7,6 @@ import { AccessLevel } from "../auth/access";
 import {
 	webexAccountCreateSchema,
 	webexAccountChangeSchema,
-	WebexAccountCreate,
-	WebexAccountChange,
 	webexMeetingDeletesSchema,
 	webexMeetingChangesSchema,
 	webexMeetingCreatesSchema,
@@ -27,64 +25,95 @@ import {
 } from "../services/webex";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	if (!req.group) return next(new Error("Group not set"));
-
-	const access = req.group.permissions.meetings || AccessLevel.none;
-
-	if (req.method === "GET" && access >= AccessLevel.ro) return next();
-	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-	if (
-		(req.method === "DELETE" || req.method === "POST") &&
-		access >= AccessLevel.admin
-	)
-		return next();
-
-	next(new ForbiddenError("Insufficient karma"));
-}
-
-function getAccounts(req: Request, res: Response, next: NextFunction) {
-	getWebexAccounts(req, req.user, { groupId: req.group!.id })
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function addAccount(req: Request, res: Response, next: NextFunction) {
-	let account: WebexAccountCreate;
 	try {
-		account = webexAccountCreateSchema.parse(req.body);
+		if (!req.group) throw new Error("Group not set");
+
+		const access = req.group.permissions.meetings || AccessLevel.none;
+		const grant =
+			(req.method === "GET" && access >= AccessLevel.ro) ||
+			(req.method === "PATCH" && access >= AccessLevel.rw) ||
+			((req.method === "DELETE" || req.method === "POST") &&
+				access >= AccessLevel.admin);
+
+		if (grant) return next();
+		throw new ForbiddenError();
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addWebexAccount(req, req.user, req.group!.id, account)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateAccount(req: Request, res: Response, next: NextFunction) {
-	const accountId = Number(req.params.accountId);
-	let changes: WebexAccountChange;
+async function getAccounts(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
+	const groupId = req.group!.id;
 	try {
-		changes = webexAccountChangeSchema.parse(req.body);
+		const data = await getWebexAccounts(req, user, { groupId });
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateWebexAccount(req, req.user, req.group!.id, accountId, changes)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function revokeAccountAuth(req: Request, res: Response, next: NextFunction) {
-	const accountId = Number(req.params.accountId);
-	revokeAuthWebexAccount(req, req.user, req.group!.id, accountId)
-		.then((data) => res.json(data))
-		.catch(next);
+async function addAccount(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
+	const groupId = req.group!.id;
+	try {
+		const account = webexAccountCreateSchema.parse(req.body);
+		const data = await addWebexAccount(req, user, groupId, account);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function removeAccount(req: Request, res: Response, next: NextFunction) {
+async function updateAccount(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
+	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
-	deleteWebexAccount(req.group!.id, accountId)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const changes = webexAccountChangeSchema.parse(req.body);
+		const data = await updateWebexAccount(
+			req,
+			user,
+			groupId,
+			accountId,
+			changes
+		);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function revokeAccountAuth(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const user = req.user;
+	const groupId = req.group!.id;
+	const accountId = Number(req.params.accountId);
+	try {
+		const data = await revokeAuthWebexAccount(
+			req,
+			user,
+			groupId,
+			accountId
+		);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function removeAccount(req: Request, res: Response, next: NextFunction) {
+	const groupId = req.group!.id;
+	const accountId = Number(req.params.accountId);
+	try {
+		const data = await deleteWebexAccount(groupId, accountId);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 async function getMeetings(req: Request, res: Response, next: NextFunction) {

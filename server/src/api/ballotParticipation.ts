@@ -8,26 +8,33 @@ import { ForbiddenError } from "../utils";
 import { getBallotSeriesParticipation } from "../services/ballotParticipation";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	if (!req.group) return next(new Error("Group not set"));
+	try {
+		if (!req.group) throw new Error("Group not set");
 
-	const access = req.group.permissions.members || AccessLevel.none;
+		const access = req.group.permissions.members || AccessLevel.none;
 
-	if (req.method === "GET" && access >= AccessLevel.ro) return next();
-	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-	if (
-		(req.method === "DELETE" || req.method === "POST") &&
-		access >= AccessLevel.admin
-	)
-		return next();
+		const grant =
+			(req.method === "GET" && access >= AccessLevel.ro) ||
+			(req.method === "PATCH" && access >= AccessLevel.rw) ||
+			((req.method === "DELETE" || req.method === "POST") &&
+				access >= AccessLevel.admin);
 
-	next(new ForbiddenError("Insufficient karma"));
+		if (grant) return next();
+
+		throw new ForbiddenError();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function getAll(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	getBallotSeriesParticipation(group.id)
-		.then((data) => res.json(data))
-		.catch(next);
+async function getAll(req: Request, res: Response, next: NextFunction) {
+	const groupId = req.group!.id;
+	try {
+		const data = await getBallotSeriesParticipation(groupId);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 const router = Router();

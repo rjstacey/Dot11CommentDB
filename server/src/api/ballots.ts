@@ -8,9 +8,7 @@ import { ForbiddenError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import {
 	ballotCreatesSchema,
-	BallotCreate,
 	ballotUpdatesSchema,
-	BallotUpdate,
 	ballotIdsSchema,
 } from "@schemas/ballots";
 import {
@@ -21,62 +19,65 @@ import {
 } from "../services/ballots";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	if (!req.group) return next(new Error("Group not set"));
+	try {
+		if (!req.group) throw new Error("Group not set");
 
-	const access = req.group.permissions.ballots || AccessLevel.none;
+		const access = req.group.permissions.ballots || AccessLevel.none;
 
-	if (req.method === "GET" && access >= AccessLevel.ro) return next();
-	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-	if (
-		(req.method === "POST" || req.method === "DELETE") &&
-		access >= AccessLevel.admin
-	)
-		return next();
+		const grant =
+			(req.method === "GET" && access >= AccessLevel.ro) ||
+			(req.method === "PATCH" && access >= AccessLevel.rw) ||
+			((req.method === "POST" || req.method === "DELETE") &&
+				access >= AccessLevel.admin);
 
-	next(new ForbiddenError("Insufficient karma"));
+		if (grant) return next();
+
+		throw new ForbiddenError();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function getAll(req: Request, res: Response, next: NextFunction) {
+async function getAll(req: Request, res: Response, next: NextFunction) {
 	const workingGroupId = req.group!.id;
-	getBallots({ workingGroupId })
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const data = await getBallots({ workingGroupId });
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function addMany(req: Request, res: Response, next: NextFunction) {
-	let ballots: BallotCreate[];
+async function addMany(req: Request, res: Response, next: NextFunction) {
+	const { user, group, body } = req;
 	try {
-		ballots = ballotCreatesSchema.parse(req.body);
+		const ballots = ballotCreatesSchema.parse(body);
+		const data = await addBallots(user, group!, ballots);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addBallots(req.user, req.group!, ballots)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateMany(req: Request, res: Response, next: NextFunction) {
-	let updates: BallotUpdate[];
+async function updateMany(req: Request, res: Response, next: NextFunction) {
+	const { user, group, body } = req;
 	try {
-		updates = ballotUpdatesSchema.parse(req.body);
+		const updates = ballotUpdatesSchema.parse(body);
+		const data = await updateBallots(user, group!, updates);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateBallots(req.user, req.group!, updates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeMany(req: Request, res: Response, next: NextFunction) {
-	let ids: number[];
+async function removeMany(req: Request, res: Response, next: NextFunction) {
 	try {
-		ids = ballotIdsSchema.parse(req.body);
+		const ids = ballotIdsSchema.parse(req.body);
+		const data = await deleteBallots(req.user, req.group!, ids);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	deleteBallots(req.user, req.group!, ids)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
 const router = Router();

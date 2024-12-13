@@ -3,8 +3,6 @@ import {
 	affiliationMapCreatesSchema,
 	affiliationMapUpdatesSchema,
 	affiliationMapIdsSchema,
-	AffiliationMapCreate,
-	AffiliationMapUpdate,
 } from "@schemas/affiliationMap";
 import {
 	getAffiliationMaps,
@@ -13,50 +11,47 @@ import {
 	removeAffiliationMaps,
 } from "../services/affiliationMap";
 
-function getAll(req: Request, res: Response, next: NextFunction) {
+async function getAll(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	getAffiliationMaps(group)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const data = await getAffiliationMaps(group);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function addMany(req: Request, res: Response, next: NextFunction) {
+async function addMany(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	let affiliationMaps: AffiliationMapCreate[];
 	try {
-		affiliationMaps = affiliationMapCreatesSchema.parse(req.body);
+		const affiliationMaps = affiliationMapCreatesSchema.parse(req.body);
+		const data = await addAffiliationMaps(group, affiliationMaps);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addAffiliationMaps(group, affiliationMaps)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateMany(req: Request, res: Response, next: NextFunction) {
+async function updateMany(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	let updates: AffiliationMapUpdate[];
 	try {
-		updates = affiliationMapUpdatesSchema.parse(req.body);
+		const updates = affiliationMapUpdatesSchema.parse(req.body);
+		const data = await updateAffiliationMaps(group, updates);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateAffiliationMaps(group, updates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeMany(req: Request, res: Response, next: NextFunction) {
+async function removeMany(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	let ids: number[];
 	try {
-		ids = affiliationMapIdsSchema.parse(req.body);
+		const ids = affiliationMapIdsSchema.parse(req.body);
+		const data = await removeAffiliationMaps(group, ids);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	removeAffiliationMaps(group, ids)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
 const router = Router();

@@ -10,21 +10,24 @@ import {
 import { sendEmail, sendEmails } from "../services/emailSend";
 import { emailSchema, emailsSchema } from "@schemas/email";
 import {
-	EmailTemplateCreate,
-	EmailTemplateUpdate,
 	emailTemplateCreatesSchema,
 	emailTemplateIdsSchema,
 	emailTemplateUpdatesSchema,
 } from "@schemas/emailTemplates";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	const { group, user } = req;
-	if (!group) return next(new Error("Group not set"));
+	try {
+		const { group } = req;
+		if (!group) throw new Error("Group not set");
+		const access = group.permissions.members || AccessLevel.none;
+		const grant = access >= AccessLevel.admin;
 
-	const access = group.permissions.members || AccessLevel.none;
-	if (access >= AccessLevel.admin) return next();
+		if (grant) return next();
 
-	next(new ForbiddenError("Insufficient karma"));
+		throw new ForbiddenError();
+	} catch (error) {
+		next(error);
+	}
 }
 
 async function sendOne(req: Request, res: Response, next: NextFunction) {
@@ -49,49 +52,46 @@ async function sendMany(req: Request, res: Response, next: NextFunction) {
 	}
 }
 
-function get(req: Request, res: Response, next: NextFunction) {
-	getTemplates(req.group!)
-		.then((data) => res.json(data))
-		.catch(next);
+async function get(req: Request, res: Response, next: NextFunction) {
+	try {
+		const data = await getTemplates(req.group!);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function addMany(req: Request, res: Response, next: NextFunction) {
+async function addMany(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	let templates: EmailTemplateCreate[];
 	try {
-		templates = emailTemplateCreatesSchema.parse(req.body);
+		const templates = emailTemplateCreatesSchema.parse(req.body);
+		const data = await addTemplates(group, templates);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addTemplates(group, templates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateMany(req: Request, res: Response, next: NextFunction) {
+async function updateMany(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	let updates: EmailTemplateUpdate[];
 	try {
-		updates = emailTemplateUpdatesSchema.parse(req.body);
+		const updates = emailTemplateUpdatesSchema.parse(req.body);
+		const data = await updateTemplates(group, updates);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateTemplates(group, updates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeMany(req: Request, res: Response, next: NextFunction) {
+async function removeMany(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	let ids: number[];
 	try {
-		ids = emailTemplateIdsSchema.parse(req.body);
+		const ids = emailTemplateIdsSchema.parse(req.body);
+		const data = await deleteTemplates(group, ids);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	deleteTemplates(group, ids)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
 const router = Router();

@@ -9,9 +9,7 @@ import { ForbiddenError } from "../utils";
 import { AccessLevel } from "../auth/access";
 import {
 	memberCreatesSchema,
-	MemberCreate,
 	memberUpdatesSchema,
-	MemberUpdate,
 	memberIdsSchema,
 	UpdateRosterOptions,
 } from "@schemas/members";
@@ -38,140 +36,177 @@ import {
 } from "../services/members";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	const { group } = req;
-	if (!group) return next(new Error("Group not set"));
-
-	const access = group.permissions.members || AccessLevel.none;
-
-	// Getting a list of user members requires ro access */
-	if (
-		req.method === "GET" &&
-		req.path === "/user" &&
-		access >= AccessLevel.ro
-	)
-		return next();
-
-	// Otherwise need at least rw access */
-	if (req.method === "GET" && access >= AccessLevel.rw) return next();
-
-	// Need read-write privileges to update resolutions
-	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-	// Need admin privileges to add or delete resolutions
-	if (
-		(req.method === "DELETE" || req.method === "POST") &&
-		access >= AccessLevel.admin
-	)
-		return next();
-
-	next(new ForbiddenError("Insufficient karma"));
-}
-
-function get(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	const access = group.permissions.members || AccessLevel.none;
-	getMembers(access, { groupId: group.id })
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function addMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	let members: MemberCreate[];
 	try {
-		members = memberCreatesSchema.parse(req.body);
+		const { group } = req;
+		if (!group) throw new Error("Group not set");
+
+		const access = group.permissions.members || AccessLevel.none;
+		const grant =
+			// Getting a list of user members requires ro access */
+			(req.method === "GET" &&
+				req.path === "/user" &&
+				access >= AccessLevel.ro) ||
+			(req.method === "GET" && access >= AccessLevel.rw) ||
+			// Need read-write privileges to update resolutions
+			(req.method === "PATCH" && access >= AccessLevel.rw) ||
+			// Need admin privileges to add or delete resolutions
+			((req.method === "DELETE" || req.method === "POST") &&
+				access >= AccessLevel.admin);
+
+		if (grant) return next();
+		throw new ForbiddenError();
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addMembers(group.id, members)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateMany(req: Request, res: Response, next: NextFunction) {
+async function get(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
-	let updates: MemberUpdate[];
+	const groupId = group.id;
+	const access = group.permissions.members || AccessLevel.none;
 	try {
-		updates = memberUpdatesSchema.parse(req.body);
+		const data = await getMembers(access, { groupId });
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateMembers(group.id, updates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateOne(req: Request, res: Response, next: NextFunction) {
+async function addMany(req: Request, res: Response, next: NextFunction) {
+	const { body } = req;
+	const groupId = req.group!.id;
+	try {
+		const members = memberCreatesSchema.parse(body);
+		const data = await addMembers(groupId, members);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function updateMany(req: Request, res: Response, next: NextFunction) {
+	const { body } = req;
+	const groupId = req.group!.id;
+	try {
+		const updates = memberUpdatesSchema.parse(body);
+		const data = await updateMembers(groupId, updates);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function updateOne(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
 	const id = Number(req.params.id);
 	const changes = req.body;
-	if (typeof changes !== "object")
-		return next(new TypeError("Bad or missing body; expected object"));
-	updateMembers(group.id, [{ id, changes }])
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function removeMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	let ids: number[];
 	try {
-		ids = memberIdsSchema.parse(req.body);
+		if (typeof changes !== "object")
+			throw new TypeError("Bad or missing body; expected object");
+		const data = await updateMembers(group.id, [{ id, changes }]);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	deleteMembers(group.id, ids)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function statusChangeHistory_addMany(
+async function removeMany(req: Request, res: Response, next: NextFunction) {
+	const { body } = req;
+	const group = req.group!;
+	try {
+		const ids = memberIdsSchema.parse(body);
+		const data = await deleteMembers(group.id, ids);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function statusChangeHistory_addMany(
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) {
+	const { body, params } = req;
 	const group = req.group!;
-	const id = Number(req.params.id);
-	addMemberStatusChangeEntries(group.id, id, req.body)
-		.then((data) => res.json(data))
-		.catch(next);
+	const id = Number(params.id);
+	try {
+		const data = await addMemberStatusChangeEntries(group.id, id, body);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function statusChangeHistory_updateMany(
+async function statusChangeHistory_updateMany(
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) {
+	const { body, params } = req;
 	const group = req.group!;
-	const id = Number(req.params.id);
-	updateMemberStatusChangeEntries(group.id, id, req.body)
-		.then((data) => res.json(data))
-		.catch(next);
+	const id = Number(params.id);
+	try {
+		const data = await updateMemberStatusChangeEntries(group.id, id, body);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function statusChangeHistory_removeMany(
+async function statusChangeHistory_removeMany(
 	req: Request,
 	res: Response,
 	next: NextFunction
 ) {
+	const { body, params } = req;
 	const group = req.group!;
-	const id = Number(req.params.id);
-	deleteMemberStatusChangeEntries(group.id, id, req.body)
-		.then((data) => res.json(data))
-		.catch(next);
+	const id = Number(params.id);
+	try {
+		const data = await deleteMemberStatusChangeEntries(group.id, id, body);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function contactEmails_addOne(req: Request, res: Response, next: NextFunction) {
+async function contactEmails_addOne(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const { body, params } = req;
+	const group = req.group!;
+	const id = Number(params.id);
+	try {
+		if (typeof body !== "object")
+			throw new TypeError("Missing or bad ContactEmails row object");
+		const data = await addMemberContactEmail(group.id, id, body);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function contactEmails_updateOne(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
 	const group = req.group!;
 	const id = Number(req.params.id);
 	const entry = req.body;
-	if (typeof entry !== "object")
-		return next(new TypeError("Missing or bad ContactEmails row object"));
-	addMemberContactEmail(group.id, id, entry)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		if (typeof entry !== "object")
+			throw new TypeError("Missing or bad ContactEmails row object");
+		const data = await updateMemberContactEmail(group.id, id, entry);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function contactEmails_updateOne(
+async function contactEmails_removeOne(
 	req: Request,
 	res: Response,
 	next: NextFunction
@@ -179,34 +214,25 @@ function contactEmails_updateOne(
 	const group = req.group!;
 	const id = Number(req.params.id);
 	const entry = req.body;
-	if (typeof entry !== "object")
-		return next(new TypeError("Missing or bad ContactEmails row object"));
-	updateMemberContactEmail(group.id, id, entry)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		if (typeof entry !== "object")
+			throw new TypeError("Missing or bad ContactEmails row object");
+		const data = await deleteMemberContactEmail(group.id, id, entry);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function contactEmails_removeOne(
-	req: Request,
-	res: Response,
-	next: NextFunction
-) {
-	const group = req.group!;
-	const id = Number(req.params.id);
-	const entry = req.body;
-	if (typeof entry !== "object")
-		return next(new TypeError("Missing or bad ContactEmails row object"));
-	deleteMemberContactEmail(group.id, id, entry)
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function getUser(req: Request, res: Response, next: NextFunction) {
+async function getUser(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
 	const access = group.permissions.members || AccessLevel.none;
-	getUserMembers(access, group.id)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const data = await getUserMembers(access, group.id);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 async function getSnapshot(req: Request, res: Response, next: NextFunction) {
@@ -221,79 +247,113 @@ async function getSnapshot(req: Request, res: Response, next: NextFunction) {
 	}
 }
 
-function postUpload(req: Request, res: Response, next: NextFunction) {
+async function postUpload(req: Request, res: Response, next: NextFunction) {
+	const { file } = req;
 	const group = req.group!;
 	const { format } = req.params;
-	if (!req.file) return next(new TypeError("Missing file"));
-	uploadMembers(group.id, format, req.file)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		if (!file) return next(new TypeError("Missing file"));
+		const data = await uploadMembers(group.id, format, file);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function postMyProjectRoster(req: Request, res: Response, next: NextFunction) {
+async function postMyProjectRoster(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const { file } = req;
 	const group = req.group!;
-	if (!req.file) return next(new TypeError("Missing file"));
-	importMyProjectRoster(group.id, req.file)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		if (!file) throw new TypeError("Missing file");
+		const data = await importMyProjectRoster(group.id, file);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function patchMyProjectRoster(req: Request, res: Response, next: NextFunction) {
+async function patchMyProjectRoster(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const { user, query, file } = req;
 	const group = req.group!;
-	if (!req.file) return next(new TypeError("Missing file"));
 	let options: UpdateRosterOptions = {};
-	if (req.query.appendNew === "true") options.appendNew = true;
-	if (req.query.removeUnchanged === "true") options.removeUnchanged = true;
-	updateMyProjectRosterWithMemberStatus(
-		req.user,
-		group.id,
-		req.file,
-		options,
-		res
-	)
-		.then(() => res.end())
-		.catch(next);
+	if (query.appendNew === "true") options.appendNew = true;
+	if (query.removeUnchanged === "true") options.removeUnchanged = true;
+	try {
+		if (!file) throw new TypeError("Missing file");
+		await updateMyProjectRosterWithMemberStatus(
+			user,
+			group.id,
+			file,
+			options,
+			res
+		);
+		res.end();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function getMyProjectRoster(req: Request, res: Response, next: NextFunction) {
+async function getMyProjectRoster(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const { user } = req;
 	const group = req.group!;
 	const access = group.permissions.members || AccessLevel.none;
-	if (access < AccessLevel.admin)
-		next(new ForbiddenError("Insufficient karma"));
-	exportMyProjectRoster(req.user, group.id, res)
-		.then(() => res.end())
-		.catch(next);
+	try {
+		if (access < AccessLevel.admin) throw new ForbiddenError();
+		await exportMyProjectRoster(user, group.id, res);
+		res.end();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function getPublic(req: Request, res: Response, next: NextFunction) {
+async function getPublic(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
 	const access = group.permissions.members || AccessLevel.none;
-	if (access < AccessLevel.admin)
-		return next(new ForbiddenError("Insufficient karma"));
-	exportMembersPublic(group.id, res)
-		.then(() => res.end())
-		.catch(next);
+	try {
+		if (access < AccessLevel.admin) throw new ForbiddenError();
+		await exportMembersPublic(group.id, res);
+		res.end();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function getPrivate(req: Request, res: Response, next: NextFunction) {
+async function getPrivate(req: Request, res: Response, next: NextFunction) {
+	const { user } = req;
 	const group = req.group!;
 	const access = group.permissions.members || AccessLevel.none;
-	if (access < AccessLevel.admin)
-		return next(new ForbiddenError("Insufficient karma"));
-	exportMembersPrivate(req.user, group.id, res)
-		.then(() => res.end())
-		.catch(next);
+	try {
+		if (access < AccessLevel.admin) throw new ForbiddenError();
+		await exportMembersPrivate(user, group.id, res);
+		res.end();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function getVoters(req: Request, res: Response, next: NextFunction) {
+async function getVoters(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
 	const access = group.permissions.members || AccessLevel.none;
-	if (access < AccessLevel.admin)
-		return next(new ForbiddenError("Insufficient karma"));
 	const forPlenary = Boolean(req.query.plenary);
-	exportVotingMembers(group, forPlenary, res)
-		.then(() => res.end())
-		.catch(next);
+	try {
+		if (access < AccessLevel.admin) throw new ForbiddenError();
+		await exportVotingMembers(group, forPlenary, res);
+		res.end();
+	} catch (error) {
+		next(error);
+	}
 }
 
 const router = Router();

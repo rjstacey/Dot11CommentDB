@@ -7,8 +7,7 @@ import {
 	groupCreatesSchema,
 	groupUpdatesSchema,
 	groupIdsSchema,
-	GroupUpdate,
-	GroupCreate,
+	groupsQuerySchema,
 } from "@schemas/groups";
 import {
 	getGroups,
@@ -17,47 +16,47 @@ import {
 	removeGroups,
 } from "../services/groups";
 
-function get(req: Request, res: Response, next: NextFunction) {
+async function get(req: Request, res: Response, next: NextFunction) {
+	const { user } = req;
 	const { parentName } = req.params;
-	getGroups(req.user, { parentName, ...req.query })
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		let query = groupsQuerySchema.parse(req.query);
+		query = { ...query, parentName };
+		const data = await getGroups(user, query);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function addMany(req: Request, res: Response, next: NextFunction) {
-	let groups: GroupCreate[];
+async function addMany(req: Request, res: Response, next: NextFunction) {
 	try {
-		groups = groupCreatesSchema.parse(req.body);
+		const groups = groupCreatesSchema.parse(req.body);
+		const data = await addGroups(req.user, groups);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addGroups(req.user, groups)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeMany(req: Request, res: Response, next: NextFunction) {
-	let ids: string[];
+async function removeMany(req: Request, res: Response, next: NextFunction) {
 	try {
-		ids = groupIdsSchema.parse(req.body);
+		const ids = groupIdsSchema.parse(req.body);
+		const data = await removeGroups(req.user, ids);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	removeGroups(req.user, ids)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateMany(req: Request, res: Response, next: NextFunction) {
-	let updates: GroupUpdate[];
+async function updateMany(req: Request, res: Response, next: NextFunction) {
 	try {
-		updates = groupUpdatesSchema.parse(req.body);
+		const updates = groupUpdatesSchema.parse(req.body);
+		const data = await updateGroups(req.user, updates);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateGroups(req.user, updates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
 const router = Router();

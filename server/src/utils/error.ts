@@ -12,4 +12,7 @@ export class NotFoundError extends Error {
 /**Access forbidded; return 403 to client. */
 export class ForbiddenError extends Error {
 	name = "ForbiddenError";
+	constructor(msg = "Insufficient karma") {
+		super(msg);
+	}
 }

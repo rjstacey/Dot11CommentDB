@@ -51,20 +51,22 @@ import {
 } from "@schemas/meetings";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	const { group } = req;
-	if (!group) return next(new Error("Group not set"));
+	try {
+		const { group } = req;
+		if (!group) throw new Error("Group not set");
 
-	const access = group.permissions.meetings || AccessLevel.none;
+		const access = group.permissions.meetings || AccessLevel.none;
+		const grant =
+			(req.method === "GET" && access >= AccessLevel.ro) ||
+			(req.method === "PATCH" && access >= AccessLevel.rw) ||
+			((req.method === "DELETE" || req.method === "POST") &&
+				access >= AccessLevel.admin);
 
-	if (req.method === "GET" && access >= AccessLevel.ro) return next();
-	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-	if (
-		(req.method === "DELETE" || req.method === "POST") &&
-		access >= AccessLevel.admin
-	)
-		return next();
-
-	next(new ForbiddenError("Insufficient karma"));
+		if (grant) return next();
+		throw new ForbiddenError();
+	} catch (error) {
+		next(error);
+	}
 }
 
 async function get(req: Request, res: Response, next: NextFunction) {

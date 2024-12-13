@@ -7,17 +7,26 @@ import { AccessLevel } from "../auth/access";
 import { getCommentHistory } from "../services/commentHistory";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	const access = req.permissions?.comments || AccessLevel.none;
-	if (req.method === "GET" && access >= AccessLevel.ro) return next();
+	try {
+		const access = req.permissions?.comments || AccessLevel.none;
+		const grant = req.method === "GET" && access >= AccessLevel.ro;
 
-	next(new ForbiddenError("Insufficient karma"));
+		if (grant) return next();
+
+		throw new ForbiddenError();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function get(req: Request, res: Response, next: NextFunction) {
+async function get(req: Request, res: Response, next: NextFunction) {
 	const comment_id = Number(req.params.comment_id);
-	getCommentHistory(comment_id)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const data = await getCommentHistory(comment_id);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 const router = Router();

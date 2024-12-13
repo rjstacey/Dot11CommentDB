@@ -40,71 +40,92 @@ import {
 	deleteCalendarAccount,
 } from "../services/calendar";
 import {
-	CalendarAccountChange,
-	CalendarAccountCreate,
 	calendarAccountChangeSchema,
 	calendarAccountCreateSchema,
 } from "@schemas/calendar";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	if (!req.group) return next(new Error("Group not set"));
-
-	const access = req.group.permissions.meetings || AccessLevel.none;
-
-	if (req.method === "GET" && access >= AccessLevel.ro) return next();
-	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-	if (
-		(req.method === "DELETE" || req.method === "POST") &&
-		access >= AccessLevel.admin
-	)
-		return next();
-
-	next(new ForbiddenError("Insufficient karma"));
-}
-
-function getAccounts(req: Request, res: Response, next: NextFunction) {
-	getCalendarAccounts(req, req.user, { groupId: req.group!.id })
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function addAccount(req: Request, res: Response, next: NextFunction) {
-	let account: CalendarAccountCreate;
 	try {
-		account = calendarAccountCreateSchema.parse(req.body);
+		if (!req.group) throw new Error("Group not set");
+
+		const access = req.group.permissions.meetings || AccessLevel.none;
+		const grant =
+			(req.method === "GET" && access >= AccessLevel.ro) ||
+			(req.method === "PATCH" && access >= AccessLevel.rw) ||
+			((req.method === "DELETE" || req.method === "POST") &&
+				access >= AccessLevel.admin);
+
+		if (grant) return next();
+
+		throw new ForbiddenError();
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addCalendarAccount(req, req.user, req.group!.id, account)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateAccount(req: Request, res: Response, next: NextFunction) {
+async function getAccounts(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
+	const groupId = req.group!.id;
+	try {
+		const data = await getCalendarAccounts(req, user, { groupId });
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function addAccount(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
+	const groupId = req.group!.id;
+	try {
+		const account = calendarAccountCreateSchema.parse(req.body);
+		const data = await addCalendarAccount(req, user, groupId, account);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function updateAccount(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
+	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
-	let changes: CalendarAccountChange;
 	try {
-		changes = calendarAccountChangeSchema.parse(req.body);
+		const changes = calendarAccountChangeSchema.parse(req.body);
+		const data = await updateCalendarAccount(
+			req,
+			user,
+			groupId,
+			accountId,
+			changes
+		);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateCalendarAccount(req, req.user, req.group!.id, accountId, changes)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
 function revokeAccountAuth(req: Request, res: Response, next: NextFunction) {
+	const user = req.user;
+	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
-	revokeAuthCalendarAccount(req, req.user, req.group!.id, accountId)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const data = revokeAuthCalendarAccount(req, user, groupId, accountId);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 function removeAccount(req: Request, res: Response, next: NextFunction) {
+	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
-	deleteCalendarAccount(req.group!.id, accountId)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const data = deleteCalendarAccount(groupId, accountId);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 const router = Router();

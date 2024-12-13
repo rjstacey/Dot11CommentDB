@@ -11,20 +11,28 @@ import { AccessLevel } from "../auth/access";
 import { getEpolls } from "../services/epoll";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	if (!req.group) return next(new Error("Group not set"));
+	try {
+		if (!req.group) throw new Error("Group not set");
 
-	const access = req.group.permissions.ballots || AccessLevel.none;
-	if (access >= AccessLevel.admin) return next();
+		const access = req.group.permissions.ballots || AccessLevel.none;
+		const grant = access >= AccessLevel.admin;
 
-	next(new ForbiddenError("Insufficient karma"));
+		if (grant) return next();
+		throw new ForbiddenError();
+	} catch (error) {
+		next(error);
+	}
 }
 
-function getAll(req: Request, res: Response, next: NextFunction) {
+async function getAll(req: Request, res: Response, next: NextFunction) {
 	const groupName = req.group!.name;
 	const n = typeof req.query.n === "string" ? Number(req.query.n) : 20;
-	getEpolls(req.user, groupName, n)
-		.then((data) => res.json(data))
-		.catch(next);
+	try {
+		const data = await getEpolls(req.user, groupName, n);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 const router = Router();
