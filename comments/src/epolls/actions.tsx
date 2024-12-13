@@ -1,48 +1,37 @@
-import React from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { ActionButton, Button, Spinner } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { selectIsOnline } from "../store/offline";
-import { loadEpolls, selectEpollsState } from "../store/epolls";
+import {
+	loadMoreEpolls,
+	refreshEpolls,
+	selectEpollsState,
+} from "../store/epolls";
 
 function EpollsActions() {
 	const dispatch = useAppDispatch();
-	const { groupName } = useParams();
-
 	const { loading } = useAppSelector(selectEpollsState);
 	const isOnline = useAppSelector(selectIsOnline);
-	const numberEpolls = React.useRef(20);
-
-	const load = React.useCallback(
-		() =>
-			groupName && dispatch(loadEpolls(groupName, numberEpolls.current)),
-		[dispatch, groupName]
-	);
-
-	function loadMore() {
-		numberEpolls.current += 10;
-		load();
-	}
 
 	return (
 		<div className="top-row">
 			<span>
 				<label>Closed ePolls</label>
 			</span>
-			{loading && <Spinner />}
+			<Spinner style={{ visibility: loading ? "visible" : "hidden" }} />
 			<span>
 				<ActionButton
 					name="more"
 					title="Load More"
-					onClick={loadMore}
+					onClick={() => dispatch(loadMoreEpolls())}
 					disabled={loading || !isOnline}
 				/>
 				<ActionButton
 					name="refresh"
 					title="Refresh"
-					onClick={load}
+					onClick={() => dispatch(refreshEpolls())}
 					disabled={loading || !isOnline}
 				/>
 				<Link to="../ballots">

@@ -16,7 +16,7 @@ import { AccessLevel } from "./user";
 import {
 	selectGroupEntities,
 	selectGroups,
-	selectWorkingGroupByName,
+	selectTopLevelGroupByName,
 } from "./groups";
 
 export type ResultsSummary = {
@@ -386,7 +386,7 @@ const selectSyncedBallotEntities = createSelector(
 
 export const selectBallotsWorkingGroup = (state: RootState) => {
 	const { groupName } = selectBallotsState(state);
-	return groupName ? selectWorkingGroupByName(state, groupName) : undefined;
+	return groupName ? selectTopLevelGroupByName(state, groupName) : undefined;
 };
 
 export const selectBallotsAccess = (state: RootState) => {

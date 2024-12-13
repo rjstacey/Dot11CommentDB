@@ -3,21 +3,21 @@
 		"target": "es2020",
 		"module": "esnext",
 		"moduleResolution": "node",
-		"sourceMap": true,
-		"importHelpers": true,
-		"allowJs": false,
+		"allowJs": true,
 		"skipLibCheck": true,
 		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
 		"strict": true,
-		"noUnusedLocals": false,
 		"forceConsistentCasingInFileNames": true,
 		"noFallthroughCasesInSwitch": true,
 		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"noEmit": true,
-		"jsx": "react-jsx"
+		"jsx": "react-jsx",
+		"baseUrl": ".",
+		"paths": {
+			"@schemas/*": ["../schemas/*"]
+		}
 	},
-	"include": ["src/**/*"],
-	"exclude": ["node_modules", "build", "scripts"]
+	"include": ["src", "../schemas"]
 }

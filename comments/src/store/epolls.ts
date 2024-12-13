@@ -4,29 +4,22 @@ import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
-	FieldType,
 	displayDate,
 	getAppTableDataSelectors,
-	isObject,
+	FieldType,
+	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
 import { selectBallotEntities as selectSyncedBallotEntities } from "./ballots";
+import { Epoll, epollsSchema } from "@schemas/epolls";
 
-export type Epoll = {
-	id: number;
-	name: string;
-	start: string;
-	end: string;
-	topic: string;
-	document: string;
-	resultsSummary: string;
-};
+export type { Epoll };
 
 export type SyncedEpoll = Epoll & { InDatabase: boolean };
 
-export const fields = {
-	id: { label: "ePoll", isId: true, type: FieldType.NUMERIC },
+export const fields: Fields = {
+	id: { label: "ePoll", type: FieldType.NUMERIC },
 	name: { label: "Name" },
 	start: { label: "Start", dataRenderer: displayDate, type: FieldType.DATE },
 	end: { label: "End", dataRenderer: displayDate, type: FieldType.DATE },
@@ -35,10 +28,10 @@ export const fields = {
 	resultsSummary: { label: "Result", type: FieldType.NUMERIC },
 };
 
-const initialState: {
-	groupName: string | null;
-} = {
-	groupName: null,
+const initialState = {
+	groupName: null as string | null,
+	n: 20,
+	lastLoad: null as string | null,
 };
 const dataSet = "epolls";
 const slice = createAppTableDataSlice({
@@ -52,7 +45,9 @@ const slice = createAppTableDataSlice({
 			.addMatcher(
 				(action: Action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
-					const { groupName } = action.payload;
+					const { groupName, n } = action.payload;
+					state.lastLoad = new Date().toISOString();
+					state.n = n;
 					if (groupName !== state.groupName) {
 						state.groupName = groupName;
 						state.valid = false;
@@ -73,12 +68,22 @@ const slice = createAppTableDataSlice({
 export default slice;
 
 /* Slice actions */
-export const epollsActions = slice.actions;
-
+// Overload getPending() with one that sets groupName
+const getPending = createAction<{ groupName: string | null; n: number }>(
+	dataSet + "/getPending"
+);
 const { getSuccess, getFailure } = slice.actions;
+
+export const clearEpolls = createAction(dataSet + "/clear");
+export const epollsActions = slice.actions;
 
 /* Selectors */
 export const selectEpollsState = (state: RootState) => state[dataSet];
+const selectEpollsAge = (state: RootState) => {
+	let lastLoad = selectEpollsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectEpollIds = (state: RootState) =>
 	selectEpollsState(state).ids;
 export const selectEpollEntities = (state: RootState) =>
@@ -104,53 +109,47 @@ export const epollsSelectors = getAppTableDataSelectors(selectEpollsState, {
 	selectEntities: selectSyncedEntities,
 });
 
-// Overload getPending() with one that sets groupName
-const getPending = createAction<{ groupName: string | null }>(
-	dataSet + "/getPending"
-);
-export const clearEpolls = createAction(dataSet + "/clear");
-
 /* Thunk actions */
-function validEpoll(epoll: any): epoll is Epoll {
-	return (
-		isObject(epoll) &&
-		typeof epoll.id === "number" &&
-		typeof epoll.name === "string" &&
-		typeof epoll.start === "string" &&
-		typeof epoll.end === "string" &&
-		typeof epoll.topic === "string" &&
-		typeof epoll.document === "string"
-	);
-}
-
-function validResponse(response: any): response is Epoll[] {
-	return Array.isArray(response) && response.every(validEpoll);
-}
-
-let loadingPromise: Promise<Epoll[]>;
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
+let loadingPromise: Promise<void>;
 export const loadEpolls =
-	(groupName: string, n = 20): AppThunk<Epoll[]> =>
+	(groupName: string, n = 20, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
-		const { loading, groupName: currentGroupName } = selectEpollsState(
-			getState()
-		);
-		if (loading && groupName === currentGroupName) {
-			return loadingPromise;
+		const state = getState();
+		const current = selectEpollsState(state);
+		if (groupName === current.groupName && n === current.n) {
+			if (loading) return loadingPromise;
+			const age = selectEpollsAge(state);
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
-		dispatch(getPending({ groupName }));
+		dispatch(getPending({ groupName, n }));
 		const url = `/api/${groupName}/epolls`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url, { n })
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response");
-				dispatch(getSuccess(response));
-				return response;
+				const epolls = epollsSchema.parse(response);
+				dispatch(getSuccess(epolls));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get a list of epolls", error));
-				return [];
+				dispatch(setError("GET " + url, error));
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};
+
+export const loadMoreEpolls = (): AppThunk => (dispatch, getState) => {
+	const { groupName, n } = selectEpollsState(getState());
+	if (!groupName) return Promise.resolve();
+	return dispatch(loadEpolls(groupName, n + 20));
+};
+
+export const refreshEpolls = (): AppThunk => (dispatch, getState) => {
+	const { groupName, n } = selectEpollsState(getState());
+	if (!groupName) return Promise.resolve();
+	return dispatch(loadEpolls(groupName, n, true));
+};

@@ -3,7 +3,7 @@ import { RouteObject, LoaderFunction } from "react-router-dom";
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
 import { selectIsOnline } from "../store/offline";
-import { loadGroups, selectWorkingGroupByName } from "../store/groups";
+import { loadGroups, selectTopLevelGroupByName } from "../store/groups";
 import { loadMembers } from "../store/members";
 import { loadBallots } from "../store/ballots";
 
@@ -73,7 +73,7 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 
 	if (selectIsOnline(getState())) await dispatch(loadGroups());
-	const group = selectWorkingGroupByName(getState(), groupName);
+	const group = selectTopLevelGroupByName(getState(), groupName);
 
 	if (!group) throw new Error("Invalid group: " + groupName);
 	const access = group.permissions.ballots || AccessLevel.none;

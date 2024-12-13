@@ -5,7 +5,7 @@ import { Dropdown, DropdownRendererProps } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
-import { selectWorkingGroupByName } from "../store/groups";
+import { selectTopLevelGroupByName } from "../store/groups";
 
 import { menu, MenuItem } from "./routes";
 import { selectCurrentBallotID } from "../store/ballots";
@@ -18,7 +18,7 @@ function useMenuLinks() {
 	let { groupName } = useParams();
 	const ballotId = useAppSelector(selectCurrentBallotID);
 	const group = useAppSelector((state) =>
-		groupName ? selectWorkingGroupByName(state, groupName) : undefined
+		groupName ? selectTopLevelGroupByName(state, groupName) : undefined
 	);
 
 	// Only display links for which the use has permissions
