@@ -11,6 +11,8 @@ import type {
 	SessionsQuery,
 	SessionCreate,
 	SessionChanges,
+	Credit,
+	SessionUpdate,
 } from "@schemas/sessions";
 
 function getSessionsSQL(groupId?: string | string[]) {
@@ -57,18 +59,6 @@ type SessionDB = Partial<
 	timeslots?: string;
 	defaultCredits?: string;
 };
-
-export type AttendanceSummary = {
-	id: number | null;
-	session_id: number;
-	SAPIN: number;
-	AttendancePercentage: number;
-	DidAttend: boolean;
-	DidNotAttend: boolean;
-	Notes: string;
-};
-
-export type Credit = "Normal" | "Extra" | "Zero" | "Other";
 
 export function getCredit(creditStr: string): {
 	credit: Credit;
@@ -256,4 +246,32 @@ export async function deleteSessions(ids: number[]) {
 		]);
 	const results = await db.query<ResultSetHeader[]>(sql);
 	return results[0].affectedRows;
+}
+
+export async function fixSessions() {
+	const sessions = await getSessions();
+	for (const session of sessions) {
+		if (!Array.isArray(session.defaultCredits)) {
+			console.log(
+				`session ${session.number} (id=${session.id}):`,
+				session.defaultCredits
+			);
+			continue;
+		}
+		if (!session.defaultCredits.every((row) => Array.isArray(row))) {
+			console.log(
+				`session ${session.number} (id=${session.id}):`,
+				session.defaultCredits
+			);
+			const newDefaultCredits = session.defaultCredits
+				.map((row) => Object.values(row))
+				.filter((row) => row.length > 0);
+			const update: SessionUpdate = {
+				id: session.id,
+				changes: { defaultCredits: newDefaultCredits },
+			};
+			console.log("NEW ", update);
+			await updateSession(update.id, update.changes);
+		}
+	}
 }

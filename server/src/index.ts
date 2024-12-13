@@ -9,6 +9,7 @@ import path from "path";
 import { createServer } from "node:http";
 import express, { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
+import { fixSessions } from "./services/sessions";
 
 import login from "./auth/login";
 import oauth2 from "./auth/oauth2";
@@ -214,6 +215,8 @@ async function main() {
 	const server = createServer(app);
 	console.log("create socket.io server");
 	initSocketIo(server);
+
+	fixSessions();
 
 	server.listen(LISTEN_PORT, () => {
 		console.log("👂 listening on port %s", LISTEN_PORT);

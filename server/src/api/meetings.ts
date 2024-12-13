@@ -47,6 +47,7 @@ import {
 	meetingCreatesSchema,
 	meetingUpdatesSchema,
 	meetingIdsSchema,
+	meetingsQuerySchema,
 } from "@schemas/meetings";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
@@ -66,47 +67,47 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	next(new ForbiddenError("Insufficient karma"));
 }
 
-function get(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	getMeetings(req.user, { groupId: group.id, ...req.query })
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function addMany(req: Request, res: Response, next: NextFunction) {
-	let meetings: MeetingCreate[];
+async function get(req: Request, res: Response, next: NextFunction) {
+	const groupId = req.group!.id;
 	try {
-		meetings = meetingCreatesSchema.parse(req.body);
+		let query = meetingsQuerySchema.parse(req.query);
+		query = { ...query, groupId };
+		const data = await getMeetings(req.user, query);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addMeetings(req.user, meetings)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateMany(req: Request, res: Response, next: NextFunction) {
-	let updates: MeetingUpdate[];
+async function addMany(req: Request, res: Response, next: NextFunction) {
 	try {
-		updates = meetingUpdatesSchema.parse(req.body);
+		const meetings = meetingCreatesSchema.parse(req.body);
+		const data = await addMeetings(req.user, meetings);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateMeetings(req.user, updates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeMany(req: Request, res: Response, next: NextFunction) {
+async function updateMany(req: Request, res: Response, next: NextFunction) {
+	try {
+		const updates = meetingUpdatesSchema.parse(req.body);
+		const data = await updateMeetings(req.user, updates);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function removeMany(req: Request, res: Response, next: NextFunction) {
 	let ids: number[];
 	try {
-		ids = meetingIdsSchema.parse(req.body);
+		const ids = meetingIdsSchema.parse(req.body);
+		const data = await deleteMeetings(req.user, ids);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	deleteMeetings(req.user, ids)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
 const router = Router();

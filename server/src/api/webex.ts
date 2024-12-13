@@ -12,9 +12,7 @@ import {
 	webexMeetingDeletesSchema,
 	webexMeetingChangesSchema,
 	webexMeetingCreatesSchema,
-	WebexMeetingDelete,
-	WebexMeetingChange,
-	WebexMeetingCreate,
+	webexMeetingsQuerySchema,
 } from "@schemas/webex";
 import {
 	getWebexAccounts,
@@ -89,47 +87,46 @@ function removeAccount(req: Request, res: Response, next: NextFunction) {
 		.catch(next);
 }
 
-function getMeetings(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	getWebexMeetings({ groupId: group.id, ...req.query })
-		.then((data) => res.json(data))
-		.catch(next);
+async function getMeetings(req: Request, res: Response, next: NextFunction) {
+	const groupId = req.group!.id;
+	try {
+		let query = webexMeetingsQuerySchema.parse(req.query);
+		query = { ...query, groupId };
+		const data = await getWebexMeetings(query);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function addMeetings(req: Request, res: Response, next: NextFunction) {
-	let webexMeetings: WebexMeetingCreate[];
+async function addMeetings(req: Request, res: Response, next: NextFunction) {
 	try {
-		webexMeetings = webexMeetingCreatesSchema.parse(req.body);
+		const webexMeetings = webexMeetingCreatesSchema.parse(req.body);
+		const data = await addWebexMeetings(webexMeetings);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	addWebexMeetings(webexMeetings)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateMeetings(req: Request, res: Response, next: NextFunction) {
-	let webexMeetings: WebexMeetingChange[];
+async function updateMeetings(req: Request, res: Response, next: NextFunction) {
 	try {
-		webexMeetings = webexMeetingChangesSchema.parse(req.body);
+		const webexMeetings = webexMeetingChangesSchema.parse(req.body);
+		const data = await updateWebexMeetings(webexMeetings);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	updateWebexMeetings(webexMeetings)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeMeetings(req: Request, res: Response, next: NextFunction) {
-	let webexMeetings: WebexMeetingDelete[];
+async function removeMeetings(req: Request, res: Response, next: NextFunction) {
 	try {
-		webexMeetings = webexMeetingDeletesSchema.parse(req.body);
+		const webexMeetings = webexMeetingDeletesSchema.parse(req.body);
+		const data = await deleteWebexMeetings(webexMeetings);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	deleteWebexMeetings(webexMeetings)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
 const router = Router();
