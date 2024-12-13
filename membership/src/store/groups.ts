@@ -13,7 +13,6 @@ import {
 	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	isObject,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
@@ -42,7 +41,7 @@ export const GroupTypeLabels: Record<GroupType, string> = {
 	tg: "Task Group",
 	sc: "Standing Committee",
 	ah: "Ad-hoc Group",
-	tig: "Topic of Interest Group",
+	tig: "Topic Interest Group",
 } as const;
 
 export function getSubgroupTypes(parentType: GroupType): GroupType[] {
@@ -313,23 +312,6 @@ export const setWorkingGroupId =
 		dispatch(setTopLevelGroupId(groupId));
 		return selectWorkingGroup(getState());
 	};
-
-function validGroup(group: any): group is Group {
-	const isGood =
-		isObject(group) &&
-		group.id &&
-		typeof group.id === "string" &&
-		(group.parent_id === null || typeof group.parent_id === "string") &&
-		typeof group.name === "string" &&
-		(group.symbol === null || typeof group.symbol === "string") &&
-		(group.color === null || typeof group.color === "string");
-	if (!isGood) console.log(group);
-	return isGood;
-}
-
-function validResponse(response: any): response is Group[] {
-	return Array.isArray(response) && response.every(validGroup);
-}
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 

@@ -100,15 +100,15 @@ export { clearSessions, upsertSessions, updateSession };
 
 /** Selectors */
 export const selectSessionsState = (state: RootState) => state[dataSet];
-export const selectSessionIds = (state: RootState) =>
-	selectSessionsState(state).ids;
-export const selectSessionEntities = (state: RootState) =>
-	selectSessionsState(state).entities;
 const selectSessionsAge = (state: RootState) => {
 	let lastLoad = selectSessionsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
+export const selectSessionIds = (state: RootState) =>
+	selectSessionsState(state).ids;
+export const selectSessionEntities = (state: RootState) =>
+	selectSessionsState(state).entities;
 export const selectSessions = createSelector(
 	selectSessionIds,
 	selectSessionEntities,
@@ -140,7 +140,6 @@ export const selectSession = (state: RootState, id: EntityId) =>
 
 /** Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-
 let loading = false;
 let loadingPromise: Promise<void>;
 export const loadSessions =
@@ -150,7 +149,7 @@ export const loadSessions =
 		const currentGroupName = selectSessionsState(state).groupName;
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
-			const age = selectSessionsAge(getState());
+			const age = selectSessionsAge(state);
 			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
