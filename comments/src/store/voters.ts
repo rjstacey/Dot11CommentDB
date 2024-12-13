@@ -3,56 +3,23 @@ import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
-	FieldType,
 	getAppTableDataSelectors,
-	isObject,
+	FieldType,
+	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
 import { updateBallotsLocal } from "./ballots";
 import { selectIsOnline } from "./offline";
+import {
+	Voter,
+	VoterCreate,
+	VotersResponse,
+	votersResponseSchema,
+	votersSchema,
+} from "@schemas/voters";
 
-export type Voter = {
-	id: string;
-	ballot_id: number;
-	SAPIN: number;
-	CurrentSAPIN: number;
-	Name: string;
-	Email: string;
-	Affiliation: string;
-	Status: string;
-	Excused: boolean;
-	VotingPoolID: string;
-};
-
-function validVoter(voter: any): voter is Voter {
-	return isObject(voter);
-}
-
-export type VoterCreate = {
-	id?: Voter["id"];
-	ballot_id: Voter["ballot_id"];
-	SAPIN: Voter["SAPIN"];
-	Status: Voter["Status"];
-	Excused?: Voter["Excused"];
-	Affiliation?: Voter["Affiliation"];
-};
-
-type BallotVotersUpdate = {
-	id: number;
-	Voters: number;
-};
-
-function validBallotVotersUpdateArray(
-	ballots: any
-): ballots is BallotVotersUpdate[] {
-	return (
-		Array.isArray(ballots) &&
-		ballots.every(
-			(b) => typeof b.id === "number" && typeof b.Voters === "number"
-		)
-	);
-}
+export type { Voter, VoterCreate };
 
 export const voterExcusedOptions = [
 	{ value: false, label: "No" },
@@ -66,7 +33,7 @@ export const voterStatusOptions = voterStatus.map((s) => ({
 	label: s,
 }));
 
-export const fields = {
+export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	Email: { label: "Email" },
 	Name: { label: "Name" },
@@ -136,48 +103,35 @@ export const votersSelectors = getAppTableDataSelectors(selectVotersState);
 /* Thunk actions */
 const baseUrl = "/api/voters";
 
-function validResponse(
-	response: any
-): response is { voters: Voter[]; ballots?: BallotVotersUpdate[] } {
-	return (
-		isObject(response) &&
-		Array.isArray(response.voters) &&
-		response.voters.every(validVoter) &&
-		(typeof response.ballots === "undefined" ||
-			validBallotVotersUpdateArray(response.ballots))
-	);
-}
-
-function validGetResponse(response: any): response is Voter[] {
-	return Array.isArray(response) && response.every(validVoter);
-}
-
+let loading = false;
 let loadingPromise: Promise<void>;
 export const loadVoters =
 	(ballot_id: number): AppThunk<void> =>
 	(dispatch, getState) => {
-		const { loading, ballot_id: currentBallot_id } = selectVotersState(
-			getState()
-		);
-		if (currentBallot_id === ballot_id) {
+		const state = getState();
+		const current = selectVotersState(state);
+		if (current.ballot_id === ballot_id) {
 			if (loading) return loadingPromise;
 		}
 		if (!selectIsOnline(getState())) {
-			if (ballot_id !== currentBallot_id) dispatch(clearVoters());
+			if (ballot_id !== current.ballot_id) dispatch(clearVoters());
 			return Promise.resolve();
 		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!validGetResponse(response))
-					throw new TypeError("Unexpected response to GET " + url);
-				dispatch(getSuccess(response));
+				const voters = votersSchema.parse(response);
+				dispatch(getSuccess(voters));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError(`Unable to get voters`, error));
+				dispatch(setError("GET " + url, error));
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};
@@ -191,7 +145,7 @@ export const deleteVoters =
 		try {
 			await fetcher.delete(url, ids);
 		} catch (error) {
-			dispatch(setError(`Unable to delete voters`, error));
+			dispatch(setError("DELETE " + url, error));
 		}
 	};
 
@@ -200,18 +154,17 @@ export const votersFromSpreadsheet =
 	async (dispatch) => {
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}/upload`;
-		let response: any;
+		let r: VotersResponse;
 		try {
-			response = await fetcher.postMultipart(url, { File: file });
-			if (!validResponse(response))
-				throw new TypeError(`Unexpected response`);
+			const response = await fetcher.postMultipart(url, { File: file });
+			r = votersResponseSchema.parse(response);
 		} catch (error) {
 			dispatch(getFailure());
-			dispatch(setError(`Unable to upload voters`, error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(getSuccess(response.voters));
-		if (response.ballots) dispatch(updateBallotsLocal(response.ballots));
+		dispatch(getSuccess(r.voters));
+		if (r.ballots) dispatch(updateBallotsLocal(r.ballots));
 	};
 
 export const votersFromMembersSnapshot =
@@ -219,18 +172,17 @@ export const votersFromMembersSnapshot =
 	async (dispatch) => {
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}/membersSnapshot`;
-		let response: any;
+		let r: VotersResponse;
 		try {
-			response = await fetcher.post(url, { date });
-			if (!validResponse(response))
-				throw new TypeError("`Unexpected response");
+			const response = await fetcher.post(url, { date });
+			r = votersResponseSchema.parse(response);
 		} catch (error) {
 			dispatch(getFailure());
-			dispatch(setError(`Unable to create voting pool`, error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(getSuccess(response.voters));
-		if (response.ballots) dispatch(updateBallotsLocal(response.ballots));
+		dispatch(getSuccess(r.voters));
+		if (r.ballots) dispatch(updateBallotsLocal(r.ballots));
 	};
 
 export const addVoter =
@@ -238,17 +190,16 @@ export const addVoter =
 	async (dispatch, getState) => {
 		const ballot_id = selectVotersBallot_id(getState());
 		const url = `${baseUrl}/${ballot_id}`;
-		let response: any;
+		let r: VotersResponse;
 		try {
-			response = await fetcher.post(url, [voterIn]);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response");
+			const response = await fetcher.post(url, [voterIn]);
+			r = votersResponseSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to add voter", error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(setMany(response.voters));
-		if (response.ballots) dispatch(updateBallotsLocal(response.ballots));
+		dispatch(setMany(r.voters));
+		if (r.ballots) dispatch(updateBallotsLocal(r.ballots));
 	};
 
 export const updateVoter =
@@ -256,16 +207,15 @@ export const updateVoter =
 	async (dispatch, getState) => {
 		const ballot_id = selectVotersBallot_id(getState());
 		const url = `${baseUrl}/${ballot_id}`;
-		let response: any;
+		let r: VotersResponse;
 		try {
-			response = await fetcher.patch(url, [{ id, changes }]);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response");
+			const response = await fetcher.patch(url, [{ id, changes }]);
+			r = votersResponseSchema.parse(response);
 		} catch (error) {
-			dispatch(setError("Unable to update voter", error));
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		dispatch(setMany(response.voters));
+		dispatch(setMany(r.voters));
 	};
 
 export const exportVoters =
@@ -275,6 +225,6 @@ export const exportVoters =
 		try {
 			await fetcher.getFile(url);
 		} catch (error) {
-			dispatch(setError("Unable to export voters", error));
+			dispatch(setError("GET " + url, error));
 		}
 	};

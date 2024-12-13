@@ -1,73 +1,55 @@
 import {
 	createSlice,
 	createEntityAdapter,
-	createSelector,
 	PayloadAction,
+	createSelector,
 } from "@reduxjs/toolkit";
+import { fetcher, setError } from "dot11-components";
 
-import { fetcher, isObject, setError } from "dot11-components";
 import type { RootState, AppThunk } from ".";
+import { UserMember, userMembersSchema } from "@schemas/members";
 
-export type UserMember = {
-	SAPIN: number;
-	Name: string;
-	Status: string;
-	Email?: string;
-};
+export type { UserMember };
 
-function validUser(user: any): user is UserMember {
-	return (
-		isObject(user) &&
-		typeof user.SAPIN === "number" &&
-		typeof user.Name === "string" &&
-		typeof user.Status === "string" &&
-		(user.Email === undefined || typeof user.Email === "string")
-	);
-}
-
-/* Create slice */
-const initialState: {
+type ExtraState = {
 	valid: boolean;
 	loading: boolean;
 	groupName: string | null;
 	lastLoad: string | null;
-} = {
+};
+
+const selectId = (user: UserMember) => user.SAPIN;
+const dataAdapter = createEntityAdapter<UserMember>({ selectId });
+const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
 	groupName: null,
 	lastLoad: null,
-};
-const selectId = (user: UserMember) => user.SAPIN;
-const dataAdapter = createEntityAdapter({ selectId });
+});
+
 const dataSet = "members";
 const slice = createSlice({
 	name: dataSet,
-	initialState: dataAdapter.getInitialState(initialState),
+	initialState,
 	reducers: {
-		getPending(state, action: PayloadAction<{ groupName: string }>) {
+		getPending(state, action: PayloadAction<{ groupName: string | null }>) {
 			const { groupName } = action.payload;
 			state.loading = true;
+			state.lastLoad = new Date().toISOString();
 			if (state.groupName !== groupName) {
 				state.groupName = groupName;
 				state.valid = false;
-				state.lastLoad = null;
 				dataAdapter.removeAll(state);
 			}
 		},
-		getSuccess(state, action: PayloadAction<UserMember[]>) {
-			state.lastLoad = new Date().toISOString();
+		getSuccess(state, action) {
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
 		},
 		getFailure(state) {
 			state.loading = false;
-		},
-		clearMembers(state) {
-			state.groupName = null;
-			state.valid = false;
 			state.lastLoad = null;
-			dataAdapter.removeAll(state);
 		},
 	},
 });
@@ -75,58 +57,64 @@ const slice = createSlice({
 export default slice;
 
 /* Slice actions */
-const { getPending, getSuccess, getFailure, clearMembers } = slice.actions;
-
-export { clearMembers };
+const { getPending, getSuccess, getFailure } = slice.actions;
 
 /* Selectors */
 export const selectMembersState = (state: RootState) => state[dataSet];
+export const selectMemberIds = (state: RootState) =>
+	selectMembersState(state).ids;
+export const selectMemberEntities = (state: RootState) =>
+	selectMembersState(state).entities;
+export const selectMember = (state: RootState, sapin: number) =>
+	selectMembersState(state).entities[sapin];
 const selectMembersAge = (state: RootState) => {
 	let lastLoad = selectMembersState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
-export const selectMemberIds = (state: RootState) =>
-	selectMembersState(state).ids;
-export const selectMemberEntities = (state: RootState) =>
-	selectMembersState(state).entities;
 export const selectMembers = createSelector(
 	selectMemberIds,
 	selectMemberEntities,
 	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
+export const selectMemberName = (state: RootState, sapin: number) => {
+	const m = selectMember(state, sapin);
+	return m ? m.Name : "Unknown";
+};
+
 /* Thunk actions */
-function validResponse(response: any): response is UserMember[] {
-	return Array.isArray(response) && response.every(validUser);
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-
-let loadingPromise: Promise<void>;
+let loading = false;
+let loadingPromise: Promise<UserMember[]>;
 export const loadMembers =
-	(groupName: string, force = false): AppThunk<void> =>
+	(groupName: string): AppThunk<UserMember[]> =>
 	(dispatch, getState) => {
-		const { loading, groupName: currentGroupName } = selectMembersState(
-			getState()
-		);
+		const state = getState();
+		const currentGroupName = selectMembersState(state).groupName;
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
-			const age = selectMembersAge(getState());
-			if (!force && age && age < AGE_STALE) return loadingPromise;
+			const age = selectMembersAge(state);
+			if (age && age < AGE_STALE)
+				return Promise.resolve(selectMembers(state));
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/members/user`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response");
-				dispatch(getSuccess(response));
+				const userMembers = userMembersSchema.parse(response);
+				dispatch(getSuccess(userMembers));
+				return selectMembers(getState());
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get users list", error));
+				dispatch(setError("GET " + url, error));
+				return selectMembers(getState());
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};
