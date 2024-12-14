@@ -7,6 +7,7 @@ import { load as cheerioLoad } from "cheerio";
 import { AuthError, parseSpreadsheet, BasicFile } from "../utils";
 
 import type { User } from "./users";
+import { Epoll } from "@schemas/epolls";
 
 // Convert date string to UTC
 function parseDateTime(dateStr: string) {
@@ -16,16 +17,6 @@ function parseDateTime(dateStr: string) {
 		zone: "America/New_York",
 	}).toISO();
 }
-
-export type Epoll = {
-	id: number;
-	name: string;
-	start: string;
-	end: string;
-	topic: string;
-	document: string;
-	resultsSummary: string;
-};
 
 function parseClosedEpollsPage(body: string): Epoll[] {
 	var epolls: Epoll[] = [];
@@ -65,7 +56,11 @@ function parseClosedEpollsPage(body: string): Epoll[] {
  *
  * Parameters: n = number of entries to get
  */
-export async function getEpolls(user: User, groupName: string, n: number) {
+export async function getEpolls(
+	user: User,
+	groupName: string,
+	n: number
+): Promise<Epoll[]> {
 	const { ieeeClient } = user;
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
@@ -150,7 +145,7 @@ type EpollComment = {
 	CommenterSAPIN: number;
 	CommenterName: string;
 	Comment: string;
-	Category: string;
+	Category: "T" | "G" | "E";
 	C_Page: string;
 	C_Clause: string;
 	C_Line: string;
@@ -173,7 +168,7 @@ function parseEpollComment(cid: number, c: string[]): EpollComment | null {
 		CommenterSAPIN: Number(c[2]),
 		CommenterName: c[3],
 		Comment: c[4],
-		Category: c[5] ? c[5].charAt(0) : "T", // First letter only (G, T or E), T if blank
+		Category: (c[5] ? c[5].charAt(0) : "T") as EpollComment["Category"], // First letter only (G, T or E), T if blank
 		C_Page,
 		C_Clause: c[7] ? c[7].trim() : "",
 		C_Line,
@@ -232,7 +227,7 @@ function parseUserComment(
 		CommenterSAPIN: user.SAPIN,
 		CommenterName: user.Name,
 		Comment: c[0] as string,
-		Category: c[1] ? c[1].charAt(0) : "T", // First letter only (G, T or E), T if blank
+		Category: (c[1] ? c[1].charAt(0) : "T") as EpollComment["Category"], // First letter only (G, T or E), T if blank
 		C_Page,
 		C_Clause: c[4] ? c[4].trim() : "",
 		C_Line,

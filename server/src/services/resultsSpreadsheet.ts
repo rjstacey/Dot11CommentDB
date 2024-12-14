@@ -75,7 +75,7 @@ function populateSummaryWorksheet(ws: ExcelJS.Worksheet, ballots: Ballot[]) {
 
 		const approvalRate = r.Approve / (r.Approve + r.Disapprove);
 		const returnsRate = r.TotalReturns / r.ReturnsPoolSize;
-		const abstainsRate = r.Abstain / r.VotingPoolSize;
+		const abstainsRate = r.Abstain / (r.VotingPoolSize || 0);
 
 		let dataCol = [
 			b.BallotID,

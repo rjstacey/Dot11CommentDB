@@ -28,33 +28,6 @@ export const defaultResolution: Required<ResolutionChange> = {
 	EditNotes: "",
 };
 
-function validResolutionCreate(
-	resolution: any
-): resolution is ResolutionCreate {
-	return (
-		isPlainObject(resolution) &&
-		typeof resolution.comment_id === "number" && // Must be present
-		(!resolution.hasOwnProperty("ResolutionID") ||
-			typeof resolution.ResolutionID === "number") &&
-		(!resolution.hasOwnProperty("AssigneeSAPIN") ||
-			[null, "number"].includes(typeof resolution.AssigneeSAPIN)) &&
-		(!resolution.hasOwnProperty("AssigneeName") ||
-			[null, "string"].includes(typeof resolution.AssigneeName)) &&
-		(!resolution.hasOwnProperty("ResnStatus") ||
-			[null, "A", "V", "J"].includes(resolution.ResnStatus)) &&
-		(!resolution.hasOwnProperty("Resolution") ||
-			[null, "string"].includes(typeof resolution.Resolution))
-	);
-}
-
-export function validResolutions(
-	resolutions: any
-): resolutions is ResolutionCreate[] {
-	return (
-		Array.isArray(resolutions) && resolutions.every(validResolutionCreate)
-	);
-}
-
 async function addResolution(user: User, resolution: ResolutionCreate) {
 	const id = validateUUID(resolution.id || "") ? resolution.id! : uuid();
 	delete resolution.id;
@@ -90,10 +63,11 @@ async function addResolution(user: User, resolution: ResolutionCreate) {
 		ResolutionID,
 	};
 
-	await db.query(
+	const sql = db.format(
 		"INSERT INTO resolutions SET id=UUID_TO_BIN(?), ?, LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP();",
 		[id, entry, user.SAPIN]
 	);
+	await db.query(sql);
 	return id;
 }
 

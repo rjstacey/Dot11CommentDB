@@ -94,7 +94,7 @@ const ballotsStageFieldsSQL = `
 	b.stage,
 	b.prev_id,
 	b.Project,
-	b.IsComplete,
+	IF(b.IsComplete = 1, CAST(TRUE as json), CAST(FALSE as json)) as IsComplete,
 	DATE_FORMAT(b.Start, "%Y-%m-%dT%TZ") AS Start,
 	DATE_FORMAT(b.End, "%Y-%m-%dT%TZ") AS End,
 	b.Document, b.Topic, b.EpollNum,
@@ -159,7 +159,7 @@ export async function getBallotWithNewResultsSummary(
 	user: User,
 	workingGroupId: string | null,
 	ballot_id: number
-) {
+): Promise<Ballot> {
 	let ballot = await getBallot(ballot_id);
 	if (!workingGroupId) {
 		const workingGroup = await getWorkingGroup(user, ballot.groupId!);

@@ -13,13 +13,13 @@ import { AccessLevel } from "../auth/access";
 import { getGroups } from "./groups";
 import type {
 	Comment,
-	CommentsSummary,
 	CommentResolution,
 	CommentChange,
 	CommentUpdate,
 	CommentCreate,
+	UploadCommentsResponse,
 } from "@schemas/comments";
-import { Ballot } from "@schemas/ballots";
+import { Ballot, CommentsSummary } from "@schemas/ballots";
 
 // prettier-ignore
 const createViewCommentResolutionsSQL =
@@ -60,7 +60,7 @@ const createViewCommentResolutionsSQL =
 		"r.ResnStatus AS ResnStatus, " +
 		"r.Resolution AS Resolution, " +
 		'COALESCE(r.Submission, "") AS Submission, ' +
-		"r.ReadyForMotion AS ReadyForMotion, " +
+		"IF(COALESCE(r.ReadyForMotion, 0) = 1, CAST(TRUE as json), CAST(FALSE as json)) AS ReadyForMotion, " +
 		"r.ApprovedByMotion AS ApprovedByMotion, " +
 		"r.EditStatus AS EditStatus, " +
 		"r.EditInDraft AS EditInDraft, " +
@@ -146,7 +146,10 @@ export function selectComments(
  * @param modifedSince - Option ISO datetime string. Comment resolutions with changes since the specified date will be returned.
  * @returns An array of comment resolutions
  */
-export function getComments(ballot_id: number, modifiedSince?: string) {
+export function getComments(
+	ballot_id: number,
+	modifiedSince?: string
+): Promise<CommentResolution[]> {
 	const constraints: QueryConstraints = {};
 	if (ballot_id) constraints.ballot_id = ballot_id;
 	if (modifiedSince) constraints.modifiedSince = modifiedSince;
@@ -311,16 +314,16 @@ export async function deleteComments(user: User, ballot_id: number) {
 async function insertComments(
 	user: User,
 	ballot_id: number,
-	comments: CommentCreate[]
+	commentsIn: CommentCreate[]
 ) {
-	if (comments.length) {
+	if (commentsIn.length) {
 		// Insert the comments
 		const sql1 =
 			db.format(
 				"INSERT INTO comments (ballot_id, LastModifiedBy, LastModifiedTime, ??) VALUES ",
-				[Object.keys(comments[0])]
+				[Object.keys(commentsIn[0])]
 			) +
-			comments
+			commentsIn
 				.map((c) =>
 					db.format("(?, ?, UTC_TIMESTAMP(), ?)", [
 						ballot_id,
@@ -342,14 +345,14 @@ async function insertComments(
 		await db.query(sql2);
 	}
 
-	comments = await getComments(ballot_id);
+	const comments = await getComments(ballot_id);
 
 	const ballot = await getBallotWithNewResultsSummary(user, null, ballot_id);
 
 	return {
 		comments,
 		ballot,
-	};
+	} satisfies UploadCommentsResponse;
 }
 
 /**

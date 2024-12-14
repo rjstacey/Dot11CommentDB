@@ -11,8 +11,8 @@ import { getBallotSeries, BallotType } from "./ballots";
 import { AccessLevel } from "../auth/access";
 import { getMember } from "./members";
 import type { Group } from "@schemas/groups";
-import type { Result, ResultsSummary, ResultUpdate } from "@schemas/results";
-import type { Ballot } from "@schemas/ballots";
+import type { Result, ResultUpdate } from "@schemas/results";
+import type { Ballot, ResultsSummary } from "@schemas/ballots";
 
 export type ResultDB = {
 	id: string;
@@ -74,7 +74,7 @@ function summarizeWGResults(results: Result[]): ResultsSummary {
 	let summary = { ...zeroResultsSummary };
 
 	for (let r of results) {
-		if (/^Voter|^ExOfficio/.test(r.Status)) {
+		if (/^Voter|^ExOfficio/.test(r.Status || "")) {
 			if (/^Approve/.test(r.vote)) summary.Approve++;
 			else if (/^Disapprove/.test(r.vote)) {
 				if (r.commentCount) summary.Disapprove++;
@@ -87,7 +87,7 @@ function summarizeWGResults(results: Result[]): ResultsSummary {
 
 			// All 802.11 members (Status='Voter') count toward the returns pool
 			// Only ExOfficio that cast a valid vote count torward the returns pool
-			if (/^Voter/.test(r.Status)) {
+			if (/^Voter/.test(r.Status || "")) {
 				summary.ReturnsPoolSize++;
 			} else if (
 				/^Approve/.test(r.vote) ||
@@ -96,7 +96,9 @@ function summarizeWGResults(results: Result[]): ResultsSummary {
 			) {
 				summary.ReturnsPoolSize++;
 			}
-			summary.VotingPoolSize++;
+			summary.VotingPoolSize = summary.VotingPoolSize
+				? summary.VotingPoolSize + 1
+				: 1;
 		} else {
 			summary.InvalidVote++;
 		}
@@ -105,7 +107,11 @@ function summarizeWGResults(results: Result[]): ResultsSummary {
 			summary.BallotReturns++;
 		}
 
-		if (r.totalCommentCount) summary.Commenters++;
+		if (r.totalCommentCount) {
+			summary.Commenters = summary.Commenters
+				? summary.Commenters + 1
+				: 1;
+		}
 	}
 	summary.TotalReturns =
 		summary.Approve + summary.Disapprove + summary.Abstain;
@@ -126,7 +132,11 @@ function summarizeSAResults(results: Result[]) {
 			summary.Abstain++;
 		}
 
-		if (r.commentCount) summary.Commenters++;
+		if (r.commentCount) {
+			summary.Commenters = summary.Commenters
+				? summary.Commenters + 1
+				: 1;
+		}
 	});
 
 	summary.BallotReturns = results.length;
@@ -151,7 +161,11 @@ function summarizeCCResults(results: Result[]) {
 		else if (/^Abstain/.test(r.vote)) summary.Abstain++;
 
 		// Count the number of commenters
-		if (r.commentCount) summary.Commenters++;
+		if (r.commentCount) {
+			summary.Commenters = summary.Commenters
+				? summary.Commenters + 1
+				: 1;
+		}
 	});
 
 	summary.TotalReturns =

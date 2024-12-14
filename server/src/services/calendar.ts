@@ -20,6 +20,7 @@ import {
 	CalendarAccountCreate,
 	CalendarAccountChange,
 	CalendarAccountsQuery,
+	GoogleCalendar,
 } from "@schemas/calendar";
 import { NotFoundError } from "../utils";
 
@@ -113,7 +114,9 @@ async function activateCalendarAccount(id: number, authParams: Credentials) {
 	account.authParams = authParams;
 	account.auth.setCredentials(authParams);
 	account.calendar = createCalendarApi(account.auth);
-	account.primaryCalendar = await getPrimaryCalendar(account.id);
+	account.primaryCalendar = (await getPrimaryCalendar(
+		account.id
+	)) as GoogleCalendar;
 	let calendarList = await getCalendarList(account.id);
 	if (calendarList) {
 		calendarList = calendarList.filter((cal) => cal.accessRole === "owner");

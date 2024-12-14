@@ -6,9 +6,12 @@ import { parseCommentsSpreadsheet } from "./commentsSpreadsheet";
 import { getComments, getCommentsSummary } from "./comments";
 import type { Comment, CommentResolution } from "@schemas/comments";
 import type { Resolution } from "@schemas/resolutions";
+import type { UploadResolutionsResponse } from "@schemas/uploadResolutions";
 
-const matchClause = (dbValue: string, sValue: string) => {
+const matchClause = (dbValue: string | null, sValue: string | null) => {
 	if (dbValue === sValue) return true;
+	if (!dbValue && !sValue) return true;
+	if (typeof dbValue !== "string" || typeof sValue !== "string") return false;
 	if (dbValue.replace(/[0]+$/g, "") === sValue)
 		// Legacy strips trailing 0
 		return true;
@@ -18,8 +21,10 @@ const matchClause = (dbValue: string, sValue: string) => {
 	return false;
 };
 
-const matchPageLine = (dbValue: string, sValue: string) => {
+const matchPageLine = (dbValue: string | null, sValue: string | null) => {
 	if (dbValue === sValue) return true;
+	if (!dbValue && !sValue) return true;
+	if (typeof dbValue !== "string" || typeof sValue !== "string") return false;
 	if (Math.round(parseFloat(dbValue)) === parseInt(sValue))
 		// Legacy converts page to int
 		return true;
@@ -126,7 +131,7 @@ const matchByElimination: MatchFunc = function (
 		let matched: CommentMatch[] = []; // paired dbComments and sheetComments
 		let dbCommentsRemaining: CommentResolution[] = []; // dbComments with no match
 		let sheetCommentsRemaining = sheetComments.slice();
-		dbComments.sort((a, b) => a.C_Index - b.C_Index);
+		dbComments.sort((a, b) => (a.C_Index || 0) - (b.C_Index || 0));
 		dbComments.forEach((dbC) => {
 			let sC = findMatchByEliminationUsingTheseComparisons(
 				dbC,
@@ -585,7 +590,7 @@ export async function uploadResolutions(
 	const t5 = Date.now();
 
 	const comments = await getComments(ballot_id);
-	const summary = await getCommentsSummary(ballot_id);
+	const summary = (await getCommentsSummary(ballot_id))!;
 	//delete summary.id;
 
 	const t6 = Date.now();
@@ -613,6 +618,5 @@ export async function uploadResolutions(
 		remaining,
 		added,
 		updated,
-		stats,
-	};
+	} satisfies UploadResolutionsResponse;
 }
