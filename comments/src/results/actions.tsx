@@ -1,15 +1,14 @@
-import { useNavigate } from "react-router";
-
 import { TableColumnSelector, ActionButton } from "dot11-components";
 
 import ResultsSummary from "./ResultsSummary";
 import ResultsExport from "./ResultsExport";
 
-import { useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	selectResultsBallot_id,
 	resultsSelectors,
 	resultsActions,
+	refreshResults,
 } from "../store/results";
 import { selectBallot } from "../store/ballots";
 import { selectIsOnline } from "../store/offline";
@@ -17,9 +16,7 @@ import { selectIsOnline } from "../store/offline";
 import { tableColumns } from "./table";
 
 function ResultsActions() {
-	const navigate = useNavigate();
-	const refresh = () => navigate(0);
-
+	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
 
 	const resultsBallot_id = useAppSelector(selectResultsBallot_id);
@@ -40,7 +37,7 @@ function ResultsActions() {
 				name="refresh"
 				title="Refresh"
 				disabled={!isOnline}
-				onClick={refresh}
+				onClick={() => dispatch(refreshResults())}
 			/>
 		</div>
 	);

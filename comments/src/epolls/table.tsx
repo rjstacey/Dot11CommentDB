@@ -28,8 +28,8 @@ function ePollToBallot(epoll: SyncedEpoll): Ballot {
 		type = m[1] === "CC" ? BallotType.CC : BallotType.WG;
 		number = Number(m[2]);
 	}
-	return {
-		groupId: null,
+	const ballot: Ballot = {
+		groupId: "",
 		number,
 		stage: 0,
 		Project: "",
@@ -47,7 +47,10 @@ function ePollToBallot(epoll: SyncedEpoll): Ballot {
 		Voters: 0,
 		Comments: { Count: 0, CommentIDMax: 0, CommentIDMin: 0 },
 		Results: null,
+		workingGroupId: "",
+		BallotID: "",
 	};
+	return ballot;
 }
 
 const tableColumns: (ColumnProperties & { width: number })[] = [

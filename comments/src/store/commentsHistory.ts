@@ -1,9 +1,14 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-import { fetcher, isObject, setError } from 'dot11-components';
+import { fetcher, isObject, setError } from "dot11-components";
 
-import type { RootState, AppThunk } from '.';
-import { selectCommentsBallot_id, CommentResolution, Comment, Resolution } from './comments';
+import type { RootState, AppThunk } from ".";
+import {
+	selectCommentsBallot_id,
+	CommentResolutionChange,
+	Comment,
+	Resolution,
+} from "./comments";
 
 export type CommentHistoryEvent = {
 	id: number;
@@ -11,22 +16,23 @@ export type CommentHistoryEvent = {
 	resolution_id?: string;
 	UserID: number | null;
 	Action: "add" | "update" | "delete";
-	Changes: Partial<CommentResolution>;
+	Changes: CommentResolutionChange;
 	Timestamp: string;
 	UserName: string;
-}
+};
 
-export type CommentHistoryEntry =
-	Omit<CommentHistoryEvent, "resolution_id"> & {
-		comment: Comment;
-	} & ({
-		resolution_id: string;
-		resolution: Resolution;
-	} | {
-		resolution_id: undefined;
-		resolution: undefined;
-	})
-
+export type CommentHistoryEntry = Omit<CommentHistoryEvent, "resolution_id"> & {
+	comment: Comment;
+} & (
+		| {
+				resolution_id: string;
+				resolution: Resolution;
+		  }
+		| {
+				resolution_id: undefined;
+				resolution: undefined;
+		  }
+	);
 
 /* Create slice */
 const initialState: {
@@ -36,9 +42,9 @@ const initialState: {
 } = {
 	loading: false,
 	valid: false,
-	commentsHistory: []
+	commentsHistory: [],
 };
-const dataSet = 'commentsHistory';
+const dataSet = "commentsHistory";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
@@ -48,35 +54,40 @@ const slice = createSlice({
 			state.valid = false;
 			state.commentsHistory = [];
 		},
-  		getSuccess(state, action: PayloadAction<{history: CommentHistoryEntry[]}>) {
-  			let {history} = action.payload;
+		getSuccess(
+			state,
+			action: PayloadAction<{ history: CommentHistoryEntry[] }>
+		) {
+			let { history } = action.payload;
 			return {
 				loading: false,
 				valid: true,
-				commentsHistory: history
-			}
+				commentsHistory: history,
+			};
 		},
 		getFailure(state) {
 			state.loading = false;
 		},
-	}
+	},
 });
 
 export default slice;
 
 /* Slice actions */
-const {getPending, getSuccess, getFailure} = slice.actions;
+const { getPending, getSuccess, getFailure } = slice.actions;
 
 /* Selectors */
 export const selectCommentsHistoryState = (state: RootState) => state[dataSet];
 
 /* Thunk actions */
-function validResponse(response: any): response is {history: CommentHistoryEntry[]} {
-	return isObject(response) &&
-		Array.isArray(response.history);
+function validResponse(
+	response: any
+): response is { history: CommentHistoryEntry[] } {
+	return isObject(response) && Array.isArray(response.history);
 }
 
-export const loadCommentsHistory = (comment_id: number): AppThunk =>
+export const loadCommentsHistory =
+	(comment_id: number): AppThunk =>
 	async (dispatch, getState) => {
 		const ballot_id = selectCommentsBallot_id(getState());
 		dispatch(getPending());
@@ -85,12 +96,16 @@ export const loadCommentsHistory = (comment_id: number): AppThunk =>
 		try {
 			response = await fetcher.get(url);
 			if (!validResponse(response))
-				throw new TypeError('Unexpected response');
-		}
-		catch(error) {
+				throw new TypeError("Unexpected response");
+		} catch (error) {
 			dispatch(getFailure());
-			dispatch(setError(`Unable to get comments history for ${comment_id}`, error));
+			dispatch(
+				setError(
+					`Unable to get comments history for ${comment_id}`,
+					error
+				)
+			);
 			return;
 		}
 		dispatch(getSuccess(response));
-	}
+	};

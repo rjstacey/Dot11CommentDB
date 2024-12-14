@@ -8,7 +8,6 @@ import {
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
-	isObject,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
@@ -19,92 +18,21 @@ import {
 	selectTopLevelGroupByName,
 } from "./groups";
 
-export type ResultsSummary = {
-	Approve: number;
-	Disapprove: number;
-	Abstain: number;
-	InvalidVote: number;
-	InvalidAbstain: number;
-	InvalidDisapprove: number;
-	ReturnsPoolSize: number;
-	TotalReturns: number;
-	BallotReturns: number;
-	VotingPoolSize: number;
-	Commenters: number;
-};
+import {
+	Ballot,
+	ballotsSchema,
+	BallotUpdate,
+	BallotChange,
+	BallotCreate,
+} from "@schemas/ballots";
 
-export type CommentsSummary = {
-	Count: number;
-	CommentIDMin: number | null;
-	CommentIDMax: number | null;
-};
-
-function validCommentsSummary(summary: any): summary is CommentsSummary {
-	return (
-		isObject(summary) &&
-		typeof summary.Count === "number" &&
-		(summary.CommentIDMax === null ||
-			typeof summary.CommentIDMax === "number") &&
-		(summary.CommentIDMin === null ||
-			typeof summary.CommentIDMin === "number")
-	);
-}
+export type { Ballot, BallotUpdate, BallotChange, BallotCreate };
 
 export const BallotType = {
 	CC: 0, // comment collection
 	WG: 1, // WG ballot
 	SA: 2, // SA ballot
 	//Motion: 5, // motion
-};
-
-export type Ballot = {
-	id: number;
-	groupId: string | null;
-	Type: number;
-	number: number | null;
-	stage: number;
-	Project: string;
-	//IsRecirc: boolean;
-	IsComplete: boolean;
-	Start: string | null;
-	End: string | null;
-	Document: string;
-	Topic: string;
-	prev_id: number | null;
-	EpollNum: number | null;
-	Results: ResultsSummary | null;
-	Comments: CommentsSummary;
-	Voters: number;
-};
-
-export function validBallot(ballot: any): ballot is Ballot {
-	const r =
-		isObject(ballot) &&
-		typeof ballot.id === "number" &&
-		typeof ballot.Type === "number" &&
-		(ballot.number === null || typeof ballot.number === "number") &&
-		typeof ballot.Project === "string" &&
-		typeof ballot.groupId === "string";
-	if (!r) console.log(ballot);
-	return r;
-}
-
-export type BallotCommentsSummary = Pick<Ballot, "id" | "Comments">;
-
-export function validBallotCommentsSummary(
-	ballot: any
-): ballot is BallotCommentsSummary {
-	return isObject(ballot) && validCommentsSummary(ballot.Comments);
-}
-
-export type BallotEdit = Omit<
-	Ballot,
-	"id" | "Results" | "Comments" | "Voters" | "stage"
->;
-
-export type BallotUpdate = {
-	id: number;
-	changes: Partial<BallotEdit>;
 };
 
 export type SyncedBallot = Ballot & {
@@ -565,36 +493,34 @@ export const setCurrentBallot_id =
 		return selectCurrentBallot(getState());
 	};
 
-function validResponse(response: any): response is Ballot[] {
-	return Array.isArray(response) && response.every(validBallot);
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-
+let loading = false;
 let loadingPromise: Promise<void>;
 export const loadBallots =
 	(groupName: string, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
-		const { loading, groupName: currentGroupName } = selectBallotsState(
-			getState()
-		);
-		if (groupName === currentGroupName) {
+		const state = getState();
+		const current = selectBallotsState(state);
+		if (groupName === current.groupName) {
 			if (loading) return loadingPromise;
 			const age = selectBallotsAge(getState());
 			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/ballots`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response");
-				dispatch(getSuccess(response));
+				const ballots = ballotsSchema.parse(response);
+				dispatch(getSuccess(ballots));
 			})
 			.catch((error: any) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get ballot list", error));
+				dispatch(setError("GET " + url, error));
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};
@@ -604,16 +530,15 @@ export const updateBallots =
 	async (dispatch, getState) => {
 		const groupName = selectBallotsGroupName(getState());
 		const url = `/api/${groupName}/ballots`;
-		let response: any;
+		let ballots: Ballot[];
 		try {
-			response = await fetcher.patch(url, updates);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response");
+			const response = await fetcher.patch(url, updates);
+			ballots = ballotsSchema.parse(response);
 		} catch (error) {
-			dispatch(setError(`Unable to update ballot`, error));
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		const [ballot] = response;
+		const [ballot] = ballots;
 		dispatch(setOne(ballot));
 	};
 
@@ -625,27 +550,28 @@ export const deleteBallots =
 		try {
 			await fetcher.delete(url, ids);
 		} catch (error) {
-			dispatch(setError("Unable to delete ballot(s)", error));
+			dispatch(setError("DELETE " + url, error));
 			return;
 		}
 		dispatch(removeMany(ids));
 	};
 
 export const addBallot =
-	(ballot: BallotEdit): AppThunk<Ballot | undefined> =>
+	(ballot: BallotCreate): AppThunk<Ballot | undefined> =>
 	async (dispatch, getState) => {
 		const groupName = selectBallotsGroupName(getState());
 		const url = `/api/${groupName}/ballots`;
-		let response: any;
+		let ballots: Ballot[];
 		try {
-			response = await fetcher.post(url, [ballot]);
-			if (!validResponse(response) || response.length !== 1)
+			const response = await fetcher.post(url, [ballot]);
+			ballots = ballotsSchema.parse(response);
+			if (ballots.length !== 1)
 				throw new TypeError("Unexpected response");
 		} catch (error) {
 			dispatch(setError("Unable to add ballot", error));
 			return;
 		}
-		const [updatedBallot] = response;
+		const [updatedBallot] = ballots;
 		dispatch(addOne(updatedBallot));
 		return updatedBallot;
 	};

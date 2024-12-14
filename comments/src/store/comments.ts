@@ -1,19 +1,13 @@
 import { v4 as uuid } from "uuid";
 import { createSelector, createAction } from "@reduxjs/toolkit";
-import type {
-	Action,
-	PayloadAction,
-	EntityId,
-	Dictionary,
-} from "@reduxjs/toolkit";
+import type { Action, EntityId, Dictionary } from "@reduxjs/toolkit";
 import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
-	FieldType,
 	getAppTableDataSelectors,
-	isObject,
-	FieldProperties,
+	FieldType,
+	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
@@ -22,88 +16,56 @@ import {
 	updateBallotsLocal,
 	selectBallotEntities,
 	selectBallot,
-	getBallotId,
-	validBallotCommentsSummary,
-	BallotCommentsSummary,
 	BallotType,
 	Ballot,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
 import { offlineFetch, selectIsOnline } from "./offline";
+import {
+	Comment,
+	CategoryType,
+	CommentUpdate,
+	CommentResolution,
+	commentResolutionsSchema,
+	uploadCommentsResponseSchema,
+	CommentChange,
+	CommentsExportParams,
+	CommentsExportFormat,
+	CommentsExportStyle,
+} from "@schemas/comments";
+import {
+	Resolution,
+	ResnStatusType,
+	EditStatusType,
+	ResolutionUpdate,
+	ResolutionCreate,
+	ResolutionChange,
+	uploadResolutionsResponseSchema,
+	UploadResolutionsResponse,
+} from "@schemas/resolutions";
 
-export type CategoryType = "T" | "E" | "G";
-
-export type Comment = {
-	id: number;
-	ballot_id: number;
-	CommentID: number;
-	CommenterSAPIN: number | null;
-	CommenterName: string;
-	CommenterEmail: string;
-	Vote: string;
-	Category: CategoryType;
-	C_Clause: string;
-	C_Page: string;
-	C_Line: string;
-	C_Index: number;
-	MustSatisfy: boolean;
-	Clause: string | null;
-	Page: number | null;
-	Comment: string;
-	AdHoc: string;
-	AdHocGroupId: string | null;
-	Notes: string | null;
-	CommentGroup: string;
-	ProposedChange: string;
-	LastModifiedBy: number | null;
-	LastModifiedTime: string | null;
+export type {
+	Comment,
+	CategoryType,
+	Resolution,
+	ResnStatusType,
+	EditStatusType,
+	ResolutionUpdate,
+	ResolutionCreate,
+	ResolutionChange,
+	CommentResolution,
+	CommentsExportFormat,
+	CommentsExportStyle,
 };
 
-export type ResnStatusType = "A" | "V" | "J";
-export type EditStatusType = "I" | "N";
-
-export type Resolution = {
-	id: string;
-	comment_id: number;
-	ResolutionID: number;
-	AssigneeSAPIN: number | null;
-	AssigneeName: string;
-	ResnStatus: ResnStatusType | null;
-	Resolution: string | null;
-	ApprovedByMotion: string;
-	ReadyForMotion: boolean;
-	Submission: string;
-	EditStatus: EditStatusType | null;
-	EditNotes: string | null;
-	EditInDraft: string;
-	LastModifiedBy: number | null;
-	LastModifiedTime: string | null;
-};
-
-export type ResolutionCreate = Partial<Omit<Resolution, "comment_id">> & {
-	comment_id: number;
-};
-
-export type ResolutionUpdate = {
-	id: string;
-	changes: Partial<Resolution>;
-};
-
-export type CommentResolution = Omit<Comment, "id"> &
-	Omit<Resolution, "id"> & {
-		id: any;
-		resolution_id: string;
-		ResolutionID: number;
-		ResolutionCount: number;
-		CID: string;
-	};
+export type CommentResolutionChange = CommentChange & ResolutionChange;
 
 const mustSatisfyOptions = [
 	{ value: 0, label: "No" },
 	{ value: 1, label: "Yes" },
 ];
 
-export const categoryMap = {
+export const categoryMap: Record<CategoryType, string> = {
 	T: "Technical",
 	E: "Editorial",
 	G: "General",
@@ -115,6 +77,7 @@ const categoryOptions = Object.entries(categoryMap).map(([value, label]) => ({
 }));
 
 export const resnStatusMap: Record<ResnStatusType, string> = {
+	"": "",
 	A: "ACCEPTED",
 	V: "REVISED",
 	J: "REJECTED",
@@ -175,7 +138,7 @@ export function getCommentStatus(c: CommentResolution) {
 	return Status;
 }
 
-export const fields: Record<string, FieldProperties> = {
+export const fields: Fields = {
 	CID: { label: "CID", type: FieldType.STRING },
 	CommenterName: { label: "Commenter" },
 	Vote: { label: "Vote" },
@@ -245,27 +208,21 @@ function getResolutionCountUpdates(
 	return updates;
 }
 
-const initialState: {
-	ballot_id: number | null;
-} = {
-	ballot_id: null,
+const initialState = {
+	ballot_id: null as number | null,
 };
 
 const dataSet = "comments";
+const sortComparer = (c1: CommentResolution, c2: CommentResolution) =>
+	c1.CommentID === c2.CommentID
+		? (c1.ResolutionID || 0) - (c2.ResolutionID || 0)
+		: c1.CommentID - c2.CommentID;
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	sortComparer: (c1: CommentResolution, c2: CommentResolution) =>
-		c1.CommentID === c2.CommentID
-			? c1.ResolutionID - c2.ResolutionID
-			: c1.CommentID - c2.CommentID,
+	sortComparer,
 	initialState,
-	reducers: {
-		setDetails(state, action: PayloadAction<Partial<typeof initialState>>) {
-			const changes = action.payload;
-			return { ...state, ...changes };
-		},
-	},
+	reducers: {},
 	extraReducers: (builder, dataAdapter) => {
 		builder
 			.addMatcher(
@@ -353,7 +310,6 @@ export default slice;
 export const commentsActions = slice.actions;
 
 const {
-	setDetails,
 	getSuccess,
 	getFailure,
 	addMany: localAddMany,
@@ -447,50 +403,35 @@ export const commentsSelectors = getAppTableDataSelectors(selectCommentsState, {
 const baseCommentsUrl = "/api/comments";
 const baseResolutionsUrl = "/api/resolutions";
 
-function validCommentResolution(c: any): c is CommentResolution {
-	return (
-		isObject(c) &&
-		(typeof c.id === "string" || typeof c.id === "number") &&
-		typeof c.comment_id === "number"
-	);
-}
-
-function validGetResponse(response: any): response is CommentResolution[] {
-	return Array.isArray(response) && response.every(validCommentResolution);
-}
-
+let loading = false;
 let loadingPromise: Promise<void>;
 export const loadComments =
 	(ballot_id: number): AppThunk<void> =>
 	async (dispatch, getState) => {
-		const { loading, ballot_id: currentBallot_id } = selectCommentsState(
-			getState()
-		);
-		if (loading && currentBallot_id === ballot_id) {
-			return loadingPromise;
-		}
-		if (!selectIsOnline(getState())) {
+		const state = getState();
+		const currentBallot_id = selectCommentsState(state).ballot_id;
+		if (!selectIsOnline(state)) {
 			if (ballot_id !== currentBallot_id) dispatch(clearComments());
 			return Promise.resolve();
 		}
+		if (currentBallot_id === ballot_id) {
+			if (loading) return loadingPromise;
+		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseCommentsUrl}/${ballot_id}`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!validGetResponse(response))
-					throw new TypeError("Unexpected response");
-				dispatch(getSuccess(response));
+				const comments = commentResolutionsSchema.parse(response);
+				dispatch(getSuccess(comments));
 			})
 			.catch((error: any) => {
-				const ballot = selectBallotEntities(getState())[ballot_id];
-				const ballotId = ballot
-					? getBallotId(ballot)
-					: `id=${ballot_id}`;
 				dispatch(getFailure());
-				dispatch(
-					setError(`Unable to get comments for ${ballotId}`, error)
-				);
+				dispatch(setError("GET " + url, error));
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};
@@ -512,11 +453,6 @@ export const getCommentUpdates = (): AppThunk => async (dispatch, getState) => {
 	);
 };
 
-type CommentUpdate = {
-	id: number;
-	changes: Partial<Comment>;
-};
-
 export const updateComments =
 	(updates: CommentUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
@@ -532,11 +468,11 @@ export const updateComments =
 			const u = updates.find((u) => u.id === comment_id);
 			if (u) {
 				localUpdates.push({ id, changes: u.changes });
-				const changes: Partial<Comment> = {};
-				for (const key of Object.keys(
-					u.changes
-				) as (keyof typeof u.changes)[])
+				const changes: Partial<CommentResolution> = {};
+				for (const key of Object.keys(u.changes)) {
+					// @ts-ignore
 					changes[key] = c[key];
+				}
 				rollbackUpdates.push({ id, changes });
 			}
 		}
@@ -558,43 +494,32 @@ export const deleteComments =
 	(ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
 		if (selectCommentsBallot_id(getState()) === ballot_id)
-			await dispatch(clearComments());
+			dispatch(clearComments());
 		const summary = { Count: 0, CommentIDMin: 0, CommentIDMax: 0 };
 		dispatch(updateBallotsLocal([{ id: ballot_id, Comments: summary }]));
-
+		const url = `${baseCommentsUrl}/${ballot_id}`;
 		try {
-			await fetcher.delete(`${baseCommentsUrl}/${ballot_id}`);
+			await fetcher.delete(url);
 		} catch (error) {
-			dispatch(setError(`Unable to delete comments`, error));
+			dispatch(setError("DELETE " + url, error));
 		}
 	};
-
-function validUploadResponse(response: any): response is {
-	comments: CommentResolution[];
-	ballot: BallotCommentsSummary;
-} {
-	return (
-		isObject(response) &&
-		Array.isArray(response.comments) &&
-		response.comments.every(validCommentResolution) &&
-		validBallotCommentsSummary(response.ballot)
-	);
-}
 
 export const importComments =
 	(ballot_id: number, startCommentId: number): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseCommentsUrl}/${ballot_id}/import`;
-		let response: any;
+		let comments: CommentResolution[];
+		let ballot: Ballot;
 		try {
-			response = await fetcher.post(url, { startCommentId });
-			if (!validUploadResponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.post(url, { startCommentId });
+			const r = uploadCommentsResponseSchema.parse(response);
+			comments = r.comments;
+			ballot = r.ballot;
 		} catch (error) {
-			dispatch(setError(`Unable to import comments`, error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		const { comments, ballot } = response;
 		dispatch(updateBallotsLocal([ballot]));
 		if (ballot_id === selectCommentsBallot_id(getState()))
 			dispatch(getSuccess(comments));
@@ -608,18 +533,17 @@ export const uploadComments =
 			params: JSON.stringify({ startCommentId: 1 }),
 			CommentsFile: file,
 		};
-		let response: any;
+		let comments: CommentResolution[];
+		let ballot: Ballot;
 		try {
-			response = await fetcher.postMultipart(url, params);
-			if (!validUploadResponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.postMultipart(url, params);
+			const r = uploadCommentsResponseSchema.parse(response);
+			comments = r.comments;
+			ballot = r.ballot;
 		} catch (error) {
-			dispatch(
-				setError(`Unable to upload comments for ${ballot_id}`, error)
-			);
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		const { comments, ballot } = response;
 		dispatch(updateBallotsLocal([ballot]));
 		if (ballot_id === selectCommentsBallot_id(getState()))
 			dispatch(getSuccess(comments));
@@ -633,18 +557,17 @@ export const uploadUserComments =
 			params: JSON.stringify({ SAPIN: sapin }),
 			CommentsFile: file,
 		};
-		let response: any;
+		let comments: CommentResolution[];
+		let ballot: Ballot;
 		try {
-			response = await fetcher.postMultipart(url, params);
-			if (!validUploadResponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.postMultipart(url, params);
+			const r = uploadCommentsResponseSchema.parse(response);
+			comments = r.comments;
+			ballot = r.ballot;
 		} catch (error) {
-			dispatch(
-				setError(`Unable to upload comments for ${ballot_id}`, error)
-			);
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		const { comments, ballot } = response;
 		dispatch(updateBallotsLocal([ballot]));
 		if (ballot_id === selectCommentsBallot_id(getState()))
 			dispatch(localAddMany(comments));
@@ -657,18 +580,17 @@ export const uploadPublicReviewComments =
 		const params = {
 			CommentsFile: file,
 		};
-		let response: any;
+		let comments: CommentResolution[];
+		let ballot: Ballot;
 		try {
-			response = await fetcher.postMultipart(url, params);
-			if (!validUploadResponse(response))
-				throw new TypeError("Unexpected response to POST " + url);
+			const response = await fetcher.postMultipart(url, params);
+			const r = uploadCommentsResponseSchema.parse(response);
+			comments = r.comments;
+			ballot = r.ballot;
 		} catch (error) {
-			dispatch(
-				setError(`Unable to upload comments for ${ballot_id}`, error)
-			);
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		const { comments, ballot } = response;
 		dispatch(updateBallotsLocal([ballot]));
 		if (ballot_id === selectCommentsBallot_id(getState()))
 			dispatch(localAddMany(comments));
@@ -678,16 +600,17 @@ export const setStartCommentId =
 	(ballot_id: number, startCommentId: number): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseCommentsUrl}/${ballot_id}/startCommentId`;
-		let response: any;
+		let comments: CommentResolution[];
+		let ballot: Ballot;
 		try {
-			response = await fetcher.patch(url, { startCommentId });
-			if (!validUploadResponse(response))
-				throw new TypeError("Unexpected response to PATCH " + url);
+			const response = await fetcher.patch(url, { startCommentId });
+			const r = uploadCommentsResponseSchema.parse(response);
+			comments = r.comments;
+			ballot = r.ballot;
 		} catch (error) {
-			dispatch(setError("Unable to set start CID", error));
+			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		const { comments, ballot } = response;
 		dispatch(updateBallotsLocal([ballot]));
 		if (ballot_id === selectCommentsBallot_id(getState()))
 			dispatch(getSuccess(comments));
@@ -717,10 +640,10 @@ const updateMany =
 			const id = u.id;
 			const changes: Partial<CommentResolution> = {};
 			const entity = entities[id]!;
-			for (const key of Object.keys(u.changes) as Array<
-				keyof typeof u.changes
-			>)
+			for (const key of Object.keys(u.changes)) {
+				// @ts-ignore
 				changes[key] = entity[key];
+			}
 			return { id, changes };
 		});
 		dispatch(localUpdateMany(updates));
@@ -875,7 +798,8 @@ export const deleteResolutions =
 			// Sort by ResolutionID
 			resolution_ids.sort(
 				(id1, id2) =>
-					entities[id1]!.ResolutionID - entities[id2]!.ResolutionID
+					(entities[id1]!.ResolutionID || 0) -
+					(entities[id2]!.ResolutionID || 0)
 			);
 
 			// Find all comments that would remain
@@ -935,27 +859,10 @@ export type MatchUpdate = "all" | "any" | "add";
 export type UploadResult = {
 	matched: number[];
 	unmatched: number[];
-	added: number[];
-	remaining: number[];
+	added: string[];
+	remaining: string[];
 	updated: number;
 };
-
-function validUploadResolutionsResponse(response: any): response is {
-	comments: CommentResolution[];
-	ballot: BallotCommentsSummary;
-} & UploadResult {
-	return (
-		isObject(response) &&
-		Array.isArray(response.comments) &&
-		response.comments.every(validCommentResolution) &&
-		validBallotCommentsSummary(response.ballot) &&
-		Array.isArray(response.matched) &&
-		Array.isArray(response.unmatched) &&
-		Array.isArray(response.added) &&
-		Array.isArray(response.remaining) &&
-		typeof response.updated === "number"
-	);
-}
 
 export const uploadResolutions =
 	(
@@ -977,11 +884,10 @@ export const uploadResolutions =
 			}),
 			ResolutionsFile: file,
 		};
-		let response: any;
+		let r: UploadResolutionsResponse;
 		try {
-			response = await fetcher.postMultipart(url, parts);
-			if (!validUploadResolutionsResponse(response))
-				throw new TypeError("Unexpected response");
+			const response = await fetcher.postMultipart(url, parts);
+			r = uploadResolutionsResponseSchema.parse(response);
 		} catch (error) {
 			dispatch(setError("Unable to upload resolutions", error));
 			return;
@@ -994,18 +900,12 @@ export const uploadResolutions =
 			added,
 			remaining,
 			updated,
-		} = response;
+		} = r;
+		dispatch(getPending({ ballot_id }));
 		dispatch(getSuccess(comments));
-		dispatch(setDetails({ ballot_id }));
 		dispatch(updateBallotsLocal([ballot]));
 		return { matched, unmatched, added, remaining, updated };
 	};
-
-export type CommentsExportFormat = "myproject" | "legacy" | "modern";
-export type CommentsExportStyle =
-	| "AllComments"
-	| "TabPerAdHoc"
-	| "TabPerCommentGroup";
 
 export const exportCommentsSpreadsheet =
 	(
@@ -1015,22 +915,18 @@ export const exportCommentsSpreadsheet =
 		file?: File,
 		appendSheets = false
 	): AppThunk =>
-	async (dispatch, getState) => {
-		console.log(file);
-		const params: { [K: string]: any } = { format, style, appendSheets };
+	async (dispatch) => {
+		const params: CommentsExportParams = {
+			format,
+			style,
+			appendSheets: appendSheets ? "true" : "false",
+		};
 		const url =
 			`${baseCommentsUrl}/${ballot_id}/export?` +
 			new URLSearchParams(params);
 		try {
 			await fetcher.postForFile(url, {}, file);
 		} catch (error) {
-			const ballot = selectBallotEntities(getState())[ballot_id];
-			const ballotId = ballot ? getBallotId(ballot) : `id=${ballot_id}`;
-			dispatch(
-				setError(
-					`Unable to export comments for ballot ${ballotId}`,
-					error
-				)
-			);
+			dispatch(setError("POST " + url, error));
 		}
 	};

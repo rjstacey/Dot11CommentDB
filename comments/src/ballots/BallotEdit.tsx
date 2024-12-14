@@ -17,7 +17,7 @@ import {
 	setCurrentGroupProject,
 	BallotType,
 	Ballot,
-	BallotEdit,
+	BallotChange,
 	BallotUpdate,
 } from "../store/ballots";
 
@@ -35,7 +35,7 @@ export function Column1({
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
-	updateBallot: (changes: Partial<BallotEdit>) => void;
+	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
 	const isMultipleBallots = isMultiple(ballot.id);
@@ -55,7 +55,9 @@ export function Column1({
 						value={
 							isMultiple(ballot.groupId) ? null : ballot.groupId
 						}
-						onChange={(groupId) => updateBallot({ groupId })}
+						onChange={(groupId) =>
+							updateBallot({ groupId: groupId || undefined })
+						}
 						placeholder={
 							isMultiple(ballot.groupId)
 								? MULTIPLE_STR
@@ -148,7 +150,7 @@ export function EditBallot({
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
-	updateBallot: (changes: Partial<BallotEdit>) => void;
+	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
 	return (
@@ -193,7 +195,7 @@ export function BallotEditMultiple({
 	}, [ballots, editedBallots]);
 
 	const triggerSave = useDebounce(() => {
-		const changes = shallowDiff(saved!, edited!) as Partial<BallotEdit>;
+		const changes = shallowDiff(saved!, edited!) as BallotChange;
 		console.log(changes);
 		let updates: BallotUpdate[] = [];
 		if (Object.keys(changes).length > 0) {
@@ -211,7 +213,7 @@ export function BallotEditMultiple({
 		setSaved(edited);
 	});
 
-	const handleUpdate = (changes: Partial<BallotEdit>) => {
+	const handleUpdate = (changes: BallotChange) => {
 		if (readOnly) {
 			console.warn("Ballot update while read-only");
 			return;

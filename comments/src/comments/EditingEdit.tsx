@@ -9,11 +9,11 @@ import {
 	Checkbox,
 	Input,
 	isMultiple,
+	Multiple,
 } from "dot11-components";
 
 import Editor from "../editor";
 
-import type { MultipleResolution } from "./CommentDetail";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	EditStatusType,
@@ -27,12 +27,18 @@ import styles from "./comments.module.css";
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";
 
+// Fields editing with this module
+type ResolutionEditing = Pick<
+	Resolution,
+	"EditInDraft" | "EditNotes" | "EditStatus"
+>;
+
 function EditStatus({
 	resolution,
 	updateResolution,
 	readOnly,
 }: {
-	resolution: MultipleResolution;
+	resolution: Multiple<ResolutionEditing>;
 	updateResolution: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
@@ -115,7 +121,7 @@ export function EditingEdit({
 	forceShowEditing,
 	readOnly,
 }: {
-	resolution: MultipleResolution;
+	resolution: Multiple<ResolutionEditing>;
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	forceShowEditing?: boolean;
 	readOnly?: boolean;

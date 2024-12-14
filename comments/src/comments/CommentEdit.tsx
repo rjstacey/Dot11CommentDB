@@ -41,8 +41,11 @@ const ShowMultiple = (props: React.ComponentProps<"span">) => (
 	</span>
 );
 
-export function renderMBS(comment: Multiple<Comment>) {
-	const mbs = comment.MustSatisfy;
+export function renderMBS({
+	MustSatisfy: mbs,
+}: {
+	MustSatisfy: Multiple<Comment>["MustSatisfy"];
+}) {
 	if (isMultiple(mbs)) {
 		return null;
 	}
@@ -57,9 +60,9 @@ export function renderMBS(comment: Multiple<Comment>) {
 			{mbs ? "MBS" : ""}
 		</span>
 	);
-};
+}
 
-export function renderCommenter(comment: Multiple<Comment>) {
+export function renderCommenter(comment: Multiple<CommentNoId>) {
 	const commenter = comment.CommenterName;
 	if (isMultiple(commenter)) {
 		return <ShowMultiple />;
@@ -77,15 +80,18 @@ export function renderCommenter(comment: Multiple<Comment>) {
 			{vote}
 		</span>
 	);
-};
+}
 
-export function renderCategory(comment: Multiple<Comment>) {
-	const cat = comment.Category;
+export function renderCategory({
+	Category: cat,
+}: {
+	Category: Multiple<Comment>["Category"];
+}) {
 	if (isMultiple(cat)) {
 		return <ShowMultiple />;
 	}
 	return <span>{categoryMap[cat]}</span>;
-};
+}
 
 const renderTextBlock = (value: string) => {
 	if (!value) return "";
@@ -104,7 +110,7 @@ export const CommentAdHoc = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<Comment>;
+	comment: Multiple<CommentNoId>;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
@@ -137,7 +143,7 @@ export const CommentGroup = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<Comment>;
+	comment: Multiple<CommentNoId>;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
@@ -164,7 +170,7 @@ export function CommentNotes({
 	forceShowNotes,
 	readOnly,
 }: {
-	comment: Multiple<Comment>;
+	comment: Multiple<CommentNoId>;
 	updateComment?: (changes: Partial<Comment>) => void;
 	forceShowNotes?: boolean;
 	readOnly?: boolean;
@@ -211,7 +217,7 @@ export const CommentCategorization = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<Comment>;
+	comment: Multiple<CommentNoId>;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
@@ -247,7 +253,7 @@ function CommentPage({
 	setComment,
 	readOnly,
 }: {
-	comment: Multiple<Comment>;
+	comment: Multiple<CommentNoId>;
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -278,7 +284,7 @@ function CommentPage({
 	) {
 		// Check if original page number is diffent
 		let page: number | string =
-			parseFloat(comment.C_Page) + parseFloat(comment.C_Line) / 100;
+			Number(comment.C_Page) + Number(comment.C_Line) / 100;
 		if (isNaN(page)) page = 0;
 		showOriginal = page !== comment.Page;
 		original = comment.C_Page + "." + comment.C_Line;
@@ -318,7 +324,7 @@ function CommentClause({
 	setComment,
 	readOnly,
 }: {
-	comment: Multiple<Comment>;
+	comment: Multiple<CommentNoId>;
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -353,12 +359,14 @@ function CommentClause({
 	);
 }
 
+type CommentNoId = Omit<Comment, "id">;
+
 export function CommentBasics({
 	comment,
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<Comment>;
+	comment: Multiple<CommentNoId>;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -370,7 +378,7 @@ export function CommentBasics({
 				</FieldLeft>
 			</Row>
 			<Row>
-				<FieldLeft label="Category:" style={{alignItems: 'baseline'}}>
+				<FieldLeft label="Category:" style={{ alignItems: "baseline" }}>
 					{renderCategory(comment)}
 					<>&nbsp;&nbsp;</>
 					{renderMBS(comment)}
@@ -380,7 +388,7 @@ export function CommentBasics({
 				<Col>
 					<FieldLeft label="Page/Line:">
 						<CommentPage
-							key={comment.id}
+							//key={comment.id}
 							comment={comment}
 							setComment={updateComment}
 							readOnly={readOnly}
@@ -462,7 +470,7 @@ export function CommentEdit({
 		setSaved(edited);
 	});
 
-	const updateComment = (changes: Partial<Comment>) => {
+	const updateComment = (changes: Partial<CommentNoId>) => {
 		if (readOnly) {
 			console.warn("Comment update while read-only");
 			return;

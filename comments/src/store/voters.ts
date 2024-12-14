@@ -14,7 +14,6 @@ import { selectIsOnline } from "./offline";
 import {
 	Voter,
 	VoterCreate,
-	VotersResponse,
 	votersResponseSchema,
 	votersSchema,
 } from "@schemas/voters";
@@ -154,17 +153,15 @@ export const votersFromSpreadsheet =
 	async (dispatch) => {
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}/upload`;
-		let r: VotersResponse;
 		try {
 			const response = await fetcher.postMultipart(url, { File: file });
-			r = votersResponseSchema.parse(response);
+			const { voters, ballots } = votersResponseSchema.parse(response);
+			dispatch(getSuccess(voters));
+			if (ballots) dispatch(updateBallotsLocal(ballots));
 		} catch (error) {
 			dispatch(getFailure());
 			dispatch(setError("POST " + url, error));
-			return;
 		}
-		dispatch(getSuccess(r.voters));
-		if (r.ballots) dispatch(updateBallotsLocal(r.ballots));
 	};
 
 export const votersFromMembersSnapshot =
@@ -172,17 +169,15 @@ export const votersFromMembersSnapshot =
 	async (dispatch) => {
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}/membersSnapshot`;
-		let r: VotersResponse;
 		try {
 			const response = await fetcher.post(url, { date });
-			r = votersResponseSchema.parse(response);
+			const { voters, ballots } = votersResponseSchema.parse(response);
+			dispatch(getSuccess(voters));
+			if (ballots) dispatch(updateBallotsLocal(ballots));
 		} catch (error) {
 			dispatch(getFailure());
 			dispatch(setError("POST " + url, error));
-			return;
 		}
-		dispatch(getSuccess(r.voters));
-		if (r.ballots) dispatch(updateBallotsLocal(r.ballots));
 	};
 
 export const addVoter =
@@ -190,16 +185,14 @@ export const addVoter =
 	async (dispatch, getState) => {
 		const ballot_id = selectVotersBallot_id(getState());
 		const url = `${baseUrl}/${ballot_id}`;
-		let r: VotersResponse;
 		try {
 			const response = await fetcher.post(url, [voterIn]);
-			r = votersResponseSchema.parse(response);
+			const { voters, ballots } = votersResponseSchema.parse(response);
+			dispatch(setMany(voters));
+			if (ballots) dispatch(updateBallotsLocal(ballots));
 		} catch (error) {
 			dispatch(setError("POST " + url, error));
-			return;
 		}
-		dispatch(setMany(r.voters));
-		if (r.ballots) dispatch(updateBallotsLocal(r.ballots));
 	};
 
 export const updateVoter =
@@ -207,15 +200,13 @@ export const updateVoter =
 	async (dispatch, getState) => {
 		const ballot_id = selectVotersBallot_id(getState());
 		const url = `${baseUrl}/${ballot_id}`;
-		let r: VotersResponse;
 		try {
 			const response = await fetcher.patch(url, [{ id, changes }]);
-			r = votersResponseSchema.parse(response);
+			const { voters } = votersResponseSchema.parse(response);
+			dispatch(setMany(voters));
 		} catch (error) {
 			dispatch(setError("PATCH " + url, error));
-			return;
 		}
-		dispatch(setMany(r.voters));
 	};
 
 export const exportVoters =

@@ -50,7 +50,11 @@ const selectFieldValues = createSelector(
 	selectCommentIds,
 	selectCommentEntities,
 	(ids, entities) => {
-		return [...new Set(ids.map((id) => getField(entities[id]!, field)))]
+		return [
+			...new Set(
+				ids.map((id) => getField(entities[id]!, field) as string)
+			),
+		]
 			.filter((v) => v !== "") // remove blank entry (we use 'clear' to set blank)
 			.map((v) => ({ label: v, value: v }));
 	}

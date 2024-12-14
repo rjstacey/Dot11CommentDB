@@ -3,10 +3,10 @@ import { createAction, Action, createSelector } from "@reduxjs/toolkit";
 import {
 	fetcher,
 	setError,
-	isObject,
 	createAppTableDataSlice,
-	FieldType,
 	getAppTableDataSelectors,
+	FieldType,
+	Fields,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
@@ -15,48 +15,20 @@ import {
 	updateBallotsLocal,
 	selectBallotEntities,
 	selectBallot,
-	validBallot,
-	getBallotId,
-	Ballot,
 	BallotTypeLabels,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
 import { selectIsOnline } from "./offline";
+import {
+	Result,
+	ResultUpdate,
+	ResultChange,
+	getResultsResponseSchema,
+} from "@schemas/results";
 
-export type Result = {
-	id: string;
-	ballot_id: number;
-	SAPIN: number;
-	Email: string;
-	Name: string;
-	Affiliation: string;
-	Status: string;
-	lastBallotId: number;
-	lastSAPIN: number;
-	vote: string;
-	commentCount: number;
-	totalCommentCount: number;
-	notes: string;
-};
+export type { Result, ResultUpdate, ResultChange };
 
-export type ResultChange = Partial<Pick<Result, "vote" | "notes">>;
-
-export type ResultUpdate = {
-	id: string;
-	changes: ResultChange;
-};
-
-function validResult(result: any): result is Result {
-	return (
-		isObject(result) &&
-		typeof result.id === "string" &&
-		typeof result.ballot_id === "number" &&
-		(typeof result.SAPIN === "undefined" ||
-			typeof result.SAPIN === "number")
-	);
-}
-
-export const fields = {
+export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	Name: { label: "Name" },
 	Affiliation: { label: "Affiliation" },
@@ -71,10 +43,9 @@ export const fields = {
 };
 
 /* Create slice */
-const initialState: {
-	ballot_id: number | null;
-} = {
-	ballot_id: null,
+const initialState = {
+	ballot_id: null as number | null,
+	lastLoad: null as string | null,
 };
 const dataSet = "results";
 const slice = createAppTableDataSlice({
@@ -89,6 +60,7 @@ const slice = createAppTableDataSlice({
 				(action: Action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
 					const { ballot_id } = action.payload;
+					state.lastLoad = new Date().toISOString();
 					if (ballot_id !== state.ballot_id) {
 						state.ballot_id = ballot_id;
 						state.valid = false;
@@ -124,6 +96,11 @@ export { upsertTableColumns };
 
 /* Selectors */
 export const selectResultsState = (state: RootState) => state[dataSet];
+const selectResultsAge = (state: RootState) => {
+	let lastLoad = selectResultsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectResultsIds = (state: RootState) =>
 	selectResultsState(state).ids;
 export const selectResultsEntities = (state: RootState) =>
@@ -178,97 +155,87 @@ export const resultsSelectors = getAppTableDataSelectors(selectResultsState, {
 });
 
 /* Thunk actions */
-
-function validResponse(
-	response: any
-): response is { ballots: Ballot[]; results: Result[] } {
-	return (
-		isObject(response) &&
-		Array.isArray(response.ballots) &&
-		response.ballots.every(validBallot) &&
-		Array.isArray(response.results) &&
-		response.results.every(validResult)
-	);
-}
-
 const baseUrl = "/api/results";
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+let loading = false;
 let loadingPromise: Promise<void>;
 export const loadResults =
-	(ballot_id: number): AppThunk<void> =>
+	(ballot_id: number, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
-		const { loading, ballot_id: currentBallot_id } = selectResultsState(
-			getState()
-		);
-		if (currentBallot_id === ballot_id) {
-			if (loading) return loadingPromise;
-		}
+		const state = getState();
+		const currentBallot_id = selectResultsState(state).ballot_id;
 		if (!selectIsOnline(getState())) {
 			if (ballot_id !== currentBallot_id) dispatch(clearResults());
 			return Promise.resolve();
 		}
+		if (currentBallot_id === ballot_id) {
+			if (loading) return loadingPromise;
+			const age = selectResultsAge(state);
+			if (!force && age && age < AGE_STALE) Promise.resolve();
+		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}`;
+		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response");
-				const { ballots, results } = response;
+				const { ballots, results } =
+					getResultsResponseSchema.parse(response);
 				dispatch(getSuccess(results));
 				dispatch(updateBallotsLocal(ballots));
 			})
 			.catch((error: any) => {
-				const ballot = selectBallotEntities(getState())[ballot_id];
-				const ballotId = ballot
-					? getBallotId(ballot)
-					: `id=${ballot_id}`;
 				dispatch(getFailure());
-				dispatch(
-					setError(
-						`Unable to get results list for ${ballotId}`,
-						error
-					)
-				);
+				dispatch(setError("GET " + url, error));
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};
 
+export const refreshResults = (): AppThunk => async (dispatch, getState) => {
+	const { ballot_id } = selectResultsState(getState());
+	dispatch(ballot_id ? loadResults(ballot_id, true) : clearResults());
+};
+
 export const exportResults =
 	(ballot_id: number, forSeries?: boolean): AppThunk =>
 	async (dispatch) => {
+		const url = `${baseUrl}/${ballot_id}/export`;
 		try {
-			await fetcher.getFile(`${baseUrl}/${ballot_id}/export`, {
+			await fetcher.getFile(url, {
 				forSeries,
 			});
 		} catch (error) {
-			dispatch(setError("Unable to export results", error));
+			dispatch(setError("GET " + url, error));
 		}
 	};
 
 export const updateResults =
 	(ballot_id: number, updates: ResultUpdate[]): AppThunk =>
-	async (dispatch, getState) => {
-		let response: any;
+	async (dispatch) => {
+		const url = `${baseUrl}/${ballot_id}`;
 		try {
-			response = await fetcher.patch(`${baseUrl}/${ballot_id}`, updates);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response");
+			const response = await fetcher.patch(url, updates);
+			const { ballots, results } =
+				getResultsResponseSchema.parse(response);
+			dispatch(setMany(results));
+			dispatch(updateBallotsLocal(ballots));
 		} catch (error) {
-			dispatch(setError("Unable to update results", error));
-			return;
+			dispatch(setError("PATCH " + url, error));
 		}
-		dispatch(setMany(response.results));
-		dispatch(updateBallotsLocal(response.ballots));
 	};
 
 export const deleteResults =
 	(ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
+		const url = `${baseUrl}/${ballot_id}`;
 		try {
-			await fetcher.delete(`${baseUrl}/${ballot_id}`);
+			await fetcher.delete(url);
 		} catch (error) {
-			dispatch(setError("Unable to delete results", error));
+			dispatch(setError("DELETE " + url, error));
 			return;
 		}
 		dispatch(updateBallotsLocal([{ id: ballot_id, Results: undefined }]));
@@ -280,33 +247,33 @@ export const importResults =
 	(ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseUrl}/${ballot_id}/import`;
-		let response: any;
 		try {
-			response = await fetcher.post(url);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected reponse");
+			const response = await fetcher.post(url);
+			const { ballots, results } =
+				getResultsResponseSchema.parse(response);
+			dispatch(updateBallotsLocal(ballots));
+			if (selectResultsBallot_id(getState()) === ballot_id)
+				dispatch(getSuccess(results));
 		} catch (error) {
-			dispatch(setError("Unable to import results", error));
+			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(updateBallotsLocal(response.ballots));
-		if (selectResultsBallot_id(getState()) === ballot_id)
-			dispatch(getSuccess(response.results));
 	};
 
 export const uploadResults =
 	(ballot_id: number, file: File): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseUrl}/${ballot_id}/upload`;
-		let response: any;
 		try {
-			response = await fetcher.postMultipart(url, { ResultsFile: file });
-			if (!validResponse(response)) throw TypeError("Unexpected reponse");
+			const response = await fetcher.postMultipart(url, {
+				ResultsFile: file,
+			});
+			const { ballots, results } =
+				getResultsResponseSchema.parse(response);
+			dispatch(updateBallotsLocal(ballots));
+			if (selectResultsBallot_id(getState()) === ballot_id)
+				dispatch(getSuccess(results));
 		} catch (error) {
-			dispatch(setError("Unable to upload results", error));
-			return;
+			dispatch(setError("POST " + url, error));
 		}
-		dispatch(updateBallotsLocal(response.ballots));
-		if (selectResultsBallot_id(getState()) === ballot_id)
-			dispatch(getSuccess(response.results));
 	};

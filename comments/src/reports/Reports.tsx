@@ -66,7 +66,7 @@ function commentsByAssignee(comments: CommentResolution[]) {
 		...new Set(comments.map((c) => c.AssigneeName)),
 	].sort();
 	const statusSet = [
-		...new Set(comments.map((c) => getField(c, "Status"))),
+		...new Set(comments.map((c) => getField(c, "Status") as string)),
 	].sort(statusComp);
 	const data: Counts[] = [];
 	for (let name of assigneeSet) {
@@ -87,7 +87,7 @@ function commentsByAssigneeAndCommentGroup(comments: CommentResolution[]) {
 		...new Set(comments.map((c) => c.AssigneeName)),
 	].sort();
 	const statusSet = [
-		...new Set(comments.map((c) => getField(c, "Status"))),
+		...new Set(comments.map((c) => getField(c, "Status") as string)),
 	].sort(statusComp);
 	const data: Counts[] = [];
 	for (let name of assigneeSet) {
@@ -121,7 +121,7 @@ function commentsByAssigneeAndCommentGroup(comments: CommentResolution[]) {
 function commentsByAdHocAndCommentGroup(comments: CommentResolution[]) {
 	const adhocSet = [...new Set(comments.map((c) => c.AdHoc))].sort();
 	const statusSet = [
-		...new Set(comments.map((c) => getField(c, "Status"))),
+		...new Set(comments.map((c) => getField(c, "Status") as string)),
 	].sort(statusComp);
 	const data: Counts[] = [];
 	for (let name of adhocSet) {

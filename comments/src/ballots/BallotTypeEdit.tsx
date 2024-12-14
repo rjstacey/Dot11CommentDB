@@ -11,7 +11,7 @@ import {
 import { useAppSelector } from "../store/hooks";
 import {
 	Ballot,
-	BallotEdit,
+	BallotChange,
 	getBallotId,
 	BallotType,
 	BallotTypeLabels,
@@ -133,7 +133,7 @@ function BallotSeries({
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
-	updateBallot: (changes: Partial<BallotEdit>) => void;
+	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
 	const ballotSeries = useAppSelector((state) =>
@@ -181,7 +181,7 @@ function BallotStage({
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
-	updateBallot: (changes: Partial<BallotEdit>) => void;
+	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
 	const prevBallot = useAppSelector((state) =>
@@ -258,7 +258,7 @@ export function BallotTypeSelect({
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
-	updateBallot: (changes: Partial<BallotEdit>) => void;
+	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
 	const ballots = useAppSelector(selectBallots);

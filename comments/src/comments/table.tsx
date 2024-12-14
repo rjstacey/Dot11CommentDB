@@ -97,6 +97,7 @@ const resnStatusRenderer = (resnStatus: ResnStatusType | null) =>
 	resnStatus ? resnStatusMap[resnStatus] : "";
 
 const resnColor: Record<ResnStatusType, string> = {
+	"": "#fafafa",
 	A: "#d3ecd3",
 	V: "#f9ecb9",
 	J: "#f3c0c0",

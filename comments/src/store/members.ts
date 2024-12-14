@@ -1,8 +1,8 @@
 import {
 	createSlice,
 	createEntityAdapter,
-	PayloadAction,
 	createSelector,
+	PayloadAction,
 } from "@reduxjs/toolkit";
 import { fetcher, setError } from "dot11-components";
 

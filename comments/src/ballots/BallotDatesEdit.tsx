@@ -1,7 +1,7 @@
 import React from "react";
 import { Row, Input, isMultiple, Multiple, FieldLeft } from "dot11-components";
 
-import { Ballot, BallotEdit } from "../store/ballots";
+import { Ballot, BallotChange } from "../store/ballots";
 
 /* Convert an ISO date string to US eastern time and return string in form "YYYY-MM-DD" */
 function dateToShortDate(isoDate: string | null) {
@@ -37,7 +37,7 @@ function BallotDatesEdit({
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
-	updateBallot: (changes: Partial<BallotEdit>) => void;
+	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
 	const changeDate: React.ChangeEventHandler<HTMLInputElement> = (e) => {

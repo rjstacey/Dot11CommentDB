@@ -27,6 +27,7 @@ import {
 	selectCommentsState,
 	selectCommentsAccess,
 	CommentResolution,
+	CommentResolutionChange,
 	Comment,
 	Resolution,
 	ResolutionUpdate,
@@ -95,10 +96,7 @@ function CommentResolutionEdit({
 
 	const triggerSave = useDebounce(() => {
 		/* Find changes */
-		const changes = shallowDiff(
-			saved!,
-			edited!
-		) as Partial<CommentResolution>;
+		const changes = shallowDiff(saved!, edited!) as CommentResolutionChange;
 		if (Object.keys(changes).length > 0) {
 			const updates: ResolutionUpdate[] = [];
 			const adds: ResolutionCreate[] = [];

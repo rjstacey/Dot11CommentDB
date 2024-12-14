@@ -84,7 +84,7 @@ function getDefaultBallot(
 		now.getMonth(),
 		now.getDate()
 	).toISOString();
-	let groupId: string | null = null;
+	let groupId: string = "";
 	let project: string = "";
 	let type = 0;
 	let number = 0;
@@ -126,7 +126,7 @@ function getDefaultBallot(
 		}
 	}
 	number = nextBallotNumber(allBallots, type);
-	return {
+	const ballot: Ballot = {
 		groupId,
 		Project: project,
 		Type: type,
@@ -145,7 +145,10 @@ function getDefaultBallot(
 		Voters: 0,
 		Comments: { Count: 0, CommentIDMax: 0, CommentIDMin: 0 },
 		Results: null,
+		workingGroupId: "",
+		BallotID: "",
 	};
+	return ballot;
 }
 
 const Placeholder = (props: React.ComponentProps<"span">) => (

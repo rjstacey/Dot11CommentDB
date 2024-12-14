@@ -10,6 +10,7 @@ import {
 	Input,
 	isMultiple,
 	MULTIPLE,
+	Multiple,
 } from "dot11-components";
 
 import AssigneeSelector from "./AssigneeSelector";
@@ -17,10 +18,10 @@ import SubmissionSelector from "./SubmissionSelector";
 import Editor from "../editor";
 
 import type {
-	MultipleCommentResolution,
-	MultipleResolution,
-} from "./CommentDetail";
-import type { Resolution, ResnStatusType } from "../store/comments";
+	Resolution,
+	ResnStatusType,
+	ResolutionChange,
+} from "../store/comments";
 import { AccessLevel } from "../store/user";
 
 import styles from "./comments.module.css";
@@ -28,12 +29,14 @@ import styles from "./comments.module.css";
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";
 
+type ResolutionEditable = Required<Omit<ResolutionChange, "ResolutionID">>;
+
 export function ResolutionAssignee({
 	resolution,
 	updateResolution = () => {},
 	readOnly,
 }: {
-	resolution: MultipleResolution;
+	resolution: Multiple<ResolutionEditable>;
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
@@ -74,7 +77,7 @@ export function ResolutionSubmission({
 	updateResolution = () => {},
 	readOnly,
 }: {
-	resolution: MultipleResolution;
+	resolution: Multiple<ResolutionEditable>;
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
@@ -106,7 +109,7 @@ export function ResolutionApproval({
 }: {
 	className?: string;
 	style?: React.CSSProperties;
-	resolution: MultipleResolution;
+	resolution: Multiple<ResolutionEditable>;
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
@@ -226,6 +229,7 @@ function ResnStatus({
 }
 
 const resnColor: Record<ResnStatusType, string> = {
+	"": "#fafafa",
 	A: "#d3ecd3",
 	V: "#f9ecb9",
 	J: "#f3c0c0",
@@ -236,7 +240,7 @@ export function ResolutionAndStatus({
 	updateResolution = () => {},
 	readOnly,
 }: {
-	resolution: MultipleResolution;
+	resolution: Multiple<ResolutionEditable>;
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
@@ -289,7 +293,7 @@ export function ResolutionEdit({
 	readOnly,
 	commentsAccess = AccessLevel.none,
 }: {
-	resolution: MultipleCommentResolution;
+	resolution: Multiple<ResolutionEditable>;
 	updateResolution: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 	commentsAccess?: number;
