@@ -1,5 +1,3 @@
-import { useNavigate } from "react-router-dom";
-
 import { ConfirmModal, ActionButton } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -10,6 +8,7 @@ import {
 	selectVotersState,
 	selectVotersBallot_id,
 	votersSelectors,
+	refreshVoters,
 } from "../store/voters";
 import VotersImportButton from "./VotersImport";
 
@@ -17,15 +16,10 @@ import { getDefaultVoter, VotersContext } from "./layout";
 
 function VotersActions({ setVotersState }: VotersContext) {
 	const dispatch = useAppDispatch();
-	const navigate = useNavigate();
-
 	const isOnline = useAppSelector(selectIsOnline);
-
 	const votersBallot_id = useAppSelector(selectVotersBallot_id);
 	const { loading, selected } = useAppSelector(selectVotersState);
 	const shownIds = useAppSelector(votersSelectors.selectSortedFilteredIds);
-
-	const refresh = () => navigate(0);
 
 	async function handleRemoveSelected() {
 		const ids = selected.filter((id) => shownIds.includes(id)); // only select checked items that are visible
@@ -67,7 +61,7 @@ function VotersActions({ setVotersState }: VotersContext) {
 			<ActionButton
 				name="refresh"
 				title="Refresh"
-				onClick={refresh}
+				onClick={() => dispatch(refreshVoters())}
 				disabled={loading || !isOnline}
 			/>
 		</div>

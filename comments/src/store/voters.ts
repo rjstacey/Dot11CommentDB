@@ -40,17 +40,12 @@ export const fields: Fields = {
 	Excused: { label: "Excused", options: voterExcusedOptions },
 };
 
+const initialState = {
+	ballot_id: null as number | null,
+	lastLoad: null as string | null,
+};
 const sortComparer = (v1: Voter, v2: Voter) => v1.SAPIN - v2.SAPIN;
-
-type ExtraState = {
-	ballot_id: number | null;
-};
-
-const initialState: ExtraState = {
-	ballot_id: null,
-};
-
-export const dataSet = "voters";
+const dataSet = "voters";
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -68,6 +63,7 @@ const slice = createAppTableDataSlice({
 						state.valid = false;
 						state.ballot_id = ballot_id;
 					}
+					state.lastLoad = new Date().toISOString();
 				}
 			)
 			.addMatcher(
@@ -94,6 +90,11 @@ export const clearVoters = createAction(dataSet + "/clear");
 
 /* Selectors */
 export const selectVotersState = (state: RootState) => state[dataSet];
+const selectVotersAge = (state: RootState) => {
+	let lastLoad = selectVotersState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectVotersBallot_id = (state: RootState) =>
 	selectVotersState(state).ballot_id;
 
@@ -102,19 +103,18 @@ export const votersSelectors = getAppTableDataSelectors(selectVotersState);
 /* Thunk actions */
 const baseUrl = "/api/voters";
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
 let loading = false;
 let loadingPromise: Promise<void>;
 export const loadVoters =
-	(ballot_id: number): AppThunk<void> =>
+	(ballot_id: number, force = false): AppThunk =>
 	(dispatch, getState) => {
 		const state = getState();
-		const current = selectVotersState(state);
-		if (current.ballot_id === ballot_id) {
+		const currentBallot_id = selectVotersState(state).ballot_id;
+		if (currentBallot_id === ballot_id) {
 			if (loading) return loadingPromise;
-		}
-		if (!selectIsOnline(getState())) {
-			if (ballot_id !== current.ballot_id) dispatch(clearVoters());
-			return Promise.resolve();
+			const age = selectVotersAge(state);
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}`;
@@ -134,6 +134,11 @@ export const loadVoters =
 			});
 		return loadingPromise;
 	};
+
+export const refreshVoters = (): AppThunk => async (dispatch, getState) => {
+	const ballot_id = selectVotersState(getState()).ballot_id;
+	dispatch(ballot_id ? loadVoters(ballot_id, true) : clearVoters());
+};
 
 export const deleteVoters =
 	(ids: EntityId[]): AppThunk =>

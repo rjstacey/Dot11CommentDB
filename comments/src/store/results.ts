@@ -60,12 +60,12 @@ const slice = createAppTableDataSlice({
 				(action: Action) => action.type === getPending.toString(),
 				(state, action: ReturnType<typeof getPending>) => {
 					const { ballot_id } = action.payload;
-					state.lastLoad = new Date().toISOString();
 					if (ballot_id !== state.ballot_id) {
 						state.ballot_id = ballot_id;
 						state.valid = false;
 						dataAdapter.removeAll(state);
 					}
+					state.lastLoad = new Date().toISOString();
 				}
 			)
 			.addMatcher(
@@ -161,18 +161,14 @@ const AGE_STALE = 60 * 60 * 1000; // 1 hour
 let loading = false;
 let loadingPromise: Promise<void>;
 export const loadResults =
-	(ballot_id: number, force = false): AppThunk<void> =>
+	(ballot_id: number, force = false): AppThunk =>
 	(dispatch, getState) => {
 		const state = getState();
 		const currentBallot_id = selectResultsState(state).ballot_id;
-		if (!selectIsOnline(getState())) {
-			if (ballot_id !== currentBallot_id) dispatch(clearResults());
-			return Promise.resolve();
-		}
 		if (currentBallot_id === ballot_id) {
 			if (loading) return loadingPromise;
 			const age = selectResultsAge(state);
-			if (!force && age && age < AGE_STALE) Promise.resolve();
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}`;

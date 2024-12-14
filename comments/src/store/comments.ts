@@ -20,7 +20,7 @@ import {
 	Ballot,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
-import { offlineFetch, selectIsOnline } from "./offline";
+import { Effect, offlineFetch, selectIsOnline } from "./offline";
 import {
 	Comment,
 	CategoryType,
@@ -40,9 +40,11 @@ import {
 	ResolutionUpdate,
 	ResolutionCreate,
 	ResolutionChange,
+} from "@schemas/resolutions";
+import {
 	uploadResolutionsResponseSchema,
 	UploadResolutionsResponse,
-} from "@schemas/resolutions";
+} from "@schemas/uploadResolutions";
 
 export type {
 	Comment,
@@ -210,6 +212,7 @@ function getResolutionCountUpdates(
 
 const initialState = {
 	ballot_id: null as number | null,
+	lastLoad: null as string | null,
 };
 
 const dataSet = "comments";
@@ -234,6 +237,7 @@ const slice = createAppTableDataSlice({
 						state.valid = false;
 					}
 					state.ballot_id = ballot_id;
+					state.lastLoad = new Date().toISOString();
 				}
 			)
 			.addMatcher(
@@ -340,6 +344,11 @@ export { setUiProperties };
  * Selectors
  */
 export const selectCommentsState = (state: RootState) => state[dataSet];
+const selectCommentsAge = (state: RootState) => {
+	let lastLoad = selectCommentsState(state).lastLoad;
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 export const selectCommentIds = (state: RootState) =>
 	selectCommentsState(state).ids;
 export const selectCommentEntities = (state: RootState) =>
@@ -403,19 +412,18 @@ export const commentsSelectors = getAppTableDataSelectors(selectCommentsState, {
 const baseCommentsUrl = "/api/comments";
 const baseResolutionsUrl = "/api/resolutions";
 
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
 let loading = false;
 let loadingPromise: Promise<void>;
 export const loadComments =
-	(ballot_id: number): AppThunk<void> =>
+	(ballot_id: number, force = false): AppThunk =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const currentBallot_id = selectCommentsState(state).ballot_id;
-		if (!selectIsOnline(state)) {
-			if (ballot_id !== currentBallot_id) dispatch(clearComments());
-			return Promise.resolve();
-		}
 		if (currentBallot_id === ballot_id) {
 			if (loading) return loadingPromise;
+			const age = selectCommentsAge(state);
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseCommentsUrl}/${ballot_id}`;
@@ -436,21 +444,24 @@ export const loadComments =
 		return loadingPromise;
 	};
 
+export const refreshComments = (): AppThunk => async (dispatch, getState) => {
+	const ballot_id = selectCommentsState(getState()).ballot_id;
+	dispatch(ballot_id ? loadComments(ballot_id, true) : clearComments());
+};
+
 export const getCommentUpdates = (): AppThunk => async (dispatch, getState) => {
 	const state = getState();
 	const ballot_id = selectCommentsBallot_id(state);
 	if (!ballot_id) return;
-	const lastModified = selectCommentsLastModified(state);
-	dispatch(
-		offlineFetch({
-			effect: {
-				url: `${baseCommentsUrl}/${ballot_id}`,
-				method: "GET",
-				params: { modifiedSince: lastModified },
-			},
-			commit: { type: getCommit.toString() },
-		})
-	);
+	const modifiedSince = selectCommentsLastModified(state);
+	const url = `${baseCommentsUrl}/${ballot_id}`;
+	const effect: Effect = {
+		url,
+		method: "GET",
+		params: { modifiedSince },
+	};
+	const commit: Action = { type: getCommit.toString() };
+	dispatch(offlineFetch({ effect, commit }));
 };
 
 export const updateComments =
@@ -477,17 +488,11 @@ export const updateComments =
 			}
 		}
 		dispatch(localUpdateMany(localUpdates));
-		dispatch(
-			offlineFetch({
-				effect: {
-					url: `${baseCommentsUrl}/${ballot_id}?modifiedSince=${lastModified}`,
-					method: "PATCH",
-					params: updates,
-				},
-				commit: { type: updateCommit.toString() },
-				rollback: localUpdateMany(rollbackUpdates), //{type: localUpdateMany.toString(), payload: rollbackUpdates}
-			})
-		);
+		const url = `${baseCommentsUrl}/${ballot_id}?modifiedSince=${lastModified}`;
+		const effect: Effect = { url, method: "PATCH", params: updates };
+		const commit: Action = { type: updateCommit.toString() };
+		const rollback: Action = localUpdateMany(rollbackUpdates);
+		dispatch(offlineFetch({ effect, commit, rollback }));
 	};
 
 export const deleteComments =
@@ -509,20 +514,16 @@ export const importComments =
 	(ballot_id: number, startCommentId: number): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseCommentsUrl}/${ballot_id}/import`;
-		let comments: CommentResolution[];
-		let ballot: Ballot;
 		try {
 			const response = await fetcher.post(url, { startCommentId });
-			const r = uploadCommentsResponseSchema.parse(response);
-			comments = r.comments;
-			ballot = r.ballot;
+			const { comments, ballot } =
+				uploadCommentsResponseSchema.parse(response);
+			dispatch(updateBallotsLocal([ballot]));
+			if (ballot_id === selectCommentsBallot_id(getState()))
+				dispatch(localAddMany(comments));
 		} catch (error) {
 			dispatch(setError("POST " + url, error));
-			return;
 		}
-		dispatch(updateBallotsLocal([ballot]));
-		if (ballot_id === selectCommentsBallot_id(getState()))
-			dispatch(getSuccess(comments));
 	};
 
 export const uploadComments =
@@ -533,20 +534,16 @@ export const uploadComments =
 			params: JSON.stringify({ startCommentId: 1 }),
 			CommentsFile: file,
 		};
-		let comments: CommentResolution[];
-		let ballot: Ballot;
 		try {
 			const response = await fetcher.postMultipart(url, params);
-			const r = uploadCommentsResponseSchema.parse(response);
-			comments = r.comments;
-			ballot = r.ballot;
+			const { comments, ballot } =
+				uploadCommentsResponseSchema.parse(response);
+			dispatch(updateBallotsLocal([ballot]));
+			if (ballot_id === selectCommentsBallot_id(getState()))
+				dispatch(localAddMany(comments));
 		} catch (error) {
 			dispatch(setError("POST " + url, error));
-			return;
 		}
-		dispatch(updateBallotsLocal([ballot]));
-		if (ballot_id === selectCommentsBallot_id(getState()))
-			dispatch(getSuccess(comments));
 	};
 
 export const uploadUserComments =
@@ -557,20 +554,16 @@ export const uploadUserComments =
 			params: JSON.stringify({ SAPIN: sapin }),
 			CommentsFile: file,
 		};
-		let comments: CommentResolution[];
-		let ballot: Ballot;
 		try {
 			const response = await fetcher.postMultipart(url, params);
-			const r = uploadCommentsResponseSchema.parse(response);
-			comments = r.comments;
-			ballot = r.ballot;
+			const { comments, ballot } =
+				uploadCommentsResponseSchema.parse(response);
+			dispatch(updateBallotsLocal([ballot]));
+			if (ballot_id === selectCommentsBallot_id(getState()))
+				dispatch(localAddMany(comments));
 		} catch (error) {
 			dispatch(setError("POST " + url, error));
-			return;
 		}
-		dispatch(updateBallotsLocal([ballot]));
-		if (ballot_id === selectCommentsBallot_id(getState()))
-			dispatch(localAddMany(comments));
 	};
 
 export const uploadPublicReviewComments =
@@ -580,40 +573,32 @@ export const uploadPublicReviewComments =
 		const params = {
 			CommentsFile: file,
 		};
-		let comments: CommentResolution[];
-		let ballot: Ballot;
 		try {
 			const response = await fetcher.postMultipart(url, params);
-			const r = uploadCommentsResponseSchema.parse(response);
-			comments = r.comments;
-			ballot = r.ballot;
+			const { comments, ballot } =
+				uploadCommentsResponseSchema.parse(response);
+			dispatch(updateBallotsLocal([ballot]));
+			if (ballot_id === selectCommentsBallot_id(getState()))
+				dispatch(localAddMany(comments));
 		} catch (error) {
 			dispatch(setError("POST " + url, error));
-			return;
 		}
-		dispatch(updateBallotsLocal([ballot]));
-		if (ballot_id === selectCommentsBallot_id(getState()))
-			dispatch(localAddMany(comments));
 	};
 
 export const setStartCommentId =
 	(ballot_id: number, startCommentId: number): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseCommentsUrl}/${ballot_id}/startCommentId`;
-		let comments: CommentResolution[];
-		let ballot: Ballot;
 		try {
 			const response = await fetcher.patch(url, { startCommentId });
-			const r = uploadCommentsResponseSchema.parse(response);
-			comments = r.comments;
-			ballot = r.ballot;
+			const { comments, ballot } =
+				uploadCommentsResponseSchema.parse(response);
+			dispatch(updateBallotsLocal([ballot]));
+			if (ballot_id === selectCommentsBallot_id(getState()))
+				dispatch(localAddMany(comments));
 		} catch (error) {
 			dispatch(setError("PATCH " + url, error));
-			return;
 		}
-		dispatch(updateBallotsLocal([ballot]));
-		if (ballot_id === selectCommentsBallot_id(getState()))
-			dispatch(getSuccess(comments));
 	};
 
 const defaultResolution: Partial<Resolution> = {
@@ -647,17 +632,11 @@ const updateMany =
 			return { id, changes };
 		});
 		dispatch(localUpdateMany(updates));
-		dispatch(
-			offlineFetch({
-				effect: {
-					url: `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`,
-					method: "PATCH",
-					params: updates,
-				},
-				commit: { type: updateCommit.toString() },
-				rollback: localUpdateMany(rollbackUpdates), //{type: localUpdateMany.toString(), payload: rollbackUpdates}
-			})
-		);
+		const url = `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`;
+		const effect: Effect = { url, method: "PATCH", params: updates };
+		const commit: Action = { type: updateCommit.toString() };
+		const rollback: Action = localUpdateMany(rollbackUpdates);
+		dispatch(offlineFetch({ effect, commit, rollback }));
 	};
 
 const removeMany =
@@ -669,17 +648,11 @@ const removeMany =
 
 		const comments = ids.map((id) => entities[id]!);
 		dispatch(localRemoveMany(ids));
-		dispatch(
-			offlineFetch({
-				effect: {
-					url: `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`,
-					method: "DELETE",
-					params: ids,
-				},
-				commit: { type: updateCommit.toString() },
-				rollback: removeManyRollback(comments), //{type: dataSet + '/removeManyRollback', payload: comments}
-			})
-		);
+		const url = `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`;
+		const effect: Effect = { url, method: "DELETE", params: ids };
+		const commit: Action = { type: updateCommit.toString() };
+		const rollback: Action = removeManyRollback(comments);
+		dispatch(offlineFetch({ effect, commit, rollback }));
 	};
 
 export const addResolutions =
@@ -754,17 +727,11 @@ export const addResolutions =
 		}
 		dispatch(localUpdateMany(updates));
 		dispatch(localAddMany(adds));
-		dispatch(
-			offlineFetch({
-				effect: {
-					url: `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`,
-					method: "POST",
-					params: remoteAdds,
-				},
-				commit: { type: updateCommit.toString() },
-				rollback: addManyRollback(adds.map((c) => c.id)), //{type: dataSet + '/addManyRollback', payload: adds.map(c => c.id)}
-			})
-		);
+		const url = `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`;
+		const effect: Effect = { url, method: "POST", params: remoteAdds };
+		const commit: Action = { type: updateCommit.toString() };
+		const rollback: Action = addManyRollback(adds.map((c) => c.id));
+		dispatch(offlineFetch({ effect, commit, rollback }));
 		dispatch(setSelected(selected));
 	};
 

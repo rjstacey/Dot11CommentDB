@@ -28,12 +28,10 @@ const ballotIdLoader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 	const isOnline = selectIsOnline(getState());
 
+	if (isOnline) await dispatch(loadBallots(groupName));
+
 	let ballot: Ballot | undefined;
 	ballot = selectBallotByBallotID(getState(), ballotId);
-	if (isOnline && !ballot) {
-		await dispatch(loadBallots(groupName)); // see if we get it with a ballots refresh
-		ballot = selectBallotByBallotID(getState(), ballotId);
-	}
 
 	if (ballot) {
 		dispatch(setCurrentBallot_id(ballot.id));
@@ -45,7 +43,10 @@ const ballotIdLoader: LoaderFunction = async ({ params }) => {
 			throw new Error("You do not have permission to view this data");
 
 		const ballotSeries_id = selectBallotSeriesId(getState(), ballot);
-		dispatch(ballotSeries_id ? loadVoters(ballotSeries_id) : clearVoters());
+		if (isOnline)
+			dispatch(
+				ballotSeries_id ? loadVoters(ballotSeries_id) : clearVoters()
+			);
 	} else {
 		dispatch(clearVoters());
 		throw new Error(`Ballot ${ballotId} not found`);
