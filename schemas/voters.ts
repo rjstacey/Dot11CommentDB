@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ballotSchema } from "./ballots";
 
 export const voterIdSchema = z.string().uuid();
 
@@ -13,6 +14,7 @@ export const voterSchema = z.object({
 	Excused: z.boolean(),
 	ballot_id: z.number(),
 });
+export const votersSchema = voterSchema.array();
 
 export const voterQuerySchema = z
 	.object({
@@ -48,10 +50,15 @@ export const voterIdsSchema = voterIdSchema.array();
 export const voterMemberSnapshotParamsSchema = z.object({
 	date: z.string().date(),
 });
+
+export const votersResponseSchema = z.object({
+	voters: votersSchema,
+	ballots: ballotSchema.pick({ id: true, Voters: true }).array().optional(),
+});
+export type VotersResponse = z.infer<typeof votersResponseSchema>;
 export type VoterMemberSnapshotParams = z.infer<
 	typeof voterMemberSnapshotParamsSchema
 >;
-
 export type Voter = z.infer<typeof voterSchema>;
 export type VoterQuery = z.infer<typeof voterQuerySchema>;
 export type VoterCreate = z.infer<typeof voterCreateSchema>;

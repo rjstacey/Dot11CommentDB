@@ -32,6 +32,7 @@ export const meetingSchema = z.object({
 });
 export const meetingsSchema = meetingSchema.array();
 
+/** Query schema. Will coerce strings to numbers so that it can be used with URL search params. */
 export const meetingsQuerySchema = z
 	.object({
 		id: z.union([z.coerce.number(), z.coerce.number().array()]),

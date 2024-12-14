@@ -1,7 +1,27 @@
 import { z } from "zod";
 import { groupIdSchema } from "./groups";
-import { resultsSummarySchema } from "./results";
-import { commentsSummarySchema } from "./comments";
+
+export const commentsSummarySchema = z.object({
+	Count: z.number(),
+	CommentIDMin: z.nullable(z.number()),
+	CommentIDMax: z.nullable(z.number()),
+});
+export type CommentsSummary = z.infer<typeof commentsSummarySchema>;
+
+export const resultsSummarySchema = z.object({
+	Approve: z.number(),
+	Disapprove: z.number(),
+	Abstain: z.number(),
+	InvalidVote: z.number(),
+	InvalidAbstain: z.number(),
+	InvalidDisapprove: z.number(),
+	ReturnsPoolSize: z.number(),
+	TotalReturns: z.number(),
+	BallotReturns: z.number(),
+	VotingPoolSize: z.number().optional(),
+	Commenters: z.number().optional(),
+});
+export type ResultsSummary = z.infer<typeof resultsSummarySchema>;
 
 export const ballotSchema = z.object({
 	id: z.number(),
@@ -23,6 +43,7 @@ export const ballotSchema = z.object({
 	Comments: commentsSummarySchema,
 	Voters: z.number(),
 });
+export const ballotsSchema = ballotSchema.array();
 
 export const ballotQuerySchema = z
 	.object({
@@ -48,7 +69,7 @@ export const ballotCreateSchema = ballotSchema.pick({
 	prev_id: true,
 });
 export const ballotCreatesSchema = ballotCreateSchema.array();
-export const ballotChangesSchema = ballotSchema
+export const ballotChangeSchema = ballotSchema
 	.omit({
 		stage: true,
 		Results: true,
@@ -58,7 +79,7 @@ export const ballotChangesSchema = ballotSchema
 	.partial();
 export const ballotUpdateSchema = z.object({
 	id: z.number(),
-	changes: ballotChangesSchema,
+	changes: ballotChangeSchema,
 });
 export const ballotUpdatesSchema = ballotUpdateSchema.array();
 export const ballotIdsSchema = z.number().array();
@@ -67,3 +88,4 @@ export type Ballot = z.infer<typeof ballotSchema>;
 export type BallotQuery = z.infer<typeof ballotQuerySchema>;
 export type BallotCreate = z.infer<typeof ballotCreateSchema>;
 export type BallotUpdate = z.infer<typeof ballotUpdateSchema>;
+export type BallotChange = z.infer<typeof ballotChangeSchema>;

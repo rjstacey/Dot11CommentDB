@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-export const resnStatusTypeSchema = z.enum(["A", "V", "J"]);
-export const editStatusTypeSchema = z.enum(["I", "N"]);
+export const resnStatusTypeSchema = z.enum(["", "A", "V", "J"]);
+export const editStatusTypeSchema = z.enum(["", "I", "N", "M"]);
 
 export const resolutionIdSchema = z.string().uuid();
 
@@ -13,12 +13,12 @@ export const resolutionSchema = z.object({
 	AssigneeName: z.string(),
 	ResnStatus: resnStatusTypeSchema.nullable(),
 	Resolution: z.string().nullable(),
-	ApprovedByMotion: z.string(),
+	ApprovedByMotion: z.string().nullable(),
 	ReadyForMotion: z.boolean(),
 	Submission: z.string(),
 	EditStatus: editStatusTypeSchema.nullable(),
 	EditNotes: z.string().nullable(),
-	EditInDraft: z.string(),
+	EditInDraft: z.string().nullable(),
 	LastModifiedBy: z.number().nullable(),
 	LastModifiedTime: z.string().datetime().nullable(),
 });

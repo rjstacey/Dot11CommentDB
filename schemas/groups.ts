@@ -27,14 +27,14 @@ export const groupSchema = z.object({
 });
 export const groupsSchema = z.array(groupSchema);
 
-export const groupQuerySchema = z
+export const groupsQuerySchema = z
 	.object({
 		parentName: z.string(),
 		id: z.union([groupIdSchema, groupIdSchema.array()]),
 		parent_id: z.union([groupIdSchema, groupIdSchema.array()]),
 		name: z.union([z.string(), z.string().array()]),
 		type: z.union([groupTypeSchema, groupTypeSchema.array()]),
-		status: z.union([z.number(), z.number().array()]),
+		status: z.union([z.coerce.number(), z.coerce.number().array()]),
 		color: z.union([z.string(), z.string().array()]),
 		symbol: z.union([z.string(), z.string().array()]),
 	})
@@ -67,6 +67,6 @@ export const groupIdsSchema = z.array(groupIdSchema);
 
 export type GroupType = z.infer<typeof groupTypeSchema>;
 export type Group = z.infer<typeof groupSchema>;
-export type GroupQuery = z.infer<typeof groupQuerySchema>;
+export type GroupsQuery = z.infer<typeof groupsQuerySchema>;
 export type GroupCreate = z.infer<typeof groupCreateSchema>;
 export type GroupUpdate = z.infer<typeof groupUpdateSchema>;

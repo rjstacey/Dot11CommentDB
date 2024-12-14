@@ -22,11 +22,13 @@ export const calendarAccountCreateSchema = z.object({
 export const calendarAccountChangeSchema =
 	calendarAccountCreateSchema.partial();
 
-export const calendarAccountsQuery = z.object({
-	id: z.number().optional(),
-	name: z.string().optional(),
-	groupId: groupIdSchema.optional(),
-});
+export const calendarAccountsQuery = z
+	.object({
+		id: z.coerce.number(),
+		name: z.string(),
+		groupId: groupIdSchema,
+	})
+	.partial();
 
 export const calendarAccountSchema = oAuthAccountSchema
 	.omit({ authParams: true })

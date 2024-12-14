@@ -1,37 +1,35 @@
 import { z } from "zod";
 import { groupIdSchema } from "./groups";
 import { resolutionSchema } from "./resolutions";
+import { ballotSchema } from "./ballots";
+
+const categoryTypeSchema = z.enum(["T", "E", "G"]);
+export type CategoryType = z.infer<typeof categoryTypeSchema>;
 
 export const commentSchema = z.object({
 	id: z.number(),
 	ballot_id: z.number(),
 	CommentID: z.number(),
-	CommenterSAPIN: z.nullable(z.number()),
 	CommenterName: z.string(),
-	CommenterEmail: z.string(),
-	Vote: z.string(),
-	Category: z.string(),
-	C_Clause: z.string(),
-	C_Page: z.string(),
-	C_Line: z.string(),
-	C_Index: z.number(),
+	CommenterSAPIN: z.number().nullable(),
+	CommenterEmail: z.string().nullable(),
+	Vote: z.string().nullable(),
+	Category: categoryTypeSchema,
+	C_Clause: z.string().nullable(),
+	C_Page: z.string().nullable(),
+	C_Line: z.string().nullable(),
+	C_Index: z.number().nullable(),
 	MustSatisfy: z.boolean(),
-	Clause: z.nullable(z.string()),
-	Page: z.nullable(z.number()),
+	Clause: z.string().nullable(),
+	Page: z.number().nullable(),
 	Comment: z.string(),
-	AdHocGroupId: z.nullable(groupIdSchema),
+	AdHocGroupId: groupIdSchema.nullable(),
 	AdHoc: z.string(),
-	Notes: z.nullable(z.string()),
+	Notes: z.string().nullable(),
 	CommentGroup: z.string(),
 	ProposedChange: z.string(),
-	LastModifiedBy: z.nullable(z.number()),
-	LastModifiedTime: z.nullable(z.string().datetime()),
-});
-
-export const commentsSummarySchema = z.object({
-	Count: z.number(),
-	CommentIDMin: z.nullable(z.number()),
-	CommentIDMax: z.nullable(z.number()),
+	LastModifiedBy: z.number().nullable(),
+	LastModifiedTime: z.string().datetime().nullable(),
 });
 
 export const commentsUploadParamsSchema = z.object({
@@ -68,7 +66,6 @@ export const commentUpdateSchema = z.object({
 export const commentUpdatesSchema = commentUpdateSchema.array();
 
 export type Comment = z.infer<typeof commentSchema>;
-export type CommentsSummary = z.infer<typeof commentsSummarySchema>;
 export type CommentCreate = z.infer<typeof commentCreateSchema>;
 export type CommentChange = z.infer<typeof commentChangeSchema>;
 export type CommentUpdate = z.infer<typeof commentUpdateSchema>;
@@ -78,12 +75,13 @@ export const commentResolutionSchema = commentSchema
 	.merge(resolutionSchema.omit({ id: true }))
 	.extend({
 		id: z.string(),
-		resolution_id: resolutionSchema.shape.id,
-		ResolutionID: z.number(),
+		resolution_id: resolutionSchema.shape.id.nullable(),
+		ResolutionID: z.number().nullable(),
 		ResolutionCount: z.number(),
 		CID: z.string(),
-		LastModifiedName: z.string(),
+		LastModifiedName: z.string().nullable(),
 	});
+export const commentResolutionsSchema = commentResolutionSchema.array();
 
 export const commentResolutionQuerySchema = z
 	.object({
@@ -110,3 +108,11 @@ export const commentsExportParamsSchema = z.object({
 export type CommentsExportParams = z.infer<typeof commentsExportParamsSchema>;
 export type CommentsExportFormat = z.infer<typeof commentsExportFormatSchema>;
 export type CommentsExportStyle = z.infer<typeof commentsExportStyleSchema>;
+
+export const uploadCommentsResponseSchema = z.object({
+	comments: commentResolutionsSchema,
+	ballot: ballotSchema,
+});
+export type UploadCommentsResponse = z.infer<
+	typeof uploadCommentsResponseSchema
+>;

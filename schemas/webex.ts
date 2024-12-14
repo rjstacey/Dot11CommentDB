@@ -1,23 +1,6 @@
 import { z } from "zod";
 import { groupIdSchema } from "./groups";
-import { sessionIdSchema } from "./sessions";
 import { oAuthAccountSchema } from "./oauthAccounts";
-
-export const webexAccountCreateSchema = z.object({
-	name: z.string(),
-});
-
-export const webexAccountChangeSchema = webexAccountCreateSchema.partial();
-
-export const webexAccountsQuery = z.object({
-	id: z.number().optional(),
-	name: z.string().optional(),
-	groupId: groupIdSchema.optional(),
-});
-
-export type WebexAccountCreate = z.infer<typeof webexAccountCreateSchema>;
-export type WebexAccountChange = z.infer<typeof webexAccountChangeSchema>;
-export type WebexAccountsQuery = z.infer<typeof webexAccountsQuery>;
 
 export const webexMeetingAlwaysSchema = z.object({
 	accountId: z.number(),
@@ -227,6 +210,7 @@ export const webexMeetingDeleteSchema = webexMeetingSchema.pick({
 });
 export const webexMeetingDeletesSchema = webexMeetingDeleteSchema.array();
 
+/** Query schema. Will coerce strings to numbers so that it can be used with URL search params. */
 export const webexMeetingsQuerySchema = z
 	.object({
 		groupId: groupIdSchema,
@@ -301,6 +285,11 @@ export const webexSitesSchema = z.object({
 });
 export type WebexSites = z.infer<typeof webexSitesSchema>;
 
+export type WebexMeeting = z.infer<typeof webexMeetingSchema>;
+export type WebexMeetingCreate = z.infer<typeof webexMeetingCreateSchema>;
+export type WebexMeetingChange = z.infer<typeof webexMeetingChangeSchema>;
+export type WebexMeetingDelete = z.infer<typeof webexMeetingDeleteSchema>;
+
 export const webexAccountSchema = oAuthAccountSchema
 	.omit({ authParams: true })
 	.extend({
@@ -315,9 +304,21 @@ export const webexAccountSchema = oAuthAccountSchema
 	});
 export const webexAccountsSchema = webexAccountSchema.array();
 
-export type WebexAccount = z.infer<typeof webexAccountSchema>;
+export const webexAccountCreateSchema = z.object({
+	name: z.string(),
+});
 
-export type WebexMeeting = z.infer<typeof webexMeetingSchema>;
-export type WebexMeetingCreate = z.infer<typeof webexMeetingCreateSchema>;
-export type WebexMeetingChange = z.infer<typeof webexMeetingChangeSchema>;
-export type WebexMeetingDelete = z.infer<typeof webexMeetingDeleteSchema>;
+export const webexAccountChangeSchema = webexAccountCreateSchema.partial();
+
+export const webexAccountsQuery = z
+	.object({
+		id: z.coerce.number(),
+		name: z.string(),
+		groupId: groupIdSchema,
+	})
+	.partial();
+
+export type WebexAccount = z.infer<typeof webexAccountSchema>;
+export type WebexAccountCreate = z.infer<typeof webexAccountCreateSchema>;
+export type WebexAccountChange = z.infer<typeof webexAccountChangeSchema>;
+export type WebexAccountsQuery = z.infer<typeof webexAccountsQuery>;

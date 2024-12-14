@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ballotsSchema } from "./ballots";
 
 export const resultIdSchema = z.string(); // "{ballot_id}-{SAPIN}"
 
@@ -9,33 +10,22 @@ export const resultSchema = z.object({
 	Email: z.string().email(),
 	Name: z.string(),
 	Affiliation: z.string(),
-	Status: z.string(),
-	lastBallotId: z.number(),
+	Status: z.string().nullable(),
+	lastBallotId: z.number().nullable(),
 	lastSAPIN: z.number(),
 	vote: z.string(),
 	commentCount: z.number(),
 	totalCommentCount: z.number().optional(),
 	notes: z.string().nullable(),
 });
+export const resultsSchema = resultSchema.array();
 
-export const resultsSummarySchema = z.object({
-	Approve: z.number(),
-	Disapprove: z.number(),
-	Abstain: z.number(),
-	InvalidVote: z.number(),
-	InvalidAbstain: z.number(),
-	InvalidDisapprove: z.number(),
-	ReturnsPoolSize: z.number(),
-	TotalReturns: z.number(),
-	BallotReturns: z.number(),
-	VotingPoolSize: z.number(),
-	Commenters: z.number(),
-});
-
-export const resultChangeSchema = resultSchema.pick({
-	vote: true,
-	notes: true,
-});
+export const resultChangeSchema = resultSchema
+	.pick({
+		vote: true,
+		notes: true,
+	})
+	.partial();
 export const resultUpdateSchema = z.object({
 	id: resultIdSchema,
 	changes: resultChangeSchema,
@@ -43,6 +33,11 @@ export const resultUpdateSchema = z.object({
 export const resultUpdatesSchema = resultUpdateSchema.array();
 
 export type Result = z.infer<typeof resultSchema>;
-export type ResultsSummary = z.infer<typeof resultsSummarySchema>;
 export type ResultChange = z.infer<typeof resultChangeSchema>;
 export type ResultUpdate = z.infer<typeof resultUpdateSchema>;
+
+export const getResultsResponseSchema = z.object({
+	ballots: ballotsSchema,
+	results: resultsSchema,
+});
+export type GetResultsResponse = z.infer<typeof getResultsResponseSchema>;
