@@ -35,6 +35,9 @@ import styles from "./comments.module.css";
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";
 
+// Comment fields editable by this module
+type CommentEditable = Omit<Comment, "id">;
+
 const ShowMultiple = (props: React.ComponentProps<"span">) => (
 	<span className={styles.multiple} {...props}>
 		{MULTIPLE_STR}
@@ -62,7 +65,7 @@ export function renderMBS({
 	);
 }
 
-export function renderCommenter(comment: Multiple<CommentNoId>) {
+export function renderCommenter(comment: Multiple<CommentEditable>) {
 	const commenter = comment.CommenterName;
 	if (isMultiple(commenter)) {
 		return <ShowMultiple />;
@@ -110,7 +113,7 @@ export const CommentAdHoc = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<CommentNoId>;
+	comment: Multiple<CommentEditable>;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
@@ -143,7 +146,7 @@ export const CommentGroup = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<CommentNoId>;
+	comment: Multiple<CommentEditable>;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
@@ -170,7 +173,7 @@ export function CommentNotes({
 	forceShowNotes,
 	readOnly,
 }: {
-	comment: Multiple<CommentNoId>;
+	comment: Multiple<CommentEditable>;
 	updateComment?: (changes: Partial<Comment>) => void;
 	forceShowNotes?: boolean;
 	readOnly?: boolean;
@@ -217,7 +220,7 @@ export const CommentCategorization = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<CommentNoId>;
+	comment: Multiple<CommentEditable>;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
@@ -253,7 +256,7 @@ function CommentPage({
 	setComment,
 	readOnly,
 }: {
-	comment: Multiple<CommentNoId>;
+	comment: Multiple<CommentEditable>;
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -324,7 +327,7 @@ function CommentClause({
 	setComment,
 	readOnly,
 }: {
-	comment: Multiple<CommentNoId>;
+	comment: Multiple<CommentEditable>;
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -359,14 +362,12 @@ function CommentClause({
 	);
 }
 
-type CommentNoId = Omit<Comment, "id">;
-
 export function CommentBasics({
 	comment,
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<CommentNoId>;
+	comment: Multiple<CommentEditable>;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -470,7 +471,7 @@ export function CommentEdit({
 		setSaved(edited);
 	});
 
-	const updateComment = (changes: Partial<CommentNoId>) => {
+	const updateComment = (changes: Partial<CommentEditable>) => {
 		if (readOnly) {
 			console.warn("Comment update while read-only");
 			return;

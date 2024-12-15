@@ -21,7 +21,7 @@ import {
 	ResolutionApproval,
 	ResolutionAndStatus,
 } from "./ResolutionEdit";
-import { EditingEdit } from "./EditingEdit";
+import { EditingEdit } from "./ResolutionEditingEdit";
 
 import styles from "./CommentHistory.module.css";
 

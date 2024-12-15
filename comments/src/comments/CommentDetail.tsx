@@ -16,7 +16,7 @@ import {
 import CommentHistory from "./CommentHistory";
 import CommentEdit from "./CommentEdit";
 import ResolutionEdit from "./ResolutionEdit";
-import EditingEdit from "./EditingEdit";
+import EditingEdit from "./ResolutionEditingEdit";
 
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {

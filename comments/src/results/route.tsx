@@ -29,9 +29,7 @@ const ballotIdLoader: LoaderFunction = async ({ params }) => {
 
 	if (isOnline) await dispatch(loadBallots(groupName));
 
-	let ballot: Ballot | undefined;
-	ballot = selectBallotByBallotID(getState(), ballotId);
-
+	const ballot = selectBallotByBallotID(getState(), ballotId);
 	if (ballot) {
 		dispatch(setCurrentBallot_id(ballot.id));
 
