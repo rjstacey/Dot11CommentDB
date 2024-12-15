@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { groupIdSchema } from "./groups";
 import { resolutionSchema } from "./resolutions";
-import { ballotSchema } from "./ballots";
+import { commentsSummarySchema } from "./ballots";
 
 const categoryTypeSchema = z.enum(["T", "E", "G"]);
 export type CategoryType = z.infer<typeof categoryTypeSchema>;
@@ -111,7 +111,7 @@ export type CommentsExportStyle = z.infer<typeof commentsExportStyleSchema>;
 
 export const uploadCommentsResponseSchema = z.object({
 	comments: commentResolutionsSchema,
-	ballot: ballotSchema,
+	ballot: z.object({ id: z.number(), Comments: commentsSummarySchema }),
 });
 export type UploadCommentsResponse = z.infer<
 	typeof uploadCommentsResponseSchema
