@@ -6,7 +6,6 @@ import {
 	loadBallots,
 	selectBallotByBallotID,
 	setCurrentBallot_id,
-	Ballot,
 } from "../store/ballots";
 import { selectGroup } from "../store/groups";
 import { clearResults, loadResults } from "../store/results";

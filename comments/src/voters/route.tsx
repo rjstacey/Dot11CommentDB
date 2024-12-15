@@ -8,7 +8,6 @@ import {
 	selectBallotByBallotID,
 	selectBallotSeriesId,
 	setCurrentBallot_id,
-	Ballot,
 } from "../store/ballots";
 import { clearVoters, loadVoters } from "../store/voters";
 
