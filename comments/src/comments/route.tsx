@@ -7,7 +7,6 @@ import {
 	loadBallots,
 	selectBallotByBallotID,
 	setCurrentBallot_id,
-	Ballot,
 } from "../store/ballots";
 import { clearComments, loadComments } from "../store/comments";
 
