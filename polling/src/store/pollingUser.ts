@@ -10,7 +10,7 @@ import {
 	pollUpdatedSchema,
 	pollDeletedSchema,
 	Poll,
-} from "../schemas/poll";
+} from "@schemas/poll";
 import { RootState, store } from ".";
 
 const pollsAdapter = createEntityAdapter<Poll>();

@@ -4,11 +4,10 @@ import { store } from "../store";
 import { AccessLevel } from "../store/user";
 import {
 	loadGroups,
-	selectGroupByName,
+	selectTopLevelGroupByName,
 	selectSelectedGroup,
 	selectSubgroupByName,
 	setSelectedGroupId,
-	setSelectedSubgroupId,
 } from "../store/groups";
 
 import { loadTimeZones } from "../store/timeZones";
@@ -41,7 +40,7 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	await dispatch(loadGroups());
 
 	// Check permissions
-	const group = selectGroupByName(getState(), groupName);
+	const group = selectTopLevelGroupByName(getState(), groupName);
 	if (!group) throw new Error(`Group ${groupName} not found`);
 	const access = group.permissions.members || AccessLevel.none;
 	if (access < AccessLevel.ro)
@@ -54,7 +53,7 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 };
 
 const subgroupIndexLoader: LoaderFunction = async () => {
-	store.dispatch(setSelectedSubgroupId(null));
+	store.dispatch(setSelectedGroupId(null));
 	return null;
 };
 
@@ -72,7 +71,7 @@ const subgroupLoader: LoaderFunction = async ({ params }) => {
 			? selectSelectedGroup(getState())
 			: selectSubgroupByName(getState(), subgroupName);
 
-	dispatch(setSelectedSubgroupId(subgroup?.id || null));
+	dispatch(setSelectedGroupId(subgroup?.id || null));
 
 	return null;
 };

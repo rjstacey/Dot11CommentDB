@@ -2,7 +2,7 @@ import { createSlice, isPlainObject } from "@reduxjs/toolkit";
 import { io, Socket } from "socket.io-client";
 import z from "zod";
 import { setError } from "dot11-components";
-import { GroupJoin, PollingError, PollingOK } from "../schemas/poll";
+import { GroupJoin, PollingError, PollingOK } from "@schemas/poll";
 import { AppThunk, RootState } from ".";
 import { selectUser } from "./user";
 import { pollingAdminEventsGet } from "./pollingAdmin";

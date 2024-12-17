@@ -5,8 +5,8 @@ import { Select } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
 import {
+	selectTopLevelGroup,
 	selectSelectedGroup,
-	selectSelectedSubgroup,
 	selectSubgroups,
 	selectTopLevelGroups,
 	Group,
@@ -21,8 +21,8 @@ export function GroupSelector(
 	>
 ) {
 	const navigate = useNavigate();
-	const group = useAppSelector(selectSelectedGroup);
-	const subgroup = useAppSelector(selectSelectedSubgroup);
+	const group = useAppSelector(selectTopLevelGroup);
+	const subgroup = useAppSelector(selectSelectedGroup);
 
 	const groupOptions = useAppSelector(selectTopLevelGroups);
 	const subgroupOptions = useAppSelector(selectSubgroups);

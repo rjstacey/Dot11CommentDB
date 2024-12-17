@@ -10,13 +10,13 @@ import {
 
 import PollAdmin from "../admin";
 import PollUser from "../user";
-import { selectSelectedSubgroup } from "../store/groups";
+import { selectSelectedGroup } from "../store/groups";
 
 function Polling() {
 	const [searchParams] = useSearchParams();
 	const dispatch = useAppDispatch();
 
-	const group = useAppSelector(selectSelectedSubgroup);
+	const group = useAppSelector(selectSelectedGroup);
 
 	React.useEffect(() => {
 		dispatch(pollingSocketConnect());

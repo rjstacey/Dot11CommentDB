@@ -23,7 +23,7 @@ import {
 	pollsGetResponseSchema,
 	pollCreateResponseSchema,
 	pollUpdateResponseSchema,
-} from "../schemas/poll";
+} from "@schemas/poll";
 import { AppThunk, RootState } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
 
