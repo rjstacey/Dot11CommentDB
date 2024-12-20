@@ -252,7 +252,7 @@ export const selectCurrentBallotID = (state: RootState) => {
 	const { currentBallot_id, entities } = selectBallotsState(state);
 	if (currentBallot_id === null) return;
 	const ballot = entities[currentBallot_id]!;
-	return getBallotId(ballot);
+	return ballot ? getBallotId(ballot) : undefined;
 };
 
 export const selectBallots = createSelector(

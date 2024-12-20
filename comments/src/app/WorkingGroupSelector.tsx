@@ -5,12 +5,12 @@ import { createSelector } from "@reduxjs/toolkit";
 import { Select } from "dot11-components";
 
 import { useAppSelector } from "../store/hooks";
-import { selectWorkingGroups } from "../store/groups";
+import { selectTopLevelGroups } from "../store/groups";
 import { AccessLevel } from "../store/user";
 
 import styles from "./app.module.css";
 
-const selectOptions = createSelector(selectWorkingGroups, (groups) =>
+const selectOptions = createSelector(selectTopLevelGroups, (groups) =>
 	groups.map((g) => {
 		const access = g.permissions.comments || AccessLevel.none;
 		return { ...g, disabled: access < AccessLevel.ro };
