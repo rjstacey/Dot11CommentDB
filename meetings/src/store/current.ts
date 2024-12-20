@@ -1,8 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-import type { RootState, AppThunk } from ".";
+import type { RootState } from ".";
 import { selectSessionEntities } from "./sessions";
-import { selectWorkingGroup } from "./groups";
+import { selectTopLevelGroup } from "./groups";
 
 export type GroupDefaults = {
 	meetingId: string;
@@ -76,14 +76,6 @@ export const selectGroupDefaults = (state: RootState, groupId: string) =>
 	selectCurrentState(state).groupDefaults[groupId] || initDefaults;
 
 export const selectCurrentGroupDefaults = (state: RootState) => {
-	const group = selectWorkingGroup(state);
+	const group = selectTopLevelGroup(state);
 	return selectGroupDefaults(state, group?.name || "");
 };
-
-/* Thunk actions */
-export const updateCurrentGroupDefaults =
-	(changes: Partial<GroupDefaults>): AppThunk =>
-	async (dispatch, getState) => {
-		const groupName = selectWorkingGroup(getState())?.name || "";
-		dispatch(updateGroupDefaults({ groupName, changes }));
-	};

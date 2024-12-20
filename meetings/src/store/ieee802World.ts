@@ -14,7 +14,7 @@ import {
 } from "dot11-components";
 
 import type { AppThunk, RootState } from ".";
-import { selectGroupsState, selectWorkingGroup } from "./groups";
+import { selectGroupsState, selectTopLevelGroup } from "./groups";
 import { selectCurrentSessionId } from "./current";
 import { selectSessionEntities, selectCurrentSession } from "./sessions";
 import { addMeetings, selectMeetingEntities, MeetingCreate } from "./meetings";
@@ -118,7 +118,7 @@ export const selectSynced802WorldEntities = createSelector(
 	select802WorldEntities,
 	selectMeetingEntities,
 	selectCurrentSession,
-	selectWorkingGroup,
+	selectTopLevelGroup,
 	(ids, entities, meetingEntities, session, workingGroup) => {
 		const newEntities: Record<EntityId, SyncedIeee802WorldScheduleEntry> =
 			{};
