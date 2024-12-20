@@ -1,5 +1,7 @@
+import EventPanel from "./eventPanel";
+
 function PollUser() {
-	return <div>User</div>;
+	return <EventPanel />;
 }
 
 export default PollUser;

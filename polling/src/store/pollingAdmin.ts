@@ -20,6 +20,8 @@ import {
 	PollUpdate,
 	PollDelete,
 	PollAction,
+	PollState,
+	PollType,
 	pollsGetResponseSchema,
 	pollCreateResponseSchema,
 	pollUpdateResponseSchema,
@@ -27,7 +29,8 @@ import {
 import { AppThunk, RootState } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
 
-type PollState = null | "shown" | "opened" | "closed";
+export type { Event, EventCreate, Poll, PollType };
+
 const eventsAdapter = createEntityAdapter<Event>();
 const sortComparer = (p1: Poll, p2: Poll) => p1.index - p2.index;
 const pollsAdapter = createEntityAdapter<Poll>({ sortComparer });
@@ -35,8 +38,8 @@ const pollsAdapter = createEntityAdapter<Poll>({ sortComparer });
 /* Create slice */
 const initialState = {
 	eventId: null as number | null,
-	pollId: null as number | null,
-	pollState: null as PollState,
+	activePollId: null as number | null,
+	selectedPollId: null as number | null,
 	events: eventsAdapter.getInitialState(),
 	polls: pollsAdapter.getInitialState(),
 };
@@ -48,11 +51,11 @@ const slice = createSlice({
 		setEventId(state, action: PayloadAction<number | null>) {
 			state.eventId = action.payload;
 		},
-		setPollId(state, action: PayloadAction<number | null>) {
-			state.pollId = action.payload;
+		setActivePollId(state, action: PayloadAction<number | null>) {
+			state.activePollId = action.payload;
 		},
-		setPollState(state, action: PayloadAction<PollState>) {
-			state.pollState = action.payload;
+		setSelectedPollId(state, action: PayloadAction<number | null>) {
+			state.selectedPollId = action.payload;
 		},
 		setEvents(state, action: PayloadAction<Event[]>) {
 			eventsAdapter.setAll(state.events, action.payload);
@@ -78,6 +81,9 @@ const slice = createSlice({
 		addPoll(state, action: PayloadAction<Poll>) {
 			pollsAdapter.addOne(state.polls, action.payload);
 		},
+		updatePoll(state, action: PayloadAction<PollUpdate>) {
+			pollsAdapter.updateOne(state.polls, action.payload);
+		},
 		removePoll(state, action: PayloadAction<number>) {
 			pollsAdapter.removeOne(state.polls, action.payload);
 		},
@@ -97,29 +103,39 @@ const {
 	setPolls,
 	setPoll,
 	addPoll,
+	updatePoll,
 	removePoll,
-	setPollId,
-	setPollState,
+	setSelectedPollId,
+	setActivePollId,
 } = slice.actions;
 
+export { setSelectedPollId };
+
 /** Selectors */
-const selectPollingAdminState = (state: RootState) => state[dataSet];
+export const selectPollingAdminState = (state: RootState) => state[dataSet];
 export const selectPollingAdminEventId = (state: RootState) =>
 	selectPollingAdminState(state).eventId;
-export const selectPollingAdminPollId = (state: RootState) =>
-	selectPollingAdminState(state).pollId;
+export const selectPollingAdminSelectedPollId = (state: RootState) =>
+	selectPollingAdminState(state).selectedPollId;
+export const selectPollingAdminActivePollId = (state: RootState) =>
+	selectPollingAdminState(state).activePollId;
 export const selectPollingAdminEventIds = (state: RootState) =>
 	selectPollingAdminState(state).events.ids;
 export const selectPollingAdminEventEntities = (state: RootState) =>
-	selectPollingAdminState(state).events.ids;
+	selectPollingAdminState(state).events.entities;
 
 export const selectPollAdminEvent = (state: RootState) => {
 	const { eventId, events } = selectPollingAdminState(state);
 	return eventId ? events.entities[eventId] : undefined;
 };
 
-export const selectPollAdminPoll = (state: RootState) => {
-	const { pollId, polls } = selectPollingAdminState(state);
+export const selectPollingAdminSelectedPoll = (state: RootState) => {
+	const { selectedPollId: pollId, polls } = selectPollingAdminState(state);
+	return pollId ? polls.entities[pollId] : undefined;
+};
+
+export const selectPollingAdminActivePoll = (state: RootState) => {
+	const { activePollId: pollId, polls } = selectPollingAdminState(state);
 	return pollId ? polls.entities[pollId] : undefined;
 };
 
@@ -241,7 +257,7 @@ export const pollingAdminAddPoll =
 				pollCreateResponseSchema
 			);
 			dispatch(addPoll(poll));
-			dispatch(setPollId(poll.id));
+			dispatch(setSelectedPollId(poll.id));
 		} catch (error: any) {
 			dispatch(handleError(error));
 		}
@@ -273,49 +289,24 @@ export const pollingAdminDeletePoll =
 		}
 	};
 
-export const pollingAdminSelectPoll =
-	(id: number | null): AppThunk =>
+export const pollingAdminPollAction =
+	(pollId: number, action: PollAction): AppThunk =>
 	async (dispatch, getState) => {
 		try {
-			const { pollId } = selectPollingAdminState(getState());
-			if (pollId !== id) dispatch(setPollState(null));
-			dispatch(setPollId(id));
-		} catch (error: any) {
-			dispatch(handleError(error));
-		}
-	};
-
-export const pollingAdminShowPoll =
-	(id: number): AppThunk =>
-	async (dispatch) => {
-		try {
-			dispatch(setPollId(id));
-			await pollingSocketEmit("poll:show", id satisfies PollAction);
-			dispatch(setPollState("shown"));
-		} catch (error: any) {
-			dispatch(handleError(error));
-		}
-	};
-
-export const pollingAdminOpenPoll =
-	(id: number): AppThunk =>
-	async (dispatch) => {
-		try {
-			dispatch(setPollId(id));
-			await pollingSocketEmit("poll:open", id satisfies PollAction);
-			dispatch(setPollState("opened"));
-		} catch (error: any) {
-			dispatch(handleError(error));
-		}
-	};
-
-export const pollingAdminClosePoll =
-	(id: number): AppThunk =>
-	async (dispatch) => {
-		try {
-			dispatch(setPollId(id));
-			await pollingSocketEmit("poll:close", id satisfies PollAction);
-			dispatch(setPollState("closed"));
+			const activePoll = selectPollingAdminActivePoll(getState());
+			if (activePoll && activePoll.state && pollId !== activePoll.id) {
+				await pollingSocketEmit("poll:unshow", activePoll.id);
+			}
+			dispatch(setActivePollId(pollId));
+			console.log("emit");
+			await pollingSocketEmit("poll:" + action, pollId);
+			console.log("done");
+			let state: PollState = null;
+			if (action === "show") state = "shown";
+			else if (action === "open") state = "opened";
+			else if (action === "close") state = "closed";
+			console.log({ id: pollId, changes: { state } });
+			dispatch(updatePoll({ id: pollId, changes: { state } }));
 		} catch (error: any) {
 			dispatch(handleError(error));
 		}

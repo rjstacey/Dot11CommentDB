@@ -149,15 +149,11 @@ function SubjectEditor({
 }
 
 function Editor({
-	subject,
 	body,
-	onChangeSubject,
 	onChangeBody,
 	preview,
 }: {
-	subject: string;
 	body: string;
-	onChangeSubject: (value: string) => void;
 	onChangeBody: (value: string) => void;
 	preview: boolean;
 }) {
@@ -178,11 +174,6 @@ function Editor({
 		<LexicalComposer initialConfig={editorConfig}>
 			<div className={styles.container}>
 				<ToolbarPlugin />
-				<SubjectEditor
-					subject={subject}
-					onChangeSubject={onChangeSubject}
-					readOnly={preview}
-				/>
 				{preview ? (
 					<div
 						className={styles.bodyContainer}

@@ -1,11 +1,11 @@
 import { DateTime } from "luxon";
 import { displayDate } from "dot11-components";
-import { Event } from "../schemas/poll";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
 	selectPollingAdminEvents,
 	pollingAdminSelectEvent,
 	selectPollingAdminEventId,
+	Event,
 } from "../store/pollingAdmin";
 import css from "./admin.module.css";
 

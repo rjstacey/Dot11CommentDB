@@ -1,0 +1,25 @@
+.body {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	flex: 1;
+}
+
+.event {
+	display: flex;
+	flex-direction: column;
+	padding: 6px 12px;
+}
+
+.pollRow {
+	display: flex;
+	padding: 5px;
+	margin: 5px;
+	border: solid 1px;
+}
+
+.pollEntry {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+}

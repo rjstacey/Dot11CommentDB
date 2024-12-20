@@ -5,13 +5,12 @@ import { setError } from "dot11-components";
 import { GroupJoin, PollingError, PollingOK } from "@schemas/poll";
 import { AppThunk, RootState } from ".";
 import { selectUser } from "./user";
-import { pollingAdminEventsGet } from "./pollingAdmin";
 import { selectSelectedGroupId } from "./groups";
+import { pollingAdminEventsGet } from "./pollingAdmin";
+import { pollingUserSocketRegister } from "./pollingUser";
 
 /* Create slice */
-const initialState: {
-	isConnected: boolean;
-} = {
+const initialState = {
 	isConnected: false,
 };
 const dataSet = "pollingSocket";
@@ -138,6 +137,7 @@ export const pollingSocketConnect =
 	(): AppThunk => async (dispatch, getState) => {
 		const user = selectUser(getState());
 		socket = io("/poll", { query: { token: user.Token } });
+		pollingUserSocketRegister(socket);
 		socket.on("connect", () => {
 			console.log("connect");
 			assertHasSocket(socket);

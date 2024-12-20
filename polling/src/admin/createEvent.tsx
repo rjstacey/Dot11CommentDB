@@ -12,8 +12,7 @@ import {
 	InputTime,
 } from "dot11-components";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
-import { pollingAdminCreateEvent } from "../store/pollingAdmin";
-import { EventCreate } from "../schemas/poll";
+import { pollingAdminCreateEvent, EventCreate } from "../store/pollingAdmin";
 import TimeZoneSelector from "./TimeZoneSelector";
 import { selectSelectedGroupId } from "../store/groups";
 

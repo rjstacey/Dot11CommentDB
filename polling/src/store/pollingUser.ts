@@ -1,6 +1,7 @@
 import {
 	createSlice,
 	createEntityAdapter,
+	createSelector,
 	PayloadAction,
 } from "@reduxjs/toolkit";
 import { Socket } from "socket.io-client";
@@ -9,24 +10,31 @@ import {
 	pollAddedSchema,
 	pollUpdatedSchema,
 	pollDeletedSchema,
+	pollIdSchema,
+	Event,
 	Poll,
+	PollAction,
 } from "@schemas/poll";
 import { RootState, store } from ".";
+
+export type { Event, Poll };
 
 const pollsAdapter = createEntityAdapter<Poll>();
 
 /* Create slice */
 const initialState = {
-	eventId: null as number | null,
+	event: null as Event | null,
 	polls: pollsAdapter.getInitialState(),
+	pollId: null as number | null,
+	pollAction: null as PollAction | null,
 };
 const dataSet = "pollingUser";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		setEventId(state, action: PayloadAction<number | null>) {
-			state.eventId = action.payload;
+		setEvent(state, action: PayloadAction<Event | null>) {
+			state.event = action.payload;
 		},
 		setPolls(state, action: PayloadAction<Poll[]>) {
 			pollsAdapter.setAll(state.polls, action.payload);
@@ -40,25 +48,42 @@ const slice = createSlice({
 		removePoll(state, action: PayloadAction<number>) {
 			pollsAdapter.removeOne(state.polls, action.payload);
 		},
+		setPollAction(
+			state,
+			action: PayloadAction<{
+				pollId: number;
+				pollAction: PollAction | null;
+			}>
+		) {
+			const { pollId, pollAction } = action.payload;
+			state.pollId = pollId;
+			state.pollAction = pollAction;
+		},
 	},
 });
 
 export default slice;
 
 /** Slice actions */
-const { setEventId, setPolls, setPoll, addPoll, removePoll } = slice.actions;
+const { setEvent, setPolls, setPoll, addPoll, removePoll, setPollAction } =
+	slice.actions;
 
 /** Selectors */
 const selectPollingUserState = (state: RootState) => state[dataSet];
-export const selectPollingUserEventId = (state: RootState) =>
-	selectPollingUserState(state).eventId;
+export const selectPollingUserEvent = (state: RootState) =>
+	selectPollingUserState(state).event;
+export const selectPollingUserPolls = createSelector(
+	(state: RootState) => selectPollingUserState(state).polls,
+	(polls) => pollsAdapter.getSelectors().selectAll(polls)
+);
 
 /** Thunk actions */
-function pollingUserPollsSet(params: any, cb: Function) {
+function pollingUserEventOpened(params: any, cb: Function) {
 	const { dispatch } = store;
 	try {
 		const p = eventOpenedSchema.parse(params);
-		dispatch(setEventId(p.eventId));
+		console.log("event opened", p.event);
+		dispatch(setEvent(p.event));
 		dispatch(setPolls(p.polls));
 	} catch (error) {
 		console.log("event opened", error);
@@ -95,10 +120,33 @@ function pollingUserPollRemoved(params: any, cb: Function) {
 	}
 }
 
+function pollingUserPollAction(
+	pollAction: PollAction,
+	params: any,
+	cb: Function
+) {
+	const { dispatch } = store;
+	try {
+		const pollId = pollIdSchema.parse(params);
+		dispatch(setPollAction({ pollId, pollAction }));
+	} catch (error) {
+		console.log("poll " + pollAction, error);
+	}
+}
+
 export function pollingUserSocketRegister(socket: Socket) {
 	socket
-		.on("polls:set", pollingUserPollsSet)
+		.on("event:opened", pollingUserEventOpened)
 		.on("poll:added", pollingUserPollAdded)
 		.on("poll:updated", pollingUserPollUpdated)
-		.on("poll:removed", pollingUserPollRemoved);
+		.on("poll:removed", pollingUserPollRemoved)
+		.on("poll:shown", (params: any, cb: Function) =>
+			pollingUserPollAction("show", params, cb)
+		)
+		.on("poll:opened", (params: any, cb: Function) =>
+			pollingUserPollAction("open", params, cb)
+		)
+		.on("poll:closed", (params: any, cb: Function) =>
+			pollingUserPollAction("close", params, cb)
+		);
 }

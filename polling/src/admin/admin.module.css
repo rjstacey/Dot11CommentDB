@@ -102,6 +102,13 @@
 	background-color: lightgreen;
 }
 
+.pollState {
+	display: flex;
+	padding: 5px;
+	margin: 5px;
+	border: solid 1px;
+}
+
 .columnChoice {
 	display: flex;
 	flex-direction: column;

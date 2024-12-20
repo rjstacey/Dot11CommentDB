@@ -1,13 +1,13 @@
 import React from "react";
-import { AppModal, Form, Row, Button } from "dot11-components";
-import { Poll, PollType } from "../schemas/poll";
+import { AppModal, Row, Button } from "dot11-components";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
-	pollingAdminOpenPoll,
-	pollingAdminClosePoll,
-	pollingAdminSelectPoll,
+	selectPollingAdminSelectedPoll,
 	pollingAdminUpdatePoll,
-	selectPollAdminPoll,
+	setSelectedPollId,
+	Poll,
+	PollType,
+	pollingAdminPollAction,
 } from "../store/pollingAdmin";
 import Editor from "../editor/Editor";
 import cn from "./admin.module.css";
@@ -75,6 +75,16 @@ function PollTitle({
 	);
 }
 
+function PollOptions() {
+	return (
+		<ul>
+			<li>Yes</li>
+			<li>No</li>
+			<li>Abstain</li>
+		</ul>
+	);
+}
+
 function titlePrefix(poll: Poll) {
 	let prefix = "";
 	if (poll.autoNumber)
@@ -89,12 +99,18 @@ function PollForm({ poll, close }: { poll: Poll; close: () => void }) {
 	const dispatch = useAppDispatch();
 	const [editPoll, setEditPoll] = React.useState(poll);
 
-	function startPoll() {
-		dispatch(pollingAdminOpenPoll(poll.id));
+	function toggleShowPoll() {
+		dispatch(
+			pollingAdminPollAction(poll.id, poll.state ? "unshow" : "show")
+		);
 	}
 
-	function stopPoll() {
-		dispatch(pollingAdminClosePoll(poll.id));
+	function openPoll() {
+		dispatch(pollingAdminPollAction(poll.id, "open"));
+	}
+
+	function closePoll() {
+		dispatch(pollingAdminPollAction(poll.id, "close"));
 	}
 
 	function changePoll(changes: Partial<Poll>) {
@@ -130,9 +146,19 @@ function PollForm({ poll, close }: { poll: Poll; close: () => void }) {
 					value={editPoll.autoNumber}
 					onChange={(autoNumber) => changePoll({ autoNumber })}
 				/>
-				<Button onClick={startPoll}>Start</Button>
-				<Button onClick={stopPoll}>Stop</Button>
-				<Button onClick={close}>Close</Button>
+				<Button
+					isActive={poll.state === "shown"}
+					onClick={toggleShowPoll}
+				>
+					Show
+				</Button>
+				<Button isActive={poll.state === "opened"} onClick={openPoll}>
+					Open
+				</Button>
+				<Button isActive={poll.state === "closed"} onClick={closePoll}>
+					Close
+				</Button>
+				<Button onClick={close}>x</Button>
 			</Row>
 			<Row>
 				<PollTitle
@@ -140,24 +166,25 @@ function PollForm({ poll, close }: { poll: Poll; close: () => void }) {
 					onChange={(title) => changePoll({ title })}
 				/>
 			</Row>
-			<Form>
+			<Row>
 				<Editor
-					subject={editPoll.title}
 					body={editPoll.body}
-					onChangeSubject={(title) => changePoll({ title })}
 					onChangeBody={(body) => changePoll({ body })}
 					preview={false}
 				/>
-			</Form>
+			</Row>
+			<Row>
+				<PollOptions />
+			</Row>
 		</>
 	);
 }
 
 function PollModal() {
 	const dispatch = useAppDispatch();
-	const poll = useAppSelector(selectPollAdminPoll);
+	const poll = useAppSelector(selectPollingAdminSelectedPoll);
 	function close() {
-		dispatch(pollingAdminSelectPoll(null));
+		dispatch(setSelectedPollId(null));
 	}
 	return (
 		<AppModal
