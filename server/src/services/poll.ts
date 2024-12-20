@@ -68,6 +68,7 @@ export async function getPolls(query: PollsQuery = {}) {
 			"p.eventId, " +
 			"BIN_TO_UUID(e.groupId) as groupId, " +
 			"p.index, " +
+			"p.state, " +
 			"p.title, " +
 			"p.body, " +
 			"p.type, " +

@@ -198,7 +198,9 @@ const legacyColumns: Record<string, Col> = {
 			cell.value = c.Category || "";
 		},
 		get: (v, c) => {
-			c.Category = parseString(v);
+			const cat = parseString(v);
+			if (cat === "T" || cat == "E" || cat === "G") c.Category = cat;
+			else c.Category = "T";
 		},
 	},
 	"Part of No Vote": {
@@ -456,7 +458,9 @@ const modernColumns: Record<string, Col> = {
 			cell.value = c.Category || "";
 		},
 		get: (v, c) => {
-			c.Category = parseString(v);
+			const cat = parseString(v);
+			if (cat === "T" || cat == "E" || cat === "G") c.Category = cat;
+			else c.Category = "T";
 		},
 	},
 	Clause: {

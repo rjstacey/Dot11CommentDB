@@ -46,7 +46,7 @@ import type {
 	MeetingsQuery,
 	MeetingCreate,
 	MeetingUpdate,
-	MeetingChanges,
+	MeetingChange,
 	MeetingsGetResponse,
 	MeetingsUpdateResponse,
 } from "@schemas/meetings";
@@ -212,7 +212,7 @@ export async function getMeetings(
  *
  * Returns an escaped SQL SET string, e.g., '`hasMotions`=1, `location`="Bar"'
  */
-function meetingToSetSql(e: MeetingChanges) {
+function meetingToSetSql(e: MeetingChange) {
 	const entry: Record<string, any> = {
 		organizationId: e.organizationId,
 		summary: e.summary,
@@ -662,7 +662,7 @@ export async function addMeetings(user: User, meetingsIn: MeetingCreate[]) {
  */
 async function meetingMakeWebexUpdates(
 	meeting: Meeting,
-	changes: MeetingChanges
+	changes: MeetingChange
 ) {
 	let webexMeeting: WebexMeeting | undefined;
 
@@ -796,7 +796,7 @@ async function meetingMakeWebexUpdates(
 async function meetingMakeImatBreakoutUpdates(
 	user: User,
 	meeting: Meeting,
-	changes: MeetingChanges,
+	changes: MeetingChange,
 	session: Session | undefined,
 	webexMeeting: WebexMeeting | undefined
 ) {
@@ -882,7 +882,7 @@ async function meetingMakeImatBreakoutUpdates(
 
 async function meetingMakeCalendarUpdates(
 	meeting: Meeting,
-	changes: MeetingChanges,
+	changes: MeetingChange,
 	session: Session | undefined,
 	workingGroup: Group | undefined,
 	webexMeeting: WebexMeeting | undefined,
@@ -957,7 +957,7 @@ async function meetingMakeCalendarUpdates(
 	return calendarEvent;
 }
 
-async function updateMeetingDB(id: number, changes: MeetingChanges) {
+async function updateMeetingDB(id: number, changes: MeetingChange) {
 	const setSql = meetingToSetSql(changes);
 	if (setSql) {
 		const sql = db.format(
@@ -979,9 +979,9 @@ async function updateMeetingDB(id: number, changes: MeetingChanges) {
 export async function updateMeeting(
 	user: User,
 	id: number,
-	changesIn: MeetingChanges
+	changesIn: MeetingChange
 ) {
-	let changes: MeetingChanges = {
+	let changes: MeetingChange = {
 		...changesIn,
 		webexMeetingId: undefined,
 		imatBreakoutId: undefined,

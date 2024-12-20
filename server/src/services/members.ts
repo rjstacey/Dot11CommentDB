@@ -38,7 +38,6 @@ import {
 import { Group } from "@schemas/groups";
 import { getRecentAttendances } from "./attendances";
 import { getActiveBallotSeriesParticipation } from "./ballotParticipation";
-import { sourceMapsEnabled } from "process";
 
 type UserTypeDB = Omit<UserType, "ContactInfo" | "ContactEmails"> & {
 	ContactInfo: string; // JSON

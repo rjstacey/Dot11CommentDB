@@ -8,10 +8,10 @@ import {
 	EventAdd,
 	EventOpened,
 	EventClosed,
-	PollAction,
 	PollUpdated,
 	PollDeleted,
 	PollCreateResponse,
+	PollAction,
 	groupJoinSchema,
 	eventCreateSchema,
 	eventUpdateSchema,
@@ -21,12 +21,12 @@ import {
 	pollCreateSchema,
 	pollUpdateSchema,
 	pollIdSchema,
-	pollActionSchema,
 	pollsQuerySchema,
 	PollAdded,
 	PollUpdateResponse,
 	PollsGetResponse,
 	EventsGetResponse,
+	PollState,
 } from "@schemas/poll";
 import {
 	addPollEvent,
@@ -119,10 +119,12 @@ async function onEventPublish(
 	try {
 		const groupId = getSocketGroupId(this);
 		const { eventId } = eventPublishSchema.parse(payload);
+		const [event] = await getPollEvents({ id: eventId });
+		if (!event) throw new NotFoundError("No such event id=" + eventId);
 		updatePollEvent({ id: eventId, changes: { isPublished: true } });
 		const polls = await getPolls({ eventId });
 		okCallback(callback);
-		const params: EventOpened = { eventId, polls };
+		const params: EventOpened = { event, polls };
 		this.nsp.to(groupId).emit("event:opened", params);
 	} catch (error) {
 		errorCallback(callback, error);
@@ -273,43 +275,27 @@ async function onPollDelete(this: Socket, payload: unknown, callback: unknown) {
 	}
 }
 
-async function onPollShow(this: Socket, payload: unknown, callback: unknown) {
+/** Show, unshow, open, or close a poll */
+async function onPollAction(
+	this: Socket,
+	action: PollAction,
+	payload: unknown,
+	callback: unknown
+) {
 	if (!validCallback(callback)) return;
 	try {
 		const groupId = getSocketGroupId(this);
-		const id = pollActionSchema.parse(payload);
+		const id = pollIdSchema.parse(payload);
 		const [poll] = await getPolls({ id });
 		if (!poll) throw new TypeError("Poll not found");
+		let state: PollState = null;
+		if (action === "show") state = "shown";
+		else if (action === "open") state = "opened";
+		else if (action === "close") state = "closed";
+		await updatePoll({ id, changes: { state } });
+		console.log("OK");
 		okCallback(callback);
-		this.nsp.to(groupId).emit("poll:shown", id satisfies PollAction);
-	} catch (error) {
-		errorCallback(callback, error);
-	}
-}
-
-async function onPollOpen(this: Socket, payload: unknown, callback: unknown) {
-	if (!validCallback(callback)) return;
-	try {
-		const groupId = getSocketGroupId(this);
-		const id = pollActionSchema.parse(payload);
-		const [poll] = await getPolls({ id });
-		if (!poll) throw new TypeError("Poll not found");
-		okCallback(callback);
-		this.nsp.to(groupId).emit("poll:opened", id satisfies PollAction);
-	} catch (error) {
-		errorCallback(callback, error);
-	}
-}
-
-async function onPollClose(this: Socket, payload: unknown, callback: unknown) {
-	if (!validCallback(callback)) return;
-	try {
-		const groupId = getSocketGroupId(this);
-		const id = pollActionSchema.parse(payload);
-		const [poll] = await getPolls({ id });
-		if (!poll) throw new TypeError("Poll not found");
-		okCallback(callback);
-		this.nsp.to(groupId).emit("poll:closed", id satisfies PollAction);
+		this.nsp.to(groupId).emit("poll:" + (state ? state : "unshown"), id);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -345,6 +331,7 @@ function onConnect(socket: Socket, user: User) {
 		console.log("User " + user.Name + " wants to become an admin");
 		callback(0);
 	});
+	const onPollActionBd = onPollAction.bind(socket);
 	socket
 		.on("group:join", onGroupJoin.bind(socket))
 		.on("group:leave", onGroupLeave.bind(socket))
@@ -358,9 +345,10 @@ function onConnect(socket: Socket, user: User) {
 		.on("poll:create", onPollCreate.bind(socket))
 		.on("poll:update", onPollUpdate.bind(socket))
 		.on("poll:delete", onPollDelete.bind(socket))
-		.on("poll:show", onPollShow.bind(socket))
-		.on("poll:open", onPollOpen.bind(socket))
-		.on("poll:close", onPollClose.bind(socket));
+		.on("poll:show", (params, cb) => onPollActionBd("show", params, cb))
+		.on("poll:unshow", (params, cb) => onPollActionBd("unshow", params, cb))
+		.on("poll:open", (params, cb) => onPollActionBd("open", params, cb))
+		.on("poll:close", (params, cb) => onPollActionBd("close", params, cb));
 }
 
 export default onConnect;
