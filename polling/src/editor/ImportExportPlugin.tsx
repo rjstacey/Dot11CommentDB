@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { $getRoot, LexicalNode, ElementNode } from "lexical";
+import { $getRoot, $isElementNode, type LexicalNode } from "lexical";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
@@ -9,8 +9,8 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { useDebounce } from "dot11-components";
 
 function recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
-	if (!node) return;
-	if (node instanceof ElementNode)
+	if (!$isElementNode(node)) return;
+	if (node.getChildren)
 		node.getChildren().forEach(recursivelyReplaceLinkWithAutoLink);
 	if ($isLinkNode(node)) {
 		const url = node.getURL();
@@ -28,7 +28,7 @@ function InportExportPlugin({
 }: {
 	value: string;
 	onChange: (value: string) => void;
-	readOnly: boolean;
+	readOnly?: boolean;
 }) {
 	const [editor] = useLexicalComposerContext();
 	const doneRef = React.useRef(false);
@@ -36,7 +36,9 @@ function InportExportPlugin({
 	const debouncedOnChange = useDebounce(() => {
 		if (readOnly) return;
 		editor.update(() => {
-			const newValue = $generateHtmlFromNodes(editor, null);
+			let newValue = $getRoot().getTextContent()
+				? $generateHtmlFromNodes(editor)
+				: "";
 			if (newValue !== value) {
 				onChange(newValue);
 			}
@@ -44,28 +46,39 @@ function InportExportPlugin({
 	});
 
 	React.useEffect(() => {
-		if (doneRef.current || !value) return;
+		if (doneRef.current) return;
 		doneRef.current = true;
 
-		editor.update(() => {
-			const parser = new DOMParser();
-			// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
-			let dom = parser.parseFromString(value, "text/html");
-			if (dom.body.firstChild?.nodeType === Node.TEXT_NODE) {
-				const asHtml = value
-					.split("\n")
-					.map((t) => `<p>${t}</p>`)
-					.join("");
-				dom = parser.parseFromString(asHtml, "text/html");
-			}
-			const nodes = $generateNodesFromDOM(editor, dom);
-			$getRoot()
-				.getChildren()
-				.forEach((c) => c.remove());
-			$getRoot().append(...nodes);
+		editor.update(
+			() => {
+				let s = value || "";
+				s = s.replace(/<p><br><\/p>/g, "");
+				s = s.replace(/[\r\n]+/g, "");
+				const parser = new DOMParser();
+				// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
+				let dom = parser.parseFromString(s, "text/html");
+				if (
+					dom.body.firstChild === null ||
+					dom.body.firstChild.nodeType === Node.TEXT_NODE
+				) {
+					const asHtml = s
+						.split("\n")
+						.map((t) => `<p>${t}</p>`)
+						.join("");
+					dom = parser.parseFromString(asHtml, "text/html");
+				}
+				const nodes = $generateNodesFromDOM(editor, dom);
+				$getRoot().clear().select().insertNodes(nodes);
+				//console.log(nodes);
 
-			recursivelyReplaceLinkWithAutoLink($getRoot());
-		});
+				recursivelyReplaceLinkWithAutoLink($getRoot());
+			},
+			{
+				onUpdate: () => {
+					editor.blur();
+				},
+			}
+		);
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 	React.useEffect(() => {

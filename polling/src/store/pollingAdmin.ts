@@ -22,6 +22,7 @@ import {
 	PollAction,
 	PollState,
 	PollType,
+	PollChoice,
 	pollsGetResponseSchema,
 	pollCreateResponseSchema,
 	pollUpdateResponseSchema,
@@ -29,7 +30,10 @@ import {
 import { AppThunk, RootState } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
 
-export type { Event, EventCreate, Poll, PollType };
+export type { Event, EventCreate, Poll, PollType, PollCreate };
+export { PollChoice };
+
+export const motionPollOptions: readonly string[] = ["Yes", "No", "Abstain"];
 
 const eventsAdapter = createEntityAdapter<Event>();
 const sortComparer = (p1: Poll, p2: Poll) => p1.index - p2.index;
@@ -235,21 +239,8 @@ export const pollingAdminDeleteEvent =
 	};
 
 export const pollingAdminAddPoll =
-	(eventId: number): AppThunk =>
+	(pollIn: PollCreate): AppThunk =>
 	async (dispatch, getState) => {
-		const polls = selectPollingAdminPolls(getState());
-		let maxIndex = polls.reduce(
-			(maxIndex, poll) => (maxIndex > poll.index ? maxIndex : poll.index),
-			0
-		);
-		const type = polls.length > 0 ? polls[polls.length - 1].type : "m";
-		const pollIn: PollCreate = {
-			eventId,
-			index: maxIndex + 1,
-			title: "",
-			body: "",
-			type,
-		};
 		try {
 			const { poll } = await pollingSocketEmit(
 				"poll:create",
@@ -298,14 +289,11 @@ export const pollingAdminPollAction =
 				await pollingSocketEmit("poll:unshow", activePoll.id);
 			}
 			dispatch(setActivePollId(pollId));
-			console.log("emit");
 			await pollingSocketEmit("poll:" + action, pollId);
-			console.log("done");
 			let state: PollState = null;
 			if (action === "show") state = "shown";
 			else if (action === "open") state = "opened";
 			else if (action === "close") state = "closed";
-			console.log({ id: pollId, changes: { state } });
 			dispatch(updatePoll({ id: pollId, changes: { state } }));
 		} catch (error: any) {
 			dispatch(handleError(error));
