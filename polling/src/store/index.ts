@@ -14,6 +14,7 @@ import { errorsSlice } from "dot11-components";
 import userSlice from "./user";
 import timeZonesSlice from "./timeZones";
 import groupsSlice from "./groups";
+import membersSlice from "./members";
 import pollingSocketSlice from "./pollingSocket";
 import pollingAdminSlice from "./pollingAdmin";
 import pollingUserSlice from "./pollingUser";
@@ -37,6 +38,7 @@ const appReducer = combineReducers({
 	[userSlice.name]: userSlice.reducer,
 	[timeZonesSlice.name]: timeZonesSlice.reducer,
 	[groupsSlice.name]: groupsSlice.reducer,
+	[membersSlice.name]: membersSlice.reducer,
 	[pollingSocketSlice.name]: pollingSocketSlice.reducer,
 	[pollingAdminSlice.name]: pollingAdminSlice.reducer,
 	[pollingUserSlice.name]: pollingUserSlice.reducer,

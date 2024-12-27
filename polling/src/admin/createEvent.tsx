@@ -146,19 +146,11 @@ function CreateEventDropdown() {
 				methods,
 			}: DropdownRendererProps) => (
 				<Button
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-						fontSize: 10,
-						fontWeight: 700,
-					}}
 					title="Export a list of voters"
 					isActive={state.isOpen}
 					onClick={state.isOpen ? methods.close : methods.open}
 				>
-					<span>Add</span>
-					<span>Event</span>
+					+ Event
 				</Button>
 			)}
 			dropdownRenderer={(props) => <CreateEventForm {...props} />}

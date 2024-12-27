@@ -15,6 +15,7 @@ import { loadTimeZones } from "../store/timeZones";
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
 import Polling from "./polling";
+import { loadMembers } from "src/store/members";
 
 /*
  * Routing loaders
@@ -48,6 +49,7 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 
 	dispatch(setSelectedGroupId(group.id));
 	dispatch(loadGroups(groupName));
+	dispatch(loadMembers(groupName));
 
 	return null;
 };

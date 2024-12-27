@@ -15,6 +15,7 @@ import {
 	motionPollOptions,
 } from "../store/pollingAdmin";
 import Editor from "../editor";
+import LabeledToggle from "../components/toggle";
 import cn from "./pollModal.module.css";
 
 function titlePrefix(type: PollType, index: number) {
@@ -53,47 +54,6 @@ export function defaultStrawpoll(event: Event, polls: Poll[]) {
 		options: [],
 		choice: PollChoice.SINGLE,
 	} satisfies PollCreate;
-}
-
-function LabeledToggle<V = string>({
-	className,
-	label,
-	value,
-	onChange,
-	options,
-}: {
-	className?: string;
-	label: string;
-	value: V;
-	onChange: (value: V) => void;
-	options: { label: string; value: V }[];
-}) {
-	const widestLabel = options.reduce(
-		(w, o) => (o.label.length > w.length ? o.label : w),
-		""
-	);
-	const i = options.findIndex((o) => o.value === value);
-	const selectedLabel = i >= 0 ? options[i].label : "(Blank)";
-
-	function toggle() {
-		let ii = i + 1;
-		if (ii >= options.length) ii = 0;
-		onChange(options[ii].value);
-	}
-	return (
-		<div className={cn.toggle + (className ? " " + className : "")}>
-			<label>{label}</label>
-			<button
-				style={{ position: "relative", cursor: "pointer" }}
-				onClick={toggle}
-			>
-				<span style={{ visibility: "hidden" }}>{widestLabel}</span>
-				<span style={{ position: "absolute", left: 10 }}>
-					{selectedLabel}
-				</span>
-			</button>
-		</div>
-	);
 }
 
 const pollTypeOptions: { label: string; value: PollType }[] = [

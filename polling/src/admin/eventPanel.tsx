@@ -13,9 +13,14 @@ import {
 	pollingAdminUpdateEvent,
 } from "../store/pollingAdmin";
 import { defaultMotion, defaultStrawpoll } from "./pollModal";
+import LabeledToggle from "src/components/toggle";
 import cn from "./admin.module.css";
 import editorCss from "../editor/editor.module.css";
 
+const onOffOptions: { label: string; value: boolean }[] = [
+	{ value: true, label: "On" },
+	{ value: false, label: "Off" },
+];
 function PollAutoNumber({
 	value,
 	onChange,
@@ -24,14 +29,12 @@ function PollAutoNumber({
 	onChange: (value: boolean) => void;
 }) {
 	return (
-		<label className={cn.labeledCheckbox}>
-			<input
-				type="checkbox"
-				checked={value}
-				onChange={(e) => onChange(e.target.checked)}
-			/>
-			<span>Auto number</span>
-		</label>
+		<LabeledToggle
+			label="Auto number:"
+			options={onOffOptions}
+			value={value}
+			onChange={onChange}
+		/>
 	);
 }
 

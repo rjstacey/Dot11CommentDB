@@ -1,0 +1,17 @@
+.toggle {
+	display: flex;
+	flex-wrap: nowrap;
+	border: 1px solid #ddd;
+	border-radius: 5px;
+}
+
+.toggle label {
+	margin: 4px;
+}
+
+.toggle button {
+	border: none;
+	background-color: #eee;
+	padding: 4px 10px;
+	font-weight: 700;
+}
