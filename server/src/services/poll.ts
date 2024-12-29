@@ -20,7 +20,8 @@ export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 			"BIN_TO_UUID(groupId) as groupId, " +
 			"timeZone, " +
 			'DATE_FORMAT(datetime, "%Y-%m-%dT%TZ") as datetime, ' +
-			"isPublished " +
+			"isPublished, " +
+			"autoNumber " +
 		"FROM pollEvents";
 
 	const wheres = Object.entries(query).map(([key, value]) => {
@@ -72,7 +73,8 @@ export async function getPolls(query: PollsQuery = {}) {
 			"p.title, " +
 			"p.body, " +
 			"p.type, " +
-			"p.autoNumber " +
+			"p.options, " +
+			"p.choice " +
 		"FROM polls p LEFT JOIN pollEvents e ON p.eventId=e.id";
 
 	const wheres = Object.entries(query).map(([key, value]) => {
@@ -90,16 +92,30 @@ export async function getPolls(query: PollsQuery = {}) {
 	return polls;
 }
 
+function pollSetSql(poll: Partial<Poll>) {
+	let s: string[] = [];
+	console.log(poll);
+	for (const key of Object.keys(poll)) {
+		if (key === "options")
+			s.push(db.format("options=?", [JSON.stringify(poll.options)]));
+		else s.push(db.format("??=?", [key, poll[key]]));
+	}
+	return s.join(", ");
+}
+
 export async function addPoll(poll: PollCreate) {
-	const sql = db.format("INSERT INTO polls SET ?", [poll]);
+	const sql = "INSERT INTO polls SET " + pollSetSql(poll);
 	const { insertId: id } = await db.query<ResultSetHeader>(sql);
 	const [pollOut] = await getPolls({ id });
 	return pollOut;
 }
 
 export async function updatePoll({ id, changes }: PollUpdate) {
-	const sql = db.format("UPDATE polls SET ? WHERE id=?", [changes, id]);
-	await db.query(sql);
+	const sets = pollSetSql(changes);
+	if (sets) {
+		const sql = "UPDATE polls SET " + sets + " WHERE id=" + db.escape(id);
+		await db.query(sql);
+	}
 	const [pollOut] = await getPolls({ id });
 	return pollOut;
 }

@@ -4,18 +4,8 @@ import {
 	createSelector,
 	PayloadAction,
 } from "@reduxjs/toolkit";
-import { Socket } from "socket.io-client";
-import {
-	eventOpenedSchema,
-	pollAddedSchema,
-	pollUpdatedSchema,
-	pollDeletedSchema,
-	pollIdSchema,
-	Event,
-	Poll,
-	PollAction,
-} from "@schemas/poll";
-import { RootState, store } from ".";
+import { Event, Poll, PollAction } from "@schemas/poll";
+import { RootState } from ".";
 
 export type { Event, Poll };
 
@@ -65,8 +55,14 @@ const slice = createSlice({
 export default slice;
 
 /** Slice actions */
-const { setEvent, setPolls, setPoll, addPoll, removePoll, setPollAction } =
-	slice.actions;
+export const {
+	setEvent,
+	setPolls,
+	setPoll,
+	addPoll,
+	removePoll,
+	setPollAction,
+} = slice.actions;
 
 /** Selectors */
 const selectPollingUserState = (state: RootState) => state[dataSet];
@@ -78,75 +74,3 @@ export const selectPollingUserPolls = createSelector(
 );
 
 /** Thunk actions */
-function pollingUserEventOpened(params: any, cb: Function) {
-	const { dispatch } = store;
-	try {
-		const p = eventOpenedSchema.parse(params);
-		console.log("event opened", p.event);
-		dispatch(setEvent(p.event));
-		dispatch(setPolls(p.polls));
-	} catch (error) {
-		console.log("event opened", error);
-	}
-}
-
-function pollingUserPollAdded(params: any, cb: Function) {
-	const { dispatch } = store;
-	try {
-		const poll = pollAddedSchema.parse(params);
-		dispatch(addPoll(poll));
-	} catch (error) {
-		console.log("poll added", error);
-	}
-}
-
-function pollingUserPollUpdated(params: any, cb: Function) {
-	const { dispatch } = store;
-	try {
-		const poll = pollUpdatedSchema.parse(params);
-		dispatch(setPoll(poll));
-	} catch (error) {
-		console.log("poll updated", error);
-	}
-}
-
-function pollingUserPollRemoved(params: any, cb: Function) {
-	const { dispatch } = store;
-	try {
-		const id = pollDeletedSchema.parse(params);
-		dispatch(removePoll(id));
-	} catch (error) {
-		console.log("poll removed", error);
-	}
-}
-
-function pollingUserPollAction(
-	pollAction: PollAction,
-	params: any,
-	cb: Function
-) {
-	const { dispatch } = store;
-	try {
-		const pollId = pollIdSchema.parse(params);
-		dispatch(setPollAction({ pollId, pollAction }));
-	} catch (error) {
-		console.log("poll " + pollAction, error);
-	}
-}
-
-export function pollingUserSocketRegister(socket: Socket) {
-	socket
-		.on("event:opened", pollingUserEventOpened)
-		.on("poll:added", pollingUserPollAdded)
-		.on("poll:updated", pollingUserPollUpdated)
-		.on("poll:removed", pollingUserPollRemoved)
-		.on("poll:shown", (params: any, cb: Function) =>
-			pollingUserPollAction("show", params, cb)
-		)
-		.on("poll:opened", (params: any, cb: Function) =>
-			pollingUserPollAction("open", params, cb)
-		)
-		.on("poll:closed", (params: any, cb: Function) =>
-			pollingUserPollAction("close", params, cb)
-		);
-}

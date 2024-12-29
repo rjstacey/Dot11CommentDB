@@ -27,6 +27,7 @@ import {
 	PollsGetResponse,
 	EventsGetResponse,
 	PollState,
+	GroupJoinResponse,
 } from "@schemas/poll";
 import {
 	addPollEvent,
@@ -38,7 +39,9 @@ import {
 	updatePoll,
 	deletePoll,
 } from "../services/poll";
-import { NotFoundError } from "../utils";
+import { ForbiddenError, NotFoundError } from "../utils";
+import { getGroups } from "../services/groups";
+import { AccessLevel } from "../auth/access";
 
 export class NoGroupError extends Error {
 	name = "NoGroupError";
@@ -305,10 +308,27 @@ async function onGroupJoin(this: Socket, payload: unknown, callback: unknown) {
 	if (!validCallback(callback)) return;
 	try {
 		const { groupId } = groupJoinSchema.parse(payload);
+		const [group] = await getGroups(this.data.user, { id: groupId });
+		if (!group) throw new NotFoundError("No such group: id=" + groupId);
+		if (group.permissions.polling < AccessLevel.ro)
+			throw new ForbiddenError();
 		leaveRooms(this);
 		this.join(groupId);
 		setSocketGroupId(this, groupId);
-		okCallback(callback);
+		const adminCapable = group.permissions.polling >= AccessLevel.rw;
+		const isAdmin = false;
+		const events = await getPollEvents({ groupId });
+		const activeEvent = events.find((e) => e.isPublished);
+		const eventId = activeEvent?.id;
+		const polls = eventId ? await getPolls({ eventId }) : [];
+		okCallback(callback, {
+			groupId,
+			adminCapable,
+			isAdmin,
+			events,
+			eventId,
+			polls,
+		} satisfies GroupJoinResponse);
 	} catch (error) {
 		errorCallback(callback, error);
 	}

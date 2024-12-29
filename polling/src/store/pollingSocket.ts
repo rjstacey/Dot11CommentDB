@@ -2,12 +2,27 @@ import { createSlice, isPlainObject } from "@reduxjs/toolkit";
 import { io, Socket } from "socket.io-client";
 import z from "zod";
 import { setError } from "dot11-components";
-import { GroupJoin, PollingError, PollingOK } from "@schemas/poll";
+import {
+	GroupJoin,
+	groupJoinResponseSchema,
+	PollingError,
+	PollingOK,
+} from "@schemas/poll";
 import { AppThunk, RootState } from ".";
-import { selectUser } from "./user";
-import { selectSelectedGroupId } from "./groups";
-import { pollingAdminEventsGet } from "./pollingAdmin";
-import { pollingUserSocketRegister } from "./pollingUser";
+import { AccessLevel, selectUser } from "./user";
+import { selectGroup, selectSelectedGroupId } from "./groups";
+import {
+	setIsAdmin,
+	setEventId as pollingAdminSetEventId,
+	setEvents as pollingAdminSetEvents,
+	setPolls as pollingAdminSetPolls,
+} from "./pollingAdmin";
+import {
+	setEvent as pollingUserSetEvent,
+	setPolls as pollingUserSetPolls,
+} from "./pollingUser";
+import { pollingAdminSocketRegister } from "./pollingAdminEvents";
+import { pollingUserSocketRegister } from "./pollingUserEvents";
 
 /* Create slice */
 const initialState = {
@@ -137,7 +152,10 @@ export const pollingSocketConnect =
 	(): AppThunk => async (dispatch, getState) => {
 		const user = selectUser(getState());
 		socket = io("/poll", { query: { token: user.Token } });
+
+		pollingAdminSocketRegister(socket);
 		pollingUserSocketRegister(socket);
+
 		socket.on("connect", () => {
 			console.log("connect");
 			assertHasSocket(socket);
@@ -162,11 +180,24 @@ export const pollingSocketDisconnect =
 
 export const pollingSocketJoinGroup =
 	(groupId: string): AppThunk =>
-	async (dispatch) => {
-		const params: GroupJoin = { groupId };
+	async (dispatch, getState) => {
 		try {
-			await pollingSocketEmit("group:join", params);
-			await dispatch(pollingAdminEventsGet(groupId));
+			const r = await pollingSocketEmit(
+				"group:join",
+				{ groupId } satisfies GroupJoin,
+				groupJoinResponseSchema
+			);
+			const group = selectGroup(getState(), groupId);
+			const access = group?.permissions.polling || AccessLevel.none;
+			dispatch(setIsAdmin(r.isAdmin));
+			if (access >= AccessLevel.rw) {
+				dispatch(pollingAdminSetEventId(r.eventId || null));
+				dispatch(pollingAdminSetEvents(r.events));
+				dispatch(pollingAdminSetPolls(r.polls));
+			}
+			const event = r.events.find((e) => e.id === r.eventId);
+			dispatch(pollingUserSetEvent(event || null));
+			dispatch(pollingUserSetPolls(r.polls));
 		} catch (error: any) {
 			dispatch(handleError(error));
 		}

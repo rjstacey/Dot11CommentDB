@@ -2,30 +2,48 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
 import { Account, Button } from "dot11-components";
-
+import Toggle from "../components/toggle";
 import { resetStore } from "../store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { selectUser, setUser } from "../store/user";
+import { AccessLevel, selectUser, setUser } from "../store/user";
 
 import pkg from "../../package.json";
 
 import styles from "./app.module.css";
+import { selectSelectedGroup } from "src/store/groups";
 
-function Header() {
-	const dispatch = useAppDispatch();
-	const navigate = useNavigate();
-	const { groupName, subgroupName } = useParams();
-	const user = useAppSelector(selectUser)!;
-
+const viewOptions = [
+	{ value: true, label: "Admin" },
+	{ value: false, label: "User" },
+];
+function ToggleAdminView() {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const isAdmin = searchParams.get("isAdmin") === "true";
-	function toggleIsAdmin() {
+	function setIsAdmin(isAdmin: boolean) {
 		setSearchParams((params) => {
-			if (!isAdmin) params.set("isAdmin", "true");
+			if (isAdmin) params.set("isAdmin", "true");
 			else params.delete("isAdmin");
 			return params;
 		});
 	}
+
+	return (
+		<Toggle
+			label="View:"
+			options={viewOptions}
+			value={isAdmin}
+			onChange={setIsAdmin}
+		/>
+	);
+}
+
+function Header() {
+	const dispatch = useAppDispatch();
+	const navigate = useNavigate();
+	const { groupName } = useParams();
+	const user = useAppSelector(selectUser)!;
+	const group = useAppSelector(selectSelectedGroup);
+	const access = group?.permissions.polling || AccessLevel.none;
 
 	const clearCache = () => {
 		dispatch(resetStore());
@@ -43,11 +61,7 @@ function Header() {
 				{title}
 			</h3>
 
-			{subgroupName ? (
-				<Button onClick={toggleIsAdmin} isActive={isAdmin}>
-					Admin
-				</Button>
-			) : null}
+			{access >= AccessLevel.rw ? <ToggleAdminView /> : null}
 
 			<Account user={user}>
 				<div>

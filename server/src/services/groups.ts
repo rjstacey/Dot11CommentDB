@@ -284,6 +284,7 @@ const rootPermissions: Record<string, number> = {
 	voters: AccessLevel.admin,
 	results: AccessLevel.admin,
 	comments: AccessLevel.admin,
+	polling: AccessLevel.admin,
 };
 
 const wgOfficerPermissions: Record<string, number> = {
@@ -295,6 +296,7 @@ const wgOfficerPermissions: Record<string, number> = {
 	voters: AccessLevel.admin,
 	results: AccessLevel.admin,
 	comments: AccessLevel.admin,
+	polling: AccessLevel.admin,
 };
 
 const tgOfficerPermissions: Record<string, number> = {
@@ -305,6 +307,7 @@ const tgOfficerPermissions: Record<string, number> = {
 	voters: AccessLevel.ro,
 	results: AccessLevel.rw,
 	comments: AccessLevel.rw,
+	polling: AccessLevel.rw,
 };
 
 const memberPermissions: Record<string, number> = {
@@ -313,6 +316,7 @@ const memberPermissions: Record<string, number> = {
 	groups: AccessLevel.ro,
 	ballots: AccessLevel.ro,
 	comments: AccessLevel.ro,
+	polling: AccessLevel.ro,
 };
 
 function getGroupUserPermissions(user: User, group: Group) {
