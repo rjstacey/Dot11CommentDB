@@ -1,14 +1,14 @@
 import { DateTime } from "luxon";
 import { displayDate } from "dot11-components";
-import { useAppSelector } from "../store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import {
 	selectPollingUserEvent,
 	selectPollingUserPolls,
 	Poll,
 	Event,
-} from "../store/pollingUser";
+} from "@/store/pollingUser";
 import css from "./user.module.css";
-import editorCss from "../editor/editor.module.css";
+import editorCss from "@/components/editor/editor.module.css";
 
 function displayTime(d: string) {
 	return DateTime.fromISO(d).toFormat("HH:mm");

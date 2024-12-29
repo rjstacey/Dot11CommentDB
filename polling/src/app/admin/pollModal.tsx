@@ -1,6 +1,6 @@
 import React from "react";
 import { AppModal, Row, Button, FieldLeft, Checkbox } from "dot11-components";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectPollingAdminSelectedPoll,
 	pollingAdminUpdatePoll,
@@ -13,9 +13,9 @@ import {
 	pollingAdminPollAction,
 	selectPollingAdminEventEntities,
 	motionPollOptions,
-} from "../store/pollingAdmin";
-import Editor from "../editor";
-import LabeledToggle from "../components/toggle";
+} from "@/store/pollingAdmin";
+import Editor from "@/components/editor";
+import LabeledToggle from "@/components/toggle";
 import cn from "./pollModal.module.css";
 
 function titlePrefix(type: PollType, index: number) {

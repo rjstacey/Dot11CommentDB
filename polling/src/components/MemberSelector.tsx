@@ -1,8 +1,8 @@
 import React from "react";
 import { Select } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
-import { selectMembersState, selectMembers } from "../store/members";
+import { useAppSelector } from "@/store/hooks";
+import { selectMembersState, selectMembers } from "@/store/members";
 
 function MemberSelector({
 	value,

@@ -1,21 +1,20 @@
 import { RouteObject, LoaderFunction } from "react-router-dom";
 
-import { store } from "../store";
-import { AccessLevel } from "../store/user";
+import { store } from "@/store";
+import { AccessLevel } from "@/store/user";
 import {
 	loadGroups,
 	selectTopLevelGroupByName,
 	selectSelectedGroup,
 	selectSubgroupByName,
 	setSelectedGroupId,
-} from "../store/groups";
-
-import { loadTimeZones } from "../store/timeZones";
+} from "@/store/groups";
+import { loadTimeZones } from "@/store/timeZones";
+import { loadMembers } from "@/store/members";
 
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
 import Polling from "./polling";
-import { loadMembers } from "src/store/members";
 
 /*
  * Routing loaders

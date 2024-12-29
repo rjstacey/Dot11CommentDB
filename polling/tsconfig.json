@@ -16,7 +16,8 @@
 		"jsx": "react-jsx",
 		"baseUrl": ".",
 		"paths": {
-			"@schemas/*": ["../schemas/*"]
+			"@schemas/*": ["../schemas/*"],
+			"@/*": ["src/*"]
 		}
 	},
 	"include": ["src", "../schemas"]

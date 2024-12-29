@@ -11,10 +11,10 @@ import {
 	InputDates,
 	InputTime,
 } from "dot11-components";
-import { useAppSelector, useAppDispatch } from "../store/hooks";
-import { pollingAdminCreateEvent, EventCreate } from "../store/pollingAdmin";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { pollingAdminCreateEvent, EventCreate } from "@/store/pollingAdmin";
 import TimeZoneSelector from "./TimeZoneSelector";
-import { selectSelectedGroupId } from "../store/groups";
+import { selectSelectedGroupId } from "@/store/groups";
 
 function useNullEvent() {
 	const groupId = useAppSelector(selectSelectedGroupId)!;

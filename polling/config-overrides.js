@@ -11,7 +11,8 @@ module.exports = function (config, env) {
 		...config.resolve,
 		alias: {
 			...config.resolve.alias,
-			"@schemas": path.resolve("../schemas"),
+			"@": path.resolve("src"),
+			"@schemas/": path.resolve("../schemas"),
 		},
 	};
 	return Object.assign(

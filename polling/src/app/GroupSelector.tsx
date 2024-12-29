@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 
 import { Select } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import {
 	selectTopLevelGroup,
 	selectSelectedGroup,
 	selectSubgroups,
 	selectTopLevelGroups,
 	Group,
-} from "../store/groups";
+} from "@/store/groups";
 
 import styles from "./app.module.css";
 

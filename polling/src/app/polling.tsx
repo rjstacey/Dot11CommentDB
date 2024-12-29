@@ -1,16 +1,17 @@
 import React from "react";
 import { useSearchParams } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectSelectedGroup } from "@/store/groups";
 import {
 	pollingSocketConnect,
 	pollingSocketDisconnect,
 	pollingSocketJoinGroup,
 	pollingSocketLeaveGroup,
-} from "../store/pollingSocket";
+} from "@/store/pollingSocket";
 
-import PollAdmin from "../admin";
-import PollUser from "../user";
-import { selectSelectedGroup } from "../store/groups";
+import PollAdmin from "./admin";
+import PollUser from "./user";
 
 function Polling() {
 	const [searchParams] = useSearchParams();

@@ -1,5 +1,5 @@
 import { Button } from "dot11-components";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectPollingAdminPolls,
 	selectPollAdminEvent,
@@ -11,11 +11,11 @@ import {
 	setSelectedPollId,
 	pollingAdminDeletePoll,
 	pollingAdminUpdateEvent,
-} from "../store/pollingAdmin";
+} from "@/store/pollingAdmin";
 import { defaultMotion, defaultStrawpoll } from "./pollModal";
-import LabeledToggle from "src/components/toggle";
+import LabeledToggle from "@/components/toggle";
 import cn from "./admin.module.css";
-import editorCss from "../editor/editor.module.css";
+import editorCss from "@/components/editor/editor.module.css";
 
 const onOffOptions: { label: string; value: boolean }[] = [
 	{ value: true, label: "On" },

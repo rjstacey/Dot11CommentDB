@@ -1,10 +1,11 @@
 import { Outlet } from "react-router-dom";
 import { ErrorModal, ConfirmModal } from "dot11-components";
-import Header from "./Header";
-import styles from "./app.module.css";
-import { useAppSelector } from "../store/hooks";
-import { selectSelectedGroup } from "../store/groups";
+import { useAppSelector } from "@/store/hooks";
+import { selectSelectedGroup } from "@/store/groups";
 import GroupSelector from "./GroupSelector";
+import Header from "./Header";
+
+import styles from "./app.module.css";
 
 function Nav() {
 	const group = useAppSelector(selectSelectedGroup);

@@ -2,15 +2,15 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
 import { Account, Button } from "dot11-components";
-import Toggle from "../components/toggle";
-import { resetStore } from "../store";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { AccessLevel, selectUser, setUser } from "../store/user";
+import Toggle from "@/components/toggle";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { resetStore } from "@/store";
+import { selectSelectedGroup } from "@/store/groups";
+import { AccessLevel, selectUser, setUser } from "@/store/user";
 
 import pkg from "../../package.json";
 
 import styles from "./app.module.css";
-import { selectSelectedGroup } from "src/store/groups";
 
 const viewOptions = [
 	{ value: true, label: "Admin" },
