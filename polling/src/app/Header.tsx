@@ -1,4 +1,4 @@
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
 import { Account, Button } from "dot11-components";
@@ -17,14 +17,14 @@ const viewOptions = [
 	{ value: false, label: "User" },
 ];
 function ToggleAdminView() {
-	const [searchParams, setSearchParams] = useSearchParams();
-	const isAdmin = searchParams.get("isAdmin") === "true";
+	const location = useLocation();
+	const navigate = useNavigate();
+
+	const isAdmin = location.pathname.endsWith("/admin");
 	function setIsAdmin(isAdmin: boolean) {
-		setSearchParams((params) => {
-			if (isAdmin) params.set("isAdmin", "true");
-			else params.delete("isAdmin");
-			return params;
-		});
+		let path = location.pathname.replace("/admin", "");
+		if (isAdmin) path += "/admin";
+		navigate(path);
 	}
 
 	return (

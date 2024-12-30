@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { Select } from "dot11-components";
 
@@ -20,6 +20,7 @@ export function GroupSelector(
 		"values" | "onChange" | "options"
 	>
 ) {
+	const location = useLocation();
 	const navigate = useNavigate();
 	const group = useAppSelector(selectTopLevelGroup);
 	const subgroup = useAppSelector(selectSelectedGroup);
@@ -51,6 +52,7 @@ export function GroupSelector(
 		} else {
 			pathName = "";
 		}
+		if (location.pathname.endsWith("/admin")) pathName += "/admin";
 		navigate(pathName);
 	}
 

@@ -1,6 +1,5 @@
 import React from "react";
-import { useSearchParams } from "react-router-dom";
-
+import { Outlet } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectSelectedGroup } from "@/store/groups";
 import {
@@ -10,11 +9,7 @@ import {
 	pollingSocketLeaveGroup,
 } from "@/store/pollingSocket";
 
-import PollAdmin from "./admin";
-import PollUser from "./user";
-
 function Polling() {
-	const [searchParams] = useSearchParams();
 	const dispatch = useAppDispatch();
 
 	const group = useAppSelector(selectSelectedGroup);
@@ -31,10 +26,10 @@ function Polling() {
 		else dispatch(pollingSocketLeaveGroup());
 	}, [dispatch, group]);
 
-	return searchParams.get("isAdmin") === "true" ? (
-		<PollAdmin />
-	) : (
-		<PollUser />
+	return (
+		<div style={{ width: "100%" }}>
+			<Outlet />
+		</div>
 	);
 }
 

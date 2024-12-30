@@ -15,6 +15,8 @@ import { loadMembers } from "@/store/members";
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
 import Polling from "./polling";
+import PollAdmin from "./admin";
+import PollUser from "./user";
 
 /*
  * Routing loaders
@@ -107,6 +109,16 @@ const routes: RouteObject[] = [
 						path: ":subgroupName",
 						loader: subgroupLoader,
 						element: <Polling />,
+						children: [
+							{
+								index: true,
+								element: <PollUser />,
+							},
+							{
+								path: "admin",
+								element: <PollAdmin />,
+							},
+						],
 					},
 				],
 			},

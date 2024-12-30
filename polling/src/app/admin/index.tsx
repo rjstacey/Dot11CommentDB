@@ -1,3 +1,5 @@
+import { useCallback } from "react";
+import { useBeforeUnload } from "react-router-dom";
 import CreateEventDropdown from "./createEvent";
 import EventTabsList from "./eventsList";
 import EventPanel from "./eventPanel";
@@ -5,6 +7,11 @@ import css from "./admin.module.css";
 import PollModal from "./pollModal";
 
 function Admin() {
+	useBeforeUnload(
+		useCallback(() => {
+			console.log("logging this before navigate!");
+		}, [])
+	);
 	return (
 		<div className={css.tabs}>
 			<div className={css.header}>
