@@ -13,7 +13,7 @@ import { selectUser, setUser, type User } from "@/store/user";
 import "./index.css";
 import App from "./app";
 
-function AppVerifyUser({ user }: { user: User }) {
+function AppVerifySameUser({ user }: { user: User }) {
 	const dispatch = useAppDispatch();
 	const storeUser = useAppSelector(selectUser);
 
@@ -30,7 +30,7 @@ function AppInitStore({ user }: { user: User }) {
 		<React.StrictMode>
 			<Provider store={store}>
 				<PersistGate loading="Loading..." persistor={persistor}>
-					<AppVerifyUser user={user} />
+					<AppVerifySameUser user={user} />
 				</PersistGate>
 			</Provider>
 		</React.StrictMode>
