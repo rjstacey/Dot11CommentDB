@@ -59,7 +59,12 @@ const persistConfig = {
 		getItem: get,
 		removeItem: del,
 	},
-	whitelist: [userSlice.name, timeZonesSlice.name, groupsSlice.name],
+	whitelist: [
+		userSlice.name,
+		timeZonesSlice.name,
+		groupsSlice.name,
+		membersSlice.name,
+	],
 	stateReconciler: autoMergeLevel2,
 	transforms: [transformState],
 	migrate: (state: any) => {

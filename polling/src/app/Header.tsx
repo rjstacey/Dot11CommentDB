@@ -1,5 +1,4 @@
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 
 import { Account, Button } from "dot11-components";
 import Toggle from "@/components/toggle";
@@ -41,7 +40,7 @@ function Header() {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const { groupName } = useParams();
-	const user = useAppSelector(selectUser)!;
+	const user = useAppSelector(selectUser);
 	const group = useAppSelector(selectSelectedGroup);
 	const access = group?.permissions.polling || AccessLevel.none;
 
@@ -51,12 +50,12 @@ function Header() {
 	};
 
 	const title = (groupName ? groupName + " " : "") + "Polling";
+	if (document.title !== title) document.title = title;
+
 	const rootPath = "/" + (groupName || "");
 
 	return (
 		<header className={styles.header}>
-			<Helmet title={title} />
-
 			<h3 className="title" onClick={() => navigate(rootPath)}>
 				{title}
 			</h3>
