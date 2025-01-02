@@ -38,16 +38,8 @@ const slice = createSlice({
 		removePoll(state, action: PayloadAction<number>) {
 			pollsAdapter.removeOne(state.polls, action.payload);
 		},
-		setPollAction(
-			state,
-			action: PayloadAction<{
-				pollId: number;
-				pollAction: PollAction | null;
-			}>
-		) {
-			const { pollId, pollAction } = action.payload;
-			state.pollId = pollId;
-			state.pollAction = pollAction;
+		setActivePollId(state, action: PayloadAction<number | null>) {
+			state.pollId = action.payload;
 		},
 	},
 });
@@ -61,7 +53,7 @@ export const {
 	setPoll,
 	addPoll,
 	removePoll,
-	setPollAction,
+	setActivePollId,
 } = slice.actions;
 
 /** Selectors */
@@ -72,5 +64,10 @@ export const selectPollingUserPolls = createSelector(
 	(state: RootState) => selectPollingUserState(state).polls,
 	(polls) => pollsAdapter.getSelectors().selectAll(polls)
 );
+
+export const selectPollingUserActivePoll = (state: RootState) => {
+	const { pollId, polls } = selectPollingUserState(state);
+	return pollId ? polls.entities[pollId] : undefined;
+};
 
 /** Thunk actions */

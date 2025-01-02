@@ -5,7 +5,7 @@ import { selectSelectedGroup } from "@/store/groups";
 import GroupSelector from "./GroupSelector";
 import Header from "./Header";
 
-import styles from "./app.module.css";
+import css from "./app.module.css";
 
 function Nav() {
 	const group = useAppSelector(selectSelectedGroup);
@@ -17,7 +17,7 @@ function Nav() {
 	}
 
 	return (
-		<div className={styles.nav}>
+		<div className={css.nav}>
 			<div className="intro">{title}</div>
 			<GroupSelector />
 		</div>
@@ -28,7 +28,7 @@ function AppLayout() {
 	return (
 		<>
 			<Header />
-			<main className={styles.body}>
+			<main className={css.body}>
 				<Nav />
 				<Outlet />
 			</main>

@@ -10,8 +10,8 @@ function MemberSelector({
 	readOnly,
 	...otherProps
 }: {
-	value: number;
-	onChange: (value: number) => void;
+	value: number | null;
+	onChange: (value: number | null) => void;
 } & Omit<
 	React.ComponentProps<typeof Select>,
 	"values" | "onChange" | "options"

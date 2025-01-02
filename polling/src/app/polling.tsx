@@ -1,5 +1,5 @@
 import React from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet } from "react-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectSelectedGroup } from "@/store/groups";
 import {

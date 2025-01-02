@@ -12,14 +12,15 @@ import { AppThunk, RootState } from ".";
 import { AccessLevel, selectUser } from "./user";
 import { selectGroup, selectSelectedGroupId } from "./groups";
 import {
-	setIsAdmin,
 	setEventId as pollingAdminSetEventId,
 	setEvents as pollingAdminSetEvents,
 	setPolls as pollingAdminSetPolls,
+	setActivePollId as pollingAdminSetActivePollId,
 } from "./pollingAdmin";
 import {
 	setEvent as pollingUserSetEvent,
 	setPolls as pollingUserSetPolls,
+	setActivePollId as pollingUserSetActivePollId,
 } from "./pollingUser";
 import { pollingAdminSocketRegister } from "./pollingAdminEvents";
 import { pollingUserSocketRegister } from "./pollingUserEvents";
@@ -189,15 +190,16 @@ export const pollingSocketJoinGroup =
 			);
 			const group = selectGroup(getState(), groupId);
 			const access = group?.permissions.polling || AccessLevel.none;
-			dispatch(setIsAdmin(r.isAdmin));
 			if (access >= AccessLevel.rw) {
 				dispatch(pollingAdminSetEventId(r.eventId || null));
 				dispatch(pollingAdminSetEvents(r.events));
 				dispatch(pollingAdminSetPolls(r.polls));
+				dispatch(pollingAdminSetActivePollId(r.pollId || null));
 			}
 			const event = r.events.find((e) => e.id === r.eventId);
 			dispatch(pollingUserSetEvent(event || null));
 			dispatch(pollingUserSetPolls(r.polls));
+			dispatch(pollingUserSetActivePollId(r.pollId || null));
 		} catch (error: any) {
 			dispatch(handleError(error));
 		}

@@ -14,7 +14,7 @@ import {
 } from "@/store/pollingAdmin";
 import { defaultMotion, defaultStrawpoll } from "./pollModal";
 import LabeledToggle from "@/components/toggle";
-import cn from "./admin.module.css";
+import css from "./admin.module.css";
 import editorCss from "@/components/editor/editor.module.css";
 
 const onOffOptions: { label: string; value: boolean }[] = [
@@ -50,7 +50,7 @@ function EventActions({ event, polls }: { event: Event; polls: Poll[] }) {
 	}
 
 	return (
-		<div className={cn.eventActions}>
+		<div className={css.eventActions}>
 			<Button isActive={event.isPublished} onClick={toggleIsPublished}>
 				Publish
 			</Button>
@@ -77,15 +77,15 @@ function PollEntry({ poll }: { poll: Poll }) {
 	const isSelected =
 		useAppSelector(selectPollingAdminSelectedPollId) === poll.id;
 	return (
-		<div className={cn.pollRow}>
-			<div className={cn.pollEntry + (isSelected ? " selected" : "")}>
-				<span className={cn.pollTitle}>{poll.title}</span>
+		<div className={css.pollRow}>
+			<div className={css.pollEntry + (isSelected ? " selected" : "")}>
+				<span className={css.pollTitle}>{poll.title}</span>
 				<div
 					className={editorCss.bodyContainer}
 					dangerouslySetInnerHTML={{ __html: poll.body }}
 				/>
 			</div>
-			{poll.state && <div className={cn.pollState}>{poll.state}</div>}
+			{poll.state && <div className={css.pollState}>{poll.state}</div>}
 			<Button onClick={() => dispatch(setSelectedPollId(poll.id))}>
 				Select
 			</Button>
@@ -105,7 +105,7 @@ function EventPanel() {
 	return (
 		<>
 			<EventActions event={event} polls={polls} />
-			<div className={cn.pollTable}>
+			<div className={css.pollTable}>
 				{polls.map((poll) => (
 					<PollEntry key={poll.id} poll={poll} />
 				))}

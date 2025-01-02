@@ -16,6 +16,7 @@
 	"dependencies": {
 		"@lexical/react": "^0.20.0",
 		"@reduxjs/toolkit": "^1.9.7",
+		"classnames": "^2.5.1",
 		"dot11-components": "^1.9.95",
 		"idb-keyval": "^6.2.1",
 		"luxon": "^3.5.0",

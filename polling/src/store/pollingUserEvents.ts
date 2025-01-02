@@ -6,6 +6,7 @@ import {
 	pollDeletedSchema,
 	pollIdSchema,
 	PollAction,
+	PollState,
 } from "@schemas/poll";
 import { store } from ".";
 import {
@@ -14,8 +15,9 @@ import {
 	setPoll,
 	addPoll,
 	removePoll,
-	setPollAction,
+	setActivePollId,
 } from "./pollingUser";
+import { updatePoll } from "./pollingAdmin";
 
 function pollingUserEventOpened(params: any, cb: Function) {
 	const { dispatch } = store;
@@ -67,7 +69,12 @@ function pollingUserPollAction(
 	const { dispatch } = store;
 	try {
 		const pollId = pollIdSchema.parse(params);
-		dispatch(setPollAction({ pollId, pollAction }));
+		dispatch(setActivePollId(pollId));
+		let state: PollState = null;
+		if (pollAction === "show") state = "shown";
+		else if (pollAction === "open") state = "opened";
+		else if (pollAction === "close") state = "closed";
+		dispatch(updatePoll({ id: pollId, changes: { state } }));
 	} catch (error) {
 		console.log("poll " + pollAction, error);
 	}

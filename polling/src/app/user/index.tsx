@@ -1,7 +1,38 @@
-import EventPanel from "./eventPanel";
+import React from "react";
+import EventPanel from "./allPolls";
+import CurrentPoll from "./currentPoll";
+//import cx from "classnames";
+import css from "./tabs.module.css";
 
 function PollUser() {
-	return <EventPanel />;
+	const [index, setIndex] = React.useState(0);
+
+	return (
+		<div className={css.tabs}>
+			<div className={css.tabList}>
+				<div
+					//className={cx({ [css.tab]: true, selected: index === 0 })}
+					className={css.tab + (index === 0 ? " selected" : "")}
+					onClick={() => setIndex(0)}
+				>
+					Current Poll
+				</div>
+				<div
+					//className={cx({ [css.tab]: true, selected: index === 1 })}
+					className={css.tab + (index === 1 ? " selected" : "")}
+					onClick={() => setIndex(1)}
+				>
+					Upcoming Polls
+				</div>
+			</div>
+			<div className={css.tabPanel + (index === 0 ? " selected" : "")}>
+				<CurrentPoll />
+			</div>
+			<div className={css.tabPanel + (index === 1 ? " selected" : "")}>
+				<EventPanel />
+			</div>
+		</div>
+	);
 }
 
 export default PollUser;

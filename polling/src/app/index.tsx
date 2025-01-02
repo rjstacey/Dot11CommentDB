@@ -1,5 +1,5 @@
 import React from "react";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router";
 import routes from "./routes";
 
 const getRouter = () => createBrowserRouter(routes, { basename: "/polling" });

@@ -1,10 +1,10 @@
 import { useCallback } from "react";
-import { useBeforeUnload } from "react-router-dom";
+import { useBeforeUnload } from "react-router";
 import CreateEventDropdown from "./createEvent";
 import EventTabsList from "./eventsList";
 import EventPanel from "./eventPanel";
-import css from "./admin.module.css";
 import PollModal from "./pollModal";
+import css from "./admin.module.css";
 
 function Admin() {
 	useBeforeUnload(
