@@ -1,0 +1,77 @@
+.tabs {
+	-webkit-tap-highlight-color: transparent;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	flex: 1;
+}
+
+.tabs .header {
+	display: flex;
+	width: 100%;
+}
+
+.tabs .filler {
+	flex: 1;
+}
+
+.tabList {
+	display: flex;
+	border-bottom: 1px solid #aaa;
+	margin: 0 0 10px;
+	padding: 0;
+}
+
+.tab {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid transparent;
+	border-bottom: none;
+	bottom: -1px;
+	position: relative;
+	list-style: none;
+	padding: 6px 12px;
+	cursor: pointer;
+}
+
+.tab:global(.selected) {
+	background: #fff;
+	border-color: #aaa;
+	color: black;
+	border-radius: 5px 5px 0 0;
+}
+
+.tab:global(.disabled) {
+	color: GrayText;
+	cursor: default;
+}
+
+.tab:focus {
+	outline: none;
+}
+
+.tab:focus:after {
+	content: "";
+	position: absolute;
+	height: 5px;
+	left: -4px;
+	right: -4px;
+	bottom: -5px;
+	background: #fff;
+}
+
+.tabName {
+	font-weight: bold;
+}
+
+.tabDate {
+	font-size: smaller;
+}
+
+.tabPanel {
+	display: none;
+}
+
+.tabPanel:global(.selected) {
+	display: block;
+}
