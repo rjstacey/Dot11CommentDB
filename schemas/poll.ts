@@ -100,6 +100,8 @@ export const pollSchema = z.object({
 	type: pollTypeSchema,
 	options: pollOptionsSchema,
 	choice: pollChoiceSchema,
+	movedSAPIN: z.number().nullable(),
+	secondedSAPIN: z.number().nullable(),
 });
 export const pollsSchema = pollSchema.array();
 
@@ -128,10 +130,16 @@ export const pollsQuerySchema = z
 		id: z.union([pollIdSchema, pollIdSchema.array()]),
 		eventId: z.union([eventIdSchema, eventIdSchema.array()]),
 		state: z.union([pollStateSchema, pollStateSchema.array()]),
+		groupId: z.union([groupIdSchema, groupIdSchema.array()]),
 	})
 	.partial();
 
 export const pollDeleteSchema = pollIdSchema;
+
+export const pollVoteSchema = z.object({
+	id: pollIdSchema,
+	votes: z.number().array(),
+});
 
 export type Poll = z.infer<typeof pollSchema>;
 export type PollsQuery = z.infer<typeof pollsQuerySchema>; // argument for polls:get -> server
@@ -140,6 +148,7 @@ export type PollUpdate = z.infer<typeof pollUpdateSchema>; // argument for poll:
 export type PollDelete = z.infer<typeof pollDeleteSchema>; // argument for poll:delete -> server
 export type PollAction = z.infer<typeof pollActionSchema>;
 export type PollState = z.infer<typeof pollStateSchema>;
+export type PollVote = z.infer<typeof pollVoteSchema>;
 
 export const pollsGetResponseSchema = z.object({ polls: pollSchema.array() });
 export const pollCreateResponseSchema = z.object({ poll: pollSchema });
@@ -171,15 +180,28 @@ export const eventClosedSchema = z.object({
 export type EventOpened = z.infer<typeof eventOpenedSchema>; // argument for event:opened -> client
 export type EventClosed = z.infer<typeof eventClosedSchema>; // argument for event:closed -> client
 
+export const pollResultsGetSchema = z.object({
+	id: pollIdSchema,
+});
+
+export const pollResultSchema = z.object({
+	pollId: pollIdSchema,
+	SAPIN: z.number(),
+	votes: z.number().array(),
+});
+export const pollResultsSchema = pollResultSchema.array();
+
+export type PollResult = z.infer<typeof pollResultSchema>;
+
 export const groupJoinSchema = z.object({
 	groupId: groupIdSchema,
 });
 export const groupJoinResponseSchema = z.object({
 	groupId: groupIdSchema,
-	isAdmin: z.boolean(),
 	eventId: eventIdSchema.optional(),
 	events: eventsSchema,
 	polls: pollsSchema,
+	pollId: pollIdSchema.optional(),
 });
 export type GroupJoin = z.infer<typeof groupJoinSchema>;
 export type GroupJoinResponse = z.infer<typeof groupJoinResponseSchema>;
