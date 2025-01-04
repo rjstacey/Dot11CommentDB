@@ -1,5 +1,5 @@
 {
-	"name": "schemas",
+	"name": "@802tools/schemas",
 	"version": "1.0.0",
 	"description": "Schemas for REST API",
 	"main": "index.js",
