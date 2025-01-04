@@ -274,37 +274,4 @@ export async function fixSessions() {
 			await updateSession(update.id, update.changes);
 		}
 	}
-
-	async function q(sql: string) {
-		try {
-			await db.query(sql);
-		} catch (error) {
-			console.log(error);
-		}
-	}
-
-	await q(
-		"alter table comments modify column ballot_id int unsigned not null"
-	);
-	await q(
-		"alter table resolutions modify column comment_id bigint unsigned not null"
-	);
-	await q("alter table resolutions drop column old_id");
-	await q("alter table rooms modify column id int unsigned not null");
-	await q("alter table rooms add unique key `index` (sessionId, id)");
-	await q("alter table rooms drop key id");
-	await q("alter table emailTemplates add key `group` (groupId)");
-	await q("alter table meetings add key `session` (sessionId)");
-	await q("alter table meetings add key `group` (organizationId)");
-	await q("alter table organization add key parent (parent_id)");
-
-	await q("alter table polls add column `state` varchar(16) after `index`");
-	await q("alter table polls drop column autoNumber");
-	await q(
-		"alter table pollEvents add column autoNumber tinyint(1) not null default '0'"
-	);
-	await q("alter table polls add column options json default (json_array())");
-	await q(
-		"create table pollVotes (id int unsigned not null auto_increment, pollId int unsigned not null, SAPIN int unsigned not null, votes json default (json_array()), primary key (id), key `poll` (pollId))"
-	);
 }

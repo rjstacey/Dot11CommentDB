@@ -28,12 +28,17 @@ function parsePublicReviewComment(c: string[]) {
 	let Page = Number(C_Page) + Number(C_Line) / 100;
 	if (isNaN(Page)) Page = 0;
 
+	const cat = c[4] ? c[4].charAt(0) : ""; // Category: first letter only (G, T or E)
+	let Category: Comment["Category"];
+	if (cat === "T" || cat == "E" || cat === "G") Category = cat;
+	else Category = "T";
+
 	const comment: Partial<Comment> = {
 		C_Index: Number(c[0]), // Comment #
 		CommenterSAPIN: null,
 		CommenterName: c[1], // Name
 		CommenterEmail: c[2], // Email
-		Category: c[4] ? c[4].charAt(0) : "", // Category: first letter only (G, T or E)
+		Category,
 		C_Page, // Page
 		C_Clause, // Subclause
 		C_Line, // Line

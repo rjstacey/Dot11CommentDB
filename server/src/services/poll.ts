@@ -8,8 +8,11 @@ import {
 	PollsQuery,
 	PollCreate,
 	PollUpdate,
+	PollResult,
+	PollChoice,
 } from "@schemas/poll";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
+import { User } from "./users";
 
 export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 	// prettier-ignore
@@ -61,7 +64,7 @@ export async function deletePollEvent(id: number) {
 	return affectedRows;
 }
 
-export async function getPolls(query: PollsQuery = {}) {
+export async function getPolls(query: PollsQuery = {}): Promise<Poll[]> {
 	// prettier-ignore
 	let sql =
 		"SELECT " +
@@ -74,7 +77,9 @@ export async function getPolls(query: PollsQuery = {}) {
 			"p.body, " +
 			"p.type, " +
 			"p.options, " +
-			"p.choice " +
+			"p.choice, " +
+			"p.movedSAPIN, " + 
+			"p.secondedSAPIN " +
 		"FROM polls p LEFT JOIN pollEvents e ON p.eventId=e.id";
 
 	const wheres = Object.entries(query).map(([key, value]) => {
@@ -124,4 +129,32 @@ export async function deletePoll(id: number) {
 	const sql = db.format("DELETE FROM polls WHERE id=?", [id]);
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
+}
+
+export async function pollVote(user: User, poll: Poll, votes: number[]) {
+	if (poll.state !== "opened") throw new TypeError("Poll not open");
+
+	if (
+		(poll.type === "m" || poll.choice === PollChoice.SINGLE) &&
+		votes.length > 1
+	)
+		throw new TypeError("Bad vote");
+
+	const sql = db.format(
+		"REPLACE INTO pollVoters (pollId, SAPIN, votes) SET (?, ?, ?)",
+		[poll.id, user.SAPIN, JSON.stringify(votes)]
+	);
+	await db.query(sql);
+}
+
+export async function pollResults(poll: Poll): Promise<PollResult[]> {
+	if (poll.state !== "opened" && poll.state !== "closed")
+		throw new TypeError("Poll in bad state");
+
+	const sql = db.format(
+		"SELECT pollId, SAPIN, votes FROM pollVotes WHERE pollId=?",
+		[poll.id]
+	);
+	const results = db.query<(RowDataPacket & PollResult)[]>(sql);
+	return results;
 }
