@@ -57,9 +57,6 @@ function Header() {
 
 	return (
 		<header className={styles.header}>
-			<div style={{ border: "1px solid" }}>
-				{renderIcon("802", "POLL")}
-			</div>
 			<h3 className="title" onClick={() => navigate(rootPath)}>
 				{title}
 			</h3>

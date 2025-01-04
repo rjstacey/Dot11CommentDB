@@ -1,11 +1,8 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { getUser, loginAndReturn, fetcher } from "dot11-components";
-//import { register as registerServiceWorker } from "./serviceWorkerRegistration";
-import { register } from "register-service-worker";
-
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
+import { getUser, loginAndReturn, fetcher } from "dot11-components";
 
 import { store, persistor, resetStore } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -42,9 +39,12 @@ getUser()
 	.then((user) => {
 		try {
 			fetcher.setAuth(user.Token, loginAndReturn); // Prime fetcher with autherization token
-			const root = createRoot(document.getElementById("root")!);
-			register("./service-worker");
-			root.render(<AppInitStore user={user} />);
+			const rootEl = document.getElementById("root");
+			if (!rootEl)
+				throw new Error(
+					`No element with id="root" (e.g., <div id="root" />) in index.html`
+				);
+			createRoot(rootEl).render(<AppInitStore user={user} />);
 		} catch (error) {
 			console.log(error);
 		}

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
+// @ts-ignore
 import { convert } from "convert-svg-to-png";
 import { renderIcon } from "../src/icon";
 
