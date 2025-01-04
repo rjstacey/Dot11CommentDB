@@ -10,6 +10,7 @@ import { AccessLevel, selectUser, setUser } from "@/store/user";
 import pkg from "../../package.json";
 
 import styles from "./app.module.css";
+import { renderIcon } from "@/icon";
 
 const viewOptions = [
 	{ value: true, label: "Admin" },
@@ -56,6 +57,9 @@ function Header() {
 
 	return (
 		<header className={styles.header}>
+			<div style={{ border: "1px solid" }}>
+				{renderIcon("802", "POLL")}
+			</div>
 			<h3 className="title" onClick={() => navigate(rootPath)}>
 				{title}
 			</h3>

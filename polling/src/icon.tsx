@@ -1,5 +1,5 @@
 export const renderIcon = (groupName: string, toolName: string) => {
-	const groupNameFontSize = (1.9 * 192) / groupName.length;
+	const groupNameFontSize = (1.8 * 192) / groupName.length;
 	const toolNameFontSize = Math.min((1.5 * 192) / toolName.length, 100);
 
 	return (
@@ -34,34 +34,51 @@ export const renderIcon = (groupName: string, toolName: string) => {
 					r="60%"
 					gradientUnits="userSpaceOnUse"
 				/>
+				<clipPath id="clipPath">
+					<rect
+						width="100%"
+						height="100%"
+						x="0"
+						y="0"
+						rx="20%"
+						ry="20%"
+					/>
+				</clipPath>
 			</defs>
-			<text
-				x="50%"
-				y="50%"
-				//textLength="90%"
-				textAnchor="middle"
-				style={{
-					font: `bold ${toolNameFontSize}px sans-serif`,
-					alignmentBaseline: "text-before-edge",
-					fill: "url(#radialGradient2)",
-					fillOpacity: 1,
-				}}
+			<g
+				x="0"
+				y="0"
+				width="192px"
+				height="192px"
+				clipPath="url(#clipPath)"
 			>
-				{toolName}
-			</text>
-			<text
-				x="50%"
-				y="50%"
-				//textLength="100%"
-				textAnchor="middle"
-				style={{
-					font: `bold ${groupNameFontSize}px sans-serif`,
-					fill: "url(#radialGradient1)",
-					fillOpacity: 1,
-				}}
-			>
-				{groupName}
-			</text>
+				<rect width="100%" height="100%" fill="#eee" />
+				<text
+					x="50%"
+					y="50%"
+					textLength="90%"
+					textAnchor="middle"
+					style={{
+						font: `bold ${toolNameFontSize}px Helvetica, Arial, sans-serif`,
+						alignmentBaseline: "text-before-edge",
+						fill: "url(#radialGradient2)",
+					}}
+				>
+					{toolName}
+				</text>
+				<text
+					x="50%"
+					y="50%"
+					textLength="100%"
+					textAnchor="middle"
+					style={{
+						font: `bold ${groupNameFontSize}px Helvetica, Arial, sans-serif`,
+						fill: "url(#radialGradient1)",
+					}}
+				>
+					{groupName}
+				</text>
+			</g>
 		</svg>
 	);
 };

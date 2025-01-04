@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
 const target = "http://localhost:8080";
@@ -10,7 +11,15 @@ export default defineConfig(() => {
 		build: {
 			outDir: "../build/polling",
 		},
-		plugins: [react()],
+		plugins: [
+			react(),
+			VitePWA({
+				registerType: "autoUpdate",
+				devOptions: {
+					enabled: true,
+				},
+			}),
+		],
 		resolve: {
 			alias: {
 				"@": "/src",
