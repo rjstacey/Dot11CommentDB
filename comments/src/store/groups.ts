@@ -153,8 +153,6 @@ export const selectTopLevelGroup = (state: RootState) => {
 	const { topLevelGroupId, entities } = selectGroupsState(state);
 	return (topLevelGroupId && entities[topLevelGroupId]) || undefined;
 };
-export const selectTopLevelGroupName = (state: RootState) =>
-	selectTopLevelGroup(state)?.name || "";
 
 export const selectWorkingGroupIds = createSelector(
 	selectGroupIds,

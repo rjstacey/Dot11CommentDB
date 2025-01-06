@@ -1,7 +1,7 @@
 import { SliderSwitch } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { selectLiveUpdateState, setLiveUpdate } from "../store/liveUpdate";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectLiveUpdateState, setLiveUpdate } from "@/store/liveUpdate";
 
 function LiveUpdateSwitch({ className }: { className?: string }) {
 	const dispatch = useAppDispatch();

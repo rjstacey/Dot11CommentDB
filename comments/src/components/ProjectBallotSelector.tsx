@@ -1,9 +1,9 @@
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 
 import { Select } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	getBallotId,
 	setCurrentGroupProject,
@@ -16,10 +16,10 @@ import {
 	selectCurrentGroupProject,
 	BallotType,
 	getStage,
-} from "../store/ballots";
+} from "@/store/ballots";
+import { selectIsOnline } from "@/store/offline";
 
 import styles from "./ProjectBallotSelector.module.css";
-import { selectIsOnline } from "../store/offline";
 
 function ProjectSelect({
 	value,

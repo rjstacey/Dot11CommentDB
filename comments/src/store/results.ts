@@ -127,12 +127,13 @@ const selectResultExtendedEntities = createSelector(
 					? BallotTypeLabels[ballot.Type] + ballot.number
 					: "??";
 			}
+			const lastSAPIN =
+				(entity!.lastSAPIN === entity!.SAPIN
+					? null
+					: entity!.lastSAPIN) || null;
 			newEntities[entity!.id] = {
 				...entity!,
-				lastSAPIN:
-					entity!.lastSAPIN === entity!.SAPIN
-						? null
-						: entity!.lastSAPIN,
+				lastSAPIN,
 				BallotName,
 			};
 		});

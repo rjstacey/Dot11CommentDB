@@ -2,8 +2,8 @@ import * as React from "react";
 
 import { Dropdown, DropdownRendererProps } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
-import { selectOfflineStatus, selectOfflineOutbox } from "../store/offline";
+import { useAppSelector } from "@/store/hooks";
+import { selectOfflineStatus, selectOfflineOutbox } from "@/store/offline";
 
 import styles from "./OnlineIndicator.module.css";
 

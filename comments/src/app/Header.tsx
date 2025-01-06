@@ -1,5 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import { useNavigate, useParams } from "react-router";
 
 import { Account, Button } from "dot11-components";
 
@@ -7,9 +6,9 @@ import LiveUpdateSwitch from "./LiveUpdateSwitch";
 import OnlineIndicator from "./OnlineIndicator";
 import NavMenu from "./menu";
 
-import { resetStore } from "../store";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { selectUser, setUser } from "../store/user";
+import { resetStore } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectUser, setUser } from "@/store/user";
 
 import pkg from "../../package.json";
 
@@ -27,12 +26,12 @@ function Header() {
 	};
 
 	const title = (groupName ? groupName + " " : "") + "Comment Resolution";
+	if (document.title !== title) document.title = title;
+
 	const rootPath = "/" + (groupName || "");
 
 	return (
 		<header className={styles.header}>
-			<Helmet title={title} />
-
 			<h3 className="title" onClick={() => navigate(rootPath)}>
 				{title}
 			</h3>

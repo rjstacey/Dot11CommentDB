@@ -1,21 +1,21 @@
-import { RouteObject, LoaderFunction } from "react-router-dom";
+import { RouteObject, LoaderFunction } from "react-router";
 
-import { store } from "../store";
-import { AccessLevel } from "../store/user";
-import { selectIsOnline } from "../store/offline";
-import { loadGroups, selectTopLevelGroupByName } from "../store/groups";
-import { loadMembers } from "../store/members";
-import { loadBallots } from "../store/ballots";
+import { store } from "@/store";
+import { AccessLevel } from "@/store/user";
+import { selectIsOnline } from "@/store/offline";
+import { loadGroups, selectTopLevelGroupByName } from "@/store/groups";
+import { loadMembers } from "@/store/members";
+import { loadBallots } from "@/store/ballots";
 
 import AppLayout from "./layout";
 import AppErrorPage from "./errorPage";
 import RootMain from "./rootMain";
-import ballotsRoute from "../ballots/route";
-import epollsRoute from "../epolls/route";
-import votersRoute from "../voters/route";
-import resultsRoute from "../results/route";
-import commentsRoute from "../comments/route";
-import reportsRoute from "../reports/route";
+import ballotsRoute from "./ballots/route";
+import epollsRoute from "./epolls/route";
+import votersRoute from "./voters/route";
+import resultsRoute from "./results/route";
+import commentsRoute from "./comments/route";
+import reportsRoute from "./reports/route";
 
 export type MenuItem = {
 	path: string;
@@ -130,6 +130,7 @@ const routes: RouteObject[] = [
 		path: "/",
 		element: <AppLayout />,
 		errorElement: <AppErrorPage />,
+		hydrateFallbackElement: <span>Fallback</span>,
 		loader: rootLoader,
 		children: [
 			{
