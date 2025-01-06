@@ -1,7 +1,7 @@
 import React from "react";
 import EventPanel from "./allPolls";
 import CurrentPoll from "./currentPoll";
-//import cx from "classnames";
+import cx from "classnames";
 import css from "./tabs.module.css";
 
 function PollUser() {
@@ -11,15 +11,13 @@ function PollUser() {
 		<div className={css.tabs}>
 			<div className={css.tabList}>
 				<div
-					//className={cx({ [css.tab]: true, selected: index === 0 })}
-					className={css.tab + (index === 0 ? " selected" : "")}
+					className={cx({ [css.tab]: true, selected: index === 0 })}
 					onClick={() => setIndex(0)}
 				>
 					Current Poll
 				</div>
 				<div
-					//className={cx({ [css.tab]: true, selected: index === 1 })}
-					className={css.tab + (index === 1 ? " selected" : "")}
+					className={cx({ [css.tab]: true, selected: index === 1 })}
 					onClick={() => setIndex(1)}
 				>
 					Upcoming Polls

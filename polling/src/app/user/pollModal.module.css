@@ -8,14 +8,6 @@
 	margin: 20px 20px 0 0;
 }
 
-.pollTitle,
-.pollBodyRow,
-.pollOptions {
-	background-color: rgb(250, 250, 250);
-	border: 1px solid rgb(221, 221, 221);
-	border-radius: 5px;
-}
-
 .pollTitleRow {
 	display: flex;
 	justify-content: space-between;
@@ -30,7 +22,7 @@
 
 .pollOptionsRow {
 	display: flex;
-	justify-content: space-between;
+	align-items: flex-end;
 }
 
 .pollTitle {
@@ -63,16 +55,19 @@ span.pollTitle,
 	outline: 2px solid #ccc;
 }
 
+.pollOptionsContainer {
+	display: flex;
+	align-items: flex-end;
+	min-width: 33%;
+	background-color: rgb(250, 250, 250);
+	border-radius: 8px;
+	margin-left: 10px;
+}
+
 .pollOptions {
 	display: flex;
 	flex-direction: column;
-	background-color: rgb(250, 250, 250);
 	padding: 10px;
-	border-top: none;
-	border-top-left-radius: 0;
-	position: relative;
-	top: -1px;
-	z-index: 2;
 	min-width: 33%;
 }
 
@@ -84,32 +79,19 @@ span.pollTitle,
 	padding: 4px;
 }
 
-.pollOption.edit:hover {
-	outline: 1px solid #ddd;
-}
-
-.pollOption.edit:focus-within {
-	outline: 2px solid #ccc;
-}
-.pollOption.edit input[type="text"] {
-	border: none;
-	outline: none;
-	background: transparent;
-	width: 100%;
-}
-
-.pollOption.edit button {
-	border: none;
-	background-color: transparent;
-	visibility: hidden;
-}
-
-.pollOption.edit:focus-within button {
-	visibility: visible;
-}
-
-.pollOptions .addButton {
+.pollOptionsSubmit button {
 	border: none;
 	padding: 8px 20px;
 	border-radius: 5px;
+}
+
+.pollOptionsSubmit {
+	display: flex;
+	flex-direction: column;
+	padding: 20px;
+}
+
+.pollOptionsSubmit span {
+	color: red;
+	font-size: smaller;
 }

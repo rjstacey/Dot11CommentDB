@@ -14,10 +14,10 @@ import {
 	setPolls,
 	setPoll,
 	addPoll,
+	updatePoll,
 	removePoll,
 	setActivePollId,
 } from "./pollingUser";
-import { updatePoll } from "./pollingAdmin";
 
 function pollingUserEventOpened(params: any, cb: Function) {
 	const { dispatch } = store;
@@ -74,6 +74,7 @@ function pollingUserPollAction(
 		if (pollAction === "show") state = "shown";
 		else if (pollAction === "open") state = "opened";
 		else if (pollAction === "close") state = "closed";
+		console.log(`pollId=${pollId} ${state}`);
 		dispatch(updatePoll({ id: pollId, changes: { state } }));
 	} catch (error) {
 		console.log("poll " + pollAction, error);
@@ -86,6 +87,9 @@ export function pollingUserSocketRegister(socket: Socket) {
 		.on("poll:added", pollingUserPollAdded)
 		.on("poll:updated", pollingUserPollUpdated)
 		.on("poll:removed", pollingUserPollRemoved)
+		.on("poll:unshown", (params: any, cb: Function) =>
+			pollingUserPollAction("unshow", params, cb)
+		)
 		.on("poll:shown", (params: any, cb: Function) =>
 			pollingUserPollAction("show", params, cb)
 		)
