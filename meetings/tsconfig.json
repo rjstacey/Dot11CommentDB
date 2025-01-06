@@ -1,24 +1,28 @@
 {
 	"compilerOptions": {
 		"target": "es2020",
-		"lib": ["dom", "dom.iterable", "esnext"],
 		"module": "esnext",
-		"moduleResolution": "node",
-		"allowJs": true,
+		"lib": ["ES2020", "DOM", "DOM.Iterable"],
 		"skipLibCheck": true,
+
+		"moduleResolution": "bundler",
+		"resolveJsonModule": true,
+		"allowJs": true,
 		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
 		"strict": true,
 		"forceConsistentCasingInFileNames": true,
 		"noFallthroughCasesInSwitch": true,
-		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"noEmit": true,
 		"jsx": "react-jsx",
+
 		"baseUrl": ".",
 		"paths": {
-			"@schemas/*": ["../schemas/*"]
+			"@schemas/*": ["../schemas/*"],
+			"@/*": ["src/*"]
 		}
 	},
-	"include": ["src", "../schemas"]
+	"include": ["src", "../schemas"],
+	"references": [{ "path": "./tsconfig.node.json" }]
 }

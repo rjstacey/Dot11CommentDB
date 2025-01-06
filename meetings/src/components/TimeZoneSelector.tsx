@@ -1,9 +1,7 @@
 import * as React from "react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-
 import { Select } from "dot11-components";
-
-import { loadTimeZones, selectTimeZonesState } from "../store/timeZones";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { loadTimeZones, selectTimeZonesState } from "@/store/timeZones";
 
 function TimeZoneSelector({
 	value,

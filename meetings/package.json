@@ -1,20 +1,22 @@
 {
 	"name": "meetings",
+	"description": "Schedule meetings",
 	"version": "1.1.5",
 	"private": true,
-	"homepage": "meetings",
+	"homepage": "/meetings",
 	"proxy": "http://localhost:8080",
 	"dependencies": {
 		"@reduxjs/toolkit": "^1.9.7",
 		"d3": "^7.8.5",
 		"dot11-components": "^1.9.90",
 		"idb-keyval": "^6.2.1",
-		"luxon": "^3.4.4",
-		"react": "^18.2.0",
-		"react-dom": "^18.2.0",
+		"luxon": "^3.5.0",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
 		"react-helmet-async": "^2.0.4",
 		"react-redux": "^8.1.3",
-		"react-router-dom": "^6.21.1",
+		"react-router": "^7.1.1",
+		"react-router-dom": "^7.1.1",
 		"react-tabs": "^5.2.0",
 		"react-virtualized-auto-sizer": "^1.0.20",
 		"redux-logger": "^3.0.6",
@@ -23,27 +25,15 @@
 		"web-vitals": "^1.1.2"
 	},
 	"scripts": {
-		"start": "react-app-rewired start",
-		"build": "react-app-rewired build",
-		"test": "react-app-rewired test",
-		"eject": "react-scripts eject"
+		"start": "vite",
+		"build": "vite build --emptyOutDir",
+		"test": "vite test",
+		"assets": "vite-node scripts/generateIcon.ts"
 	},
 	"eslintConfig": {
 		"extends": [
 			"react-app",
 			"react-app/jest"
-		]
-	},
-	"browserslist": {
-		"production": [
-			">0.2%",
-			"not dead",
-			"not op_mini all"
-		],
-		"development": [
-			"last 1 chrome version",
-			"last 1 firefox version",
-			"last 1 safari version"
 		]
 	},
 	"devDependencies": {
@@ -53,9 +43,14 @@
 		"@types/react-virtualized-auto-sizer": "^1.0.4",
 		"@types/redux-logger": "^3.0.12",
 		"@types/uuid": "^9.0.7",
-		"customize-cra": "^1.0.0",
-		"http-proxy-middleware": "^3.0.3",
-		"react-app-rewired": "^2.2.1",
-		"react-scripts": "^5.0.1"
+		"@vitejs/plugin-react": "^4.3.4",
+		"convert-svg-to-png": "^0.6.4",
+		"vite": "^6.0.7",
+		"vite-node": "^2.1.8",
+		"vite-plugin-pwa": "^0.21.1"
+	},
+	"overrides": {
+		"cheerio": "1.0.0-rc.11",
+		"puppeteer": "23.11.1"
 	}
 }

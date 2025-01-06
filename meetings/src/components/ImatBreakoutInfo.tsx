@@ -1,9 +1,9 @@
 import { displayDayDate, displayTime } from "dot11-components";
-import { useAppSelector } from "../store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import {
 	selectBreakoutEntities,
 	selectBreakoutMeetingId,
-} from "../store/imatBreakouts";
+} from "@/store/imatBreakouts";
 
 function ImatBreakoutInfo({
 	imatMeetingId,

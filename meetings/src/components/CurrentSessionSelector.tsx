@@ -1,18 +1,18 @@
 import * as React from "react";
+import { useLocation, useNavigate } from "react-router";
 
 import { Checkbox } from "dot11-components";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectCurrentSessionId,
 	setCurrentSessionId,
 	selectShowDateRange,
 	setShowDateRange,
-} from "../store/current";
+} from "@/store/current";
+import { selectSessionEntities } from "@/store/sessions";
 
 import SessionSelector from "./SessionSelector";
-import { useLocation, useNavigate } from "react-router-dom";
-import { selectSessionEntities } from "../store/sessions";
 
 export function CurrentSessionSelector({
 	onChange,

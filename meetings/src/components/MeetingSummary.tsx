@@ -1,6 +1,5 @@
-import { useAppSelector } from "../store/hooks";
-
-import { selectSyncedMeetingEntities, getField } from "../store/meetings";
+import { useAppSelector } from "@/store/hooks";
+import { selectSyncedMeetingEntities, getField } from "@/store/meetings";
 
 import styles from "./MeetingSummary.module.css";
 

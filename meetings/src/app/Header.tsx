@@ -1,11 +1,10 @@
-import { useNavigate, useParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import { useNavigate, useParams } from "react-router";
 
 import { Account, Button } from "dot11-components";
 
-import { resetStore } from "../store";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { setUser, selectUser } from "../store/user";
+import { resetStore } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setUser, selectUser } from "@/store/user";
 
 import Menu from "./menu";
 
@@ -20,6 +19,8 @@ function Header() {
 	const user = useAppSelector(selectUser)!;
 
 	const title = (groupName ? groupName + " " : "") + "Meetings";
+	if (document.title !== title) document.title = title;
+
 	const rootPath = "/" + (groupName || "");
 
 	const clearCache = () => {
@@ -29,8 +30,6 @@ function Header() {
 
 	return (
 		<header className={styles.header}>
-			<Helmet title={title} />
-
 			<h3 className="title" onClick={() => navigate(rootPath)}>
 				{title}
 			</h3>

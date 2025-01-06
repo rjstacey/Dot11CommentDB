@@ -1,7 +1,7 @@
 import { Select } from "dot11-components";
 
-import { selectCalendarAccounts } from "../store/calendarAccounts";
-import { useAppSelector } from "../store/hooks";
+import { useAppSelector } from "@/store/hooks";
+import { selectCalendarAccounts } from "@/store/calendarAccounts";
 
 function CalendarAccountSelector({
 	value,

@@ -3,12 +3,8 @@ import { DateTime } from "luxon";
 
 import { Select } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
-import {
-	selectMeetingsState,
-	getField,
-	SyncedMeeting,
-} from "../store/meetings";
+import { useAppSelector } from "@/store/hooks";
+import { selectMeetingsState, getField, SyncedMeeting } from "@/store/meetings";
 
 import styles from "./MeetingSelector.module.css";
 

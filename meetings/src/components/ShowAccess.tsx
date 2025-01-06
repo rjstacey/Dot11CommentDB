@@ -1,5 +1,5 @@
 import { Row } from "dot11-components";
-import { AccessLevel } from "../store/user";
+import { AccessLevel } from "@/store/user";
 
 function renderAccess(access: number) {
 	if (access === AccessLevel.admin) return "admin";

@@ -2,8 +2,8 @@ import * as React from "react";
 
 import { Select } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
-import { selectGroupParents } from "../store/groups";
+import { useAppSelector } from "@/store/hooks";
+import { selectGroupParents } from "@/store/groups";
 
 export function GroupParentsSelector({
 	value,

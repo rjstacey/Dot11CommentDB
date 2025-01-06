@@ -1,7 +1,6 @@
 import { Select } from "dot11-components";
-
-import { useAppSelector } from "../store/hooks";
-import { selectWebexAccounts } from "../store/webexAccounts";
+import { useAppSelector } from "@/store/hooks";
+import { selectWebexAccounts } from "@/store/webexAccounts";
 
 function WebexAccountSelector({
 	value,

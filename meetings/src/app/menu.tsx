@@ -3,10 +3,10 @@ import { matchPath, NavLink, useLocation, useParams } from "react-router-dom";
 
 import { Dropdown, DropdownRendererProps } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
-import { AccessLevel } from "../store/user";
-import { selectTopLevelGroupByName } from "../store/groups";
-import { selectBreakoutMeetingId } from "../store/imatBreakouts";
+import { useAppSelector } from "@/store/hooks";
+import { AccessLevel } from "@/store/user";
+import { selectTopLevelGroupByName } from "@/store/groups";
+import { selectBreakoutMeetingId } from "@/store/imatBreakouts";
 
 import routes, { AppRoute } from "./routes";
 

@@ -1,4 +1,4 @@
-import { Navigate, RouteObject, LoaderFunction } from "react-router-dom";
+import { Navigate, RouteObject, LoaderFunction } from "react-router";
 
 import { store } from "../store";
 import { useAppSelector } from "../store/hooks";
@@ -7,29 +7,29 @@ import {
 	selectTopLevelGroupByName,
 	setTopLevelGroupId,
 	loadGroups,
-} from "../store/groups";
-import { loadCalendarAccounts } from "../store/calendarAccounts";
+} from "@/store/groups";
+import { loadCalendarAccounts } from "@/store/calendarAccounts";
 import {
 	loadWebexAccounts,
 	selectWebexAccountsGroupName,
-} from "../store/webexAccounts";
-import { loadMembers } from "../store/members";
-import { loadOfficers } from "../store/officers";
-import { loadTimeZones } from "../store/timeZones";
+} from "@/store/webexAccounts";
+import { loadMembers } from "@/store/members";
+import { loadOfficers } from "@/store/officers";
+import { loadTimeZones } from "@/store/timeZones";
 
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
 import WorkingGroupSelector from "./WorkingGroupSelector";
-import accountsRoute from "../accounts/route";
-import sessionsRoute from "../sessions/route";
-import reportsRoute from "../reports/route";
-import meetingsRoute from "../meetings/route";
-import webexMeetingsRoute from "../webexMeetings/route";
-import imatBreakoutsRoute from "../imatBreakouts/route";
-import imatMeetingsRoute from "../imatMeetings/route";
-import imatAttendanceRoute from "../imatAttendance/route";
-import calendarRoute from "../calendar/route";
-import ieee802WorldRoute from "../ieee802World/route";
+import accountsRoute from "./accounts/route";
+import sessionsRoute from "./sessions/route";
+import reportsRoute from "./reports/route";
+import meetingsRoute from "./meetings/route";
+import webexMeetingsRoute from "./webexMeetings/route";
+import imatBreakoutsRoute from "./imatBreakouts/route";
+import imatMeetingsRoute from "./imatMeetings/route";
+import imatAttendanceRoute from "./imatAttendance/route";
+import calendarRoute from "./calendar/route";
+import ieee802WorldRoute from "./ieee802World/route";
 
 import styles from "./app.module.css";
 
@@ -154,6 +154,7 @@ const routes: AppRoute[] = [
 		path: "/",
 		element: <AppLayout />,
 		errorElement: <ErrorPage />,
+		hydrateFallbackElement: <span>Fallback</span>,
 		loader: rootLoader,
 		children: [
 			{

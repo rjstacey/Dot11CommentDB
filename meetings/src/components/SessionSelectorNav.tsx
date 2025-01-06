@@ -1,9 +1,9 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router";
 
 import { Checkbox } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
-import { selectSessionIds, selectSessionEntities } from "../store/sessions";
+import { useAppSelector } from "@/store/hooks";
+import { selectSessionIds, selectSessionEntities } from "@/store/sessions";
 
 import SessionSelector from "./SessionSelector";
 

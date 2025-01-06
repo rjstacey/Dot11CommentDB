@@ -2,13 +2,13 @@ import * as React from "react";
 
 import { Select, ActionIcon, displayDateRange } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import {
 	selectSessionsState,
 	selectSessions,
 	Session,
 	displaySessionType,
-} from "../store/sessions";
+} from "@/store/sessions";
 
 import styles from "./SessionSelector.module.css";
 

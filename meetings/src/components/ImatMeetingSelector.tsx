@@ -2,8 +2,8 @@ import * as React from "react";
 
 import { Select, displayDateRange } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
-import { selectImatMeetingsState, ImatMeeting } from "../store/imatMeetings";
+import { useAppSelector } from "@/store/hooks";
+import { selectImatMeetingsState, ImatMeeting } from "@/store/imatMeetings";
 
 import styles from "./SessionSelector.module.css";
 

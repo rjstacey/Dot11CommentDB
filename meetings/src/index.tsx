@@ -2,44 +2,49 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
-
-import { store, persistor, resetStore } from "./store";
-import { setUser, selectUser, type User } from "./store/user";
-import App from "./app";
 import { getUser, loginAndReturn, fetcher } from "dot11-components";
+
+import { store, persistor, resetStore } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectUser, setUser, type User } from "@/store/user";
+
 import "./index.css";
+import App from "./app";
 
-import registerServiceWorker from "./registerServiceWorker";
-import reportWebVitals from "./reportWebVitals";
+function AppVerifySameUser({ user }: { user: User }) {
+	const dispatch = useAppDispatch();
+	const storeUser = useAppSelector(selectUser);
 
-function persistGate(done: boolean, user: User) {
-	if (!done) {
-		return "loading...";
-	}
-	const storedUser = selectUser(store.getState());
-	if (storedUser.SAPIN !== user.SAPIN) {
-		store.dispatch(resetStore());
-	}
-	store.dispatch(setUser(user));
+	React.useEffect(() => {
+		if (storeUser.SAPIN !== user.SAPIN) dispatch(resetStore());
+		dispatch(setUser(user)); // Make sure we have the latest user info
+	}, []);
+
 	return <App />;
+}
+
+function AppInitStore({ user }: { user: User }) {
+	return (
+		<React.StrictMode>
+			<Provider store={store}>
+				<PersistGate loading="Loading..." persistor={persistor}>
+					<AppVerifySameUser user={user} />
+				</PersistGate>
+			</Provider>
+		</React.StrictMode>
+	);
 }
 
 getUser()
 	.then((user) => {
-		const root = createRoot(document.getElementById("root")!);
 		try {
-			fetcher.setAuth(user.Token, loginAndReturn);
-			root.render(
-				<React.StrictMode>
-					<Provider store={store}>
-						<PersistGate persistor={persistor}>
-							{(done) => persistGate(done, user)}
-						</PersistGate>
-					</Provider>
-				</React.StrictMode>
-			);
-			registerServiceWorker();
-			reportWebVitals();
+			fetcher.setAuth(user.Token, loginAndReturn); // Prime fetcher with autherization token
+			const rootEl = document.getElementById("root");
+			if (!rootEl)
+				throw new Error(
+					`No element with id="root" (e.g., <div id="root" />) in index.html`
+				);
+			createRoot(rootEl).render(<AppInitStore user={user} />);
 		} catch (error) {
 			console.log(error);
 		}

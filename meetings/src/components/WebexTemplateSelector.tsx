@@ -1,8 +1,7 @@
 import * as React from "react";
 import { Select } from "dot11-components";
-import { useAppSelector } from "../store/hooks";
-
-import { selectWebexAccountsState } from "../store/webexAccounts";
+import { useAppSelector } from "@/store/hooks";
+import { selectWebexAccountsState } from "@/store/webexAccounts";
 
 function WebexTemplateSelector({
 	value,
