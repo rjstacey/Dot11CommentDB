@@ -27,7 +27,6 @@
 		"react-router-dom": "^7.1.1",
 		"redux-logger": "^3.0.6",
 		"redux-persist": "^6.0.0",
-		"register-service-worker": "^1.7.2",
 		"socket.io-client": "^4.8.1",
 		"web-vitals": "^2.1.4",
 		"zod": "^3.23.8"

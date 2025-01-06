@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { createBrowserRouter, RouterProvider } from "react-router";
 import routes from "./routes";
 
