@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import AutoSizer from "react-virtualized-auto-sizer";
 
 import { ActionButton, Button, Spinner } from "dot11-components";

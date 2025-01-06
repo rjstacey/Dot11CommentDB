@@ -1,4 +1,4 @@
-import { LoaderFunction, RouteObject } from "react-router-dom";
+import { LoaderFunction, RouteObject } from "react-router";
 
 import { setError } from "dot11-components";
 import { store } from "@/store";
