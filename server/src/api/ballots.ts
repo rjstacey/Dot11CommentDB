@@ -4,19 +4,19 @@
  */
 
 import { Request, Response, NextFunction, Router } from "express";
-import { ForbiddenError } from "../utils";
-import { AccessLevel } from "../auth/access";
+import { ForbiddenError } from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
 import {
 	ballotCreatesSchema,
 	ballotUpdatesSchema,
 	ballotIdsSchema,
-} from "@schemas/ballots";
+} from "@schemas/ballots.js";
 import {
 	getBallots,
 	updateBallots,
 	addBallots,
 	deleteBallots,
-} from "../services/ballots";
+} from "../services/ballots.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

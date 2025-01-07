@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction, Router } from "express";
-import { AccessLevel } from "../auth/access";
-import { ForbiddenError } from "../utils";
-import { getUsers } from "../services/members";
+import { AccessLevel } from "../auth/access.js";
+import { ForbiddenError } from "../utils/index.js";
+import { getUsers } from "../services/members.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	if (!req.group) return next(new Error("Group not set"));

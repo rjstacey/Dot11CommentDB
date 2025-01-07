@@ -1,8 +1,8 @@
 /*
  * Handle public review comment spreadsheet
  */
-import { parseSpreadsheet } from "../utils";
-import type { Comment } from "@schemas/comments";
+import { parseSpreadsheet } from "../utils/index.js";
+import type { Comment } from "@schemas/comments.js";
 
 const publicReviewCommentsHeader = [
 	"Comment #",

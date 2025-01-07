@@ -1,13 +1,13 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import type { Group } from "@schemas/groups";
+import type { Group } from "@schemas/groups.js";
 import type {
 	EmailTemplate,
 	EmailTemplateQuery,
 	EmailTemplateCreate,
 	EmailTemplateUpdate,
-} from "@schemas/emailTemplates";
+} from "@schemas/emailTemplates.js";
 
-import db from "../utils/database";
+import db from "../utils/database.js";
 
 export function getTemplates(
 	group: Group,

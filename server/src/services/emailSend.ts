@@ -7,8 +7,8 @@ import {
 	SendEmailCommandOutput,
 } from "@aws-sdk/client-ses";
 
-import type { User } from "./users";
-import type { Email } from "@schemas/email";
+import type { User } from "./users.js";
+import type { Email } from "@schemas/email.js";
 
 const region = "us-west-2";
 let credentials: ReturnType<typeof fromIni>;

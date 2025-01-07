@@ -1,12 +1,12 @@
-import db from "../utils/database";
+import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import { Group } from "@schemas/groups";
+import type { Group } from "@schemas/groups.js";
 import {
 	AffiliationMap,
 	AffiliationMapCreate,
 	AffiliationMapUpdate,
-} from "@schemas/affiliationMap";
+} from "@schemas/affiliationMap.js";
 
 type AffiliationMapQuery = { id?: number | number[] };
 

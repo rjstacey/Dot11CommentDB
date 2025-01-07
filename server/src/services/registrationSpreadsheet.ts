@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
-import { csvParse } from "../utils";
-import type { SessionRegistration } from "@schemas/registration";
+import { csvParse } from "../utils/index.js";
+import type { SessionRegistration } from "@schemas/registration.js";
 
 export async function parseRegistrationSpreadsheet(file: {
 	originalname: string;

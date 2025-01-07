@@ -1,13 +1,13 @@
-import db from "../utils/database";
+import db from "../utils/database.js";
 import { RowDataPacket, type ResultSetHeader } from "mysql2";
-import { isPlainObject } from "../utils";
+import { isPlainObject } from "../utils/index.js";
 import {
 	OAuthAccount,
 	OAuthAccountCreate,
 	OAuthAccountChange,
 	OAuthAccountsQuery,
 	OAuthParams,
-} from "@schemas/oauthAccounts";
+} from "@schemas/oauthAccounts.js";
 
 type AuthState = {
 	accountId: number;

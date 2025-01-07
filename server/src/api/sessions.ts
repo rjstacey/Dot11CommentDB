@@ -7,13 +7,13 @@ import {
 	sessionUpdateSchema,
 	sessionIdsSchema,
 	sessionsQuerySchema,
-} from "@schemas/sessions";
+} from "@schemas/sessions.js";
 import {
 	getSessions,
 	updateSession,
 	addSession,
 	deleteSessions,
-} from "../services/sessions";
+} from "../services/sessions.js";
 
 async function get(req: Request, res: Response, next: NextFunction) {
 	try {

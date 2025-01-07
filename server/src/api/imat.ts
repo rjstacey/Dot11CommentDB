@@ -59,12 +59,12 @@ import {
 	getImatBreakoutAttendance,
 	getImatMeetingDailyAttendance,
 	getImatMeetingAttendanceSummary,
-} from "../services/imat";
+} from "../services/imat.js";
 import {
 	breakoutCreatesSchema,
 	breakoutIdsSchema,
 	breakoutUpdatesSchema,
-} from "@schemas/imat";
+} from "@schemas/imat.js";
 
 async function getCommittees(req: Request, res: Response, next: NextFunction) {
 	const { user, group } = req;

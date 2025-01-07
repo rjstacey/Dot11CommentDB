@@ -2,8 +2,8 @@
  * Webex accounts and meetings API
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { ForbiddenError } from "../utils";
-import { AccessLevel } from "../auth/access";
+import { ForbiddenError } from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
 import {
 	webexAccountCreateSchema,
 	webexAccountChangeSchema,
@@ -11,7 +11,7 @@ import {
 	webexMeetingChangesSchema,
 	webexMeetingCreatesSchema,
 	webexMeetingsQuerySchema,
-} from "@schemas/webex";
+} from "@schemas/webex.js";
 import {
 	getWebexAccounts,
 	updateWebexAccount,
@@ -22,7 +22,7 @@ import {
 	updateWebexMeetings,
 	revokeAuthWebexAccount,
 	deleteWebexMeetings,
-} from "../services/webex";
+} from "../services/webex.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

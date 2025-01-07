@@ -1,18 +1,22 @@
 import { v4 as uuid, validate as validateUUID } from "uuid";
 
-import db from "../utils/database";
+import db from "../utils/database.js";
 
-import { selectComments } from "./comments";
-import { User } from "./users";
+import { selectComments } from "./comments.js";
+import { User } from "./users.js";
 import type { ResultSetHeader } from "mysql2";
-import { ForbiddenError, NotFoundError, isPlainObject } from "../utils";
-import { AccessLevel } from "../auth/access";
-import { getGroups } from "./groups";
+import {
+	ForbiddenError,
+	NotFoundError,
+	isPlainObject,
+} from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
+import { getGroups } from "./groups.js";
 import type {
 	ResolutionCreate,
 	ResolutionChange,
 	ResolutionUpdate,
-} from "@schemas/resolutions";
+} from "@schemas/resolutions.js";
 
 export const defaultResolution: Required<ResolutionChange> = {
 	ResolutionID: 0,

@@ -1,5 +1,5 @@
-import ExcelJS from 'exceljs';
-import { csvParse } from "./csv";
+import ExcelJS from "exceljs";
+import { csvParse } from "./csv.js";
 
 /**
  * Check spreadsheet column headings against expected headings
@@ -41,13 +41,13 @@ export function validateSpreadsheetHeader(
 
 /** Rudementary file info; basic info from Express.Multer.File */
 export type BasicFile = {
-	originalname: string,
-	buffer: Buffer
-}
+	originalname: string;
+	buffer: Buffer;
+};
 
 /**
  * Parse a spreadsheet in .xlsx or .csv format.
- * 
+ *
  * @param file Basic file information (original name and buffer)
  * @param expectedHeader An array of strings (or regexs) to match against the expected table header.
  * @param headerRowIndex (Optional) Header row index. Defaults to 0.
@@ -60,32 +60,42 @@ export async function parseSpreadsheet(
 	headerRowIndex = 0,
 	numberColumns = 0
 ) {
-	let rows: string[][]; 	// an array of arrays
+	let rows: string[][]; // an array of arrays
 	if (file.originalname.search(/\.xlsx$/i) >= 0) {
 		const workbook = new ExcelJS.Workbook();
 		try {
 			await workbook.xlsx.load(file.buffer);
-		}
-		catch (error) {
+		} catch (error) {
 			throw TypeError("Invalid workbook: " + error);
 		}
 
 		rows = [];
-		workbook.getWorksheet(1)?.eachRow(row => {
+		workbook.getWorksheet(1)?.eachRow((row) => {
 			if (Array.isArray(row.values))
-				rows.push(row.values.slice(1, (numberColumns || expectedHeader.length) + 1).map(r => typeof r === 'string'? r: r? r.toString(): ''));
+				rows.push(
+					row.values
+						.slice(1, (numberColumns || expectedHeader.length) + 1)
+						.map((r) =>
+							typeof r === "string" ? r : r ? r.toString() : ""
+						)
+				);
 		});
 	} else if (file.originalname.search(/\.csv$/i) >= 0) {
-		rows = await csvParse(file.buffer, {columns: false, bom: true, encoding: 'latin1'});
+		rows = await csvParse(file.buffer, {
+			columns: false,
+			bom: true,
+			encoding: "latin1",
+		});
 	} else {
-		throw TypeError("Must be an Excel Workbook (*.xlsx) or .csv file. Older Excel Workbook formats are not supported.")
+		throw TypeError(
+			"Must be an Excel Workbook (*.xlsx) or .csv file. Older Excel Workbook formats are not supported."
+		);
 	}
 
-	if (rows.length === 0)
-		throw new TypeError('Empty spreadsheet file');
+	if (rows.length === 0) throw new TypeError("Empty spreadsheet file");
 
 	rows.splice(0, headerRowIndex);
 	validateSpreadsheetHeader(rows.shift()!, expectedHeader);
-	
+
 	return rows;
 }

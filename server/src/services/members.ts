@@ -1,26 +1,26 @@
 import { DateTime } from "luxon";
 
-import db from "../utils/database";
+import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Response } from "express";
 
-import type { User } from "./users";
+import type { User } from "./users.js";
 
 import {
 	parseMyProjectRosterSpreadsheet,
 	genMyProjectRosterSpreadsheet,
 	updateMyProjectRoster,
-} from "./myProjectSpreadsheets";
+} from "./myProjectSpreadsheets.js";
 
 import {
 	parseMembersSpreadsheet,
 	parseSAPINsSpreadsheet,
 	parseEmailsSpreadsheet,
 	parseHistorySpreadsheet,
-} from "./membersSpreadsheets";
+} from "./membersSpreadsheets.js";
 
-import { NotFoundError, csvStringify, isPlainObject } from "../utils";
-import { AccessLevel } from "../auth/access";
+import { NotFoundError, csvStringify, isPlainObject } from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
 
 import {
 	UserType,
@@ -34,10 +34,10 @@ import {
 	StatusType,
 	UserMember,
 	statusValues,
-} from "@schemas/members";
-import { Group } from "@schemas/groups";
-import { getRecentAttendances } from "./attendances";
-import { getActiveBallotSeriesParticipation } from "./ballotParticipation";
+} from "@schemas/members.js";
+import { Group } from "@schemas/groups.js";
+import { getRecentAttendances } from "./attendances.js";
+import { getActiveBallotSeriesParticipation } from "./ballotParticipation.js";
 
 type UserTypeDB = Omit<UserType, "ContactInfo" | "ContactEmails"> & {
 	ContactInfo: string; // JSON

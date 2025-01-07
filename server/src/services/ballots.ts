@@ -1,18 +1,18 @@
-import db from "../utils/database";
+import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { DateTime } from "luxon";
-import { NotFoundError } from "../utils";
+import { NotFoundError } from "../utils/index.js";
 
-import { getResults } from "./results";
-import { getWorkingGroup } from "./groups";
-import type { User } from "./users";
-import type { Group } from "@schemas/groups";
+import { getResults } from "./results.js";
+import { getWorkingGroup } from "./groups.js";
+import type { User } from "./users.js";
+import type { Group } from "@schemas/groups.js";
 import type {
 	Ballot,
 	BallotQuery,
 	BallotCreate,
 	BallotUpdate,
-} from "@schemas/ballots";
+} from "@schemas/ballots.js";
 
 export const BallotType = {
 	CC: 0, // comment collection

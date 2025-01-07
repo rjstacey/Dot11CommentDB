@@ -3,7 +3,7 @@ import { OAuth2Client, Credentials } from "google-auth-library";
 // Google Calendar: https://developers.google.com/calendar/api/v3/reference/calendars
 import { google, calendar_v3 } from "googleapis";
 import { Request } from "express";
-import { User } from "./users";
+import { User } from "./users.js";
 
 import {
 	genOAuthState,
@@ -13,16 +13,16 @@ import {
 	updateOAuthAccount,
 	deleteOAuthAccount,
 	updateAuthParams,
-} from "./oauthAccounts";
-import { OAuthAccount, OAuthAccountCreate } from "@schemas/oauthAccounts";
+} from "./oauthAccounts.js";
+import { OAuthAccount, OAuthAccountCreate } from "@schemas/oauthAccounts.js";
 import {
 	CalendarAccount,
 	CalendarAccountCreate,
 	CalendarAccountChange,
 	CalendarAccountsQuery,
 	GoogleCalendar,
-} from "@schemas/calendar";
-import { NotFoundError } from "../utils";
+} from "@schemas/calendar.js";
+import { NotFoundError } from "../utils/index.js";
 
 type CalendarAccountLocal = Omit<
 	CalendarAccount,

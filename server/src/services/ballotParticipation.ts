@@ -1,6 +1,6 @@
-import db from "../utils/database";
+import db from "../utils/database.js";
 import type { RowDataPacket } from "mysql2";
-import { getBallots } from "./ballots";
+import { getBallots } from "./ballots.js";
 
 export type BallotSeries = {
 	id: number;

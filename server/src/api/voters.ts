@@ -3,9 +3,9 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import Multer from "multer";
-import { ForbiddenError, NotFoundError } from "../utils";
-import { AccessLevel } from "../auth/access";
-import { selectWorkingGroup } from "../services/groups";
+import { ForbiddenError, NotFoundError } from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
+import { selectWorkingGroup } from "../services/groups.js";
 import {
 	VoterCreate,
 	VoterUpdate,
@@ -14,7 +14,7 @@ import {
 	voterIdsSchema,
 	voterMemberSnapshotParamsSchema,
 	VoterMemberSnapshotParams,
-} from "@schemas/voters";
+} from "@schemas/voters.js";
 import {
 	getVoters,
 	addVoters,
@@ -23,7 +23,7 @@ import {
 	uploadVoters,
 	votersFromMembersSnapshot,
 	exportVoters,
-} from "../services/voters";
+} from "../services/voters.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.voters || AccessLevel.none;

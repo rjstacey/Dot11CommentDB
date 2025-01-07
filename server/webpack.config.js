@@ -1,6 +1,8 @@
-const path = require("path");
+import path from "node:path";
 
-module.exports = {
+const __dirname = process.cwd();
+
+export default {
 	entry: {
 		main: path.join(__dirname, "src/index.ts"),
 	},

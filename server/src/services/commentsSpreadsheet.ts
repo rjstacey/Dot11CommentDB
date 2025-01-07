@@ -2,13 +2,16 @@
  * Handle the legacy (Adrian's comment database) spreadsheet file
  */
 import ExcelJS from "exceljs";
-import { isCorrectSpreadsheetHeader } from "../utils";
-import type { Ballot } from "@schemas/ballots";
-import type { CommentResolution, CommentsExportStyle } from "@schemas/comments";
-import type { User } from "./users";
+import { isCorrectSpreadsheetHeader } from "../utils/index.js";
+import type { Ballot } from "@schemas/ballots.js";
+import type {
+	CommentResolution,
+	CommentsExportStyle,
+} from "@schemas/comments.js";
+import type { User } from "./users.js";
 import type { Response } from "express";
-import { BallotType } from "./ballots";
-import { getComments } from "./comments";
+import { BallotType } from "./ballots.js";
+import { getComments } from "./comments.js";
 
 type ColSet = (b: Ballot, c: CommentResolution, v: ExcelJS.Cell) => void;
 type ColGet = (v: ExcelJS.CellValue, c: Partial<CommentResolution>) => void;

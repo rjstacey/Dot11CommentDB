@@ -1,12 +1,12 @@
 import { v4 as uuid } from "uuid";
 
-import db from "../utils/database";
-import type { User } from "./users";
-import { parseCommentsSpreadsheet } from "./commentsSpreadsheet";
-import { getComments, getCommentsSummary } from "./comments";
-import type { Comment, CommentResolution } from "@schemas/comments";
-import type { Resolution } from "@schemas/resolutions";
-import type { UploadResolutionsResponse } from "@schemas/uploadResolutions";
+import db from "../utils/database.js";
+import type { User } from "./users.js";
+import { parseCommentsSpreadsheet } from "./commentsSpreadsheet.js";
+import { getComments, getCommentsSummary } from "./comments.js";
+import type { Comment, CommentResolution } from "@schemas/comments.js";
+import type { Resolution } from "@schemas/resolutions.js";
+import type { UploadResolutionsResponse } from "@schemas/uploadResolutions.js";
 
 const matchClause = (dbValue: string | null, sValue: string | null) => {
 	if (dbValue === sValue) return true;

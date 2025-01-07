@@ -1,16 +1,16 @@
 import { v4 as uuid } from "uuid";
 
-import db from "../utils/database";
+import db from "../utils/database.js";
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
-import type { User } from "./users";
-import { getGroupAndSubgroupIds } from "./groups";
-import { Group } from "@schemas/groups";
+import type { User } from "./users.js";
+import { getGroupAndSubgroupIds } from "./groups.js";
+import { Group } from "@schemas/groups.js";
 import {
 	Officer,
 	OfficerQuery,
 	OfficerCreate,
 	OfficerUpdate,
-} from "@schemas/officers";
+} from "@schemas/officers.js";
 
 export function getOfficers(constraints?: OfficerQuery): Promise<Officer[]> {
 	// prettier-ignore

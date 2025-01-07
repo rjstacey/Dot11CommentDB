@@ -5,39 +5,39 @@
  */
 import { NextFunction, Request, Response, Router } from "express";
 
-import { User } from "../services/users";
-import { getGroups } from "../services/groups";
-import type { Group } from "@schemas/groups";
-import { getBallot } from "../services/ballots";
-import { Ballot } from "@schemas/ballots";
-import { authorize } from "../auth/jwt";
-import { NotFoundError } from "../utils";
+import { User } from "../services/users.js";
+import { getGroups } from "../services/groups.js";
+import type { Group } from "@schemas/groups.js";
+import { getBallot } from "../services/ballots.js";
+import { Ballot } from "@schemas/ballots.js";
+import { authorize } from "../auth/jwt.js";
+import { NotFoundError } from "../utils/index.js";
 
-import timezones from "./timezones";
-import members from "./members";
-import affiliationMap from "./affiliationMap";
-import groups from "./groups";
-import officers from "./officers";
-import email from "./email";
-import attendances from "./attendances";
-import ballotParticipation from "./ballotParticipation";
+import timezones from "./timezones.js";
+import members from "./members.js";
+import affiliationMap from "./affiliationMap.js";
+import groups from "./groups.js";
+import officers from "./officers.js";
+import email from "./email.js";
+import attendances from "./attendances.js";
+import ballotParticipation from "./ballotParticipation.js";
 
-import sessions from "./sessions";
-import meetings from "./meetings";
-import webex from "./webex";
-import calendar from "./calendar";
-import imat from "./imat";
-import ieee802world from "./802world";
+import sessions from "./sessions.js";
+import meetings from "./meetings.js";
+import webex from "./webex.js";
+import calendar from "./calendar.js";
+import imat from "./imat.js";
+import ieee802world from "./802world.js";
 
-import ballots from "./ballots";
-import epolls from "./epolls";
-import voters from "./voters";
-import results from "./results";
-import comments from "./comments";
-import resolutions from "./resolutions";
-import commentHistory from "./commentHistory";
+import ballots from "./ballots.js";
+import epolls from "./epolls.js";
+import voters from "./voters.js";
+import results from "./results.js";
+import comments from "./comments.js";
+import resolutions from "./resolutions.js";
+import commentHistory from "./commentHistory.js";
 
-import * as pkg from "../../package.json";
+import pkg from "../../package.json" with { type: "json" };
 
 const router = Router();
 

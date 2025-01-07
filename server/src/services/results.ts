@@ -1,18 +1,18 @@
-import db from "../utils/database";
-import { shallowEqual, AuthError, NotFoundError } from "../utils";
+import db from "../utils/database.js";
+import { shallowEqual, AuthError, NotFoundError } from "../utils/index.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Response } from "express";
-import type { User } from "./users";
+import type { User } from "./users.js";
 
-import { parseEpollResults, parseEpollResultsHtml } from "./epoll";
-import { parseMyProjectResults } from "./myProjectSpreadsheets";
-import { genResultsSpreadsheet } from "./resultsSpreadsheet";
-import { getBallotSeries, BallotType } from "./ballots";
-import { AccessLevel } from "../auth/access";
-import { getMember } from "./members";
-import type { Group } from "@schemas/groups";
-import type { Result, ResultUpdate } from "@schemas/results";
-import type { Ballot, ResultsSummary } from "@schemas/ballots";
+import { parseEpollResults, parseEpollResultsHtml } from "./epoll.js";
+import { parseMyProjectResults } from "./myProjectSpreadsheets.js";
+import { genResultsSpreadsheet } from "./resultsSpreadsheet.js";
+import { getBallotSeries, BallotType } from "./ballots.js";
+import { AccessLevel } from "../auth/access.js";
+import { getMember } from "./members.js";
+import type { Group } from "@schemas/groups.js";
+import type { Result, ResultUpdate } from "@schemas/results.js";
+import type { Ballot, ResultsSummary } from "@schemas/ballots.js";
 
 export type ResultDB = {
 	id: string;

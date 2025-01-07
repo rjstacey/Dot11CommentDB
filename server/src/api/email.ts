@@ -1,19 +1,19 @@
 import { Request, Response, NextFunction, Router } from "express";
-import { ForbiddenError } from "../utils";
-import { AccessLevel } from "../auth/access";
+import { ForbiddenError } from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
 import {
 	getTemplates,
 	addTemplates,
 	updateTemplates,
 	deleteTemplates,
-} from "../services/emailTemplates";
-import { sendEmail, sendEmails } from "../services/emailSend";
-import { emailSchema, emailsSchema } from "@schemas/email";
+} from "../services/emailTemplates.js";
+import { sendEmail, sendEmails } from "../services/emailSend.js";
+import { emailSchema, emailsSchema } from "@schemas/email.js";
 import {
 	emailTemplateCreatesSchema,
 	emailTemplateIdsSchema,
 	emailTemplateUpdatesSchema,
-} from "@schemas/emailTemplates";
+} from "@schemas/emailTemplates.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

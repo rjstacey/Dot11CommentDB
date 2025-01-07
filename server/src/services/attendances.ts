@@ -1,21 +1,21 @@
-import db from "../utils/database";
-import { NotFoundError } from "../utils";
+import db from "../utils/database.js";
+import { NotFoundError } from "../utils/index.js";
 import type { Response } from "express";
 
-import { getSessions } from "./sessions";
-import type { Session } from "@schemas/sessions";
-import { getGroupHierarchy } from "./groups";
-import type { Group } from "@schemas/groups";
+import { getSessions } from "./sessions.js";
+import type { Session } from "@schemas/sessions.js";
+import { getGroupHierarchy } from "./groups.js";
+import type { Group } from "@schemas/groups.js";
 import {
 	getImatMeetingAttendanceSummaryForSession,
 	getImatMeetingDailyAttendance,
-} from "./imat";
+} from "./imat.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import type { User } from "./users";
-import type { Member } from "@schemas/members";
-import { getMembers, getMembersSnapshot } from "./members";
-import { AccessLevel } from "../auth/access";
-import { genAttendanceSpreadsheet } from "./attendancesSpreadsheet";
+import type { User } from "./users.js";
+import type { Member } from "@schemas/members.js";
+import { getMembers, getMembersSnapshot } from "./members.js";
+import { AccessLevel } from "../auth/access.js";
+import { genAttendanceSpreadsheet } from "./attendancesSpreadsheet.js";
 import type {
 	SessionAttendanceSummary,
 	RecentSessionAttendances,
@@ -23,8 +23,8 @@ import type {
 	SessionAttendanceSummaryUpdate,
 	SessionAttendanceSummaryChanges,
 	SessionAttendanceSummaryQuery,
-} from "@schemas/attendances";
-import { parseRegistrationSpreadsheet } from "./registrationSpreadsheet";
+} from "@schemas/attendances.js";
+import { parseRegistrationSpreadsheet } from "./registrationSpreadsheet.js";
 
 type AttendanceSummaryDB = {
 	id: number;

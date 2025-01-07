@@ -5,23 +5,23 @@ import PropTypes from "prop-types";
 import { DateTime, Duration } from "luxon";
 import { load as cheerioLoad } from "cheerio";
 
-import type { User } from "./users";
+import type { User } from "./users.js";
 
 import {
 	csvParse,
 	AuthError,
 	NotFoundError,
 	validateSpreadsheetHeader,
-} from "../utils";
-import { webexMeetingImatLocation } from "./meetings";
-import { getGroupHierarchy } from "./groups";
-import { getCredit } from "./sessions";
+} from "../utils/index.js";
+import { webexMeetingImatLocation } from "./meetings.js";
+import { getGroupHierarchy } from "./groups.js";
+import { getCredit } from "./sessions.js";
 
-import type { MeetingCreate } from "@schemas/meetings";
-import type { WebexMeeting } from "@schemas/webex";
-import type { Session } from "@schemas/sessions";
-import type { ContactInfo } from "@schemas/members";
-import type { Group } from "@schemas/groups";
+import type { MeetingCreate } from "@schemas/meetings.js";
+import type { WebexMeeting } from "@schemas/webex.js";
+import type { Session } from "@schemas/sessions.js";
+import type { ContactInfo } from "@schemas/members.js";
+import type { Group } from "@schemas/groups.js";
 import type {
 	Breakout,
 	BreakoutCreate,
@@ -34,7 +34,7 @@ import type {
 	ImatAttendanceSummary,
 	GetImatBreakoutsResponse,
 	ImatDailyAttendanceSummary,
-} from "@schemas/imat";
+} from "@schemas/imat.js";
 
 type PageBreakout = {
 	id: number;

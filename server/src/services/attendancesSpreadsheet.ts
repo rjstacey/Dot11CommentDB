@@ -1,9 +1,9 @@
 import ExcelJS from "exceljs";
 import type { Response } from "express";
-import type { MemberAttendance } from "./attendances";
-import { User } from "./users";
-import { Group } from "@schemas/groups";
-import { Session } from "@schemas/sessions";
+import type { MemberAttendance } from "./attendances.js";
+import { User } from "./users.js";
+import { Group } from "@schemas/groups.js";
+import { Session } from "@schemas/sessions.js";
 
 type Col = {
 	label: string;

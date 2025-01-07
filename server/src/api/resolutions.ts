@@ -36,24 +36,24 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import Multer from "multer";
-import { ForbiddenError, isPlainObject } from "../utils";
-import { AccessLevel } from "../auth/access";
+import { ForbiddenError, isPlainObject } from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
 import {
 	commentResolutionQuerySchema,
 	CommentResolutionQuery,
-} from "@schemas/comments";
+} from "@schemas/comments.js";
 import {
 	ResolutionCreate,
 	ResolutionUpdate,
 	resolutionCreatesSchema,
 	resolutionIdsSchema,
 	resolutionUpdatesSchema,
-} from "@schemas/resolutions";
+} from "@schemas/resolutions.js";
 import {
 	addResolutions,
 	updateResolutions,
 	deleteResolutions,
-} from "../services/resolutions";
+} from "../services/resolutions.js";
 import {
 	toUpdateOptions,
 	matchAlgoOptions,
@@ -62,7 +62,7 @@ import {
 	MatchAlgo,
 	MatchUpdate,
 	uploadResolutions,
-} from "../services/uploadResolutions";
+} from "../services/uploadResolutions.js";
 
 function addMany(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;

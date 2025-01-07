@@ -1,7 +1,7 @@
 import { Server as HttpServer } from "node:http";
 import { Server as SocketIoServer, Socket } from "socket.io";
-import onPollConnect from "./poll";
-import { verifyToken } from "../auth/jwt";
+import onPollConnect from "./poll.js";
+import { verifyToken } from "../auth/jwt.js";
 
 async function authSocket(socket: Socket, next: Function) {
 	console.log("auth");

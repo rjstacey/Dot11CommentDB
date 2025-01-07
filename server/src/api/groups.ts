@@ -8,13 +8,13 @@ import {
 	groupUpdatesSchema,
 	groupIdsSchema,
 	groupsQuerySchema,
-} from "@schemas/groups";
+} from "@schemas/groups.js";
 import {
 	getGroups,
 	addGroups,
 	updateGroups,
 	removeGroups,
-} from "../services/groups";
+} from "../services/groups.js";
 
 async function get(req: Request, res: Response, next: NextFunction) {
 	const { user } = req;

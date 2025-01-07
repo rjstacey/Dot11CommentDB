@@ -1,8 +1,8 @@
 {
 	"compilerOptions": {
 		"target": "es2022",
-		"lib": ["es2022"],
-		"module": "Node16",
+		"lib": ["es2023"],
+		"module": "NodeNext",
 		"strict": true,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
@@ -13,9 +13,11 @@
 		"noImplicitAny": false,
 		"noImplicitThis": false,
 		"sourceMap": true,
-		"moduleResolution": "Node16",
-		"noEmit": false,
+		"moduleResolution": "nodenext",
+		"noEmit": true,
 		"resolveJsonModule": true,
+
+		"baseUrl": ".",
 		"paths": {
 			"@schemas/*": ["../schemas/*"]
 		}

@@ -3,13 +3,13 @@ import {
 	affiliationMapCreatesSchema,
 	affiliationMapUpdatesSchema,
 	affiliationMapIdsSchema,
-} from "@schemas/affiliationMap";
+} from "@schemas/affiliationMap.js";
 import {
 	getAffiliationMaps,
 	updateAffiliationMaps,
 	addAffiliationMaps,
 	removeAffiliationMaps,
-} from "../services/affiliationMap";
+} from "../services/affiliationMap.js";
 
 async function getAll(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;

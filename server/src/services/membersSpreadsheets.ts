@@ -2,13 +2,13 @@
  * Handle spreadsheets from Adrian's members database
  */
 import ExcelJS from "exceljs";
-import { validateSpreadsheetHeader } from "../utils";
+import { validateSpreadsheetHeader } from "../utils/index.js";
 import type {
 	Member,
 	StatusChangeEntry,
 	ContactEmail,
 	ContactInfo,
-} from "@schemas/members";
+} from "@schemas/members.js";
 
 /*
  * Valid status mappings

@@ -1,4 +1,4 @@
-import db from "../utils/database";
+import db from "../utils/database.js";
 import {
 	Event,
 	EventsQuery,
@@ -10,9 +10,9 @@ import {
 	PollUpdate,
 	PollResult,
 	PollChoice,
-} from "@schemas/poll";
+} from "@schemas/poll.js";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
-import { User } from "./users";
+import { User } from "./users.js";
 
 export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 	// prettier-ignore
@@ -133,15 +133,16 @@ export async function deletePoll(id: number) {
 
 export async function pollVote(user: User, poll: Poll, votes: number[]) {
 	if (poll.state !== "opened") throw new TypeError("Poll not open");
+	// Strip out duplicates
+	votes = [...new Set(votes)];
 
-	if (
-		(poll.type === "m" || poll.choice === PollChoice.SINGLE) &&
-		votes.length > 1
-	)
+	if (poll.choice === PollChoice.SINGLE && votes.length > 1)
+		throw new TypeError("Bad vote");
+	if (!votes.every((i) => i >= 0 && i < poll.options.length))
 		throw new TypeError("Bad vote");
 
 	const sql = db.format(
-		"REPLACE INTO pollVoters (pollId, SAPIN, votes) SET (?, ?, ?)",
+		"REPLACE INTO pollVotes (pollId, SAPIN, votes) VALUES (?, ?, ?)",
 		[poll.id, user.SAPIN, JSON.stringify(votes)]
 	);
 	await db.query(sql);

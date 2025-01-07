@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
 import type { RequestHandler, Request } from "express";
 
-import { getUser } from "../services/users";
-import { AuthError } from "../utils";
+import { getUser } from "../services/users.js";
+import { AuthError } from "../utils/index.js";
 
 const secret = process.env.NODE_ENV === "development" ? "secret" : uuidv4();
 //const secret = uuidv4();

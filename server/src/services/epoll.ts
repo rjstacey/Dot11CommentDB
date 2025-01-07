@@ -4,10 +4,10 @@
 
 import { DateTime } from "luxon";
 import { load as cheerioLoad } from "cheerio";
-import { AuthError, parseSpreadsheet, BasicFile } from "../utils";
+import { AuthError, parseSpreadsheet, BasicFile } from "../utils/index.js";
 
-import type { User } from "./users";
-import { Epoll } from "@schemas/epolls";
+import type { User } from "./users.js";
+import { Epoll } from "@schemas/epolls.js";
 
 // Convert date string to UTC
 function parseDateTime(dateStr: string) {

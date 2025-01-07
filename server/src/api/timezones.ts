@@ -6,9 +6,9 @@
  */
 import { Router } from "express";
 import { DateTime } from "luxon";
-import { zones } from "tzdata";
+import tzdata from "tzdata" with { type: "json" };
 
-const timezones = Object.keys(zones)
+const timezones = Object.keys(tzdata.zones)
 	.filter((tz) => DateTime.local().setZone(tz).isValid)
 	.sort();
 

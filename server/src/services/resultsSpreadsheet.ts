@@ -3,10 +3,10 @@
  */
 import ExcelJS from "exceljs";
 import type { Response } from "express";
-import type { User } from "./users";
-import type { Ballot } from "@schemas/ballots";
-import type { Result } from "@schemas/results";
-import { getSheetName } from "./commentsSpreadsheet";
+import type { User } from "./users.js";
+import type { Ballot } from "@schemas/ballots.js";
+import type { Result } from "@schemas/results.js";
+import { getSheetName } from "./commentsSpreadsheet.js";
 
 function populateSummaryWorksheet(ws: ExcelJS.Worksheet, ballots: Ballot[]) {
 	let colNum = 1;

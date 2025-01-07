@@ -1,11 +1,11 @@
 import { Router } from "express";
 import type { AxiosInstance, AxiosResponse } from "axios";
-import { createIeeeClient } from "../utils";
-import { selectUser, getUser, setUser, delUser } from "../services/users";
+import { createIeeeClient } from "../utils/index.js";
+import { selectUser, getUser, setUser, delUser } from "../services/users.js";
 
 //const cheerio = require('cheerio');
-import { verify, token } from "./jwt";
-import { AccessLevel } from "./access";
+import { verify, token } from "./jwt.js";
+import { AccessLevel } from "./access.js";
 
 const loginUrl = "/pub/login";
 const logoutUrl = "/pub/logout";

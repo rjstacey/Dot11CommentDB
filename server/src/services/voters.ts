@@ -1,20 +1,20 @@
 import { v4 as uuid } from "uuid";
-import { csvStringify, parseSpreadsheet, BasicFile } from "../utils";
+import { csvStringify, parseSpreadsheet, BasicFile } from "../utils/index.js";
 
 import type { Response } from "express";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import db from "../utils/database";
+import db from "../utils/database.js";
 
-import { getMembersSnapshot } from "./members";
-import { AccessLevel } from "../auth/access";
-import type { User } from "./users";
+import { getMembersSnapshot } from "./members.js";
+import { AccessLevel } from "../auth/access.js";
+import type { User } from "./users.js";
 import type {
 	Voter,
 	VoterQuery,
 	VoterCreate,
 	VoterUpdate,
-} from "@schemas/voters";
+} from "@schemas/voters.js";
 
 type VoterFromSpreadsheet = {
 	SAPIN: number;

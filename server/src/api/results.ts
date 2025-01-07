@@ -30,10 +30,10 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import Multer from "multer";
-import { ForbiddenError, NotFoundError } from "../utils";
-import { AccessLevel } from "../auth/access";
-import { selectWorkingGroup } from "../services/groups";
-import { resultUpdatesSchema, ResultUpdate } from "@schemas/results";
+import { ForbiddenError, NotFoundError } from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
+import { selectWorkingGroup } from "../services/groups.js";
+import { resultUpdatesSchema, ResultUpdate } from "@schemas/results.js";
 import {
 	getResults,
 	updateResults,
@@ -41,7 +41,7 @@ import {
 	importEpollResults,
 	uploadResults,
 	exportResults,
-} from "../services/results";
+} from "../services/results.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.results || AccessLevel.none;

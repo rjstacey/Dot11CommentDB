@@ -1,4 +1,4 @@
-import db from "../utils/database";
+import db from "../utils/database.js";
 import type { AxiosInstance } from "axios";
 
 export type User = {

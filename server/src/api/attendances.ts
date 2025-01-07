@@ -4,13 +4,13 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import Multer from "multer";
-import { AccessLevel } from "../auth/access";
-import { ForbiddenError } from "../utils";
+import { AccessLevel } from "../auth/access.js";
+import { ForbiddenError } from "../utils/index.js";
 import {
 	sessionAttendanceSummaryCreatesSchema,
 	sessionAttendanceSummaryUpdatesSchema,
 	sessionAttendanceSummaryIdsSchema,
-} from "@schemas/attendances";
+} from "@schemas/attendances.js";
 import {
 	getAttendances,
 	getRecentAttendances,
@@ -20,7 +20,7 @@ import {
 	importAttendances,
 	uploadRegistration,
 	exportAttendancesForMinutes,
-} from "../services/attendances";
+} from "../services/attendances.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

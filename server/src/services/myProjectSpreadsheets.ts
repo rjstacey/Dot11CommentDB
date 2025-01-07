@@ -2,14 +2,14 @@
  * Handle MyProject spreadsheet files
  */
 import ExcelJS from "exceljs";
-import { validateSpreadsheetHeader, parseSpreadsheet } from "../utils";
-import { fromHtml } from "./commentsSpreadsheet";
+import { validateSpreadsheetHeader, parseSpreadsheet } from "../utils/index.js";
+import { fromHtml } from "./commentsSpreadsheet.js";
 import type { Response } from "express";
-import { getComments } from "./comments";
-import type { Comment, CommentResolution } from "@schemas/comments";
-import type { Member, UpdateRosterOptions } from "@schemas/members";
-import type { Result } from "@schemas/results";
-import type { User } from "./users";
+import { getComments } from "./comments.js";
+import type { Comment, CommentResolution } from "@schemas/comments.js";
+import type { Member, UpdateRosterOptions } from "@schemas/members.js";
+import type { Result } from "@schemas/results.js";
+import type { User } from "./users.js";
 
 const myProjectCommentsHeader = [
 	"Comment ID",

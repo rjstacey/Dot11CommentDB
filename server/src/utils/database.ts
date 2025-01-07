@@ -1,15 +1,13 @@
-import {
-	createPool,
-	escape,
-	format,
+import { createPool, escape, format } from "mysql2/promise";
+import type {
 	Pool,
 	PoolOptions,
 	QueryOptions,
 	RowDataPacket,
 	ResultSetHeader,
-} from "mysql2";
+} from "mysql2/promise";
 
-let pool: ReturnType<Pool["promise"]>;
+let pool: Pool; //ReturnType<Pool["promise"]>;
 
 async function init() {
 	if (!process.env.DB_HOST) {
@@ -45,7 +43,7 @@ async function init() {
 		}
 	};
 
-	pool = createPool(options).promise();
+	pool = createPool(options);
 
 	await pool.query("SET time_zone='-08:00';");
 }
@@ -66,7 +64,7 @@ const query = <
 ) => pool.query<T>(...(args as [any])).then(([rows, fields]) => rows);
 //const query2 = (...args: QueryArgs) => pool.query(...(args as [any]));
 
-export { init, query, /*query2,*/ escape, format };
+export { init, query, escape, format };
 
 export default {
 	init,

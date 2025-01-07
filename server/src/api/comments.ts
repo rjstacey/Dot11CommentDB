@@ -60,8 +60,8 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import Multer from "multer";
-import { ForbiddenError, isPlainObject } from "../utils";
-import { AccessLevel } from "../auth/access";
+import { ForbiddenError, isPlainObject } from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
 import {
 	getComments,
 	updateComments,
@@ -71,9 +71,9 @@ import {
 	uploadComments,
 	uploadUserComments,
 	uploadPublicReviewComments,
-} from "../services/comments";
-import { exportResolutionsForMyProject } from "../services/myProjectSpreadsheets";
-import { exportCommentsSpreadsheet } from "../services/commentsSpreadsheet";
+} from "../services/comments.js";
+import { exportResolutionsForMyProject } from "../services/myProjectSpreadsheets.js";
+import { exportCommentsSpreadsheet } from "../services/commentsSpreadsheet.js";
 import {
 	CommentsUploadParams,
 	CommentsUploadUserParams,
@@ -85,7 +85,7 @@ import {
 	CommentResolutionQuery,
 	commentsExportParamsSchema,
 	CommentsExportParams,
-} from "@schemas/comments";
+} from "@schemas/comments.js";
 
 function patchStartCommentId(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;

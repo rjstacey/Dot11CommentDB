@@ -1,16 +1,16 @@
 import { DateTime } from "luxon";
 
-import db from "../utils/database";
+import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import { AuthError, ForbiddenError, NotFoundError } from "../utils";
-import { parseEpollComments, parseEpollUserComments } from "./epoll";
-import { parseMyProjectComments } from "./myProjectSpreadsheets";
-import { parsePublicReviewComments } from "./publicReviewSpreadsheets";
-import { BallotType, getBallotWithNewResultsSummary } from "./ballots";
-import { selectUser, type User } from "./users";
-import { AccessLevel } from "../auth/access";
-import { getGroups } from "./groups";
+import { AuthError, ForbiddenError, NotFoundError } from "../utils/index.js";
+import { parseEpollComments, parseEpollUserComments } from "./epoll.js";
+import { parseMyProjectComments } from "./myProjectSpreadsheets.js";
+import { parsePublicReviewComments } from "./publicReviewSpreadsheets.js";
+import { BallotType, getBallotWithNewResultsSummary } from "./ballots.js";
+import { selectUser, type User } from "./users.js";
+import { AccessLevel } from "../auth/access.js";
+import { getGroups } from "./groups.js";
 import type {
 	Comment,
 	CommentResolution,
@@ -18,8 +18,8 @@ import type {
 	CommentUpdate,
 	CommentCreate,
 	UploadCommentsResponse,
-} from "@schemas/comments";
-import { Ballot, CommentsSummary } from "@schemas/ballots";
+} from "@schemas/comments.js";
+import { Ballot, CommentsSummary } from "@schemas/ballots.js";
 
 // prettier-ignore
 const createViewCommentResolutionsSQL =

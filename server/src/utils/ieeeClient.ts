@@ -1,9 +1,10 @@
-import { create as axiosCreateClient, AxiosRequestConfig, AxiosRequestTransformer } from "axios";
+import axios, { AxiosRequestConfig, AxiosRequestTransformer } from "axios";
 import { CookieJar } from "tough-cookie";
 import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
 import { URLSearchParams } from "url";
 
-const urlEncodeParams: AxiosRequestTransformer = (data) => new URLSearchParams(data).toString();
+const urlEncodeParams: AxiosRequestTransformer = (data) =>
+	new URLSearchParams(data).toString();
 
 export function createIeeeClient() {
 	const jar = new CookieJar();
@@ -15,7 +16,8 @@ export function createIeeeClient() {
 		httpsAgent: new HttpsCookieAgent({ cookies: { jar } }),
 	};
 
-	const client = axiosCreateClient(config);
+	//const client = axiosCreateClient(config);
+	const client = axios.create(config);
 
 	//client.cookies = {};
 	/*

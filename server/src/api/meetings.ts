@@ -33,14 +33,14 @@
  *		Returns the number of meetings deleted.
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { AccessLevel } from "../auth/access";
-import { ForbiddenError } from "../utils";
+import { AccessLevel } from "../auth/access.js";
+import { ForbiddenError } from "../utils/index.js";
 import {
 	getMeetings,
 	updateMeetings,
 	addMeetings,
 	deleteMeetings,
-} from "../services/meetings";
+} from "../services/meetings.js";
 import {
 	MeetingCreate,
 	MeetingUpdate,
@@ -48,7 +48,7 @@ import {
 	meetingUpdatesSchema,
 	meetingIdsSchema,
 	meetingsQuerySchema,
-} from "@schemas/meetings";
+} from "@schemas/meetings.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

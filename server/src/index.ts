@@ -3,72 +3,31 @@
  *
  * Robert Stacey
  */
-
 import dotenv from "dotenv";
-import path from "path";
+import path from "node:path";
 import { createServer } from "node:http";
 import express, { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
 
-import db from "./utils/database";
-import { fixSessions } from "./services/sessions";
+import login from "./auth/login.js";
+import oauth2 from "./auth/oauth2.js";
+import api from "./api/router.js";
 
-import login from "./auth/login";
-import oauth2 from "./auth/oauth2";
-import api from "./api/router";
-
-import { init as initSocketIo } from "./socket.io";
-import { init as initDatabaseConnection } from "./utils/database";
-import { init as initMembers } from "./services/members";
-import { init as initComments } from "./services/comments";
-import { init as initCommentHistory } from "./services/commentHistory";
-import { init as initBallots } from "./services/ballots";
-import { init as initBallotVoters } from "./services/voters";
-import { init as initBallotResults } from "./services/results";
-import { init as webexInit } from "./services/webex";
-import { init as calendarInit } from "./services/calendar";
-import { init as emailInit } from "./services/emailSend";
+import { init as initSocketIo } from "./socket.io/index.js";
+import { init as initDatabaseConnection } from "./utils/database.js";
+import { init as initMembers } from "./services/members.js";
+import { init as initComments } from "./services/comments.js";
+import { init as initCommentHistory } from "./services/commentHistory.js";
+import { init as initBallots } from "./services/ballots.js";
+import { init as initBallotVoters } from "./services/voters.js";
+import { init as initBallotResults } from "./services/results.js";
+import { init as webexInit } from "./services/webex.js";
+import { init as calendarInit } from "./services/calendar.js";
+import { init as emailInit } from "./services/emailSend.js";
 
 dotenv.config();
 
 const LISTEN_PORT = process.env.PORT || 8080;
-
-export async function applyFixes() {
-	fixSessions();
-
-	async function q(sql: string) {
-		try {
-			await db.query(sql);
-		} catch (error) {
-			console.log(error);
-		}
-	}
-
-	await q(
-		"alter table comments modify column ballot_id int unsigned not null"
-	);
-	await q(
-		"alter table resolutions modify column comment_id bigint unsigned not null"
-	);
-	await q("alter table resolutions drop column old_id");
-	await q("alter table rooms modify column id int unsigned not null");
-	await q("alter table rooms add unique key `index` (sessionId, id)");
-	await q("alter table rooms drop key id");
-	await q("alter table emailTemplates add key `group` (groupId)");
-	await q("alter table meetings add key `session` (sessionId)");
-	await q("alter table meetings add key `group` (organizationId)");
-	await q("alter table organization add key parent (parent_id)");
-
-	await q("alter table polls add column `state` varchar(16) after `index`");
-	await q("alter table polls drop column autoNumber");
-	await q(
-		"alter table pollEvents add column autoNumber tinyint(1) not null default '0'"
-	);
-	await q("alter table polls add column options json default (json_array())");
-	await q(
-		"create table pollVotes (id int unsigned not null auto_increment, pollId int unsigned not null, SAPIN int unsigned not null, votes json default (json_array()), primary key (id), UNIQUE KEY `unique_key` (`pollId`,`SAPIN`), key `polls` (pollId))"
-	);
-}
 
 async function initDatabase() {
 	process.stdout.write("init database... ");
@@ -157,6 +116,8 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 	}
 	res.status(status).send(message);
 };
+
+const __dirname = process.cwd();
 
 function initExpressApp() {
 	const app = express();
@@ -254,8 +215,6 @@ async function main() {
 	const server = createServer(app);
 	console.log("create socket.io server");
 	initSocketIo(server);
-
-	applyFixes();
 
 	server.listen(LISTEN_PORT, () => {
 		console.log("👂 listening on port %s", LISTEN_PORT);

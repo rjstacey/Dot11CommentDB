@@ -1,45 +1,45 @@
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
-import { AuthError, NotFoundError } from "../utils";
+import { AuthError, NotFoundError } from "../utils/index.js";
 
-import db from "../utils/database";
+import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import type { User } from "./users";
+import type { User } from "./users.js";
 
-import { getSession } from "./sessions";
-import type { Session } from "@schemas/sessions";
+import { getSession } from "./sessions.js";
+import type { Session } from "@schemas/sessions.js";
 
-import { getGroupAndSubgroupIds, getWorkingGroup } from "./groups";
-import type { Group } from "@schemas/groups";
+import { getGroupAndSubgroupIds, getWorkingGroup } from "./groups.js";
+import type { Group } from "@schemas/groups.js";
 
-import { getOAuthAccounts } from "./oauthAccounts";
+import { getOAuthAccounts } from "./oauthAccounts.js";
 import {
 	getWebexMeetings,
 	getWebexMeeting,
 	addWebexMeeting,
 	updateWebexMeeting,
 	deleteWebexMeeting,
-} from "./webex";
+} from "./webex.js";
 import {
 	WebexMeeting,
 	WebexMeetingCreate,
 	WebexMeetingChange,
-} from "@schemas/webex";
+} from "@schemas/webex.js";
 
 import {
 	deleteImatBreakouts,
 	addImatBreakoutFromMeeting,
 	updateImatBreakoutFromMeeting,
-} from "./imat";
-import type { Breakout } from "@schemas/imat";
+} from "./imat.js";
+import type { Breakout } from "@schemas/imat.js";
 
 import {
 	addCalendarEvent,
 	updateCalendarEvent,
 	deleteCalendarEvent,
 	CalendarEvent,
-} from "./calendar";
+} from "./calendar.js";
 
 import type {
 	Meeting,
@@ -49,7 +49,7 @@ import type {
 	MeetingChange,
 	MeetingsGetResponse,
 	MeetingsUpdateResponse,
-} from "@schemas/meetings";
+} from "@schemas/meetings.js";
 
 function selectMeetingsSql(constraints: MeetingsQuery) {
 	// prettier-ignore

@@ -1,19 +1,19 @@
 import { v4 as uuid } from "uuid";
 
-import db from "../utils/database";
+import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import { ForbiddenError, NotFoundError } from "../utils";
-import { User } from "./users";
-import { AccessLevel } from "../auth/access";
-import { getBallots } from "./ballots";
-import { getSessions } from "./sessions";
+import { ForbiddenError, NotFoundError } from "../utils/index.js";
+import { User } from "./users.js";
+import { AccessLevel } from "../auth/access.js";
+import { getBallots } from "./ballots.js";
+import { getSessions } from "./sessions.js";
 import {
 	Group,
 	GroupsQuery,
 	GroupCreate,
 	GroupType,
 	GroupUpdate,
-} from "@schemas/groups";
+} from "@schemas/groups.js";
 
 const GroupTypeLabels: { [K in GroupType]: string } = {
 	r: "Root",

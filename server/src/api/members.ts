@@ -5,14 +5,14 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import Multer from "multer";
-import { ForbiddenError } from "../utils";
-import { AccessLevel } from "../auth/access";
+import { ForbiddenError } from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
 import {
 	memberCreatesSchema,
 	memberUpdatesSchema,
 	memberIdsSchema,
 	UpdateRosterOptions,
-} from "@schemas/members";
+} from "@schemas/members.js";
 import {
 	getMembers,
 	getUserMembers,
@@ -33,7 +33,7 @@ import {
 	exportMembersPublic,
 	exportMembersPrivate,
 	exportVotingMembers,
-} from "../services/members";
+} from "../services/members.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

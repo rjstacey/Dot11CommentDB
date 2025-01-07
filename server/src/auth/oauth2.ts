@@ -1,7 +1,7 @@
 import { Router } from "express";
 
-import { completeAuthCalendarAccount } from "../services/calendar";
-import { completeAuthWebexAccount } from "../services/webex";
+import { completeAuthCalendarAccount } from "../services/calendar.js";
+import { completeAuthWebexAccount } from "../services/webex.js";
 
 /*
  * oauth2 API

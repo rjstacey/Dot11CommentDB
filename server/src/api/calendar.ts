@@ -30,19 +30,19 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 
-import { ForbiddenError } from "../utils";
-import { AccessLevel } from "../auth/access";
+import { ForbiddenError } from "../utils/index.js";
+import { AccessLevel } from "../auth/access.js";
 import {
 	getCalendarAccounts,
 	addCalendarAccount,
 	updateCalendarAccount,
 	revokeAuthCalendarAccount,
 	deleteCalendarAccount,
-} from "../services/calendar";
+} from "../services/calendar.js";
 import {
 	calendarAccountChangeSchema,
 	calendarAccountCreateSchema,
-} from "@schemas/calendar";
+} from "@schemas/calendar.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

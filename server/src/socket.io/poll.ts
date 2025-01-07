@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import type { User } from "../services/users";
+import type { User } from "../services/users.js";
 import {
 	PollingOK,
 	PollingError,
@@ -30,7 +30,7 @@ import {
 	PollState,
 	GroupJoinResponse,
 	pollResultsGetSchema,
-} from "@schemas/poll";
+} from "@schemas/poll.js";
 import {
 	addPollEvent,
 	getPollEvents,
@@ -42,10 +42,10 @@ import {
 	deletePoll,
 	pollVote,
 	pollResults,
-} from "../services/poll";
-import { ForbiddenError, NotFoundError } from "../utils";
-import { getGroups } from "../services/groups";
-import { AccessLevel } from "../auth/access";
+} from "../services/poll.js";
+import { ForbiddenError, NotFoundError } from "../utils/index.js";
+import { getGroups } from "../services/groups.js";
+import { AccessLevel } from "../auth/access.js";
 
 export class NoGroupError extends Error {
 	name = "NoGroupError";
