@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { datetimeSchema } from "./common";
+import { datetimeSchema } from "./common.js";
 
 export const statusValues = [
 	"Non-Voter",

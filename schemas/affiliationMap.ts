@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { groupIdSchema } from "./groups";
+import { groupIdSchema } from "./groups.js";
 
 export const affiliationMapIdsSchema = z.number().array();
 

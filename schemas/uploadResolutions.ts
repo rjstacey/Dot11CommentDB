@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { commentResolutionsSchema } from "./comments";
-import { commentsSummarySchema } from "./ballots";
+import { commentResolutionsSchema } from "./comments.js";
+import { commentsSummarySchema } from "./ballots.js";
 
 export const uploadResolutionsResponseSchema = z.object({
 	comments: commentResolutionsSchema,

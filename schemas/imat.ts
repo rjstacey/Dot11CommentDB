@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { contactInfoSchema } from "./members";
+import { contactInfoSchema } from "./members.js";
 
 export const imatMeetingSchema = z.object({
 	id: z.number(),

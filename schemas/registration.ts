@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { sessionAttendanceSummariesSchema } from "./attendances";
+import { sessionAttendanceSummariesSchema } from "./attendances.js";
 
 const sessionRegistraionSchema = z.object({
 	id: z.number(),

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { groupIdSchema } from "./groups";
-import { oAuthAccountSchema } from "./oauthAccounts";
+import { groupIdSchema } from "./groups.js";
+import { oAuthAccountSchema } from "./oauthAccounts.js";
 
 /* Google Calendar Schema: https://developers.google.com/calendar/api/v3/reference/calendars */
 export const googleCalendarSchema = z.object({

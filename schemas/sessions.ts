@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { groupIdSchema } from "./groups";
+import { groupIdSchema } from "./groups.js";
 
 export const roomSchema = z.object({
 	id: z.number(),

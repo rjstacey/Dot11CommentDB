@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { groupIdSchema } from "./groups";
-import { oAuthAccountSchema } from "./oauthAccounts";
+import { groupIdSchema } from "./groups.js";
+import { oAuthAccountSchema } from "./oauthAccounts.js";
 
 export const webexMeetingAlwaysSchema = z.object({
 	accountId: z.number(),

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { groupIdSchema } from "./groups";
+import { groupIdSchema } from "./groups.js";
 
 export const commentsSummarySchema = z.object({
 	Count: z.number(),

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { groupIdSchema } from "./groups";
-import { sessionIdSchema } from "./sessions";
+import { groupIdSchema } from "./groups.js";
+import { sessionIdSchema } from "./sessions.js";
 
 export const sessionAttendanceSummarySchema = z.object({
 	id: z.number(),

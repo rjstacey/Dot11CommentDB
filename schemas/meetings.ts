@@ -3,9 +3,9 @@ import {
 	webexMeetingCreateSchema,
 	webexMeetingChangeSchema,
 	webexMeetingsSchema,
-} from "./webex";
-import { groupIdSchema } from "./groups";
-import { breakoutsSchema } from "./imat";
+} from "./webex.js";
+import { groupIdSchema } from "./groups.js";
+import { breakoutsSchema } from "./imat.js";
 
 export const meetingIdSchema = z.number();
 export const meetingIdsSchema = meetingIdSchema.array();

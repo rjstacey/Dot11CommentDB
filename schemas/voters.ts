@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ballotSchema } from "./ballots";
+import { ballotSchema } from "./ballots.js";
 
 export const voterIdSchema = z.string().uuid();
 
