@@ -1,10 +1,10 @@
-import { defineConfig, loadEnv, type ConfigEnv } from "vite";
+import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 
 const target = "http://localhost:8080";
 
-export default defineConfig(({ command, mode }: ConfigEnv) => {
+export default defineConfig(({ command, mode }) => {
 	const __dirname = process.cwd();
 	const env = { ...loadEnv(mode, __dirname, "") };
 	if (command === "build" && !env.BUILD_PATH)
@@ -38,5 +38,5 @@ export default defineConfig(({ command, mode }: ConfigEnv) => {
 				},
 			},
 		},
-	};
+	} satisfies UserConfig;
 });
