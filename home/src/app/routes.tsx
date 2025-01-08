@@ -4,7 +4,7 @@ import {
 	RouteObject,
 	LoaderFunction,
 	Link,
-} from "react-router-dom";
+} from "react-router";
 
 import { store } from "../store";
 import { loadGroups } from "../store/groups";

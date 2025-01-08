@@ -1,4 +1,4 @@
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router";
 import { selectWorkingGroupByName } from "../store/groups";
 import { useAppSelector } from "../store/hooks";
 import styles from "./app.module.css";
@@ -31,6 +31,7 @@ function Tools() {
 	const showCommentResolution = (group?.permissions.comments || 0) >= 0;
 	const showMembership = (group?.permissions.members || 0) >= 0;
 	const showMeetings = (group?.permissions.meetings || 0) >= 0;
+	const showPolling = (group?.permissions.polling || 0) >= 0;
 
 	const tools: JSX.Element[] = [];
 	if (showCommentResolution) {
@@ -62,6 +63,17 @@ function Tools() {
 				href={"/meetings" + location.pathname}
 				name="Meetings"
 				description="Schedule session and teleconference meetings"
+			/>
+		);
+	}
+
+	if (showPolling) {
+		tools.push(
+			<Tool
+				key="poll"
+				href={"/polling" + location.pathname}
+				name="Polling"
+				description="Motions and strawpoll"
 			/>
 		);
 	}

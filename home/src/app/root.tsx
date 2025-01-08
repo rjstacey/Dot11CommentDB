@@ -1,9 +1,9 @@
+import React from "react";
 import { useAppSelector } from "../store/hooks";
 import { selectUser } from "../store/user";
 import WorkingGroupSelector from "./WorkingGroupSelector";
 
 import styles from "./app.module.css";
-import React from "react";
 
 function Root({ children }: React.PropsWithChildren) {
 	const user = useAppSelector(selectUser);

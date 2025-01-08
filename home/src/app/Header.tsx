@@ -1,5 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import { useParams, useNavigate } from "react-router";
 
 import { Account, clearUser, fetcher } from "dot11-components";
 
@@ -17,6 +16,8 @@ function Header() {
 	const navigate = useNavigate();
 
 	const title = "802 tools" + (groupName ? " for " + groupName : "");
+	if (document.title !== title) document.title = title;
+
 	const rootPath = "/" + (groupName || "");
 
 	function onSignout() {
@@ -28,8 +29,6 @@ function Header() {
 
 	return (
 		<header className={styles.header}>
-			<Helmet title={title} />
-
 			<h3 className="title" onClick={() => navigate(rootPath)}>
 				{title}
 			</h3>
