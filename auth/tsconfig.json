@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"target": "es2020",
+		"module": "esnext",
+		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		"skipLibCheck": true,
+
+		"moduleResolution": "bundler",
+		"resolveJsonModule": true,
+		"allowJs": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"strict": true,
+		"forceConsistentCasingInFileNames": true,
+		"noFallthroughCasesInSwitch": true,
+		"isolatedModules": true,
+		"noEmit": true,
+		"jsx": "react-jsx",
+
+		"baseUrl": "."
+	},
+	"include": ["src", "../schemas"],
+	"references": [{ "path": "./tsconfig.node.json" }]
+}
