@@ -1,5 +1,5 @@
 import { ActionButton, displayDateRange } from "dot11-components";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router";
 
 import { useAppSelector } from "../store/hooks";
 import { selectRecentSessions } from "../store/sessions";

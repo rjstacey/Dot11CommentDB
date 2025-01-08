@@ -1,4 +1,4 @@
-import { LoaderFunction, Outlet, RouteObject } from "react-router-dom";
+import { LoaderFunction, Outlet, RouteObject } from "react-router";
 import { store } from "../store";
 import { AccessLevel } from "../store/user";
 import { loadGroups, selectTopLevelGroupByName } from "../store/groups";

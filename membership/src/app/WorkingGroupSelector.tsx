@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { Select } from "dot11-components";

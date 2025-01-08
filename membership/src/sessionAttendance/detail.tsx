@@ -1,4 +1,5 @@
 import React from "react";
+import { useParams } from "react-router";
 import { EntityId } from "@reduxjs/toolkit";
 import isEqual from "lodash.isequal";
 import { DateTime } from "luxon";
@@ -63,7 +64,6 @@ import {
 } from "../members/MemberEdit";
 
 import ShowAccess from "../components/ShowAccess";
-import { useParams } from "react-router-dom";
 
 /** Identify changes to an existing member */
 function sessionAttendeeMemberChanges(

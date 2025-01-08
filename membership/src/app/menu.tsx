@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, useLocation, useParams } from "react-router-dom";
+import { NavLink, useLocation, useParams } from "react-router";
 
 import { Dropdown, DropdownRendererProps } from "dot11-components";
 

@@ -1,5 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import { useNavigate, useParams } from "react-router";
 
 import { Account, Button } from "dot11-components";
 
@@ -25,12 +24,12 @@ function Header() {
 	};
 
 	const title = (groupName ? groupName + " " : "") + "Membership";
+	if (document.title !== title) document.title = title;
+
 	const rootPath = "/" + (groupName || "");
 
 	return (
 		<header className={styles.header}>
-			<Helmet title={title} />
-
 			<h3 className="title" onClick={() => navigate(rootPath)}>
 				{title}
 			</h3>

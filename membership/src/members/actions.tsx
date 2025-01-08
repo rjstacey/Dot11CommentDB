@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router";
 import type { EntityId } from "@reduxjs/toolkit";
 import { ActionButton } from "dot11-components";
 
