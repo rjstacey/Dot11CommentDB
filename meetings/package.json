@@ -5,6 +5,9 @@
 	"private": true,
 	"homepage": "/meetings",
 	"proxy": "http://localhost:8080",
+	"_moduleAliases": {
+		"@schemas": "../schemas"
+	},
 	"dependencies": {
 		"@reduxjs/toolkit": "^1.9.7",
 		"d3": "^7.8.5",
