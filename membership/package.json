@@ -54,8 +54,13 @@
 		"@types/redux-logger": "^3.0.12",
 		"@types/uuid": "^9.0.7",
 		"@vitejs/plugin-react": "^4.3.4",
+		"convert-svg-to-png": "^0.6.4",
 		"typescript-plugin-css-modules": "^5.0.2",
 		"vite": "^6.0.7",
 		"vite-plugin-pwa": "^0.21.1"
+	},
+	"overrides": {
+		"cheerio": "1.0.0-rc.11",
+		"puppeteer": "23.11.1"
 	}
 }

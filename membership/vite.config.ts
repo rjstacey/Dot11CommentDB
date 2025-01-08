@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
 
 const target = "http://localhost:8080";
@@ -15,7 +16,33 @@ export default defineConfig(({ command, mode }) => {
 		build: {
 			outDir: env.BUILD_PATH,
 		},
-		plugins: [react()],
+		plugins: [
+			react(),
+			VitePWA({
+				registerType: "autoUpdate",
+				devOptions: {
+					enabled: true,
+				},
+				manifest: {
+					name: "802 tools | Membeship",
+					short_name: "802|MEM",
+					description: "Managegroup membership",
+					theme_color: "#ffffff",
+					icons: [
+						{
+							src: "icon-192x192.png",
+							sizes: "192x192",
+							type: "image/png",
+						},
+						{
+							src: "icon-512x512.png",
+							sizes: "512x512",
+							type: "image/png",
+						},
+					],
+				},
+			}),
+		],
 		resolve: {
 			alias: {
 				"@": "/src",
