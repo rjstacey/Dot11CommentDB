@@ -2,7 +2,7 @@
 	"name": "@802tools/home",
 	"version": "1.0.0",
 	"private": true,
-	"homepage": "/",
+	"homepage": "/home",
 	"dependencies": {
 		"@types/react": "^18.3.3",
 		"@types/react-dom": "^18.3.0",
@@ -20,6 +20,7 @@
 		"test": "vite test"
 	},
 	"devDependencies": {
+		"@types/node": "^22.10.5",
 		"@types/redux-logger": "^3.0.13",
 		"@vitejs/plugin-react": "^4.3.4",
 		"vite": "^6.0.7"
