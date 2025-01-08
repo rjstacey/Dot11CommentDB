@@ -1,50 +1,31 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv, type ConfigEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import { VitePWA } from "vite-plugin-pwa";
-import path from "path";
+import path from "node:path";
 
 const target = "http://localhost:8080";
 
-export default defineConfig(() => {
+export default defineConfig(({ command, mode }: ConfigEnv) => {
+	const __dirname = process.cwd();
+	const env = { ...loadEnv(mode, __dirname, "") };
+	if (command === "build" && !env.BUILD_PATH)
+		throw Error("BUILD_PATH not set");
+	if (!env.BASE_URL) throw Error("BASE_URL not set");
 	return {
-		base: "/polling",
+		base: env.BASE_URL,
 		build: {
-			outDir: "../build/polling",
+			outDir: env.BUILD_PATH,
 		},
-		plugins: [
-			react(),
-			VitePWA({
-				registerType: "autoUpdate",
-				devOptions: {
-					enabled: true,
-				},
-				manifest: {
-					name: "802 tools | Polling",
-					short_name: "802|POLL",
-					description: "Run motions and strawpolls",
-					theme_color: "#ffffff",
-					icons: [
-						{
-							src: "icon-192x192.png",
-							sizes: "192x192",
-							type: "image/png",
-						},
-						{
-							src: "icon-512x512.png",
-							sizes: "512x512",
-							type: "image/png",
-						},
-					],
-				},
-			}),
-		],
+		plugins: [react()],
 		resolve: {
 			alias: {
 				"@": "/src",
-				"@schemas": path.resolve("../schemas"),
+				"@schemas": path.resolve(__dirname, "../schemas"),
 			},
 		},
 		server: {
+			host: true,
+			port: Number(env.PORT),
+			strictPort: true,
 			proxy: {
 				"^(/api|/auth|/login|/logout)": {
 					target,
