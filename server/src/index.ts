@@ -156,7 +156,7 @@ function initExpressApp() {
 
 	let devdir = "";
 	if (process.env.NODE_ENV === "development") {
-		devdir = "../../build";
+		devdir = "../build";
 		//console.log(path.join(__dirname, devdir));
 	}
 
@@ -182,8 +182,9 @@ function initExpressApp() {
 	app.get("/polling*", (req, res) =>
 		res.sendFile(path.join(__dirname, devdir, "polling/index.html"))
 	);
-	app.get("/*", (req, res) =>
-		res.sendFile(path.join(__dirname, devdir, "home/index.html"))
+	app.get("/", (req, res) =>
+		//res.sendFile(path.join(__dirname, devdir, "home/index.html"))
+		res.redirect("/home")
 	);
 	//app.get('*', (req, res) => res.redirect('/'));
 
