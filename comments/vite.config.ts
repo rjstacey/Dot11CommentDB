@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
-import path from "path";
+import path from "node:path";
 
 const target = "http://localhost:8080";
 
@@ -12,9 +12,9 @@ export default defineConfig(({ command, mode }) => {
 		throw Error("BUILD_PATH not set");
 	if (!env.BASE_URL) throw Error("BASE_URL not set");
 	return {
-		base: "/comments",
+		base: env.BASE_URL,
 		build: {
-			outDir: "../build/comments",
+			outDir: env.BUILD_PATH,
 		},
 		plugins: [
 			react(),
