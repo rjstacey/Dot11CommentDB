@@ -100,6 +100,7 @@ const routes: RouteObject[] = [
 		path: "/",
 		element: <AppLayout />,
 		errorElement: <AppErrorPage />,
+		hydrateFallbackElement: <span>Fallback</span>,
 		loader: rootLoader,
 		children: [
 			{
