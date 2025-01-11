@@ -1,29 +1,29 @@
 import { RouteObject, LoaderFunction } from "react-router";
 
-import { store } from "../store";
-import { AccessLevel } from "../store/user";
+import { store } from "@/store";
+import { AccessLevel } from "@/store/user";
 import {
 	loadGroups,
 	selectTopLevelGroupByName,
 	setTopLevelGroupId,
-} from "../store/groups";
-import { loadMembers } from "../store/members";
-import { loadIeeeMembers } from "../store/ieeeMembers";
-import { loadOfficers } from "../store/officers";
-import { loadTimeZones } from "../store/timeZones";
+} from "@/store/groups";
+import { loadMembers } from "@/store/members";
+import { loadIeeeMembers } from "@/store/ieeeMembers";
+import { loadOfficers } from "@/store/officers";
+import { loadTimeZones } from "@/store/timeZones";
+import { loadSessions } from "@/store/sessions";
 
 import AppLayout from "./layout";
 import AppErrorPage from "./errorPage";
 import RootMain from "./rootMain";
 
-import membersRoute from "../members/route";
-import groupsRoute from "../groups/route";
-import sessionAttendanceRoute from "../sessionAttendance/routes";
-import sessionParticipationRoute from "../sessionParticipation/route";
-import ballotParticipationRoute from "../ballotParticipation/route";
-import notificationRoute from "../notification/route";
-import affiliationMapRoute from "../affiliationMap/route";
-import { loadSessions } from "../store/sessions";
+import membersRoute from "./members/route";
+import groupsRoute from "./groups/route";
+import sessionAttendanceRoute from "./sessionAttendance/routes";
+import sessionParticipationRoute from "./sessionParticipation/route";
+import ballotParticipationRoute from "./ballotParticipation/route";
+import notificationRoute from "./notification/route";
+import affiliationMapRoute from "./affiliationMap/route";
 
 /*
  * Routing loaders

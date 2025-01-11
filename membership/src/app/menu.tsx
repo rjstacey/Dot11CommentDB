@@ -3,11 +3,11 @@ import { NavLink, useLocation, useParams } from "react-router";
 
 import { Dropdown, DropdownRendererProps } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
-import { AccessLevel } from "../store/user";
-import { selectTopLevelGroupByName } from "../store/groups";
+import { useAppSelector } from "@/store/hooks";
+import { AccessLevel } from "@/store/user";
+import { selectTopLevelGroupByName } from "@/store/groups";
 
-import { selectSessionAttendeesSession } from "../store/sessionAttendees";
+import { selectSessionAttendeesSession } from "@/store/sessionAttendees";
 
 type MenuItem = {
 	link: string;

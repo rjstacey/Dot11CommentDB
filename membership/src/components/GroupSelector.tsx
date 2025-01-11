@@ -2,8 +2,8 @@ import * as React from "react";
 
 import { Select } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
-import { selectGroupEntities, selectGroups } from "../store/groups";
+import { useAppSelector } from "@/store/hooks";
+import { selectGroupEntities, selectGroups } from "@/store/groups";
 
 type MinimalGroup = {
 	id: string;

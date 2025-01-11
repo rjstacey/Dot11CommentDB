@@ -4,9 +4,9 @@ import { Account, Button } from "dot11-components";
 
 import NavMenu from "./menu";
 
-import { resetStore } from "../store";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { selectUser, setUser } from "../store/user";
+import { resetStore } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectUser, setUser } from "@/store/user";
 
 import pkg from "../../package.json";
 

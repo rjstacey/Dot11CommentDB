@@ -4,9 +4,9 @@ import { createSelector } from "@reduxjs/toolkit";
 
 import { Select } from "dot11-components";
 
-import { useAppSelector } from "../store/hooks";
-import { selectWorkingGroups } from "../store/groups";
-import { AccessLevel } from "../store/user";
+import { useAppSelector } from "@/store/hooks";
+import { selectWorkingGroups } from "@/store/groups";
+import { AccessLevel } from "@/store/user";
 
 import styles from "./app.module.css";
 
