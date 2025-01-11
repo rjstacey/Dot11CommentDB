@@ -1,7 +1,7 @@
 import * as React from "react";
 import { RichTextPlugin as LexicalRichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
-import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $getRoot, $createParagraphNode } from "lexical";
 
@@ -46,20 +46,26 @@ function RichTextPlugin({
 				style={{ visibility: showToolbar ? "visible" : "hidden" }}
 			/>
 			<div
-				className={styles.container + (readOnly? ` readonly`: "") + (className? ` ${className}`: "")}
+				className={
+					styles.container +
+					(readOnly ? ` readonly` : "") +
+					(className ? ` ${className}` : "")
+				}
 				{...props}
 			>
-				<LexicalRichTextPlugin
-					contentEditable={
-						<ContentEditable
-							className={styles.innerContainer}
-							onFocus={() => setShowToolbar(true)}
-							onBlur={() => setShowToolbar(false)}
-						/>
-					}
-					placeholder={<Placeholder>{placeholder}</Placeholder>}
-					ErrorBoundary={LexicalErrorBoundary}
-				/>
+				<div className={styles.outerContainer}>
+					<LexicalRichTextPlugin
+						contentEditable={
+							<ContentEditable
+								className={styles.innerContainer}
+								onFocus={() => setShowToolbar(true)}
+								onBlur={() => setShowToolbar(false)}
+							/>
+						}
+						placeholder={<Placeholder>{placeholder}</Placeholder>}
+						ErrorBoundary={LexicalErrorBoundary}
+					/>
+				</div>
 
 				{!readOnly && (
 					<i className={styles.clear} onMouseDown={handleClear} />

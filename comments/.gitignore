@@ -2,4 +2,5 @@
 .vscode
 .eslintcache
 /node_modules
+dev-dist
 debug.log
