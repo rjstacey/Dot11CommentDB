@@ -30,7 +30,7 @@ function Selector({ state, methods }: DropdownRendererProps) {
 	);
 }
 
-function Outbox(props: DropdownRendererProps) {
+function Outbox() {
 	const outbox = useAppSelector(selectOfflineOutbox);
 	const entries = outbox.length
 		? outbox.map((o, i) => <span key={i}>{JSON.stringify(o.effect)}</span>)
@@ -44,7 +44,7 @@ function SyncIndicator({ className }: { className: string }) {
 		<Dropdown
 			className={className}
 			selectRenderer={(props) => <Selector {...props} />}
-			dropdownRenderer={(props) => <Outbox {...props} />}
+			dropdownRenderer={() => <Outbox />}
 		/>
 	);
 }

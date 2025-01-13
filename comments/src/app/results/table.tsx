@@ -95,7 +95,7 @@ function EditResultModal({
 	React.useEffect(() => {
 		if (result) {
 			if (update.id !== result.id) {
-				let changes: ResultChange = {
+				const changes: ResultChange = {
 					vote: result.vote,
 					notes: result.notes,
 				};
@@ -183,32 +183,35 @@ export const tableColumns: ColumnProperties[] = [
 ];
 
 function getDefaultTablesConfig(access: number, type: number): TablesConfig {
-	const columns = tableColumns.reduce((o, c) => {
-		let columnConfig: ChangeableColumnProperties = {
-			shown: true,
-			width: c.width!,
-			unselectable: false,
-		};
-		if (
-			c.key === "SAPIN" &&
-			(access < AccessLevel.admin || type === BallotType.SA)
-		) {
-			columnConfig = {
-				...columnConfig,
-				shown: false,
+	const columns = tableColumns.reduce(
+		(o, c) => {
+			let columnConfig: ChangeableColumnProperties = {
+				shown: true,
+				width: c.width!,
 				unselectable: false,
 			};
-		}
-		if (c.key === "Email" && access < AccessLevel.admin) {
-			columnConfig = {
-				...columnConfig,
-				shown: false,
-				unselectable: false,
-			};
-		}
-		o[c.key] = columnConfig;
-		return o;
-	}, {} as { [key: string]: ChangeableColumnProperties });
+			if (
+				c.key === "SAPIN" &&
+				(access < AccessLevel.admin || type === BallotType.SA)
+			) {
+				columnConfig = {
+					...columnConfig,
+					shown: false,
+					unselectable: false,
+				};
+			}
+			if (c.key === "Email" && access < AccessLevel.admin) {
+				columnConfig = {
+					...columnConfig,
+					shown: false,
+					unselectable: false,
+				};
+			}
+			o[c.key] = columnConfig;
+			return o;
+		},
+		{} as { [key: string]: ChangeableColumnProperties }
+	);
 	return { default: { fixed: false, columns } };
 }
 

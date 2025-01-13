@@ -32,7 +32,7 @@ function CommentsExportDropdown({
 	const [appendSheets, setAppendSheets] = React.useState<boolean>(false);
 	const [busy, setBusy] = React.useState(false);
 
-	let title =
+	const title =
 		"Export comments for " + getBallotId(ballot) + " to Excel spreadsheet";
 	let errorText: string | undefined;
 	if (format === "myproject" && !file)
@@ -72,7 +72,7 @@ function CommentsExportDropdown({
 							id="modern"
 							title={"Modern format"}
 							checked={format === "modern"}
-							onChange={(e) => setFormat("modern")}
+							onChange={() => setFormat("modern")}
 						/>
 						<label htmlFor="modern">Modern spreadsheet</label>
 					</ListItem>
@@ -84,7 +84,7 @@ function CommentsExportDropdown({
 								"Legacy format; compatible APS Comments Access Database."
 							}
 							checked={format === "legacy"}
-							onChange={(e) => setFormat("legacy")}
+							onChange={() => setFormat("legacy")}
 						/>
 						<label htmlFor="legacy">Legacy spreadsheet</label>
 					</ListItem>
@@ -94,7 +94,7 @@ function CommentsExportDropdown({
 							id="myproject"
 							title="Export appoved resolutions for MyProject upload. Modifies an existing MyProject comment spreadsheet."
 							checked={format === "myproject"}
-							onChange={(e) => setFormat("myproject")}
+							onChange={() => setFormat("myproject")}
 						/>
 						<label htmlFor="myproject">
 							All resolved comments for MyProject upload
@@ -110,7 +110,7 @@ function CommentsExportDropdown({
 							id="AllComments"
 							title="Export all comments. Optionally updates existing spreadsheet."
 							checked={style === "AllComments"}
-							onChange={(e) => setStyle("AllComments")}
+							onChange={() => setStyle("AllComments")}
 						/>
 						<label htmlFor={"AllComments"}>All comments</label>
 					</ListItem>
@@ -120,7 +120,7 @@ function CommentsExportDropdown({
 							id="TabPerAdHoc"
 							title="Export all comments plus a sheet for each ad-hoc. Optionally updates existing spreadsheet."
 							checked={style === "TabPerAdHoc"}
-							onChange={(e) => setStyle("TabPerAdHoc")}
+							onChange={() => setStyle("TabPerAdHoc")}
 						/>
 						<label htmlFor="TabPerAdHoc">
 							All comments plus one sheet per ad-hoc
@@ -132,7 +132,7 @@ function CommentsExportDropdown({
 							id="TabPerCommentGroup"
 							title="Export all comments plus a sheet for each comment group. Optionally updates existing spreadsheet."
 							checked={style === "TabPerCommentGroup"}
-							onChange={(e) => setStyle("TabPerCommentGroup")}
+							onChange={() => setStyle("TabPerCommentGroup")}
 						/>
 						<label htmlFor="TabPerCommentGroup">
 							All comments plus one sheet per comment group
@@ -159,7 +159,7 @@ function CommentsExportDropdown({
 								id="sheetAction"
 								title='Delete sheets (except for the "Title" and "Revision History" sheets).'
 								checked={!appendSheets}
-								onChange={(e) => setAppendSheets(false)}
+								onChange={() => setAppendSheets(false)}
 							/>
 							<label htmlFor="sheets">
 								Replace sheets (except Title and Revision
@@ -172,7 +172,7 @@ function CommentsExportDropdown({
 								id="sheetAction"
 								title="Replace existing sheets with same name or append as new sheets."
 								checked={Boolean(appendSheets)}
-								onChange={(e) => setAppendSheets(true)}
+								onChange={() => setAppendSheets(true)}
 							/>
 							<label htmlFor="sheets">Append sheets</label>
 						</ListItem>

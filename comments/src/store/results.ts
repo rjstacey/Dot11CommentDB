@@ -18,7 +18,6 @@ import {
 	BallotTypeLabels,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
-import { selectIsOnline } from "./offline";
 import {
 	Result,
 	ResultUpdate,
@@ -97,7 +96,7 @@ export { upsertTableColumns };
 /* Selectors */
 export const selectResultsState = (state: RootState) => state[dataSet];
 const selectResultsAge = (state: RootState) => {
-	let lastLoad = selectResultsState(state).lastLoad;
+	const lastLoad = selectResultsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -176,7 +175,7 @@ export const loadResults =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const { ballots, results } =
 					getResultsResponseSchema.parse(response);
 				dispatch(getSuccess(results));

@@ -28,14 +28,14 @@ import styles from "./CommentHistory.module.css";
 const BLANK_STR = "(Blank)";
 
 function renderEntryHeader(leadIn: string, h: CommentHistoryEvent) {
-	let action =
+	const action =
 		h.Action === "add"
 			? "added"
 			: h.Action === "update"
-			? "updated"
-			: h.Action === "delete"
-			? "deleted"
-			: "error";
+				? "updated"
+				: h.Action === "delete"
+					? "deleted"
+					: "error";
 	return (
 		<div className="header">
 			<span>
@@ -71,8 +71,8 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 	const comment = entry.comment;
 	const updatedComment = { ...comment, ...changes };
 
-	let body: JSX.Element[] = [];
-	if (changes.hasOwnProperty("CommentID"))
+	const body: JSX.Element[] = [];
+	if ("CommentID" in changes)
 		body.push(
 			<Row key="cid">
 				<FieldLeft label="CID:">
@@ -81,7 +81,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 			</Row>
 		);
 
-	if (changes.hasOwnProperty("Page") || changes.hasOwnProperty("Clause"))
+	if ("Page" in changes || "Clause" in changes)
 		body.push(
 			<Row key="pageclause">
 				<Col>
@@ -97,10 +97,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 			</Row>
 		);
 
-	if (
-		changes.hasOwnProperty("AdHoc") ||
-		changes.hasOwnProperty("CommentGroup")
-	)
+	if ("AdHoc" in changes || "CommentGroup" in changes)
 		body.push(
 			<Row key="adhocGroup">
 				<Col>
@@ -116,7 +113,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 			</Row>
 		);
 
-	if (changes.hasOwnProperty("Notes"))
+	if ("Notes" in changes)
 		body.push(
 			<Row key="notes">
 				<CommentNotes
@@ -153,36 +150,30 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 	const comment = entry.comment;
 	const resolution = entry.resolution!;
 	const updatedResolution = { ...resolution, ...changes };
-	let body: JSX.Element[] = [];
+	const body: JSX.Element[] = [];
 
-	if (changes.hasOwnProperty("AssigneeName"))
+	if ("AssigneeName" in changes)
 		body.push(
 			<Row key="assignee">
 				<ResolutionAssignee resolution={updatedResolution} readOnly />
 			</Row>
 		);
 
-	if (changes.hasOwnProperty("Submission"))
+	if ("Submission" in changes)
 		body.push(
 			<Row key="submission">
 				<ResolutionSubmission resolution={updatedResolution} readOnly />
 			</Row>
 		);
 
-	if (
-		changes.hasOwnProperty("ReadyForMotion") ||
-		changes.hasOwnProperty("ApprovedByMotion")
-	)
+	if ("ReadyForMotion" in changes || "ApprovedByMotion" in changes)
 		body.push(
 			<Row key="approval">
 				<ResolutionApproval resolution={updatedResolution} readOnly />
 			</Row>
 		);
 
-	if (
-		changes.hasOwnProperty("ResnStatus") ||
-		changes.hasOwnProperty("Resolution")
-	)
+	if ("ResnStatus" in changes || "Resolution" in changes)
 		body.push(
 			<Row key="resolution">
 				<ResolutionAndStatus resolution={updatedResolution} readOnly />
@@ -190,9 +181,9 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 		);
 
 	if (
-		changes.hasOwnProperty("EditStatus") ||
-		changes.hasOwnProperty("EditNotes") ||
-		changes.hasOwnProperty("EditInDraft")
+		"EditStatus" in changes ||
+		"EditNotes" in changes ||
+		"EditInDraft" in changes
 	)
 		body.push(
 			<Row key="editing">

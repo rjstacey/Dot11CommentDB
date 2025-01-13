@@ -27,10 +27,9 @@ type State = {
 };
 
 function initState(ballot: Ballot | undefined): State {
-	let date = (ballot?.Start ? ballot.Start : new Date().toISOString()).slice(
-		0,
-		10
-	);
+	const date = (
+		ballot?.Start ? ballot.Start : new Date().toISOString()
+	).slice(0, 10);
 	return {
 		source: "members",
 		date,
@@ -103,7 +102,7 @@ export function VotersImportForm({
 					<ListItem>
 						<Checkbox
 							checked={state.source === "upload"}
-							onChange={(e) => {
+							onChange={() => {
 								changeState({ source: "upload" });
 								fileRef.current?.click();
 							}}

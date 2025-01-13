@@ -7,12 +7,11 @@ import VotersActions from "./actions";
 import VoterEditModal from "./VoterEdit";
 
 export function getDefaultVoter(ballot_id: number): VoterCreate {
-	let voter: VoterCreate = {
+	return {
 		ballot_id,
 		SAPIN: 0,
 		Status: "Voter",
-	};
-	return voter;
+	} satisfies VoterCreate;
 }
 
 type VotersState = {

@@ -229,8 +229,8 @@ function CommentsImportDropdown({
 						updated === 0
 							? "No comments were updated (no changes identified)."
 							: matched.length === updated
-							? "All comments updated."
-							: `${updated} comments were updated.`;
+								? "All comments updated."
+								: `${updated} comments were updated.`;
 				} else {
 					msg =
 						(unmatched.length === 1
@@ -243,8 +243,8 @@ function CommentsImportDropdown({
 					updated === 0
 						? "No comments were updated."
 						: updated === 1
-						? "1 comment was updated."
-						: `${updated} comments were updated.`;
+							? "1 comment was updated."
+							: `${updated} comments were updated.`;
 			} else {
 				msg =
 					added.length === 0
@@ -252,7 +252,7 @@ function CommentsImportDropdown({
 						: (added.length === 1
 								? `1 comment was added:\n`
 								: `${added.length} comments were added:\n`) +
-						  added.join(", ");
+							added.join(", ");
 			}
 			if (remaining.length > 0) {
 				msg +=
@@ -312,7 +312,7 @@ function CommentsImportDropdown({
 						type="file"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 						ref={fileRef}
-						onClick={(e) => setErrMsg("")}
+						onClick={() => setErrMsg("")}
 					/>
 				</Field>
 			</Row>

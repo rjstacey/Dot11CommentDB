@@ -45,7 +45,7 @@ function EditStatus({
 	const changeEditStatus: React.ChangeEventHandler<HTMLInputElement> = (
 		e
 	) => {
-		let fields: Partial<Resolution> = {};
+		const fields: Partial<Resolution> = {};
 		if (e.target.name === "EditStatus") {
 			if (e.target.checked) {
 				fields.EditStatus = e.target.value as EditStatusType;

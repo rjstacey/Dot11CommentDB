@@ -87,7 +87,7 @@ const editorConfig = {
 	// The editor theme
 	theme,
 	// Handling of errors during update
-	onError(error: any) {
+	onError(error: unknown) {
 		throw error;
 	},
 	// Any custom nodes go here
@@ -107,7 +107,7 @@ const editorConfig = {
 		RichParagraphNode,
 		{
 			replace: ParagraphNode,
-			with: (node: ParagraphNode) => new RichParagraphNode(),
+			with: () => new RichParagraphNode(),
 		},
 		RichTextNode,
 		{

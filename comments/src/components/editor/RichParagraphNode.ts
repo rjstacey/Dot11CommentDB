@@ -61,7 +61,7 @@ export class RichParagraphNode extends ParagraphNode {
 		const { element } = super.exportDOM(editor);
 
 		// Drop the class and dir attributes
-		let el = element as HTMLElement;
+		const el = element as HTMLElement;
 		el.removeAttribute("class");
 		el.removeAttribute("dir");
 

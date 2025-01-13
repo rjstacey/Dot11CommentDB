@@ -15,7 +15,7 @@ type MenuLinkItem = MenuItem & {
 };
 
 function useMenuLinks() {
-	let { groupName } = useParams();
+	const { groupName } = useParams();
 	const ballotId = useAppSelector(selectCurrentBallotID);
 	const group = useAppSelector((state) =>
 		groupName ? selectTopLevelGroupByName(state, groupName) : undefined
@@ -102,7 +102,7 @@ function NavMenu() {
 			{isSmall ? (
 				<Dropdown
 					className="nav-small-menu"
-					selectRenderer={(props) => <CurrentMenuItem />}
+					selectRenderer={() => <CurrentMenuItem />}
 					dropdownRenderer={(props) => (
 						<Menu
 							className="nav-menu-vertical"

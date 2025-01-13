@@ -11,7 +11,7 @@ function renderGroupName(
 	if (group.type === "wg") {
 		label = group.name;
 	} else {
-		let groups: Group[] = [group];
+		const groups = [group];
 		let g: Group | undefined = group;
 		do {
 			g = g.parent_id ? entities[g.parent_id] : undefined;

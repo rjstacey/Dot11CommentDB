@@ -10,7 +10,6 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { updateBallotsLocal } from "./ballots";
-import { selectIsOnline } from "./offline";
 import {
 	Voter,
 	VoterCreate,
@@ -91,7 +90,7 @@ export const clearVoters = createAction(dataSet + "/clear");
 /* Selectors */
 export const selectVotersState = (state: RootState) => state[dataSet];
 const selectVotersAge = (state: RootState) => {
-	let lastLoad = selectVotersState(state).lastLoad;
+	const lastLoad = selectVotersState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -121,11 +120,11 @@ export const loadVoters =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const voters = votersSchema.parse(response);
 				dispatch(getSuccess(voters));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

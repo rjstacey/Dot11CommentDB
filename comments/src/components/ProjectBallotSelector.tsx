@@ -69,7 +69,7 @@ function BallotSelect({
 	React.ComponentProps<typeof Select>,
 	"options" | "values" | "onChange"
 >) {
-	let ballots = useAppSelector(selectBallotOptions);
+	const ballots = useAppSelector(selectBallotOptions);
 	const options = React.useMemo(
 		() =>
 			ballots.map((b) => ({

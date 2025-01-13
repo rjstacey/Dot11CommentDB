@@ -236,7 +236,7 @@ export const selectBallotsState = (state: RootState) => state[dataSet];
 const selectBallotsGroupName = (state: RootState) =>
 	selectBallotsState(state).groupName;
 const selectBallotsAge = (state: RootState) => {
-	let lastLoad = selectBallotsState(state).lastLoad;
+	const lastLoad = selectBallotsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -511,11 +511,11 @@ export const loadBallots =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const ballots = ballotsSchema.parse(response);
 				dispatch(getSuccess(ballots));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

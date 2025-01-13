@@ -134,7 +134,7 @@ function BlockStyleButtons({
 			}),
 			editor.registerCommand(
 				SELECTION_CHANGE_COMMAND,
-				(_payload, newEditor) => {
+				() => {
 					updateState();
 					return false;
 				},
@@ -199,7 +199,7 @@ function BlockStyleButtons({
 		}
 	}
 
-	let buttons = blockTypeOptions
+	const buttons = blockTypeOptions
 		.map((o) => (
 			<button
 				key={o.value}
@@ -316,7 +316,7 @@ function InlineStyleButtons({
 			}),
 			editor.registerCommand(
 				SELECTION_CHANGE_COMMAND,
-				(_payload, newEditor) => {
+				() => {
 					updateFormatState();
 					return false;
 				},
@@ -544,7 +544,7 @@ export default function ToolbarPlugin({ style }: React.ComponentProps<"div">) {
 		const el = containerRef.current?.parentElement;
 		if (!el) return;
 		const ro = new ResizeObserver((entries) => {
-			let entry = entries[0];
+			const entry = entries[0];
 			const contentBoxSize = entry.contentBoxSize[0];
 			const { inlineSize } = contentBoxSize;
 			let size: Size = "large";

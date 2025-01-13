@@ -36,7 +36,7 @@ function InportExportPlugin({
 	const debouncedOnChange = useDebounce(() => {
 		if (readOnly) return;
 		editor.update(() => {
-			let newValue = $getRoot().getTextContent()
+			const newValue = $getRoot().getTextContent()
 				? $generateHtmlFromNodes(editor)
 				: "";
 			if (newValue !== value) {
@@ -52,8 +52,8 @@ function InportExportPlugin({
 		editor.update(
 			() => {
 				let s = value || "";
-				s = s.replace(/<p><br><\/p>/g, '')
-				s = s.replace(/[\r\n]+/g, '');
+				s = s.replace(/<p><br><\/p>/g, "");
+				s = s.replace(/[\r\n]+/g, "");
 				const parser = new DOMParser();
 				// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
 				let dom = parser.parseFromString(s, "text/html");

@@ -117,7 +117,7 @@ const networkStateChange =
 
 const scheduleRetry =
 	(delay: number): AppThunk<ReturnType<AppDispatch>> =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		const timerId = setTimeout(() => {
 			dispatch(delayEnd());
 			dispatch(send());
@@ -125,7 +125,7 @@ const scheduleRetry =
 		return dispatch(delayStart(timerId));
 	};
 
-function mustDiscard(error: any, retries: number) {
+function mustDiscard(error: any) {
 	if (!("status" in error)) return true;
 
 	// discard for http 4xx errors
@@ -170,8 +170,8 @@ const send = (): AppThunk => async (dispatch, getState) => {
 			return dispatch(send());
 		})
 		.catch((error: any) => {
-			const state = getState()[dataSet];
-			if (!mustDiscard(error, state.retryCount)) {
+			const state = selectOfflineState(getState());
+			if (!mustDiscard(error)) {
 				const delay = retryDelay(state.retryCount);
 				if (delay != null) return dispatch(scheduleRetry(delay));
 			}

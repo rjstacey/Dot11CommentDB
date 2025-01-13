@@ -20,7 +20,7 @@ import {
 	Ballot,
 } from "./ballots";
 import { selectGroupPermissions } from "./groups";
-import { Effect, offlineFetch, selectIsOnline } from "./offline";
+import { Effect, offlineFetch } from "./offline";
 import {
 	Comment,
 	CategoryType,
@@ -102,10 +102,13 @@ const editStatusOptions = [
 	{ value: "N", label: "No change" },
 ];
 
-const mustSatisfyLabels = mustSatisfyOptions.reduce((obj, o) => {
-	obj[o.value] = o.label;
-	return obj;
-}, {} as Record<number, string>);
+const mustSatisfyLabels = mustSatisfyOptions.reduce(
+	(obj, o) => {
+		obj[o.value] = o.label;
+		return obj;
+	},
+	{} as Record<number, string>
+);
 
 function getCID(b: Ballot | undefined, c: CommentResolution) {
 	let CID: string;
@@ -345,7 +348,7 @@ export { setUiProperties };
  */
 export const selectCommentsState = (state: RootState) => state[dataSet];
 const selectCommentsAge = (state: RootState) => {
-	let lastLoad = selectCommentsState(state).lastLoad;
+	const lastLoad = selectCommentsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -391,7 +394,7 @@ export const selectSyncedCommentEntities = createSelector(
 		for (const id of ids) {
 			const c = entities[id]!;
 			const b = ballotEntities[c.ballot_id];
-			let CID = getCID(b, c);
+			const CID = getCID(b, c);
 			if (c.CID !== CID) changedEntities[id] = { ...c, CID };
 		}
 		if (Object.keys(changedEntities).length > 0) {
@@ -430,11 +433,11 @@ export const loadComments =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const comments = commentResolutionsSchema.parse(response);
 				dispatch(getSuccess(comments));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

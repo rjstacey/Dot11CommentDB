@@ -38,7 +38,7 @@ function countsByStatus(
 	comments: CommentResolution[]
 ): Counts {
 	const entry: Counts = { Total: comments.length };
-	for (let status of statusSet)
+	for (const status of statusSet)
 		entry[status || "(Blank)"] = comments.filter(
 			(c) => getField(c, "Status") === status
 		).length;
@@ -50,7 +50,7 @@ function commentsByCommenter(comments: CommentResolution[]) {
 		...new Set(comments.map((c) => c.CommenterName)),
 	].sort();
 	const data: Counts[] = [];
-	for (let name of commentersSet) {
+	for (const name of commentersSet) {
 		data.push({
 			Commenter: name || "(Blank)",
 			...countsByCategory(
@@ -69,7 +69,7 @@ function commentsByAssignee(comments: CommentResolution[]) {
 		...new Set(comments.map((c) => getField(c, "Status") as string)),
 	].sort(statusComp);
 	const data: Counts[] = [];
-	for (let name of assigneeSet) {
+	for (const name of assigneeSet) {
 		const assigneeComments = comments.filter(
 			(c) => c.AssigneeName === name
 		);
@@ -90,7 +90,7 @@ function commentsByAssigneeAndCommentGroup(comments: CommentResolution[]) {
 		...new Set(comments.map((c) => getField(c, "Status") as string)),
 	].sort(statusComp);
 	const data: Counts[] = [];
-	for (let name of assigneeSet) {
+	for (const name of assigneeSet) {
 		const assigneeComments = comments.filter(
 			(c) => c.AssigneeName === name
 		);
@@ -103,7 +103,7 @@ function commentsByAssigneeAndCommentGroup(comments: CommentResolution[]) {
 		const commentGroupsSet = [
 			...new Set(assigneeComments.map((c) => c.CommentGroup)),
 		].sort();
-		for (let group of commentGroupsSet) {
+		for (const group of commentGroupsSet) {
 			const entry = {
 				Assignee: "",
 				"Comment Group": group || "(Blank)",
@@ -124,7 +124,7 @@ function commentsByAdHocAndCommentGroup(comments: CommentResolution[]) {
 		...new Set(comments.map((c) => getField(c, "Status") as string)),
 	].sort(statusComp);
 	const data: Counts[] = [];
-	for (let name of adhocSet) {
+	for (const name of adhocSet) {
 		const adhocComments = comments.filter((c) => c.AdHoc === name);
 		const entry: Counts = {
 			"Ad-Hoc": name || "(Blank)",
@@ -135,7 +135,7 @@ function commentsByAdHocAndCommentGroup(comments: CommentResolution[]) {
 		const commentGroupsSet = [
 			...new Set(adhocComments.map((c) => c.CommentGroup)),
 		].sort();
-		for (let group of commentGroupsSet) {
+		for (const group of commentGroupsSet) {
 			const entry = {
 				Assignee: "",
 				"Comment Group": group || "(Blank)",

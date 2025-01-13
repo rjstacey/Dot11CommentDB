@@ -30,7 +30,7 @@ const ballotDate = (d: string | null) =>
 				month: "numeric",
 				day: "numeric",
 				timeZone: "America/New_York",
-		  })
+			})
 		: "-";
 
 const ballotDuration = (b: Ballot) => {
@@ -98,7 +98,7 @@ const basicsRenderer: (Label | ResultRender)[] = [
 ];
 
 const wgHeaderRenderer: (Label | ResultRender)[] = [
-	{ value: getBallotId, style: (b) => ({ textAlign: "center" }) },
+	{ value: getBallotId, style: () => ({ textAlign: "center" }) },
 ];
 
 const wgResultsRenderer: (Label | ResultRender)[] = wgHeaderRenderer
@@ -142,7 +142,7 @@ const wgResultsRenderer: (Label | ResultRender)[] = wgHeaderRenderer
 const saHeaderRenderer: (Label | ResultRender)[] = [
 	{
 		value: (b) => (b.stage === 0 ? "Initial" : `Recirc ${b.stage}`),
-		style: (b) => ({ textAlign: "center" }),
+		style: () => ({ textAlign: "center" }),
 	},
 ];
 
@@ -251,7 +251,6 @@ function resultsSummary(ballot: Ballot) {
 
 function SummaryButton({
 	ballot,
-	props,
 	state,
 	methods,
 }: { ballot: Ballot } & DropdownRendererProps) {

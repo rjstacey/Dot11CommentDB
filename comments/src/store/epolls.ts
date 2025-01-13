@@ -80,7 +80,7 @@ export const epollsActions = slice.actions;
 /* Selectors */
 export const selectEpollsState = (state: RootState) => state[dataSet];
 const selectEpollsAge = (state: RootState) => {
-	let lastLoad = selectEpollsState(state).lastLoad;
+	const lastLoad = selectEpollsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -128,11 +128,11 @@ export const loadEpolls =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url, { n })
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const epolls = epollsSchema.parse(response);
 				dispatch(getSuccess(epolls));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

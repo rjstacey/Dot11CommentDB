@@ -66,8 +66,8 @@ const selectBallotSeries = createSelector(
 				if (ballot) ballotSeries.unshift(ballot);
 			}
 			ballot = ballotIn as Ballot;
-			for (let id of ids) {
-				let b = entities[id]!;
+			for (const id of ids) {
+				const b = entities[id]!;
 				if (b.prev_id === ballot.id) {
 					ballot = b;
 					ballotSeries.push(ballot);
@@ -210,11 +210,11 @@ function BallotStage({
 										? {
 												prev_id: null,
 												//IsRecirc: false,
-										  }
+											}
 										: {
 												prev_id: prevBallot!.id,
 												//IsRecirc: true,
-										  }
+											}
 								)
 							}
 							indeterminate={isMultiple(ballot.prev_id)}
@@ -230,11 +230,11 @@ function BallotStage({
 										? {
 												prev_id: prevBallot!.id,
 												//IsRecirc: true,
-										  }
+											}
 										: {
 												prev_id: null,
 												//IsRecirc: false,
-										  }
+											}
 								)
 							}
 							indeterminate={isMultiple(ballot.prev_id)}
@@ -320,8 +320,8 @@ export function BallotTypeSelect({
 								isMultiple(ballot.number)
 									? MULTIPLE_STR
 									: ballotNumberNA
-									? "N/A"
-									: BLANK_STR
+										? "N/A"
+										: BLANK_STR
 							}
 							disabled={
 								readOnly ||

@@ -58,7 +58,7 @@ const slice = createSlice({
 			state,
 			action: PayloadAction<{ history: CommentHistoryEntry[] }>
 		) {
-			let { history } = action.payload;
+			const { history } = action.payload;
 			return {
 				loading: false,
 				valid: true,
