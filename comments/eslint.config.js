@@ -31,6 +31,10 @@ export default [
 			"no-undef": "off",
 			"react/react-in-jsx-scope": "off",
 			"react/prop-types": 0,
+			"@typescript-eslint/no-unused-vars": [
+				"error",
+				{ ignoreRestSiblings: true },
+			],
 		},
 	},
 ];

@@ -6,6 +6,7 @@ import {
 	List,
 	ListItem,
 	ActionButtonDropdown,
+	DropdownRendererProps,
 } from "dot11-components";
 
 import { useAppDispatch } from "@/store/hooks";
@@ -17,7 +18,7 @@ function ResultsExportForm({
 	methods,
 }: {
 	ballot: Ballot;
-	methods: any;
+	methods: DropdownRendererProps["methods"];
 }) {
 	const [forProject, setForProject] = React.useState(false);
 	const [busy, setBusy] = React.useState(false);

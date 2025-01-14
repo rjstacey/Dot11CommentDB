@@ -3,7 +3,8 @@ import { RouteObject } from "react-router";
 import ReportsLayout from "./layout";
 import Reports from "./Reports";
 
-import { indexLoader, ballotIdLoader, ErrorPage } from "../comments/route";
+import { indexLoader, ballotIdLoader } from "../comments/route";
+import AppError from "../errorPage";
 
 const route: RouteObject = {
 	element: <ReportsLayout />,
@@ -17,7 +18,7 @@ const route: RouteObject = {
 			path: ":ballotId",
 			loader: ballotIdLoader,
 			element: <Reports />,
-			errorElement: <ErrorPage />,
+			errorElement: <AppError />,
 		},
 	],
 };

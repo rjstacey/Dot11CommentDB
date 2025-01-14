@@ -156,7 +156,7 @@ const send = (): AppThunk => async (dispatch, getState) => {
 	const { method, url, params } = action.effect;
 	return fetcher
 		.fetch(method, url, params)
-		.then((result: any) => {
+		.then((result: unknown) => {
 			dispatch(dequeue());
 			if (action.commit) {
 				const commitAction = { ...action.commit, payload: result };
@@ -169,7 +169,7 @@ const send = (): AppThunk => async (dispatch, getState) => {
 
 			return dispatch(send());
 		})
-		.catch((error: any) => {
+		.catch((error) => {
 			const state = selectOfflineState(getState());
 			if (!mustDiscard(error)) {
 				const delay = retryDelay(state.retryCount);
@@ -190,10 +190,10 @@ const send = (): AppThunk => async (dispatch, getState) => {
 		});
 };
 
-export type Effect = {
+export type Effect<T extends object = object> = {
 	method: "GET" | "PATCH" | "PUT" | "POST" | "DELETE";
 	url: string;
-	params: any;
+	params: T;
 };
 
 export type OfflineFetchAction = {

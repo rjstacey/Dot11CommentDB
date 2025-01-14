@@ -181,7 +181,7 @@ export const loadResults =
 				dispatch(getSuccess(results));
 				dispatch(updateBallotsLocal(ballots));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

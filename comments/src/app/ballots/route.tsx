@@ -1,10 +1,11 @@
-import { LoaderFunction, RouteObject, useRouteError } from "react-router";
+import { LoaderFunction, RouteObject } from "react-router";
 
 import { store } from "@/store";
 import { AccessLevel } from "@/store/user";
 import { selectIsOnline } from "@/store/offline";
 import { loadGroups, selectTopLevelGroupByName } from "@/store/groups";
 
+import AppError from "../errorPage";
 import Ballots from "./Ballots";
 
 const ballotsLoader: LoaderFunction = async ({ params }) => {
@@ -23,23 +24,10 @@ const ballotsLoader: LoaderFunction = async ({ params }) => {
 	return null;
 };
 
-export function ErrorPage() {
-	const error: any = useRouteError();
-
-	return (
-		<div id="error-page">
-			<h1>Error</h1>
-			<p>
-				<i>{error.statusText || error.message}</i>
-			</p>
-		</div>
-	);
-}
-
 const route: RouteObject = {
 	loader: ballotsLoader,
 	element: <Ballots />,
-	errorElement: <ErrorPage />,
+	errorElement: <AppError />,
 };
 
 export default route;

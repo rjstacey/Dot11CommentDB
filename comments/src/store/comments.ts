@@ -483,9 +483,11 @@ export const updateComments =
 			if (u) {
 				localUpdates.push({ id, changes: u.changes });
 				const changes: Partial<CommentResolution> = {};
-				for (const key of Object.keys(u.changes)) {
-					// @ts-ignore
-					changes[key] = c[key];
+				for (const key of Object.keys(
+					u.changes
+				) as (keyof CommentResolution)[]) {
+					// @ts-expect-error - abcd
+					changes[key] = entity[key];
 				}
 				rollbackUpdates.push({ id, changes });
 			}
@@ -628,8 +630,10 @@ const updateMany =
 			const id = u.id;
 			const changes: Partial<CommentResolution> = {};
 			const entity = entities[id]!;
-			for (const key of Object.keys(u.changes)) {
-				// @ts-ignore
+			for (const key of Object.keys(
+				u.changes
+			) as (keyof CommentResolution)[]) {
+				// @ts-expect-error - abcd
 				changes[key] = entity[key];
 			}
 			return { id, changes };

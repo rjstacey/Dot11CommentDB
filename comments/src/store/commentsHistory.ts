@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, isPlainObject, PayloadAction } from "@reduxjs/toolkit";
 
-import { fetcher, isObject, setError } from "dot11-components";
+import { fetcher, setError } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
 import {
@@ -81,9 +81,9 @@ export const selectCommentsHistoryState = (state: RootState) => state[dataSet];
 
 /* Thunk actions */
 function validResponse(
-	response: any
+	response: unknown
 ): response is { history: CommentHistoryEntry[] } {
-	return isObject(response) && Array.isArray(response.history);
+	return isPlainObject(response) && Array.isArray(response.history);
 }
 
 export const loadCommentsHistory =
@@ -92,7 +92,7 @@ export const loadCommentsHistory =
 		const ballot_id = selectCommentsBallot_id(getState());
 		dispatch(getPending());
 		const url = `/api/commentHistory/${ballot_id}/${comment_id}`;
-		let response: any;
+		let response: unknown;
 		try {
 			response = await fetcher.get(url);
 			if (!validResponse(response))

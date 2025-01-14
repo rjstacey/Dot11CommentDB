@@ -1,4 +1,4 @@
-import { RouteObject, LoaderFunction, useRouteError } from "react-router";
+import { RouteObject, LoaderFunction } from "react-router";
 import { store } from "@/store";
 import { selectIsOnline } from "@/store/offline";
 import { AccessLevel } from "@/store/user";
@@ -10,6 +10,7 @@ import {
 } from "@/store/ballots";
 import { clearComments, loadComments } from "@/store/comments";
 
+import AppError from "../errorPage";
 import CommentsLayout from "./layout";
 import CommentsTable from "./table";
 
@@ -45,19 +46,6 @@ export const ballotIdLoader: LoaderFunction = async ({ params }) => {
 	return null;
 };
 
-export function ErrorPage() {
-	const error: any = useRouteError();
-
-	return (
-		<div id="error-page">
-			<h1>Error</h1>
-			<p>
-				<i>{error.statusText || error.message}</i>
-			</p>
-		</div>
-	);
-}
-
 const route: RouteObject = {
 	element: <CommentsLayout />,
 	children: [
@@ -69,7 +57,7 @@ const route: RouteObject = {
 			path: ":ballotId",
 			loader: ballotIdLoader,
 			element: <CommentsTable />,
-			errorElement: <ErrorPage />,
+			errorElement: <AppError />,
 		},
 	],
 };
