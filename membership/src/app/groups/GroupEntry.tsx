@@ -68,7 +68,7 @@ function GroupTypeSelector({
 		parent_id ? selectGroup(state, parent_id) : undefined
 	);
 
-	let options = parentGroup
+	const options = parentGroup
 		? getSubgroupTypes(parentGroup.type!).map((type) => ({
 				value: type,
 				label: GroupTypeLabels[type],
@@ -371,7 +371,7 @@ export function useGroupsUpdate() {
 export function useGroupAdd() {
 	const dispatch = useAppDispatch();
 	return async (edited: MultipleGroupEntry) => {
-		let { officers, ...newGroup } = edited;
+		let { officers, ...newGroup } = edited; // eslint-disable-line
 		const group = await dispatch(addGroup(newGroup as GroupCreate));
 		if (group) {
 			if (officers.length) {

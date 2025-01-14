@@ -122,7 +122,7 @@ export const selectOfficerIds = (state: RootState) =>
 export const selectOfficerEntities = (state: RootState) =>
 	selectOfficersState(state).entities;
 const selectOfficersAge = (state: RootState) => {
-	let lastLoad = selectOfficersState(state).lastLoad;
+	const lastLoad = selectOfficersState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -147,11 +147,11 @@ export const loadOfficers =
 		loading = true;
 		loadingPromise = fetcher
 			.get(`/api/${groupName}/officers`)
-			.then((response: any) => {
+			.then((response) => {
 				const officers = officersSchema.parse(response);
 				dispatch(getSuccess(officers));
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get groups", error));
 			})
@@ -174,12 +174,12 @@ export const addOfficers =
 		dispatch(addMany(newOfficers));
 		return fetcher
 			.post(url, newOfficers)
-			.then((response: any) => {
+			.then((response) => {
 				const officers = officersSchema.parse(response);
 				if (officers.length !== newOfficers.length)
 					throw new TypeError(`Unexpected response to POST ${url}`);
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(setError("POST " + url, error));
 				dispatch(removeMany(newOfficers.map((o) => o.id)));
 			});
@@ -195,12 +195,12 @@ export const updateOfficers =
 		dispatch(updateMany(updates));
 		return fetcher
 			.patch(url, updates)
-			.then((response: any) => {
+			.then((response) => {
 				const officers = officersSchema.parse(response);
 				if (officers.length !== updates.length)
 					throw new TypeError(`Unexpected response to PATCH ${url}`);
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(setError("PATCH " + url, error));
 				dispatch(setMany(originals));
 			});
@@ -214,7 +214,7 @@ export const deleteOfficers =
 		const entities = selectOfficerEntities(getState());
 		const originals = ids.map((id) => entities[id]!);
 		dispatch(removeMany(ids));
-		return fetcher.delete(url, ids).catch((error: any) => {
+		return fetcher.delete(url, ids).catch((error) => {
 			dispatch(setError("DELETE " + url, error));
 			dispatch(addMany(originals));
 		});

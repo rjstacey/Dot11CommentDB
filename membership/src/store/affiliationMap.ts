@@ -81,7 +81,7 @@ export const selectAffiliationMapIds = (state: RootState) =>
 export const selectAffiliationMapEntities = (state: RootState) =>
 	selectAffiliationMapState(state).entities;
 const selectAffiliationMapAge = (state: RootState) => {
-	let lastLoad = selectAffiliationMapState(state).lastLoad;
+	const lastLoad = selectAffiliationMapState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -117,11 +117,11 @@ export const loadAffiliationMap =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response) => {
 				const affiliationMaps = affiliationMapsSchema.parse(response);
 				dispatch(getSuccess(affiliationMaps));
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})
@@ -139,12 +139,12 @@ export const addAffiliationMaps =
 		const url = `/api/${groupName}/affiliationMap`;
 		return fetcher
 			.post(url, adds)
-			.then((response: any) => {
+			.then((response) => {
 				const affiliationMaps = affiliationMapsSchema.parse(response);
 				dispatch(addMany(affiliationMaps));
 				return affiliationMaps;
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(setError("POST " + url, error));
 				return [];
 			});
@@ -157,11 +157,11 @@ export const updateAffiliationMaps =
 		const url = `/api/${groupName}/affiliationMap`;
 		return fetcher
 			.patch(url, updates)
-			.then((response: any) => {
+			.then((response) => {
 				const affiliationMaps = affiliationMapsSchema.parse(response);
 				dispatch(setMany(affiliationMaps));
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(setError("PATCH " + url, error));
 			});
 	};
@@ -176,7 +176,7 @@ export const deleteAffiliationMaps =
 			.then(() => {
 				dispatch(removeMany(ids));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(setError("DELETE " + url, error));
 			});
 	};

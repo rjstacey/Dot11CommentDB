@@ -82,12 +82,12 @@ function GroupDetail() {
 		}
 
 		// If editing a single group, get officer list
-		let officers: Officer[] =
+		const officers: Officer[] =
 			groups.length === 1
 				? getGroupOfficers(officerIds, officerEntities, groups[0].id)
 				: [];
 
-		let edited = diff ? { ...diff, officers } : null;
+		const edited = diff ? { ...diff, officers } : null;
 
 		return {
 			action: "view",
@@ -137,7 +137,8 @@ function GroupDetail() {
 			return;
 		}
 		setState((state) => {
-			let { action, edited, saved } = state;
+			let { action, edited } = state;
+			const { saved } = state;
 			edited = { ...edited!, ...changes };
 			if (shallowEqual(edited, saved!)) {
 				if (action !== "add") action = "view";

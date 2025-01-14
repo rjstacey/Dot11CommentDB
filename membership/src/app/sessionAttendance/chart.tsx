@@ -23,7 +23,7 @@ function matchRegExp(map: AffiliationMap) {
 		if ((parts.length === 2 || parts.length === 3) && parts[0] === "")
 			re = new RegExp(parts[1], parts[2]);
 		else re = new RegExp(map.match);
-	} catch (error) {
+	} catch {
 		return;
 	}
 	return re;
@@ -83,7 +83,7 @@ const attendeesByAffiliation = createSelector(
 
 		const entry = { ...nullEntry };
 		const ids: string[] = [];
-		shortAffiliations.forEach((id, i) => {
+		shortAffiliations.forEach((id) => {
 			const entity = entities[id];
 			const total =
 				entity["New"] +

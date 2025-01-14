@@ -65,7 +65,7 @@ const { getPending, getSuccess, getFailure, setMany, addMany, removeMany } =
 /** Selector */
 export const selectEmailTemplatesState = (state: RootState) => state[dataSet];
 const selectEmailTemplatesAge = (state: RootState) => {
-	let lastLoad = selectEmailTemplatesState(state).lastLoad;
+	const lastLoad = selectEmailTemplatesState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -90,11 +90,11 @@ export const loadEmailTemplates =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response) => {
 				const templates = emailTemplatesSchema.parse(response);
 				dispatch(getSuccess(templates));
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

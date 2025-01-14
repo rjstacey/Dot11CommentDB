@@ -60,7 +60,7 @@ function MemberEmailSelector({
 		.split(";")
 		.filter(Boolean)
 		.map((s) => {
-			let m = s.trim().match(/([A-Z0-9_\s]+)<(.*)>/i);
+			const m = s.trim().match(/([A-Z0-9_\s]+)<(.*)>/i);
 			if (m) return { Name: m[1], Email: m[2] };
 			return { Name: null, Email: s.trim() };
 		})
@@ -80,8 +80,8 @@ function MemberEmailSelector({
 	}
 
 	function createOption({ state }: SelectRendererProps) {
-		let s = state.search;
-		let m = s.trim().match(/([A-Z0-9_\s]+)<(.*)>/i);
+		const s = state.search;
+		const m = s.trim().match(/([A-Z0-9_\s]+)<(.*)>/i);
 		if (m) return { Name: m[1], Email: m[2] };
 		return { Name: null, Email: s.trim() };
 	}
@@ -151,7 +151,7 @@ function RecipientsEditor({
 				.split(";")
 				.filter(Boolean)
 				.map((s) => {
-					let m = s.trim().match(/([A-Z0-9_\s]+)<(.*)>/i);
+					const m = s.trim().match(/([A-Z0-9_\s]+)<(.*)>/i);
 					if (m) return { Name: m[1], Email: m[2] };
 					return { Name: null, Email: s.trim() };
 				})

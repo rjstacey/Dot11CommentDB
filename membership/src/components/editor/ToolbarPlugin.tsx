@@ -201,7 +201,7 @@ function FormatTextButtons({
 			}),
 			editor.registerCommand(
 				SELECTION_CHANGE_COMMAND,
-				(_payload, newEditor) => {
+				() => {
 					updateFormatState();
 					return false;
 				},
@@ -630,7 +630,7 @@ export default function ToolbarPlugin() {
 			}),
 			editor.registerCommand(
 				SELECTION_CHANGE_COMMAND,
-				(_payload, newEditor) => {
+				() => {
 					updateState();
 					return false;
 				},

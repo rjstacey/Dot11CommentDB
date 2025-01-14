@@ -93,7 +93,7 @@ function recurseHtmlElements(n: Node) {
 
 export function replaceClassWithInlineStyle(body: string) {
 	const parser = new DOMParser();
-	let dom = parser.parseFromString(body, "text/html");
+	const dom = parser.parseFromString(body, "text/html");
 	dom.childNodes.forEach(recurseHtmlElements);
 	return dom.documentElement.innerHTML;
 }
@@ -103,7 +103,7 @@ const editorConfig = {
 	// The editor theme
 	theme,
 	// Handling of errors during update
-	onError(error: any) {
+	onError(error: unknown) {
 		throw error;
 	},
 	// Any custom nodes go here

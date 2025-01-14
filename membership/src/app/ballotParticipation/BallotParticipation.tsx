@@ -72,7 +72,7 @@ const renderBallotSeriesParticipationSummary = (
 	summary?: BallotSeriesParticipationSummary
 ) => {
 	let voteSummary = "Not in pool";
-	let excused = "";
+	const excused = "";
 	if (summary) {
 		voteSummary = summary.vote ? summary.vote : "Did not vote";
 		if (summary.commentCount) voteSummary += `/${summary.commentCount}`;

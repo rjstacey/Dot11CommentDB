@@ -52,7 +52,7 @@ const tableColumns: ColumnProperties[] = [
 	},
 ];
 
-let defaultTablesConfig: TablesConfig = {};
+const defaultTablesConfig: TablesConfig = {};
 const tableConfig: TableConfig = {
 	fixed: false,
 	columns: {},

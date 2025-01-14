@@ -76,7 +76,8 @@ export function useRenderSessionAttendances() {
 
 			const values = session_ids.map((id) => {
 				const session = sessionEntities[id]!;
-				let a = attendances[id] || getNullAttendanceSummary(id, SAPIN);
+				const a =
+					attendances[id] || getNullAttendanceSummary(id, SAPIN);
 
 				let notes = "";
 				if (a.DidAttend) notes = "Override: did attend";

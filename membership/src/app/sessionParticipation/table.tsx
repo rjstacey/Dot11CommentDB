@@ -138,7 +138,7 @@ function SessionParticipationTable() {
 					rowData,
 				}: CellRendererProps<MemberAttendances>) => {
 					const attendance = rowData.sessionAttendanceSummaries.find(
-						(a: any) => a.session_id === session.id
+						(a) => a.session_id === session.id
 					);
 					const notRelevant =
 						!!rowData.NonVoterDate &&

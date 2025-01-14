@@ -52,11 +52,11 @@ type MemberDetailState = {
 };
 
 function useInitState(selected: EntityId[]) {
-	let { entities, loading, valid } = useAppSelector(selectMembersState);
+	const { entities, loading, valid } = useAppSelector(selectMembersState);
 	return React.useCallback((): MemberDetailState => {
-		let action: EditAction = "view",
-			edited: MultipleMember | null = null,
-			originals: MemberCreate[] = [],
+		const action: EditAction = "view",
+			originals: MemberCreate[] = [];
+		let edited: MultipleMember | null = null,
 			message: string = "";
 
 		if (loading && !valid) {
@@ -129,7 +129,8 @@ function MemberDetail({
 			return;
 		}
 		setState((state) => {
-			let { action, edited, saved } = state;
+			let { action, edited } = state;
+			const { saved } = state;
 			edited = { ...edited!, ...changes };
 			if (shallowEqual(edited, saved!)) {
 				if (action !== "add") action = "view";

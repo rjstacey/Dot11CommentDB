@@ -101,7 +101,8 @@ function GroupDetail() {
 			return;
 		}
 		setState((state) => {
-			let { action, edited, saved } = state;
+			let { action, edited } = state;
+			const { saved } = state;
 			edited = { ...edited!, ...changes };
 			if (shallowEqual(edited, saved!)) {
 				if (action !== "add") action = "view";

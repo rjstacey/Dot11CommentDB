@@ -109,7 +109,7 @@ function MembersUploadForm({ methods }: DropdownRendererProps) {
 						id="fileInput"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 						ref={fileRef}
-						onClick={(e) => setErrMsg("")}
+						onClick={() => setErrMsg("")}
 					/>
 				</Col>
 			</Row>

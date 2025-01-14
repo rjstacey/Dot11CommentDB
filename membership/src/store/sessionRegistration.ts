@@ -179,7 +179,7 @@ export const uploadSessionRegistration =
 			);
 			return;
 		}
-		let url = `/api/${groupName}/attendances/${session.id}/uploadRegistration`;
+		const url = `/api/${groupName}/attendances/${session.id}/uploadRegistration`;
 		dispatch(getPending({ groupName, sessionId: session.id }));
 		let r: UploadSessionRegistrationResponse;
 		try {

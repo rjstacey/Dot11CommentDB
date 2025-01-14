@@ -46,7 +46,7 @@ export const MyProjectRosterTableActions = (
 const BLANK_STR = "(Blank)";
 
 function renderDiff(s1: string, s2: string | undefined) {
-	let s1Style: React.CSSProperties = {},
+	const s1Style: React.CSSProperties = {},
 		s2Style: React.CSSProperties = {};
 
 	if (!s1) {
@@ -171,7 +171,7 @@ const defaultTablesColumns = {
 	default: ["__ctrl__", "SAPIN", "Name", "Email", "Affiliation", "Status"],
 };
 
-let defaultTablesConfig: TablesConfig = {};
+const defaultTablesConfig: TablesConfig = {};
 let tableView: keyof typeof defaultTablesColumns;
 for (tableView in defaultTablesColumns) {
 	const tableConfig: TableConfig = {

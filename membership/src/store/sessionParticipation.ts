@@ -128,8 +128,7 @@ function recentAttendanceStats(
 	attendances: SessionAttendanceSummary[],
 	sessionIds: EntityId[],
 	sessionEntities: Dictionary<Session>,
-	startDate?: string,
-	sapin?: number
+	startDate?: string
 ) {
 	let plenaryCount = 0;
 	sessionIds = sessionIds
@@ -152,7 +151,7 @@ function recentAttendanceStats(
 		});
 
 	// Total plenaries considered
-	let total = plenaryCount;
+	const total = plenaryCount;
 
 	attendances = attendances
 		.filter((a) => sessionIds.includes(a.session_id)) // only relevant sessions
@@ -200,7 +199,7 @@ function recentAttendanceStats(
 	});
 
 	// Keep at most the last 4 properly attended sessions
-	let attendendedSessionIds = attendances
+	const attendendedSessionIds = attendances
 		.slice(0, 4)
 		.map((a) => a.session_id);
 
@@ -238,8 +237,7 @@ export const selectMemberAttendanceStats = createSelector(
 			attendances,
 			sessionIds,
 			sessionEntities,
-			since,
-			SAPIN
+			since
 		);
 	}
 );
@@ -300,8 +298,8 @@ export const selectSessionParticipationWithMembershipAndSummary =
 		(ids, entities, memberEntities, sessionIds, sessionEntities) => {
 			const newEntities: Record<EntityId, MemberAttendances> = {};
 			ids.forEach((id) => {
-				let entity = entities[id]!;
-				let member = memberEntities[entity.SAPIN];
+				const entity = entities[id]!;
+				const member = memberEntities[entity.SAPIN];
 				let expectedStatus: ExpectedStatusType = "";
 				let summary = "";
 				let lastSessionId = 0;
@@ -312,13 +310,13 @@ export const selectSessionParticipationWithMembershipAndSummary =
 						member.StatusChangeHistory.find(
 							(h) => h.NewStatus === "Non-Voter"
 						)?.Date || undefined;
-					let stats = recentAttendanceStats(
+					const stats = recentAttendanceStats(
 						entity.sessionAttendanceSummaries,
 						sessionIds,
 						sessionEntities,
 						nonVoterDate
 					);
-					let { total, count, lastPpartial, lastPfull } = stats;
+					const { total, count, lastPpartial, lastPfull } = stats;
 					expectedStatus = memberExpectedStatusFromAttendanceStats(
 						member,
 						count,

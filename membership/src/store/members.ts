@@ -94,7 +94,7 @@ export const fields: Fields = {
 };
 
 /* Fields derived from other fields */
-export function getField(entity: Member, key: string): any {
+export function getField(entity: Member, key: string) {
 	if (key === "OldStatus") {
 		const history = entity.StatusChangeHistory;
 		const lastChange = history[0];
@@ -178,7 +178,7 @@ export function selectMemberEntities(state: RootState) {
 	return selectMembersState(state).entities;
 }
 const selectMembersAge = (state: RootState) => {
-	let lastLoad = selectMembersState(state).lastLoad;
+	const lastLoad = selectMembersState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -296,11 +296,11 @@ export const loadMembers =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response) => {
 				const members = membersSchema.parse(response);
 				dispatch(getSuccess(members));
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})
@@ -501,7 +501,7 @@ export const exportMembersPrivate =
 	};
 
 export const exportVotingMembers =
-	(plenary?: boolean): AppThunk =>
+	(plenary?: boolean, dvl?: boolean): AppThunk =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
@@ -510,8 +510,12 @@ export const exportVotingMembers =
 			);
 			return;
 		}
-		let url =
-			`/api/${groupName}/members/voters` + (plenary ? "?plenary=1" : "");
+		let url = `/api/${groupName}/members/voters`;
+		const search = new URLSearchParams();
+		if (plenary) search.append("plenary", "true");
+		if (dvl) search.append("dvl", "true");
+		if (search.size > 0) url += "?" + search.toString();
+		console.log(search.size, url);
 		try {
 			await fetcher.getFile(url);
 		} catch (error) {

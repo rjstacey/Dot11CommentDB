@@ -208,7 +208,7 @@ function SessionAttendanceActions() {
 	const navigate = useNavigate();
 	const params = useParams();
 	const groupName = params.groupName!;
-	let [searchParams] = useSearchParams();
+	const [searchParams] = useSearchParams();
 	const useDaily =
 		searchParams.has("useDaily") &&
 		searchParams.get("useDaily") !== "false";

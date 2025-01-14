@@ -145,7 +145,6 @@ function renderAttendancePercentage(pct: typeof MULTIPLE | null | number) {
 
 function AttendanceInfo({
 	attendance,
-	savedAttendance,
 	updateAttendance,
 }: {
 	attendance: MultipleSessionAttendanceSummary;
@@ -311,7 +310,7 @@ export function MemberEntryForm({
 	}
 
 	function changeMember(changes: Partial<Member>) {
-		let name =
+		const name =
 			member.FirstName +
 			(member.MI ? ` ${member.MI} ` : " ") +
 			member.LastName;
@@ -429,12 +428,12 @@ function initStateForSession(session: Session) {
 		session.id
 	);
 
+	const members: MemberCreate[] = [],
+		attendances: SessionAttendanceSummary[] = [];
 	let action: EditAction = "view",
 		editedMember: MultipleMember | null = null,
 		savedMember: MultipleMember | null = null,
-		members: MemberCreate[] = [],
 		editedAttendance: MultipleSessionAttendanceSummary | null = null,
-		attendances: SessionAttendanceSummary[] = [],
 		message: string = "";
 
 	if (loading && !valid) {
@@ -472,7 +471,7 @@ function initStateForSession(session: Session) {
 		} else if (editedMember) {
 			action = "update";
 		}
-	} else if (selected.every((id) => !Boolean(memberEntities[id]))) {
+	} else if (selected.every((id) => !memberEntities[id])) {
 		// All selected are new attendees
 		action = "add";
 		for (const sapin of selected as number[]) {
@@ -557,13 +556,8 @@ export function MemberAttendanceDetail() {
 			return;
 		}
 		setState((state) => {
-			let {
-				action,
-				editedMember,
-				savedMember,
-				editedAttendance,
-				savedAttendance,
-			} = state;
+			const { savedMember, editedAttendance, savedAttendance } = state;
+			let { action, editedMember } = state;
 			editedMember = { ...editedMember!, ...changes };
 			if (isEqual(editedMember, savedMember)) {
 				if (action !== "add" && editedAttendance === savedAttendance)
@@ -586,13 +580,8 @@ export function MemberAttendanceDetail() {
 			throw new Error("Update with unexpected state");
 		}
 		setState((state) => {
-			let {
-				action,
-				editedMember,
-				savedMember,
-				editedAttendance,
-				savedAttendance,
-			} = state;
+			const { savedMember, savedAttendance, editedMember } = state;
+			let { action, editedAttendance } = state;
 			editedAttendance = { ...editedAttendance!, ...changes };
 			if (isEqual(editedAttendance, savedAttendance)) {
 				if (action !== "add" && editedMember === savedMember)

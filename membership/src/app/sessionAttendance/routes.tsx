@@ -63,10 +63,7 @@ const sessionAttendanceLoader: LoaderFunction = async ({ params, request }) => {
 	return null;
 };
 
-const sessionAttendanceChartLoader: LoaderFunction = async ({
-	params,
-	request,
-}) => {
+const sessionAttendanceChartLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 

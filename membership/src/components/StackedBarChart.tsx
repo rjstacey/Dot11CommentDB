@@ -130,13 +130,13 @@ function PlotArea({
 	const barWidth = xScale.bandwidth();
 	ids.forEach((id) => {
 		const entry = entities[id];
-		let x = xScale(id);
+		const x = xScale(id);
 		let y = yScale(0);
 		keys.forEach((key, i) => {
-			let value = entry[key];
+			const value = entry[key];
 			if (!value) return null;
-			let fillColor = colors[i] || "#ffffff";
-			let barHeight = yScale(0) - yScale(value);
+			const fillColor = colors[i] || "#ffffff";
+			const barHeight = yScale(0) - yScale(value);
 			y -= barHeight;
 			elements.push(
 				<svg

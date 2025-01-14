@@ -97,7 +97,7 @@ function ShortMemberSummary({ sapins }: { sapins: number[] }) {
 	);
 }
 
-const renderDate = (value: any) =>
+const renderDate = (value: string | null | undefined) =>
 	isMultiple(value) ? (
 		<i>{MULTIPLE_STR}</i>
 	) : value ? (
@@ -454,7 +454,7 @@ export function MemberEntryForm({
 	}
 
 	function changeMember(changes: Partial<Member>) {
-		let name =
+		const name =
 			member.FirstName +
 			(member.MI ? ` ${member.MI} ` : " ") +
 			member.LastName;
@@ -570,7 +570,7 @@ function arrayDiff<T extends { id: number | string }>(
 } {
 	const updates: { id: number | string; changes: Partial<T> }[] = [];
 	const deletes: (number | string)[] = [];
-	let { ids: ids1, entities: entities1 } = normalize(originalArr1);
+	const { ids: ids1, entities: entities1 } = normalize(originalArr1);
 	let { ids: ids2, entities: entities2 } = normalize(updatedArr2);
 	ids1.forEach((id1) => {
 		if (entities2[id1]) {

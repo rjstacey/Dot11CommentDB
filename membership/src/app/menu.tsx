@@ -30,7 +30,7 @@ function useMenuLinks() {
 		if (!group) return menu;
 
 		// Groups link for "root" (/groups) or committee/working group ("/:groupName/groups")
-		let groupsAccess = group.permissions.groups || AccessLevel.none;
+		const groupsAccess = group.permissions.groups || AccessLevel.none;
 		if (groupsAccess >= AccessLevel.ro) {
 			menu.push({
 				link: (group.type === "r" ? "/" : `/${group.name}`) + "/groups",
@@ -142,7 +142,7 @@ function NavMenu() {
 			{isSmall ? (
 				<Dropdown
 					className="nav-small-menu"
-					selectRenderer={(props) => <CurrentMenuItem />}
+					selectRenderer={() => <CurrentMenuItem />}
 					dropdownRenderer={(props) => (
 						<Menu
 							className="nav-menu-vertical"

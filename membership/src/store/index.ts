@@ -5,7 +5,12 @@ import {
 import type { Action, ThunkAction, Middleware } from "@reduxjs/toolkit";
 
 import { createLogger } from "redux-logger";
-import { persistStore, persistReducer, createTransform } from "redux-persist";
+import {
+	persistStore,
+	persistReducer,
+	createTransform,
+	type PersistConfig,
+} from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import { get, set, del } from "idb-keyval";
 
@@ -31,8 +36,9 @@ const RESET_STORE_ACTION = "root/RESET_STORE";
 const PERSIST_VERSION = 4;
 
 /* Transform presistant state so that we reset "loading" state */
+type GenericObject = Record<string, unknown>;
 const transformState = createTransform(
-	(state: any) => {
+	(state: GenericObject) => {
 		const { loading, ...rest } = state;
 		return rest;
 	},
@@ -75,12 +81,15 @@ const appReducer = combineReducers({
 	[errorsSlice.name]: errorsSlice.reducer,
 });
 
-const rootReducer = (state: any, action: Action) => {
+const rootReducer = (
+	state: ReturnType<typeof appReducer> | undefined,
+	action: Action
+) => {
 	if (action.type === RESET_STORE_ACTION) state = undefined;
 	return appReducer(state, action);
 };
 
-const persistConfig = {
+const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	key: "membership",
 	version: PERSIST_VERSION,
 	storage: {
@@ -109,7 +118,7 @@ const persistConfig = {
 	],
 	stateReconciler: autoMergeLevel2,
 	transforms: [transformState],
-	migrate: (state: any) => {
+	migrate: (state) => {
 		if (
 			state &&
 			state._persist &&
@@ -125,7 +134,7 @@ if (process.env.NODE_ENV !== "production")
 	middleware.push(createLogger({ collapsed: true }));
 
 export const store = configureReduxStore({
-	reducer: persistReducer(persistConfig, rootReducer as any),
+	reducer: persistReducer(persistConfig, rootReducer),
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({
 			immutableCheck: false,

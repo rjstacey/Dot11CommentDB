@@ -169,7 +169,9 @@ function validMyProjectRosterEntry(entry: any): entry is MyProjectRosterEntry {
 	);
 }
 
-function validMyProjectRoster(roster: any): roster is MyProjectRosterEntry[] {
+function validMyProjectRoster(
+	roster: unknown
+): roster is MyProjectRosterEntry[] {
 	return Array.isArray(roster) && roster.every(validMyProjectRosterEntry);
 }
 
@@ -177,7 +179,7 @@ export const parseMyProjectRoster =
 	(file: File): AppThunk =>
 	async (dispatch, getState) => {
 		const groupName = selectMembersState(getState()).groupName;
-		let url = `/api/${groupName}/members/myProjectRoster`;
+		const url = `/api/${groupName}/members/myProjectRoster`;
 		if (!groupName) {
 			dispatch(setError("Unable to upload roster", "Group not selected"));
 			return;
@@ -210,7 +212,7 @@ export const updateMyProjectRoster =
 			return;
 		}
 		let url = `/api/${groupName}/members/MyProjectRoster`;
-		let search = new URLSearchParams();
+		const search = new URLSearchParams();
 		Object.entries(options).forEach(([key, value]) => {
 			if (value) search.set(key, value.toString());
 		});

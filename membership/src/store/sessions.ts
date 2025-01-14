@@ -25,7 +25,7 @@ export const SessionTypeLabels: Record<SessionType, string> = {
 
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 	([value, label]) =>
-		({ value, label } as { value: SessionType; label: string })
+		({ value, label }) as { value: SessionType; label: string }
 );
 
 export const displaySessionType = (type: SessionType | null) =>
@@ -101,7 +101,7 @@ export { clearSessions, upsertSessions, updateSession };
 /** Selectors */
 export const selectSessionsState = (state: RootState) => state[dataSet];
 const selectSessionsAge = (state: RootState) => {
-	let lastLoad = selectSessionsState(state).lastLoad;
+	const lastLoad = selectSessionsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -157,11 +157,11 @@ export const loadSessions =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url, { type: ["p", "i"], limit: 20 })
-			.then((response: any) => {
+			.then((response) => {
 				const sessions = sessionsSchema.parse(response);
 				dispatch(getSuccess(sessions));
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

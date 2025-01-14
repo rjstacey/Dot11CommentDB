@@ -129,7 +129,7 @@ export const upsertAttendanceSummaries = slice.actions.upsertMany;
 export const selectAttendanceSummaryState = (state: RootState) =>
 	state[dataSet];
 const selectAttendanceSummaryAge = (state: RootState) => {
-	let lastLoad = selectAttendanceSummaryState(state).lastLoad;
+	const lastLoad = selectAttendanceSummaryState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -222,7 +222,7 @@ export const loadRecentAttendanceSummaries =
 				const url = `${baseUrl}/${session.id}`;
 				return fetcher
 					.get(url)
-					.then((response: any) =>
+					.then((response: unknown) =>
 						sessionAttendanceSummariesSchema.parse(response)
 					);
 			})

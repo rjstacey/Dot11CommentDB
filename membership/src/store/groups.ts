@@ -62,7 +62,7 @@ export function getSubgroupTypes(parentType: GroupType): GroupType[] {
 
 export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(
 	([value, label]) =>
-		({ value, label } as { value: GroupType; label: string })
+		({ value, label }) as { value: GroupType; label: string }
 );
 const groupTypes = Object.keys(GroupTypeLabels);
 
@@ -199,7 +199,7 @@ export const selectGroupEntities = (state: RootState) =>
 export const selectGroupIds = (state: RootState) =>
 	selectGroupsState(state).ids;
 const selectGroupsAge = (state: RootState, groupName: string) => {
-	let lastLoad = selectGroupsState(state).lastLoad[groupName];
+	const lastLoad = selectGroupsState(state).lastLoad[groupName];
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -258,7 +258,7 @@ export const selectWorkingGroupIds = createSelector(
 			return ids.filter(isWorkingGroupDescendent);
 		} else {
 			return ids.filter((id) => {
-				let g = entities[id]!;
+				const g = entities[id]!;
 				return g.type === "c" || g.type === "wg";
 			});
 		}
@@ -344,12 +344,12 @@ export const loadGroups =
 		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
 		loadingPromise[groupName] = fetcher
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
-			.then((response: any) => {
+			.then((response) => {
 				const groups = groupsSchema.parse(response);
 				dispatch(getSuccess2({ groupName, groups }));
 				return groups;
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 				return [];
@@ -367,7 +367,7 @@ export const addGroup =
 		dispatch(addOne(group as Group));
 		return fetcher
 			.post(baseUrl, [group])
-			.then((response: any) => {
+			.then((response) => {
 				const groups = groupsSchema.parse(response);
 				if (groups.length !== 1)
 					throw new TypeError(
@@ -377,7 +377,7 @@ export const addGroup =
 				dispatch(updateOne({ id: group.id, changes: group }));
 				return group;
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(setError("POST " + baseUrl, error));
 				dispatch(removeOne(group.id!));
 			});
@@ -391,13 +391,13 @@ export const updateGroups =
 		dispatch(updateMany(updates));
 		return fetcher
 			.patch(baseUrl, updates)
-			.then((response: any) => {
+			.then((response) => {
 				const groups = groupsSchema.parse(response);
 				dispatch(
 					updateMany(groups.map((e) => ({ id: e.id, changes: e })))
 				);
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(setError("PATCH " + baseUrl, error));
 				dispatch(
 					updateMany(originals.map((e) => ({ id: e.id, changes: e })))
@@ -411,7 +411,7 @@ export const deleteGroups =
 		const { entities } = selectGroupsState(getState());
 		const originals = ids.map((id) => entities[id]!);
 		dispatch(removeMany(ids));
-		return fetcher.delete(baseUrl, ids).catch((error: any) => {
+		return fetcher.delete(baseUrl, ids).catch((error) => {
 			dispatch(setError("DELETE " + baseUrl, error));
 			dispatch(addMany(originals));
 		});

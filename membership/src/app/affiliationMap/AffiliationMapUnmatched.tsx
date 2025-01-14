@@ -10,7 +10,7 @@ function matchRegExp(map: AffiliationMap) {
 		if ((parts.length === 2 || parts.length === 3) && parts[0] === "")
 			re = new RegExp(parts[1], parts[2]);
 		else re = new RegExp(map.match);
-	} catch (error) {
+	} catch {
 		return;
 	}
 	return re;
@@ -33,8 +33,8 @@ function AffiliationMapUnmatched() {
 	return (
 		<div style={{ display: "flex", flexDirection: "column" }}>
 			<span>{`${unmatchedMembers.length} unmatched affiliations:`}</span>
-			{unmatchedMembers.map((m) => (
-				<span>{m}</span>
+			{unmatchedMembers.map((m, i) => (
+				<span key={i}>{m}</span>
 			))}
 		</div>
 	);

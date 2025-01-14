@@ -64,7 +64,7 @@ function BulkStatusUpdateForm({
 		.filter((entity) => entity && entity.ExpectedStatus)
 		.map((entity) => {
 			const { SAPIN, ExpectedStatus } = entity!;
-			let StatusChangeDate = DateTime.fromISO(date, {
+			const StatusChangeDate = DateTime.fromISO(date, {
 				zone: "America/New_York",
 			}).toISO()!;
 			return {
@@ -77,7 +77,7 @@ function BulkStatusUpdateForm({
 			} satisfies MemberUpdate;
 		});
 
-	let warning = `${updates.length} updates`;
+	const warning = `${updates.length} updates`;
 
 	const submit = async () => {
 		setBusy(true);

@@ -68,7 +68,7 @@ const { getPending, getSuccess, getFailure } = slice.actions;
 /* Selectors */
 export const selectImatCommitteesState = (state: RootState) => state[dataSet];
 const selectImatCommitteesAge = (state: RootState) => {
-	let lastLoad = selectImatCommitteesState(state).lastLoad;
+	const lastLoad = selectImatCommitteesState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -97,12 +97,12 @@ export const loadCommittees =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response) => {
 				if (!Array.isArray(response))
 					throw new TypeError(`Unexpected response to GET ${url}`);
 				dispatch(getSuccess(response));
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get committees", error));
 			})

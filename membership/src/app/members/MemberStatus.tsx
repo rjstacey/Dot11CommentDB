@@ -27,7 +27,6 @@ const displayDate = (isoDateTime: string) =>
 function MemberStatusChangeForm({
 	entry,
 	onChange,
-	close,
 }: {
 	entry: StatusChangeEntry;
 	onChange: (entry: StatusChangeEntry) => void;

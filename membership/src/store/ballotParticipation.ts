@@ -186,7 +186,7 @@ export { setSelected };
 export const selectBallotParticipationState = (state: RootState) =>
 	state[dataSet];
 const selectBallotParticipationAge = (state: RootState) => {
-	let lastLoad = selectBallotParticipationState(state).lastLoad;
+	const lastLoad = selectBallotParticipationState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -291,8 +291,8 @@ export const selectBallotParticipationWithMembershipAndSummary = createSelector(
 	(memberEntities, ballotSeriesEntities, ids, entities) => {
 		const newEntities: Record<EntityId, MemberParticipation> = {};
 		ids.forEach((id) => {
-			let entity = entities[id]!;
-			let member = memberEntities[entity.SAPIN];
+			const entity = entities[id]!;
+			const member = memberEntities[entity.SAPIN];
 			let expectedStatus: ExpectedStatusType = "";
 			let summary = "";
 			if (member) {
@@ -348,7 +348,7 @@ export const selectMemberBallotParticipationCount = createSelector(
 	}
 );
 
-function getField(entity: MemberParticipation, dataKey: string): any {
+function getField(entity: MemberParticipation, dataKey: string) {
 	const m = /ballotSeries_(\d+)/.exec(dataKey);
 	if (m) {
 		const i = Number(m[1]);
@@ -404,14 +404,14 @@ export const loadBallotParticipation =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response to GET " + url);
 				dispatch(setBallots(response.ballots));
 				dispatch(setBallotSeries(response.ballotSeries));
 				dispatch(getSuccess(response.ballotSeriesParticipation));
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(
 					setError(`Unable to get ballot series participation`, error)
@@ -432,7 +432,7 @@ export const updateBallotParticipation =
 	(sapin: number, updates: BallotParticipationUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
 		const entities = selectBallotParticipationEntities(getState());
-		let entity = entities[sapin];
+		const entity = entities[sapin];
 		if (!entity) {
 			console.error(`Entry for ${sapin} does not exist`);
 			return;
@@ -441,7 +441,7 @@ export const updateBallotParticipation =
 			number,
 			{ id: string; changes: { Excused: boolean } }[]
 		> = {};
-		let updatedSummaries = entity.ballotSeriesParticipationSummaries.map(
+		const updatedSummaries = entity.ballotSeriesParticipationSummaries.map(
 			(summary) => {
 				const update = updates.find((u) => u.id === summary.series_id);
 				if (!update) return summary;
@@ -462,7 +462,7 @@ export const updateBallotParticipation =
 			const url = `/api/voters/${ballot_id}`;
 			fetcher
 				.patch(url, updates)
-				.catch((error: any) =>
+				.catch((error) =>
 					dispatch(setError("Unable to update voters", error))
 				);
 		});

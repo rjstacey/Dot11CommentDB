@@ -157,7 +157,7 @@ const getPending = createAction<{
  */
 export const selectSessionAttendeesState = (state: RootState) => state[dataSet];
 const selectSessionAttendeesAge = (state: RootState) => {
-	let lastLoad = selectSessionAttendeesState(state).lastLoad;
+	const lastLoad = selectSessionAttendeesState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -197,7 +197,7 @@ export const selectSyncedSessionAtendeeEntities = createSelector(
 			const a =
 				attendanceSummaryEntities[entity.SAPIN] ||
 				getNullAttendanceSummary(session_id || 0, entity.SAPIN);
-			let syncedEntity: SyncedSessionAttendee = {
+			const syncedEntity: SyncedSessionAttendee = {
 				...a,
 				...entity,
 				OldAffiliation: null,
@@ -295,12 +295,12 @@ export const loadSessionAttendees =
 		const url = `/api/${groupName}/imat/attendance/${session.imatMeetingId}/summary`;
 		loadingPromise = fetcher
 			.get(url, { useDaily })
-			.then((imatAttendances: any) => {
+			.then((imatAttendances) => {
 				if (!validGetImatAttendanceResponse(imatAttendances))
 					throw new TypeError("Unexpected response to GET " + url);
 				dispatch(getSuccess(imatAttendances));
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get attendances", error));
 			});
@@ -317,7 +317,7 @@ export const exportAttendanceForMinutes =
 			);
 			return;
 		}
-		let url = `/api/${groupName}/attendances/${session.id}/exportForMinutes`;
+		const url = `/api/${groupName}/attendances/${session.id}/exportForMinutes`;
 		try {
 			await fetcher.getFile(url);
 		} catch (error) {

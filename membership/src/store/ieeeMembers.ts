@@ -75,7 +75,7 @@ export { setSelected, setUiProperties };
 /* Selectors */
 export const selectIeeeMembersState = (state: RootState) => state[dataSet];
 const selectIeeeMembersAge = (state: RootState) => {
-	let lastLoad = selectIeeeMembersState(state).lastLoad;
+	const lastLoad = selectIeeeMembersState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -123,12 +123,12 @@ export const loadIeeeMembers =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response) => {
 				if (!validResponse(response))
 					throw new TypeError("Unexpected response to GET");
 				dispatch(getSuccess(response));
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("Unable to get users list", error));
 			})

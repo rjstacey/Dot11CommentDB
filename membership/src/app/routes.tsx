@@ -6,6 +6,7 @@ import {
 	loadGroups,
 	selectTopLevelGroupByName,
 	setTopLevelGroupId,
+	type Group,
 } from "@/store/groups";
 import { loadMembers } from "@/store/members";
 import { loadIeeeMembers } from "@/store/ieeeMembers";
@@ -49,7 +50,7 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	if (access < AccessLevel.ro)
 		throw new Error("You don't have permission to view this data");
 
-	const wait: Promise<any>[] = [];
+	const wait: Promise<void | Group[]>[] = [];
 	dispatch(setTopLevelGroupId(group.id));
 	wait.push(dispatch(loadGroups(groupName)));
 	wait.push(dispatch(loadSessions(groupName)));

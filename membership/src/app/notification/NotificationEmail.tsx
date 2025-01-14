@@ -180,9 +180,9 @@ function genEmails({
 			);*/
 			const html = await render(<FormatBody body={email.body} />);
 
-			let ToAddresses = email.to ? email.to.split(";") : [member.Email];
-			let CcAddresses = email.cc ? email.cc.split(";") : undefined;
-			let BccAddresses = email.bcc ? email.bcc.split(";") : undefined;
+			const ToAddresses = email.to ? email.to.split(";") : [member.Email];
+			const CcAddresses = email.cc ? email.cc.split(";") : undefined;
+			const BccAddresses = email.bcc ? email.bcc.split(";") : undefined;
 
 			const Charset = "UTF-8";
 			const emailOut: Email = {
