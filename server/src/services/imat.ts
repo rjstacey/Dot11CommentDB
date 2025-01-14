@@ -2,7 +2,7 @@
  * imat.ieee.org HTML scraping
  */
 import PropTypes from "prop-types";
-import { DateTime, Duration } from "luxon";
+import { DateTime } from "luxon";
 import { load as cheerioLoad } from "cheerio";
 
 import type { User } from "./users.js";
@@ -79,14 +79,14 @@ type CsvCommittee = Omit<ImatCommittee, "id"> & {
 };
 
 // Convert date to ISO format
-function dateToISODate(dateStr: string) {
+/*function dateToISODate(dateStr: string) {
 	// Date is in format: "11-Dec-2018"
 	return DateTime.fromFormat(dateStr, "dd-MMM-yyyy").toISODate();
-}
+}*/
 
 function csvDateToISODate(dateStr: string) {
 	// Date is in format: "11/12/2018"
-	return DateTime.fromFormat(dateStr, "MM/dd/yyyy").toISODate();
+	return DateTime.fromFormat(dateStr, "MM/dd/yyyy").toISODate() || "";
 }
 
 function luxonTimeZone(timeZone: string) {
@@ -211,16 +211,16 @@ function parseAddMeetingPage(body: string) {
 
 	// f1 selects the committee
 	const pageCommittees: PageCommittee[] = [];
-	$('select[name="f1"] > option').each(function (index) {
+	$('select[name="f1"] > option').each(function () {
 		// each option
 		const id = parseInt($(this).attr("value") || "0");
 		const symbolName = $(this).text();
 		pageCommittees.push({ id, symbolName });
 	});
 
-	let timeslotsObj = {};
+	const timeslotsObj = {};
 	// f12 selects timeslot start
-	$('select[name="f12"] > option').each(function (index) {
+	$('select[name="f12"] > option').each(function () {
 		const id = parseInt($(this).attr("value") || "0");
 		const p = $(this).html()!.split("&nbsp;");
 		const name = p[0];
@@ -229,18 +229,18 @@ function parseAddMeetingPage(body: string) {
 	});
 
 	// f11 selects timeslot end
-	$('select[name="f11"] > option').each(function (index) {
+	$('select[name="f11"] > option').each(function () {
 		const id = parseInt($(this).attr("value") || "0");
 		const p = $(this).html()!.split("&nbsp;");
 		timeslotsObj[id].endTime = p[1];
 	});
 
-	let timeslots: ImatTimeslot[] = Object.values(timeslotsObj); // convert to array
+	const timeslots: ImatTimeslot[] = Object.values(timeslotsObj); // convert to array
 
 	return { pageCommittees, timeslots };
 }
 
-function parseEditMeetingPage(body: string): {
+/*function parseEditMeetingPage(body: string): {
 	committees: PageCommittee[];
 	timeslots: ImatTimeslot[];
 } {
@@ -275,7 +275,7 @@ function parseEditMeetingPage(body: string): {
 	let timeslots = Object.values(timeslotsObj) as ImatTimeslot[]; // convert to array
 
 	return { committees, timeslots };
-}
+}*/
 
 const committeesCsvHeader = [
 	"Committee ID",
@@ -330,7 +330,7 @@ export async function getImatCommittees(user: User, group: Group) {
 	return committees;
 }
 
-const breakoutsCvsHeader = [
+/*const breakoutsCvsHeader = [
 	"Breakout ID",
 	"Start Timeslot Name",
 	"End Timeslot Name",
@@ -344,7 +344,7 @@ const breakoutsCvsHeader = [
 	"Override Credit Denominator",
 	"Event Day",
 	"Facilitator Web Id",
-] as const;
+] as const;*/
 
 export function parseSessionDetailPage(body: string) {
 	let m: string[] | null, href: string;
@@ -367,9 +367,9 @@ export function parseSessionDetailPage(body: string) {
 	const pageBreakouts: PageBreakout[] = [];
 	const timeslots: { [id: string]: PageTimeslot } = {};
 
-	$(".b_data_row").each(function (index) {
+	$(".b_data_row").each(function () {
 		// each table data row
-		var tds = $(this).find("td");
+		const tds = $(this).find("td");
 		//console.log(tds.length)
 		if (tds.length === 4) {
 			// Timeslots table
@@ -404,18 +404,20 @@ export function parseSessionDetailPage(body: string) {
 			const day = eventDate.diff(sessionStart, "days").get("days");
 			const startTime = m[3];
 			const endTime = m[4];
-			const start = eventDate
-				.set({
-					hour: Number(m[3].substring(0, 2)),
-					minute: Number(m[3].substring(3)),
-				})
-				.toISO();
-			const end = eventDate
-				.set({
-					hour: Number(m[4].substring(0, 2)),
-					minute: Number(m[4].substring(3)),
-				})
-				.toISO();
+			const start =
+				eventDate
+					.set({
+						hour: Number(m[3].substring(0, 2)),
+						minute: Number(m[3].substring(3)),
+					})
+					.toISO() || "";
+			const end =
+				eventDate
+					.set({
+						hour: Number(m[4].substring(0, 2)),
+						minute: Number(m[4].substring(3)),
+					})
+					.toISO() || "";
 
 			m = /(.+)&nbsp;-&nbsp;(.+)/.exec(slotsRange);
 			const startSlotName = m ? m[1] : slotsRange;
@@ -431,9 +433,12 @@ export function parseSessionDetailPage(body: string) {
 			const groupShortName = tds.eq(3).text();
 			const name = tds.eq(4).text() || "";
 
-			let creditStr = tds.eq(5).text() || "";
-			let { credit, creditOverrideNumerator, creditOverrideDenominator } =
-				getCredit(creditStr);
+			const creditStr = tds.eq(5).text() || "";
+			const {
+				credit,
+				creditOverrideNumerator,
+				creditOverrideDenominator,
+			} = getCredit(creditStr);
 
 			href =
 				tds.eq(7).find('a[href*="breakout-edit"]').attr("href") || "";
@@ -490,7 +495,7 @@ export function parseSessionDetailPage(body: string) {
 	return { pageBreakouts, timeslots };
 }
 
-async function parseImatBreakoutsCsv(session: Session, buffer: Buffer) {
+/*async function parseImatBreakoutsCsv(session: Session, buffer: Buffer) {
 	const p = await csvParse(buffer, {
 		columns: false,
 		bom: true,
@@ -534,9 +539,9 @@ async function parseImatBreakoutsCsv(session: Session, buffer: Buffer) {
 		};
 		return breakout;
 	});
-}
+}*/
 
-const timeslotsCsvHeader = [
+/*const timeslotsCsvHeader = [
 	"Event ID",
 	"Timeslot ID",
 	"Timeslot Name",
@@ -561,7 +566,7 @@ async function parseImatTimeslotCsv(buffer: Buffer) {
 		startTime: c[3],
 		endTime: c[4],
 	}));
-}
+}*/
 
 /**
  * Get breakouts for an IMAT meeting
@@ -578,8 +583,6 @@ export async function getImatBreakoutsInternal(
 	const imatMeeting = await getImatMeeting(user, imatMeetingId);
 	//console.log(imatMeeting);
 
-	let response: any;
-
 	/*
 	response = await ieeeClient.get(`/${imatMeeting.organizerId}/breakouts.csv?p=${imatMeetingId}&xls=1`, {responseType: 'arraybuffer'});
 	if (response.headers['content-type'] !== 'text/csv')
@@ -587,7 +590,7 @@ export async function getImatBreakoutsInternal(
 	const breakouts = await parseImatBreakoutsCsv(imatMeeting, response.data);
 	*/
 	const url1 = `/${imatMeeting.organizerId}/meeting-detail?p=${imatMeetingId}`;
-	response = await ieeeClient.get(url1);
+	let response = await ieeeClient.get(url1);
 	const { pageBreakouts } = parseSessionDetailPage(response.data);
 
 	/*response = await ieeeClient.get(`/${imatMeeting.organizerId}/timeslot.csv?p=${imatMeeting.id}&xls=1`, {responseType: 'arraybuffer'});
@@ -711,7 +714,7 @@ async function addImatBreakout(
 	};
 
 	const url = `/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`;
-	let response = await ieeeClient!.post(url, params);
+	const response = await ieeeClient!.post(url, params);
 	//console.log(response)
 
 	if (
@@ -732,7 +735,7 @@ async function addImatBreakout(
 		pageBreakoutToBreakout(b, timeslots, pageCommittees)
 	);
 
-	let b = breakouts.find(
+	const b = breakouts.find(
 		(b) =>
 			breakout.name.trim() === b.name &&
 			breakout.location?.trim() === b.location &&
@@ -788,7 +791,7 @@ export async function addImatBreakouts(
 	//console.log(imatMeeting);
 
 	const url = `/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`;
-	let response = await ieeeClient.get(url);
+	const response = await ieeeClient.get(url);
 	const { timeslots, pageCommittees } = parseAddMeetingPage(response.data);
 
 	breakouts = await Promise.all(
@@ -908,7 +911,7 @@ export async function updateImatBreakouts(
 	//console.log(imatMeeting);
 
 	const url = `/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`;
-	let response = await ieeeClient.get(url);
+	const response = await ieeeClient.get(url);
 	const { timeslots, pageCommittees } = parseAddMeetingPage(response.data);
 
 	const pageBreakouts = await Promise.all(
@@ -987,7 +990,7 @@ async function meetingToBreakout(
 	if (!startSlot) {
 		// Look for the last slot that starts after the meeting starts
 		for (const slot of timeslots) {
-			const [slotStart, slotEnd] = slotDateTime(breakoutDate, slot);
+			const [slotStart] = slotDateTime(breakoutDate, slot);
 			if (start >= slotStart) startSlot = slot;
 		}
 	}
@@ -995,7 +998,7 @@ async function meetingToBreakout(
 	if (!endSlot) {
 		// Look for the first slot that ends before meeting ends
 		for (const slot of timeslots) {
-			const [slotStart, slotEnd] = slotDateTime(breakoutDate, slot);
+			const [, slotEnd] = slotDateTime(breakoutDate, slot);
 			if (end <= slotEnd) {
 				endSlot = slot;
 				break;
@@ -1036,7 +1039,7 @@ async function meetingToBreakout(
 			`Can't find committe for ${group.name}. Tried anscestors.`
 		);
 	const symbol = ancestorGroupWithSymbol.symbol;
-	let committee = committees.find((c) => c.symbol === symbol);
+	const committee = committees.find((c) => c.symbol === symbol);
 	if (!committee)
 		throw new TypeError(
 			`Can't find committee symbol=${symbol} (group: ${ancestorGroupWithSymbol.name})`
@@ -1138,7 +1141,7 @@ export async function addImatBreakoutFromMeeting(
 	const { imatMeeting, timeslots, committees, pageCommittees } =
 		await getImatBreakoutsInternal(user, imatMeetingId);
 
-	let breakout = await meetingToBreakout(
+	const breakout = await meetingToBreakout(
 		user,
 		imatMeeting,
 		timeslots,
@@ -1147,7 +1150,7 @@ export async function addImatBreakoutFromMeeting(
 		meeting,
 		webexMeeting
 	);
-	let breakoutOut = await addImatBreakout(
+	const breakoutOut = await addImatBreakout(
 		user,
 		imatMeeting,
 		timeslots,
@@ -1210,7 +1213,7 @@ export async function updateImatBreakoutFromMeeting(
 	const committee = committees.find(
 		(c) => c.symbol === updatedBreakout.symbol
 	)!;
-	let doUpdate =
+	const doUpdate =
 		breakout.name !== updatedBreakout.name ||
 		breakout.groupShortName !== committee.shortName ||
 		breakout.day !== updatedBreakout.day ||
@@ -1243,7 +1246,7 @@ export async function updateImatBreakoutFromMeeting(
 }
 
 function getTimestamp(t: string) {
-	let date = new Date(t);
+	const date = new Date(t);
 	return isNaN(date.valueOf()) ? null : date.toISOString();
 }
 
@@ -1269,9 +1272,9 @@ export async function getImatBreakoutAttendance(
 		throw new Error("Unexpected page returned by imat.ieee.org");
 
 	const attendance: ImatBreakoutAttendance[] = [];
-	$(".b_data_row").each(function (index) {
+	$(".b_data_row").each(function () {
 		// each table data row
-		var tds = $(this).find("td");
+		const tds = $(this).find("td");
 		const parts = tds.eq(1).text().split(",");
 		const LastName = parts[0].trim();
 		const FirstName = parts.length > 1 ? parts[1].trim() : "";
@@ -1321,9 +1324,10 @@ async function parseImatMeetingAttendance(
 			SAPIN: parseInt(c[2]),
 			Name: c[3],
 			Email: c[4],
-			Timestamp: DateTime.fromFormat(c[5], "dd-MMM-yyyy HH:mm:ss", {
-				zone: imatMeeting.timezone,
-			}).toISO(),
+			Timestamp:
+				DateTime.fromFormat(c[5], "dd-MMM-yyyy HH:mm:ss", {
+					zone: imatMeeting.timezone,
+				}).toISO() || "",
 			Affiliation: c[6],
 		};
 		return entry;
@@ -1477,10 +1481,10 @@ export async function getImatMeetingAttendanceSummary(
 	return getImatMeetingAttendanceSummaryByDate(user, group.name, start, end);
 }
 
-type ImatDailyAttendance = ImatAttendanceSummary & {
+/*type ImatDailyAttendance = ImatAttendanceSummary & {
 	Employer: string;
 	ContactInfo: ContactInfo;
-};
+};*/
 
 /* The daily attendance spreadsheet has columns:
  * 'SA PIN', ... 'Country'
@@ -1513,7 +1517,7 @@ function validateSpreadsheetColumns(
 	row: { [name: string]: string },
 	expectedHeader: readonly string[]
 ) {
-	if (!expectedHeader.every((colName) => row.hasOwnProperty(colName))) {
+	if (!expectedHeader.every((colName) => colName in row)) {
 		const headings = Object.keys(row);
 		throw new TypeError(
 			`Unexpected column headings:\n${headings.join(

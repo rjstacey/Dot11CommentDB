@@ -14,7 +14,7 @@ export async function getAffiliationMaps(
 	group: Group,
 	query?: AffiliationMapQuery
 ) {
-	let wheres: string[] = [];
+	const wheres: string[] = [];
 	if (query && query.id) {
 		wheres.push(
 			db.format(Array.isArray(query.id) ? "id IN (?)" : "id=?", [

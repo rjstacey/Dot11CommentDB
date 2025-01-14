@@ -6,7 +6,11 @@ import { validateSpreadsheetHeader, parseSpreadsheet } from "../utils/index.js";
 import { fromHtml } from "./commentsSpreadsheet.js";
 import type { Response } from "express";
 import { getComments } from "./comments.js";
-import type { Comment, CommentResolution } from "@schemas/comments.js";
+import type {
+	CategoryType,
+	Comment,
+	CommentResolution,
+} from "@schemas/comments.js";
 import type { Member, UpdateRosterOptions } from "@schemas/members.js";
 import type { Result } from "@schemas/results.js";
 import type { User } from "./users.js";
@@ -40,20 +44,25 @@ const myProjectCommentsHeader = [
 
 const reCommentID = /(I|R\d+)-(\d+)/;
 
-function parseMyProjectComment(c: any[]) {
+function parseMyProjectComment(c: string[]) {
 	// MyProject uses <last name>, <first name> for comments but <first name> <last name> for results
-	let [lastName, firstName] = c[3].split(", ");
-	let name = (firstName ? firstName + " " : "") + lastName;
+	const [lastName, firstName] = c[3].split(", ");
+	const name = (firstName ? firstName + " " : "") + lastName;
 
-	let C_Clause = c[13] || "";
-	let C_Line = c[14] || "";
-	let C_Page = c[12] || "";
+	const C_Clause = c[13] || "";
+	const C_Line = c[14] || "";
+	const C_Page = c[12] || "";
 	let Page = parseFloat(C_Page) + parseFloat(C_Line) / 100;
 	if (isNaN(Page)) Page = 0;
 
-	let m = reCommentID.exec(c[2]);
+	const m = reCommentID.exec(c[2]);
 	if (!m) throw new TypeError("Invalid Comment # = " + c[2]);
-	let CommentID = Number(m[2]);
+	const CommentID = Number(m[2]);
+
+	const cat = c[11] ? c[11].charAt(0) : ""; // Category: first letter only (G, T or E)
+	let Category: CategoryType;
+	if (cat === "T" || cat == "E" || cat === "G") Category = cat;
+	else Category = "T";
 
 	const comment: Partial<Comment> = {
 		C_Index: Number(c[0]), // Comment ID
@@ -61,7 +70,7 @@ function parseMyProjectComment(c: any[]) {
 		CommenterSAPIN: null,
 		CommenterName: name, // Name
 		CommenterEmail: c[4], // Email
-		Category: c[11] ? c[11].charAt(0) : "", // Category: first letter only (G, T or E)
+		Category, // Category (G, T or E)
 		C_Page: c[12] || "", // Page
 		C_Clause, // Subclause
 		C_Line, // Line
@@ -99,32 +108,36 @@ async function myProjectAddResolutions(
 	dbComments: CommentResolution[],
 	res: Response
 ) {
-	let workbook = new ExcelJS.Workbook();
+	const workbook = new ExcelJS.Workbook();
 	try {
 		await workbook.xlsx.load(buffer);
 	} catch (err) {
 		throw new TypeError("Invalid workbook: " + err);
 	}
 
-	let worksheet = workbook.getWorksheet(1);
+	const worksheet = workbook.getWorksheet(1);
 	if (!worksheet)
 		throw new TypeError("Unexpected file format; worksheet not found");
 
 	// Check the column names to make sure we have the right file
-	let row = worksheet.getRow(1);
+	const row = worksheet.getRow(1);
 	if (!row)
 		throw new TypeError("Unexpected file format; header row not found");
 
-	const header = Array.isArray(row.values) ? row.values.slice(1, 26) : [];
-	validateSpreadsheetHeader(header, myProjectCommentsHeader);
+	const headerV = Array.isArray(row.values) ? row.values.slice(1, 26) : [];
+	const headerS = headerV.map((v) => v?.toString() || "");
+	validateSpreadsheetHeader(headerS, myProjectCommentsHeader);
 
 	worksheet.eachRow((row, i) => {
 		if (i === 1) return; // skip header
 		if (Array.isArray(row.values)) {
-			let comment = parseMyProjectComment(row.values.slice(1, 26));
+			const values = row.values
+				.slice(1, 26)
+				.map((v) => v?.toString() || "");
+			const comment = parseMyProjectComment(values);
 
 			/* Find comment with matching identifier. */
-			let dbC = dbComments.find((c) => c.C_Index === comment.C_Index);
+			const dbC = dbComments.find((c) => c.C_Index === comment.C_Index);
 			if (dbC && dbC.ApprovedByMotion) {
 				//console.log(`found ${comment.C_Index}`)
 				row.getCell(20).value =
@@ -166,7 +179,7 @@ export async function parseMyProjectResults(file: Express.Multer.File) {
 	const rows = await parseSpreadsheet(file, myProjectResultsHeader, 1);
 
 	const results = rows.map((c) => {
-		let result: Partial<Result> = {
+		const result: Partial<Result> = {
 			Name: c[0],
 			Email: c[1],
 			Affiliation: c[2],
@@ -234,7 +247,7 @@ const activeStatus = ["Aspirant", "Potential Voter", "Voter"];
 
 type Col = {
 	width: number;
-	set?: (m: any) => any;
+	set?: (m: Member) => string | number;
 };
 
 const myProjectRosterColumns: Record<string, Col> = {
@@ -279,11 +292,11 @@ const myProjectRosterColumns: Record<string, Col> = {
 	},
 };
 
-function parseRosterEntry(u: any[]) {
-	let LastName = u[1] || "";
-	let FirstName = u[2] || "";
-	let MI = u[3] || "";
-	let Name = FirstName + (MI ? " " + MI : "") + " " + LastName;
+function parseRosterEntry(u: string[]) {
+	const LastName = u[1] || "";
+	const FirstName = u[2] || "";
+	const MI = u[3] || "";
+	const Name = FirstName + (MI ? " " + MI : "") + " " + LastName;
 	return {
 		SAPIN: parseInt(u[0], 10),
 		Name,
@@ -299,22 +312,26 @@ function parseRosterEntry(u: any[]) {
 }
 
 export async function parseMyProjectRosterSpreadsheet(buffer: Buffer) {
-	let p: any[][] = []; // an array of arrays
 	const workbook = new ExcelJS.Workbook();
 	await workbook.xlsx.load(buffer);
 
+	const rows: string[][] = [];
 	workbook.getWorksheet(1)?.eachRow((row) => {
-		if (Array.isArray(row.values))
-			p.push(row.values.slice(1, myProjectRosterHeader.length + 1));
+		if (Array.isArray(row.values)) {
+			const values = row.values
+				.slice(1, myProjectRosterHeader.length + 1)
+				.map((v) => v?.toString() || "");
+			rows.push(values);
+		}
 	});
 
-	if (p.length === 0) throw new Error("Got empty roster file");
+	if (rows.length === 0) throw new Error("Got empty roster file");
 
 	// Check the column names to make sure we have the right file
-	validateSpreadsheetHeader(p.shift()!, myProjectRosterHeader);
+	validateSpreadsheetHeader(rows.shift()!, myProjectRosterHeader);
 
 	// Parse each row and assign CommentID
-	return p.map(parseRosterEntry);
+	return rows.map(parseRosterEntry);
 }
 
 /*
@@ -325,13 +342,13 @@ export async function genMyProjectRosterSpreadsheet(
 	members: Member[],
 	res: Response
 ) {
-	let workbook = new ExcelJS.Workbook();
+	const workbook = new ExcelJS.Workbook();
 	workbook.creator = user.Name;
 	workbook.created = new Date();
 	workbook.lastModifiedBy = user.Name;
 	workbook.modified = new Date();
 
-	let worksheet = workbook.addWorksheet("Roster Upload Template");
+	const worksheet = workbook.addWorksheet("Roster Upload Template");
 	worksheet.addRow(Object.keys(myProjectRosterColumns));
 	worksheet.getRow(1).font = { bold: true };
 	members.forEach((m, i) => {
@@ -356,18 +373,18 @@ export async function updateMyProjectRoster(
 	options: UpdateRosterOptions,
 	res: Response
 ) {
-	const workbook = new ExcelJS.Workbook();
+	let workbook = new ExcelJS.Workbook();
 	await workbook.xlsx.load(buffer);
 
-	const ws = workbook.getWorksheet(1);
+	let ws = workbook.worksheets[0];
 	if (!ws) throw new Error("Roster file has no worksheets");
 
 	const headerRow = ws.getRow(1);
 	if (!Array.isArray(headerRow.values)) throw new Error("Bad header row");
-	validateSpreadsheetHeader(
-		headerRow.values.slice(1, myProjectCommentsHeader.length + 1),
-		myProjectRosterHeader
-	);
+	const headerValues = headerRow.values
+		.slice(1, myProjectCommentsHeader.length + 1)
+		.map((v) => v?.toString() || "");
+	validateSpreadsheetHeader(headerValues, myProjectRosterHeader);
 
 	const sapinColNum = myProjectRosterHeader.indexOf("SA PIN") + 1;
 	const emailColNum = myProjectRosterHeader.indexOf("Email Address") + 1;
@@ -419,9 +436,28 @@ export async function updateMyProjectRoster(
 	});
 
 	if (options.removeUnchanged) {
-		unchangedRows.forEach((n) => {
+		/*unchangedRows.forEach((n) => {
 			ws.spliceRows(n, 1);
+		}); too slow */
+		const workbook2 = new ExcelJS.Workbook();
+		const ws2 = workbook2.addWorksheet("Roster Changes", {
+			properties: ws.properties,
 		});
+		ws.eachRow((row) => {
+			if (!unchangedRows.includes(row.number)) {
+				const row2 = ws2.addRow(Array(row.cellCount).fill(""));
+				row2.eachCell((cell2, i) => {
+					const cell = row.getCell(i);
+					cell2.value = cell.value;
+					cell2.style = cell.style;
+				});
+			}
+		});
+		for (let i = 1; i <= ws.columns.length; i++) {
+			ws2.getColumn(i).width = ws.getColumn(i).width;
+		}
+		workbook = workbook2;
+		ws = ws2;
 	}
 
 	if (options.appendNew) {

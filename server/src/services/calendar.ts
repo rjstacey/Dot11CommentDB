@@ -217,7 +217,7 @@ async function cleanCalendarAccounts() {
 }
 
 async function getActiveCalendarAccounts(query?: CalendarAccountsQuery) {
-	let oauthAccounts = await getOAuthAccounts({
+	const oauthAccounts = await getOAuthAccounts({
 		...query,
 		type: "calendar",
 	});
@@ -255,7 +255,7 @@ export async function getCalendarAccounts(
 	// Use "get" as a way to clean stale entries in the cache
 	await cleanCalendarAccounts();
 
-	let oauthAccounts = await getOAuthAccounts({
+	const oauthAccounts = await getOAuthAccounts({
 		...query,
 		type: "calendar",
 	});
@@ -274,7 +274,6 @@ export async function getCalendarAccounts(
 			}
 		}
 
-		let accountOut: CalendarAccount;
 		let authUrl: string = "";
 		try {
 			authUrl = getAuthUrl(user, host, account);
@@ -282,7 +281,7 @@ export async function getCalendarAccounts(
 			console.warn(error);
 		}
 		const { authParams, ...rest } = oauthAccount;
-		accountOut = {
+		const accountOut: CalendarAccount = {
 			...rest,
 			authUrl,
 			displayName: account.primaryCalendar?.summary || "",
@@ -311,7 +310,7 @@ export async function addCalendarAccount(
 	groupId: string,
 	accountIn: CalendarAccountCreate
 ) {
-	let oauthAccountIn: OAuthAccountCreate = {
+	const oauthAccountIn: OAuthAccountCreate = {
 		...accountIn,
 		type: "calendar",
 		groupId,

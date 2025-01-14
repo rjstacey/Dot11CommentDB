@@ -127,11 +127,11 @@ export async function getBallots(query?: BallotQuery): Promise<Ballot[]> {
 								? "BIN_TO_UUID(??) IN (?)"
 								: "BIN_TO_UUID(??)=?",
 							[key, value]
-					  )
+						)
 					: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
 							key,
 							value,
-					  ])
+						])
 			);
 		});
 		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
@@ -160,7 +160,7 @@ export async function getBallotWithNewResultsSummary(
 	workingGroupId: string | null,
 	ballot_id: number
 ): Promise<Ballot> {
-	let ballot = await getBallot(ballot_id);
+	const ballot = await getBallot(ballot_id);
 	if (!workingGroupId) {
 		const workingGroup = await getWorkingGroup(user, ballot.groupId!);
 		if (!workingGroup)
@@ -208,7 +208,7 @@ type BallotDB = {
 };
 
 function ballotEntry(changes: Partial<Ballot>) {
-	var entry: BallotDB = {
+	const entry: BallotDB = {
 		groupId: changes.groupId,
 		number: changes.number,
 		BallotID: changes.BallotID,
@@ -243,7 +243,7 @@ function ballotEntry(changes: Partial<Ballot>) {
 		}
 	}
 
-	for (let key of Object.keys(entry)) {
+	for (const key of Object.keys(entry)) {
 		if (entry[key] === undefined) delete entry[key];
 	}
 
@@ -299,7 +299,7 @@ async function addBallot(
 		throw err.code == "ER_DUP_ENTRY"
 			? new TypeError(
 					"An entry already exists with BallotID=" + entry.BallotID
-			  )
+				)
 			: err;
 	}
 

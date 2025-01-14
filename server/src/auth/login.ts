@@ -66,7 +66,7 @@ async function login(
 	}
 
 	const Name = m[1];
-	let SAPIN = parseInt(m[2], 10);
+	const SAPIN = parseInt(m[2], 10);
 
 	//if (SAPIN === 5073) {
 	//	SAPIN = 77458; // Po-Kai
@@ -127,12 +127,12 @@ export function logout(ieeeClient: AxiosInstance) {
 const router = Router();
 
 router
-	.get("/login", async (req, res, next) => {
+	.get("/login", async (req, res) => {
 		try {
 			const userId = Number(verify(req));
 			const { ieeeClient, ...user } = await getUser(userId);
 			res.json({ user });
-		} catch (err) {
+		} catch {
 			res.json({ user: null });
 		}
 	})

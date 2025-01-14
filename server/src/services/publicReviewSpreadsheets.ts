@@ -22,9 +22,9 @@ const publicReviewCommentsHeader = [
 ] as const;
 
 function parsePublicReviewComment(c: string[]) {
-	let C_Page = c[5] || "";
-	let C_Clause = c[6] || "";
-	let C_Line = c[7] || "";
+	const C_Page = c[5] || "";
+	const C_Clause = c[6] || "";
+	const C_Line = c[7] || "";
 	let Page = Number(C_Page) + Number(C_Line) / 100;
 	if (isNaN(Page)) Page = 0;
 

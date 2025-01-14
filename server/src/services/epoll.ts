@@ -13,25 +13,27 @@ import { Epoll } from "@schemas/epolls.js";
 function parseDateTime(dateStr: string) {
 	// Date is in format: "11-Dec-2018 23:59:59 ET" and is always eastern time
 	dateStr = dateStr.slice(0, 20);
-	return DateTime.fromFormat(dateStr, "dd-MMM-yyyy HH:mm:ss", {
-		zone: "America/New_York",
-	}).toISO();
+	return (
+		DateTime.fromFormat(dateStr, "dd-MMM-yyyy HH:mm:ss", {
+			zone: "America/New_York",
+		}).toISO() || ""
+	);
 }
 
 function parseClosedEpollsPage(body: string): Epoll[] {
-	var epolls: Epoll[] = [];
-	var $ = cheerioLoad(body);
+	const epolls: Epoll[] = [];
+	const $ = cheerioLoad(body);
 
 	// If we get the "ePolls" page then parse the data table
 	// (use cheerio, which provides jQuery parsing)
 	if ($("div.title").length && $("div.title").html() == "ePolls") {
 		//console.log('GOT ePolls page');
-		$(".b_data_row").each(function (index) {
+		$(".b_data_row").each(function () {
 			// each table data row
-			let tds = $(this).find("td");
-			let pollStatusLink = tds.eq(7).html() || "";
-			let p = pollStatusLink.match(/poll-status\?p=(\d+)/);
-			let epoll: Epoll = {
+			const tds = $(this).find("td");
+			const pollStatusLink = tds.eq(7).html() || "";
+			const p = pollStatusLink.match(/poll-status\?p=(\d+)/);
+			const epoll: Epoll = {
 				id: p ? parseInt(p[1]) : 0,
 				start: parseDateTime($(tds.eq(0)).children().eq(0).text()), // <div class="date_time">
 				name: tds.eq(1).text(),
@@ -70,8 +72,8 @@ export async function getEpolls(
 		const url = `https://mentor.ieee.org/${groupName}/polls/closed?n=${page}`;
 		const { data } = await ieeeClient!.get(url);
 
-		var epollsPage = parseClosedEpollsPage(data);
-		var end = n - epolls.length;
+		const epollsPage = parseClosedEpollsPage(data);
+		let end = n - epolls.length;
 		if (end > epollsPage.length) {
 			end = epollsPage.length;
 		}
@@ -96,19 +98,19 @@ type PageResult = {
 };
 
 export function parseEpollResultsHtml(body: string) {
-	var $ = cheerioLoad(body);
+	const $ = cheerioLoad(body);
 	// If we get the "ePoll Status" page then parse the data table
 	// (use cheerio, which provides jQuery parsing)
 	if ($("div.title").length && $("div.title").html() == "ePoll Status") {
-		var results: PageResult[] = [];
+		const results: PageResult[] = [];
 		$("table.paged_list")
 			.eq(0)
 			.find("tr.b_data_row")
-			.each(function (index, el) {
-				var tds = $(this).find("td");
-				let emailLink =
+			.each(function () {
+				const tds = $(this).find("td");
+				const emailLink =
 					$(tds.eq(2)).children().eq(0).attr("href") || "";
-				var result = {
+				const result = {
 					Vote: tds.eq(1).text(),
 					Name: tds.eq(2).text(),
 					Email: unescape(emailLink.replace("mailto:", "")),
@@ -156,10 +158,10 @@ type EpollComment = {
 };
 
 function parseEpollComment(cid: number, c: string[]): EpollComment | null {
-	let C_Index = parseInt(c[0]);
+	const C_Index = parseInt(c[0]);
 	if (isNaN(C_Index)) return null;
-	let C_Page = c[6] ? c[6].trim() : "";
-	let C_Line = c[8] ? c[8].trim() : "";
+	const C_Page = c[6] ? c[6].trim() : "";
+	const C_Line = c[8] ? c[8].trim() : "";
 	let Page = parseFloat(C_Page) + parseFloat(C_Line) / 100;
 	if (isNaN(Page)) Page = 0;
 	const comment: EpollComment = {
@@ -217,8 +219,8 @@ function parseUserComment(
 	C_Index: number,
 	c: string[]
 ): EpollComment {
-	let C_Page = c[2] ? c[2].trim() : "";
-	let C_Line = c[3] ? c[3].trim() : "";
+	const C_Page = c[2] ? c[2].trim() : "";
+	const C_Line = c[3] ? c[3].trim() : "";
 	let Page = parseFloat(C_Page) + parseFloat(C_Line) / 100;
 	if (isNaN(Page)) Page = 0;
 	return {

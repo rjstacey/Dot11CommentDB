@@ -11,11 +11,10 @@ import {
 	Group,
 	GroupsQuery,
 	GroupCreate,
-	GroupType,
 	GroupUpdate,
 } from "@schemas/groups.js";
 
-const GroupTypeLabels: { [K in GroupType]: string } = {
+/*const GroupTypeLabels: { [K in GroupType]: string } = {
 	r: "Root",
 	c: "Committee",
 	wg: "Working Group",
@@ -24,7 +23,7 @@ const GroupTypeLabels: { [K in GroupType]: string } = {
 	sc: "Standing Committee",
 	ah: "Ad-hoc Group",
 	tig: "Topic of Interest Group",
-};
+};*/
 
 // prettier-ignore
 const selectGroupsSql =
@@ -109,14 +108,14 @@ function getGroupsAndParentGroups(ids: string[]): Promise<Group[]> {
 
 /**
  * Compare function to sort groups by type and then by name
- */
+ *
 const groupTypes = Object.keys(GroupTypeLabels);
 function groupCmp(g1: Group, g2: Group) {
 	const n =
 		groupTypes.indexOf(g1.type || "") - groupTypes.indexOf(g2.type || "");
 	if (n === 0) return g1.name ? g1.name.localeCompare(g2.name) : 0;
 	return n;
-}
+}*/
 
 /**
  * Rollup user permissions for a group
@@ -202,7 +201,7 @@ export async function getGroups(user: User, query?: GroupsQuery) {
 	// If any parents are missing, add them and their ancestors
 	// (we need this to correctly roll up permissions)
 	if (ids.length > 0) {
-		let parentGroups = await getGroupsAndParentGroups(ids);
+		const parentGroups = await getGroupsAndParentGroups(ids);
 		for (const group of parentGroups) groupEntities[group.id] = group;
 
 		groups = groups.concat(parentGroups);
@@ -382,7 +381,7 @@ async function addGroup(
 ): Promise<Group> {
 	if (!id) id = uuid();
 
-	let sql = "INSERT INTO organization SET " + groupSetSql({ id, ...rest });
+	const sql = "INSERT INTO organization SET " + groupSetSql({ id, ...rest });
 	await db.query(sql);
 
 	const groups = await getGroups(user, { id });
@@ -397,7 +396,7 @@ async function updateGroup(
 	user: User,
 	{ id, changes }: GroupUpdate
 ): Promise<Group> {
-	let setSql = groupSetSql(changes);
+	const setSql = groupSetSql(changes);
 	if (setSql)
 		await db.query(
 			"UPDATE organization SET " + setSql + " WHERE `id`=UUID_TO_BIN(?)",
@@ -422,7 +421,7 @@ export async function removeGroups(user: User, ids: string[]): Promise<number> {
 	}
 
 	// Can't delete if the group has subgroups that are not also being deleted
-	let undeletedChildIds: string[] = [];
+	const undeletedChildIds: string[] = [];
 	for (const id of ids) {
 		const childIds = await getGroupAndSubgroupIds(id);
 		for (const childId of childIds) {

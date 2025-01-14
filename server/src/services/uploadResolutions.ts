@@ -82,7 +82,7 @@ function findMatchByEliminationUsingTheseComparisons(
 	comparisons: CompFunc[]
 ) {
 	let scr = sheetComments;
-	for (let comp of comparisons) {
+	for (const comp of comparisons) {
 		scr = scr.filter((sC) => comp(dbC, sC));
 		if (scr.length === 0) return null;
 		if (scr.length === 1) return scr[0];
@@ -95,7 +95,7 @@ function findMatchByEliminationUsingTheseComparisons(
  * order of the comparisons is changed. We change the order because sometimes entries in the
  * spreadsheet have been changed and differ from the orginal comment.
  */
-function findMatchByElimination(
+/*function findMatchByElimination(
 	dbC: Comment,
 	sheetComments: CommentResolution[]
 ) {
@@ -110,7 +110,7 @@ function findMatchByElimination(
 		comps.push(comps.shift()!);
 	}
 	return null;
-}
+}*/
 
 /*
  * Successivly match columns, elimating rows that don't match as we go
@@ -128,12 +128,12 @@ const matchByElimination: MatchFunc = function (
 	const comps = comparisons.slice();
 	for (let i = 0; i < comparisons.length; i++) {
 		console.log("trial", i);
-		let matched: CommentMatch[] = []; // paired dbComments and sheetComments
-		let dbCommentsRemaining: CommentResolution[] = []; // dbComments with no match
-		let sheetCommentsRemaining = sheetComments.slice();
+		const matched: CommentMatch[] = []; // paired dbComments and sheetComments
+		const dbCommentsRemaining: CommentResolution[] = []; // dbComments with no match
+		const sheetCommentsRemaining = sheetComments.slice();
 		dbComments.sort((a, b) => (a.C_Index || 0) - (b.C_Index || 0));
 		dbComments.forEach((dbC) => {
-			let sC = findMatchByEliminationUsingTheseComparisons(
+			const sC = findMatchByEliminationUsingTheseComparisons(
 				dbC,
 				sheetCommentsRemaining,
 				comps
@@ -161,9 +161,9 @@ const matchComment: MatchFunc = function (
 	sheetComments: CommentResolution[],
 	dbComments: CommentResolution[]
 ) {
-	let matched: CommentMatch[] = []; // paired dbComments and sheetComments
-	let dbCommentsRemaining: CommentResolution[] = []; // dbComments with no match
-	let sheetCommentsRemaining = sheetComments.slice();
+	const matched: CommentMatch[] = []; // paired dbComments and sheetComments
+	const dbCommentsRemaining: CommentResolution[] = []; // dbComments with no match
+	const sheetCommentsRemaining = sheetComments.slice();
 	dbComments.forEach((dbC) => {
 		// The reducer function runs through each of the comparisons and as long as it passes (returns true)
 		// it continues. If a comparisong fails the result fails.
@@ -193,9 +193,9 @@ type CommentMatch = {
  * Match by comment ID
  */
 const matchCID: MatchFunc = function (sheetComments, dbComments) {
-	let matched: CommentMatch[] = []; // paired dbComments and sheetComments
-	let dbCommentsRemaining: CommentResolution[] = []; // dbComments with no match
-	let sheetCommentsRemaining = sheetComments.slice();
+	const matched: CommentMatch[] = []; // paired dbComments and sheetComments
+	const dbCommentsRemaining: CommentResolution[] = []; // dbComments with no match
+	const sheetCommentsRemaining = sheetComments.slice();
 	dbComments.forEach((dbC) => {
 		const i = sheetCommentsRemaining.findIndex(
 			(sC) => parseInt(sC.CID) === dbC.CommentID
@@ -359,7 +359,7 @@ async function updateComments(
 	toUpdate: FieldToUpdate[]
 ) {
 	// See if any of the comment fields need updating
-	let updateComments: Partial<Comment>[] = [],
+	const updateComments: Partial<Comment>[] = [],
 		updateResolutions: Partial<Resolution>[] = [],
 		newResolutions: Partial<Resolution>[] = [];
 
@@ -411,7 +411,7 @@ async function updateComments(
 	if (sql) sql += ";";
 
 	/* A single insert statement is much faster than individual insert statements. */
-	let kvPairs: Record<string, any[]> = {};
+	const kvPairs: Record<string, string[]> = {};
 	newResolutions.forEach((r) => {
 		r.LastModifiedBy = userId;
 		const keys = Object.keys(r).join(",");
@@ -447,7 +447,7 @@ async function addComments(
 	const newResolutions: Partial<Resolution & { CommentID?: number }>[] = [];
 
 	sheetComments.forEach((cs) => {
-		let c: NewComment = {
+		const c: NewComment = {
 			CommentID: Number(cs.CID),
 			CommenterName: cs.CommenterName,
 			Category: cs.Category,
@@ -522,16 +522,16 @@ export async function uploadResolutions(
 		);
 	}
 
-	const t1 = Date.now();
+	//const t1 = Date.now();
 	const sheetComments = await parseCommentsSpreadsheet(
 		file.buffer,
 		sheetName
 	);
-	const t2 = Date.now();
+	//const t2 = Date.now();
 	const dbComments = await getComments(ballot_id);
-	const t3 = Date.now();
+	//const t3 = Date.now();
 
-	let [matchedComments, dbCommentsRemaining, sheetCommentsRemaining] =
+	const [matchedComments, dbCommentsRemaining, sheetCommentsRemaining] =
 		MatchAlgoFunctions[matchAlgo](sheetComments, dbComments);
 	console.log(
 		matchedComments.length,
@@ -539,7 +539,7 @@ export async function uploadResolutions(
 		sheetCommentsRemaining.length
 	);
 
-	const t4 = Date.now();
+	//const t4 = Date.now();
 	let updated = 0;
 	let matched: number[] = [],
 		unmatched: number[] = [],
@@ -587,13 +587,13 @@ export async function uploadResolutions(
 		added = sheetCommentsRemaining.map((c) => c.CID);
 	}
 
-	const t5 = Date.now();
+	//const t5 = Date.now();
 
 	const comments = await getComments(ballot_id);
 	const summary = (await getCommentsSummary(ballot_id))!;
 	//delete summary.id;
 
-	const t6 = Date.now();
+	/*const t6 = Date.now();
 
 	const stats = {
 		"parse spreadsheet": t2 - t1,
@@ -603,7 +603,7 @@ export async function uploadResolutions(
 		"get updated comments": t6 - t5,
 		total: t6 - t1,
 	};
-	//console.log(stats);
+	console.log(stats);*/
 
 	const ballot = {
 		id: ballot_id,

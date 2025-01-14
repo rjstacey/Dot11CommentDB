@@ -98,7 +98,7 @@ export async function getPolls(query: PollsQuery = {}): Promise<Poll[]> {
 }
 
 function pollSetSql(poll: Partial<Poll>) {
-	let s: string[] = [];
+	const s: string[] = [];
 	console.log(poll);
 	for (const key of Object.keys(poll)) {
 		if (key === "options")

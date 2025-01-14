@@ -15,7 +15,7 @@ type AuthState = {
 	host: string;
 };
 
-function validAuthState(o: any): o is AuthState {
+function validAuthState(o: unknown): o is AuthState {
 	return (
 		isPlainObject(o) &&
 		typeof o.accountId === "number" &&
@@ -35,7 +35,9 @@ export function parseOAuthState(state: string): AuthState | undefined {
 	try {
 		const output = JSON.parse(state);
 		if (validAuthState(output)) obj = output;
-	} catch (error) {}
+	} catch {
+		/* empty */
+	}
 	return obj;
 }
 
@@ -52,7 +54,7 @@ export function updateAuthParams(
 	authParams: object | null,
 	userId?: number
 ): Promise<ResultSetHeader> {
-	let sets: string[] = [];
+	const sets: string[] = [];
 
 	sets.push(
 		"authParams=" +
@@ -60,7 +62,7 @@ export function updateAuthParams(
 				? db.format(
 						'JSON_MERGE_PATCH(COALESCE(authParams, "{}"), ?)',
 						JSON.stringify(authParams)
-				  )
+					)
 				: "NULL")
 	);
 
@@ -115,7 +117,7 @@ export function getOAuthAccounts(
 	constraints?: OAuthAccountsQuery
 ): Promise<OAuthAccount[]> {
 	// prettier-ignore
-	let sql =
+	const sql =
 		"SELECT " +
 			"id, " +
 			"name, " +
@@ -133,7 +135,7 @@ export function getOAuthParams(
 	constraints?: OAuthAccountsQuery
 ): Promise<OAuthParams[]> {
 	// prettier-ignore
-	let sql =
+	const sql =
 		"SELECT " +
 			"id, " +
 			"authParams " +
@@ -143,7 +145,7 @@ export function getOAuthParams(
 }
 
 export function validOAuthAccountCreate(
-	account: any
+	account: unknown
 ): account is OAuthAccountCreate {
 	return (
 		isPlainObject(account) &&
@@ -154,7 +156,7 @@ export function validOAuthAccountCreate(
 }
 
 export function validOAuthAccountChanges(
-	account: any
+	account: unknown
 ): account is OAuthAccountChange {
 	return (
 		isPlainObject(account) &&

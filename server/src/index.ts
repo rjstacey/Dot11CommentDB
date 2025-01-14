@@ -89,7 +89,7 @@ const requestLog: RequestHandler = function (req, res, next) {
 	next();
 };
 
-const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
+const errorHandler: ErrorRequestHandler = function (err, req, res) {
 	if (process.env.NODE_ENV === "development") console.warn(err);
 
 	let message: string = "";
@@ -102,15 +102,14 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 			const m = err.issues.map((e) => `${e.path[0]}: ${e.message}`);
 			message += m.join("\n");
 		}
-		if (err.name === "TypeError" || err.hasOwnProperty("sqlState"))
-			status = 400;
+		if (err.name === "TypeError" || "sqlState" in err) status = 400;
 		else if (err.name === "AuthError") status = 401;
 		else if (err.name === "ForbiddenError") status = 403;
 		else if (err.name === "NotFoundError") status = 404;
 	} else {
 		try {
 			message = err.toString();
-		} catch (e) {
+		} catch {
 			message = JSON.stringify(err);
 		}
 	}
@@ -134,7 +133,7 @@ function initExpressApp() {
 		next();
 	});
 
-	app.get("/health-check", async (req, res, next) => {
+	app.get("/health-check", async (req, res) => {
 		res.status(200).send("I'm healthy!");
 	});
 
@@ -198,7 +197,7 @@ async function main() {
 		try {
 			await initDatabase();
 			break;
-		} catch (error) {
+		} catch {
 			await sleep(5000);
 		}
 	}

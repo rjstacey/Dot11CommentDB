@@ -19,7 +19,7 @@ export const token = (userId: number) => jwt.sign(userId.toString(), secret);
 const getToken = (req: Request): string => {
 	try {
 		return req.header("Authorization")!.replace("Bearer ", "");
-	} catch (error) {
+	} catch {
 		throw new Error("No token");
 	}
 };
@@ -31,7 +31,7 @@ export const verify = (req: Request) => {
 	const token = getToken(req);
 	try {
 		return jwt.verify(token, secret);
-	} catch (error) {
+	} catch {
 		throw new Error("Bad token");
 	}
 };
@@ -47,7 +47,7 @@ export const authorize: RequestHandler = async (req, res, next) => {
 		let userId: number;
 		try {
 			userId = Number(jwt.verify(token, secret));
-		} catch (error) {
+		} catch {
 			console.warn("unauthorized");
 			res.status(401).send("Unauthorized");
 			return;
@@ -67,7 +67,7 @@ export async function verifyToken(token: string) {
 		const userId = Number(jwt.verify(token, secret));
 		const user = await getUser(userId);
 		return user;
-	} catch (error) {
+	} catch {
 		throw new AuthError("Unauthorized");
 	}
 }

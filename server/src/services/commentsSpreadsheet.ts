@@ -22,7 +22,7 @@ type Col = {
 	numFmt?: string;
 	set?: ColSet;
 	get?: ColGet;
-	value?: any;
+	//value?: any;
 };
 
 function parseString(v: ExcelJS.CellValue) {
@@ -672,8 +672,8 @@ export async function parseCommentsSpreadsheet(
 
 	const worksheet = workbook.getWorksheet(sheetName);
 	if (!worksheet) {
-		let sheets: string[] = [];
-		workbook.eachSheet((worksheet, sheetId) => {
+		const sheets: string[] = [];
+		workbook.eachSheet((worksheet) => {
 			sheets.push(worksheet.name);
 		});
 		throw new TypeError(
@@ -697,7 +697,7 @@ export async function parseCommentsSpreadsheet(
 		);
 	}
 
-	var comments: CommentResolution[] = [];
+	const comments: CommentResolution[] = [];
 	const columns = isLegacy ? legacyColumns : modernColumns;
 	worksheet.eachRow((row) => {
 		const entry: Partial<CommentResolution> = {};
@@ -712,7 +712,7 @@ export async function parseCommentsSpreadsheet(
 	return comments;
 }
 
-export function fromHtml(html: any): string {
+export function fromHtml(html: string | null): string {
 	if (typeof html !== "string") return "";
 
 	html = html.replace(
@@ -721,8 +721,8 @@ export function fromHtml(html: any): string {
 	);
 	html = html.replace(/<[^>]+>/g, "");
 
-	var translate_re = /&(nbsp|amp|quot|lt|gt);/g;
-	var translate = {
+	const translate_re = /&(nbsp|amp|quot|lt|gt);/g;
+	const translate = {
 		nbsp: " ",
 		amp: "&",
 		quot: '"',
@@ -756,7 +756,7 @@ function toHtml(value: string | null | undefined) {
 const getColRef = (n: number) =>
 	n
 		? getColRef(Math.floor((n - 1) / 26)) +
-		  String.fromCharCode(65 + ((n - 1) % 26))
+			String.fromCharCode(65 + ((n - 1) % 26))
 		: "";
 
 function addResolutionFormatting(
@@ -772,11 +772,11 @@ function addResolutionFormatting(
 		Object.keys(columns).indexOf("Resn Status") + 1
 	);
 	sheet.addConditionalFormatting({
-		ref: `\$${resolutionColumn}\$2:\$${resolutionColumn}\$${nRows - 1}`,
+		ref: `$${resolutionColumn}$2:$${resolutionColumn}$${nRows - 1}`,
 		rules: [
 			{
 				type: "expression",
-				formulae: [`ISNUMBER(SEARCH("A",\$${resnStatusColumn}2))`],
+				formulae: [`ISNUMBER(SEARCH("A",$${resnStatusColumn}2))`],
 				style: {
 					fill: {
 						type: "pattern",
@@ -788,7 +788,7 @@ function addResolutionFormatting(
 			},
 			{
 				type: "expression",
-				formulae: [`ISNUMBER(SEARCH("V",\$${resnStatusColumn}2))`],
+				formulae: [`ISNUMBER(SEARCH("V",$${resnStatusColumn}2))`],
 				style: {
 					fill: {
 						type: "pattern",
@@ -800,7 +800,7 @@ function addResolutionFormatting(
 			},
 			{
 				type: "expression",
-				formulae: [`ISNUMBER(SEARCH("J",\$${resnStatusColumn}2))`],
+				formulae: [`ISNUMBER(SEARCH("J",$${resnStatusColumn}2))`],
 				style: {
 					fill: {
 						type: "pattern",
@@ -935,12 +935,11 @@ function genWorksheet(
 
 /** Generate sheet name; cannot be longer than 31 characters and cannot include: * ? : \ / [ ] */
 export const getSheetName = (name: string) =>
-	name.slice(0, 30).replace(/[*.\?:\\\/\[\]]/g, "_");
+	name.slice(0, 30).replace(/[*.?:\\/[\]]/g, "_");
 
 /** Add a worksheet, replacing existing worksheet of the same name if it exists */
 function addWorksheet(workbook: ExcelJS.Workbook, name: string) {
-	let sheet: ExcelJS.Worksheet | undefined;
-	sheet = workbook.getWorksheet(name);
+	const sheet = workbook.getWorksheet(name);
 	if (sheet) workbook.removeWorksheet(sheet.id);
 	return workbook.addWorksheet(name);
 }
@@ -955,14 +954,14 @@ async function genCommentsSpreadsheet(
 	file: { buffer: Buffer } | undefined,
 	res: Response
 ) {
-	let workbook = new ExcelJS.Workbook();
+	const workbook = new ExcelJS.Workbook();
 	if (file) {
 		await workbook.xlsx.load(file.buffer).catch((error) => {
 			throw new TypeError("Invalid workbook: " + error);
 		});
 
 		if (!appendSheets) {
-			let sheetIds: number[] = [];
+			const sheetIds: number[] = [];
 			workbook.eachSheet((sheet) => {
 				if (sheet.name !== "Title" && sheet.name !== "Revision History")
 					sheetIds.push(sheet.id);

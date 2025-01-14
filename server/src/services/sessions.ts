@@ -68,8 +68,8 @@ export function getCredit(creditStr: string): {
 	let m = /(Normal|Zero|Extra|Other)/.exec(creditStr);
 	if (!m) throw Error("Invalid credit string " + creditStr);
 
-	let credit = m[1] as Credit,
-		creditOverrideNumerator = 0,
+	const credit = m[1] as Credit;
+	let creditOverrideNumerator = 0,
 		creditOverrideDenominator = 0;
 
 	if (credit === "Other") {
@@ -111,11 +111,11 @@ export function getSessions(
 							? "BIN_TO_UUID(??) IN (?)"
 							: "BIN_TO_UUID(??)=?",
 						[key, value]
-				  )
+					)
 				: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
 						key,
 						value,
-				  ])
+					])
 		);
 	});
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");

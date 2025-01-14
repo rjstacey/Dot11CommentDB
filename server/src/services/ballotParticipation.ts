@@ -18,7 +18,7 @@ export type BallotSeries = {
 async function getRecentCompletedBallotSeries(
 	workingGroupId: string
 ): Promise<BallotSeries[]> {
-	let sql = `
+	const sql = `
 		SELECT
 			series_id AS id,
 			initial_id AS votingPoolId,
@@ -32,9 +32,8 @@ async function getRecentCompletedBallotSeries(
 		)}) AND IsComplete<>0 AND type=1
 		ORDER BY End;
 	`;
-	let ballotSeries: BallotSeries[] = await db.query<
-		(RowDataPacket & BallotSeries)[]
-	>(sql);
+	let ballotSeries: BallotSeries[] =
+		await db.query<(RowDataPacket & BallotSeries)[]>(sql);
 
 	// Find the earliest start of the last three ballot series
 	let earliestStart = new Date();
@@ -58,7 +57,7 @@ async function getRecentCompletedBallotSeries(
 async function getActiveBallotSeries(
 	workingGroupId: string
 ): Promise<BallotSeries[]> {
-	let sql = `
+	const sql = `
 		SELECT
 			s1.series_id AS id,
 			s1.initial_id AS votingPoolId,
@@ -73,9 +72,8 @@ async function getActiveBallotSeries(
 		)}) AND s1.IsComplete=0 AND s1.type=1 AND ballots.id IS NULL AND s1.Project NOT LIKE "%TEST%"
 		ORDER BY End;
 	`;
-	let ballotSeries: BallotSeries[] = await db.query<
-		(RowDataPacket & BallotSeries)[]
-	>(sql);
+	const ballotSeries: BallotSeries[] =
+		await db.query<(RowDataPacket & BallotSeries)[]>(sql);
 
 	return ballotSeries;
 }

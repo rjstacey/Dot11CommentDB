@@ -8,7 +8,7 @@ import { csvParse } from "./csv.js";
  * @param expectedHeader Expected header row (array of exact string or regex comparisons)
  */
 export function isCorrectSpreadsheetHeader(
-	headerRow: any[],
+	headerRow: string[],
 	expectedHeader: readonly (string | RegExp)[]
 ) {
 	return expectedHeader.every((expectedValue, i) => {
@@ -28,7 +28,7 @@ export function isCorrectSpreadsheetHeader(
  * @param expectedHeader Expected header row (array of exact string or regex comparisons)
  */
 export function validateSpreadsheetHeader(
-	headerRow: any[],
+	headerRow: string[],
 	expectedHeader: readonly (string | RegExp)[]
 ) {
 	if (!isCorrectSpreadsheetHeader(headerRow, expectedHeader))

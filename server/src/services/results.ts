@@ -71,9 +71,9 @@ const zeroResultsSummary: ResultsSummary = {
 };
 
 function summarizeWGResults(results: Result[]): ResultsSummary {
-	let summary = { ...zeroResultsSummary };
+	const summary = { ...zeroResultsSummary };
 
-	for (let r of results) {
+	for (const r of results) {
 		if (/^Voter|^ExOfficio/.test(r.Status || "")) {
 			if (/^Approve/.test(r.vote)) summary.Approve++;
 			else if (/^Disapprove/.test(r.vote)) {
@@ -120,7 +120,7 @@ function summarizeWGResults(results: Result[]): ResultsSummary {
 }
 
 function summarizeSAResults(results: Result[]) {
-	let summary = { ...zeroResultsSummary };
+	const summary = { ...zeroResultsSummary };
 
 	results.forEach((r) => {
 		if (/^Approve/.test(r.vote)) {
@@ -153,7 +153,7 @@ function summarizeSAResults(results: Result[]) {
 }
 
 function summarizeCCResults(results: Result[]) {
-	let summary = { ...zeroResultsSummary };
+	const summary = { ...zeroResultsSummary };
 
 	results.forEach((r) => {
 		if (/^Approve/.test(r.vote)) summary.Approve++;
@@ -445,10 +445,10 @@ export async function importEpollResults(
 	if (response.headers["content-type"] !== "text/csv")
 		throw new Error("Not logged in");
 	const file = { originalname: "poll-results.csv", buffer: response.data };
-	var pollResults = await parseEpollResults(file);
+	const pollResults = await parseEpollResults(file);
 
 	response = await p2;
-	var pollResults2 = parseEpollResultsHtml(response.data);
+	const pollResults2 = parseEpollResultsHtml(response.data);
 
 	// Update poll results with Name and Affiliation from HTML (not present in .csv)
 	const results: Omit<ResultDB, "id" | "ballot_id" | "Notes">[] =
@@ -482,7 +482,7 @@ export async function uploadResults(ballot: Ballot, file: Express.Multer.File) {
 }
 
 export const sanitize = (name: string) =>
-	name.slice(0, 30).replace(/[*.\?:\\\/\[\]]/g, "_");
+	name.slice(0, 30).replace(/[*.?:\\/[\]]/g, "_");
 
 export async function exportResults(
 	user: User,
@@ -492,7 +492,7 @@ export async function exportResults(
 ) {
 	let fileNamePrefix: string;
 	let resultsArr: Result[][];
-	let ballots = await getBallotSeries(ballot.id);
+	const ballots = await getBallotSeries(ballot.id);
 	if (ballots.length === 0)
 		throw new NotFoundError(`No such ballot: ${ballot.id}`);
 

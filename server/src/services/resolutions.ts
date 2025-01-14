@@ -5,11 +5,7 @@ import db from "../utils/database.js";
 import { selectComments } from "./comments.js";
 import { User } from "./users.js";
 import type { ResultSetHeader } from "mysql2";
-import {
-	ForbiddenError,
-	NotFoundError,
-	isPlainObject,
-} from "../utils/index.js";
+import { ForbiddenError, NotFoundError } from "../utils/index.js";
 import { AccessLevel } from "../auth/access.js";
 import { getGroups } from "./groups.js";
 import type {
@@ -39,7 +35,7 @@ async function addResolution(user: User, resolution: ResolutionCreate) {
 	let ResolutionID: number | null | undefined = resolution.ResolutionID;
 	if (typeof ResolutionID !== "number") {
 		/* Find smallest unused ResolutionID */
-		let result = (await db.query(
+		const result = (await db.query(
 			"SELECT MIN(r.ResolutionID)-1 AS ResolutionID FROM resolutions r WHERE comment_id=?;",
 			[resolution.comment_id]
 		)) as [{ ResolutionID: number | null }];
@@ -48,7 +44,7 @@ async function addResolution(user: User, resolution: ResolutionCreate) {
 		if (ResolutionID === null) {
 			ResolutionID = 0;
 		} else if (ResolutionID < 0) {
-			let result = (await db.query(
+			const result = (await db.query(
 				"SELECT " +
 					"r1.ResolutionID+1 AS ResolutionID " +
 					"FROM resolutions r1 LEFT JOIN resolutions r2 ON r1.ResolutionID+1=r2.ResolutionID AND r1.comment_id=r2.comment_id " +

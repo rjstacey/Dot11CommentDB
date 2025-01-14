@@ -68,7 +68,7 @@ async function importAll(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
 	const session_id = Number(req.params.session_id);
 	const { use } = req.query;
-	let useDaily =
+	const useDaily =
 		typeof use === "string" && use.toLowerCase().startsWith("daily");
 	try {
 		const data = await importAttendances(user, group, session_id, useDaily);
@@ -91,7 +91,7 @@ async function uploadRegistrationRequest(
 			user,
 			group,
 			session_id,
-			req.file
+			req.file!
 		);
 		res.json(data);
 	} catch (error) {

@@ -16,7 +16,7 @@ let sesClient: SESClient;
 
 export function init() {
 	if (process.env.NODE_ENV === "development")
-		credentials = fromIni({ profile: "profile eb-cli" });
+		credentials = fromIni({ profile: "eb-cli" });
 
 	sesClient = new SESClient({ region, credentials });
 }
@@ -51,11 +51,9 @@ export async function sendEmail(user: User, email: Email) {
 				error.message === "Maximum sending rate exceeded." &&
 				maxRetries-- > 0
 			) {
-				console.log("sleep " + delay);
 				await sleep(delay);
 				delay *= 2;
 			} else {
-				console.log(error);
 				throw error;
 			}
 		}

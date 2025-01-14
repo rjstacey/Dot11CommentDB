@@ -26,7 +26,7 @@ import type {
 } from "@schemas/attendances.js";
 import { parseRegistrationSpreadsheet } from "./registrationSpreadsheet.js";
 
-type AttendanceSummaryDB = {
+/*type AttendanceSummaryDB = {
 	id: number;
 	groupId: string;
 	SAPIN: number;
@@ -36,7 +36,7 @@ type AttendanceSummaryDB = {
 	DidAttend: boolean;
 	DidNotAttend: boolean;
 	Notes: string;
-};
+};*/
 
 function getSessionAttendancesSQL(groupId: string, session_ids: number[]) {
 	// prettier-ignore
@@ -92,11 +92,11 @@ function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
 						? "BIN_TO_UUID(a.??) IN (?)"
 						: "a.??=UUID_TO_BIN(?)",
 					[key, value]
-			  )
+				)
 			: db.format(Array.isArray(value) ? "a.?? IN (?)" : "a.??=?", [
 					key,
 					value,
-			  ])
+				])
 	);
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 
@@ -111,9 +111,8 @@ export async function getAttendances(
 	query?: SessionAttendanceSummaryQuery
 ): Promise<SessionAttendanceSummary[]> {
 	const sql = getAttendancesSql(query);
-	const attendances = await db.query<
-		(RowDataPacket & SessionAttendanceSummary)[]
-	>(sql);
+	const attendances =
+		await db.query<(RowDataPacket & SessionAttendanceSummary)[]>(sql);
 	return attendances;
 }
 
@@ -121,7 +120,7 @@ export async function getAttendances(
  * Get recent session attendances
  */
 export async function getRecentAttendances(user: User, groupId: string) {
-	let groups = await getGroupHierarchy(user, groupId);
+	const groups = await getGroupHierarchy(user, groupId);
 	if (groups.length === 0)
 		throw new NotFoundError(
 			`getGroupHierarchy() failed for groupId=${groupId}`
@@ -137,12 +136,12 @@ export async function getRecentAttendances(user: User, groupId: string) {
 		.sort((s1, s2) => Date.parse(s1.startDate) - Date.parse(s2.startDate)); // Oldest to newest
 
 	// Plenary sessions only, newest 4 with attendance
-	let plenaries = allSessions.filter((s) => s.type === "p").slice(-4);
+	const plenaries = allSessions.filter((s) => s.type === "p").slice(-4);
 
 	if (plenaries.length > 0) {
 		/* Get attendance summary for recent sessions. Will include four most recent plenaries with attendance and
 		 * any interim sessions between the first of the four plenaries and the current date. */
-		let fromTimestamp = Date.parse(plenaries[0].startDate);
+		const fromTimestamp = Date.parse(plenaries[0].startDate);
 
 		sessions = allSessions.filter(
 			(s) =>
@@ -173,7 +172,7 @@ export async function importAttendances(
 	session_id: number,
 	useDailyAttendance: boolean
 ) {
-	let [session] = await getSessions({ id: session_id });
+	const [session] = await getSessions({ id: session_id });
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
@@ -209,7 +208,7 @@ export async function importAttendances(
 		session_id,
 	]);
 	if (attendances.length) {
-		let sql =
+		const sql =
 			db.format(
 				"INSERT INTO attendanceSummary (session_id, groupId, ??) VALUES ",
 				[Object.keys(attendances[0])]
@@ -237,7 +236,7 @@ export async function uploadRegistration(
 	session_id: number,
 	file: { originalname: string; buffer: Buffer }
 ) {
-	let [session] = await getSessions({ id: session_id });
+	const [session] = await getSessions({ id: session_id });
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
@@ -282,7 +281,7 @@ export async function exportAttendancesForMinutes(
 	session_id: number,
 	res: Response
 ) {
-	let [session] = await getSessions({ id: session_id });
+	const [session] = await getSessions({ id: session_id });
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 	const attendances = await getAttendances({ groupId: group.id, session_id });

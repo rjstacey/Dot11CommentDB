@@ -120,11 +120,11 @@ function selectMeetingsSql(constraints: MeetingsQuery) {
 								? "BIN_TO_UUID(m.??) IN (?)"
 								: "m.??=UUID_TO_BIN(?)",
 							[key, value]
-					  )
+						)
 					: db.format(
 							Array.isArray(value) ? "m.?? IN (?)" : "m.??=?",
 							[key, value]
-					  )
+						)
 			)
 		);
 	}
@@ -213,21 +213,22 @@ export async function getMeetings(
  * Returns an escaped SQL SET string, e.g., '`hasMotions`=1, `location`="Bar"'
  */
 function meetingToSetSql(e: MeetingChange) {
-	const entry: Record<string, any> = {
-		organizationId: e.organizationId,
-		summary: e.summary,
-		location: e.location,
-		roomId: e.roomId,
-		sessionId: e.sessionId,
-		isCancelled: e.isCancelled,
-		hasMotions: e.hasMotions,
-		webexAccountId: e.webexAccountId,
-		webexMeetingId: e.webexMeetingId,
-		calendarAccountId: e.calendarAccountId,
-		calendarEventId: e.calendarEventId,
-		imatMeetingId: e.imatMeetingId,
-		imatBreakoutId: e.imatBreakoutId,
-	};
+	const entry: Record<string, string | number | boolean | null | undefined> =
+		{
+			organizationId: e.organizationId,
+			summary: e.summary,
+			location: e.location,
+			roomId: e.roomId,
+			sessionId: e.sessionId,
+			isCancelled: e.isCancelled,
+			hasMotions: e.hasMotions,
+			webexAccountId: e.webexAccountId,
+			webexMeetingId: e.webexMeetingId,
+			calendarAccountId: e.calendarAccountId,
+			calendarEventId: e.calendarEventId,
+			imatMeetingId: e.imatMeetingId,
+			imatBreakoutId: e.imatBreakoutId,
+		};
 
 	if (typeof e.timezone !== "undefined") {
 		if (!DateTime.local().setZone(e.timezone).isValid)
@@ -278,8 +279,9 @@ function meetingToWebexMeeting(meeting: MeetingCreate) {
 		enabledAutoRecordMeeting: false,
 		...meeting.webexMeeting,
 		title: meeting.summary,
-		start: DateTime.fromISO(meeting.start, { zone: timezone }).toISO(),
-		end: DateTime.fromISO(meeting.end, { zone: timezone }).toISO(),
+		start:
+			DateTime.fromISO(meeting.start, { zone: timezone }).toISO() || "",
+		end: DateTime.fromISO(meeting.end, { zone: timezone }).toISO() || "",
 		timezone,
 		integrationTags: [meeting.organizationId],
 		id: meeting.webexMeetingId || "",
@@ -350,7 +352,7 @@ export async function webexMeetingImatLocation(
 	return location;
 }
 
-const meetingDescriptionStyle = `
+/*const meetingDescriptionStyle = `
 	<style>
 		* {
 			font-family: arial;
@@ -368,6 +370,7 @@ const meetingDescriptionStyle = `
 			font-size: 18px;
 		}
 	</style>`;
+*/
 
 /**
  * Create a calendar event description for a meeting.
@@ -377,7 +380,7 @@ const meetingDescriptionStyle = `
  * @param webexMeeting (optional) Webex meeting event object
  * @returns A string that is the calendar event description.
  */
-function meetingToCalendarDescriptionHtml(
+/*function meetingToCalendarDescriptionHtml(
 	meeting: Meeting,
 	webexMeeting: WebexMeeting
 ) {
@@ -423,7 +426,7 @@ function meetingToCalendarDescriptionHtml(
 	}
 
 	return description.replace(/\t|\n/g, ""); // strip tabs and newline (helps with google calendar formating)
-}
+}*/
 
 /**
  * Create a calendar event description for a meeting.
@@ -437,6 +440,10 @@ function meetingToCalendarDescriptionText(
 	meeting: MeetingCreate,
 	webexMeeting: WebexMeeting | undefined,
 	breakout: Breakout | undefined
+): string;
+function meetingToCalendarDescriptionText(
+	meeting: MeetingCreate,
+	webexMeeting: WebexMeeting | undefined
 ) {
 	let description = "";
 
@@ -495,7 +502,7 @@ function meetingToCalendarEvent(
 
 	if (!location && webexMeeting) location = webexMeeting.webLink || "";
 
-	let description = meetingToCalendarDescriptionText(
+	const description = meetingToCalendarDescriptionText(
 		meeting,
 		webexMeeting,
 		breakout
@@ -539,7 +546,7 @@ async function addMeeting(user: User, meetingToAdd: MeetingCreate) {
 
 	//console.log(meetingToAdd);
 
-	let meeting: Omit<Meeting, "id"> = {
+	const meeting: Omit<Meeting, "id"> = {
 		...meetingToAdd,
 		webexMeetingId: null,
 		imatBreakoutId: null,
@@ -601,7 +608,7 @@ async function addMeeting(user: User, meetingToAdd: MeetingCreate) {
 					calendarEvent
 				);
 				meeting.calendarEventId = calendarEvent?.id || null;
-			} catch (error) {
+			} catch {
 				meeting.calendarEventId = null;
 			}
 		} else {
@@ -761,9 +768,8 @@ async function meetingMakeWebexUpdates(
 							webexMeetingParams
 						)
 					) {
-						webexMeeting = await updateWebexMeeting(
-							webexMeetingParams
-						);
+						webexMeeting =
+							await updateWebexMeeting(webexMeetingParams);
 					}
 				} catch (error) {
 					if (!(error instanceof NotFoundError)) throw error;
@@ -890,7 +896,7 @@ async function meetingMakeCalendarUpdates(
 ) {
 	let calendarEvent: CalendarEvent | void = undefined;
 
-	let updatedMeeting = { ...meeting, ...changes };
+	const updatedMeeting = { ...meeting, ...changes };
 
 	const calendarEventParams: CalendarEvent = meetingToCalendarEvent(
 		updatedMeeting,
@@ -957,7 +963,7 @@ async function meetingMakeCalendarUpdates(
 	return calendarEvent;
 }
 
-async function updateMeetingDB(id: number, changes: MeetingChange) {
+/*async function updateMeetingDB(id: number, changes: MeetingChange) {
 	const setSql = meetingToSetSql(changes);
 	if (setSql) {
 		const sql = db.format(
@@ -966,7 +972,7 @@ async function updateMeetingDB(id: number, changes: MeetingChange) {
 		);
 		await db.query(sql);
 	}
-}
+}*/
 
 /**
  * Update meeting, including changes to webex, calendar and imat.
@@ -981,7 +987,7 @@ export async function updateMeeting(
 	id: number,
 	changesIn: MeetingChange
 ) {
-	let changes: MeetingChange = {
+	const changes: MeetingChange = {
 		...changesIn,
 		webexMeetingId: undefined,
 		imatBreakoutId: undefined,
@@ -1000,7 +1006,7 @@ export async function updateMeeting(
 	if (organizationId) workingGroup = getWorkingGroup(user, organizationId); // returns a promise
 
 	/* Make Webex changes */
-	let webexMeeting = await meetingMakeWebexUpdates(meeting, changesIn);
+	const webexMeeting = await meetingMakeWebexUpdates(meeting, changesIn);
 	if (webexMeeting && meeting.webexMeetingId !== webexMeeting.id)
 		changes.webexMeetingId = webexMeeting.id;
 	if (!webexMeeting && meeting.webexMeetingId) changes.webexMeetingId = null;
@@ -1008,7 +1014,7 @@ export async function updateMeeting(
 	session = await session; // do webex update while we wait for session
 
 	/* Make IMAT breakout changes */
-	let breakout = await meetingMakeImatBreakoutUpdates(
+	const breakout = await meetingMakeImatBreakoutUpdates(
 		user,
 		meeting,
 		changesIn,
@@ -1111,9 +1117,8 @@ export async function deleteMeetings(
 		"FROM meetings WHERE id IN (?);",
 		[ids]
 	);
-	const entries = await db.query<(RowDataPacket & DeleteMeetingSelect)[]>(
-		sql
-	);
+	const entries =
+		await db.query<(RowDataPacket & DeleteMeetingSelect)[]>(sql);
 	for (const entry of entries) {
 		if (entry.webexAccountId && entry.webexMeetingId) {
 			try {

@@ -126,7 +126,8 @@ export async function parseMembersSpreadsheet(buffer: Buffer) {
 	if (rows.length === 0) throw new TypeError("Got empty members file");
 
 	// Check the column names to make sure we have the right file
-	validateSpreadsheetHeader(rows.shift()!, membersDatabaseHeader);
+	const headerValues = rows.shift()!.map((v) => v?.toString() || "");
+	validateSpreadsheetHeader(headerValues, membersDatabaseHeader);
 
 	// Parse each row
 	return rows.map(parseMembersDatabaseEntry);
@@ -135,7 +136,7 @@ export async function parseMembersSpreadsheet(buffer: Buffer) {
 const sapinsHeader = ["MemberID", "SApin", "DateAdded"] as const;
 
 function parseSAPINsEntry(u: ExcelJS.CellValue[]) {
-	let entry = {
+	const entry = {
 		MemberID: parseInt(u[0] as string),
 		SAPIN: parseInt(u[1] as string),
 		DateAdded: u[2] ? (u[2] as Date).toISOString() : null,
@@ -156,7 +157,8 @@ export async function parseSAPINsSpreadsheet(buffer: Buffer) {
 	if (rows.length === 0) throw new TypeError("Got empty sapins file");
 
 	// Check the column names to make sure we have the right file
-	validateSpreadsheetHeader(rows.shift()!, sapinsHeader);
+	const headerValues = rows.shift()!.map((v) => v?.toString() || "");
+	validateSpreadsheetHeader(headerValues, sapinsHeader);
 
 	// Parse each row
 	return rows.map(parseSAPINsEntry);
@@ -171,7 +173,7 @@ const emailsHeader = [
 ] as const;
 
 function parseEmailsEntry(u: ExcelJS.CellValue[]) {
-	let entry: Omit<ContactEmail, "id"> & { MemberID?: number } = {
+	const entry: Omit<ContactEmail, "id"> & { MemberID?: number } = {
 		MemberID: parseInt(u[0] as string),
 		Email: (u[1] as string) || "",
 		DateAdded: u[3] ? (u[3] as Date).toISOString() : null,
@@ -194,7 +196,8 @@ export async function parseEmailsSpreadsheet(buffer: Buffer) {
 	if (rows.length === 0) throw new TypeError("Got empty emails file");
 
 	// Check the column names to make sure we have the right file
-	validateSpreadsheetHeader(rows.shift()!, emailsHeader);
+	const headerValues = rows.shift()!.map((v) => v?.toString() || "");
+	validateSpreadsheetHeader(headerValues, emailsHeader);
 
 	// Parse each row
 	return rows.map(parseEmailsEntry);
@@ -215,7 +218,7 @@ const historyHeader = [
 ] as const;
 
 function parseHistoryEntry(u: ExcelJS.CellValue[]) {
-	let entry: Omit<StatusChangeEntry, "id"> & { MemberID?: number } = {
+	const entry: Omit<StatusChangeEntry, "id"> & { MemberID?: number } = {
 		MemberID: parseInt(u[1] as string),
 		Date: u[3] ? (u[3] as Date).toISOString() : null,
 		NewStatus: correctStatus((u[7] as string) || ""),
@@ -238,7 +241,8 @@ export async function parseHistorySpreadsheet(buffer: Buffer) {
 	if (rows.length === 0) throw new TypeError("Got empty status change file");
 
 	// Check the column names to make sure we have the right file
-	validateSpreadsheetHeader(rows.shift()!, historyHeader);
+	const headerRow = rows.shift()!.map((v) => v?.toString() || "");
+	validateSpreadsheetHeader(headerRow, historyHeader);
 
 	// Parse each row
 	return rows.map(parseHistoryEntry);

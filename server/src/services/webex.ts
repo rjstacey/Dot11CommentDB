@@ -3,7 +3,7 @@ import { URLSearchParams } from "url";
 import { Request } from "express";
 import { NotFoundError } from "../utils/index.js";
 
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosInstance } from "axios";
 import type { User } from "./users.js";
 import type {
 	OAuthAccount,
@@ -139,9 +139,8 @@ function createWebexApi(id: number, authParams: WebexAuthParams) {
 				const response = await axios.post(webexTokenUrl, params);
 				authParams = { ...authParams, ...response.data };
 				await updateAuthParams(id, authParams);
-				api.defaults.headers[
-					"Authorization"
-				] = `Bearer ${authParams.access_token}`;
+				api.defaults.headers["Authorization"] =
+					`Bearer ${authParams.access_token}`;
 
 				// Resubmit request with updated access token
 				request.headers["Authorization"] =
@@ -260,7 +259,7 @@ export async function completeAuthWebexAccount({
 		account = createWebexAccount(oauthAccount);
 	}
 
-	let params = {
+	const params = {
 		grant_type: "authorization_code",
 		client_id: webexClientId,
 		client_secret: webexClientSecret,
@@ -288,7 +287,7 @@ async function cleanWebexAccounts() {
 }
 
 async function getActiveWebexAccounts(query?: WebexAccountsQuery) {
-	let oauthAccounts = await getOAuthAccounts({
+	const oauthAccounts = await getOAuthAccounts({
 		...query,
 		type: "webex",
 	});
@@ -319,13 +318,13 @@ export async function getWebexAccounts(
 	query?: WebexAccountsQuery
 ) {
 	const proxyHost = req.headers["x-forwarded-host"] as string;
-	const m = /(http[s]?:\/\/[^\/]+)\//.exec(req.headers["referer"] || "");
+	const m = /(http[s]?:\/\/[^/]+)\//.exec(req.headers["referer"] || "");
 	const host = m ? m[1] : proxyHost || req.headers.host || "";
 
 	// Use "get" as a way to remove stale entries from the cache
 	await cleanWebexAccounts();
 
-	let oauthAccounts = await getOAuthAccounts({
+	const oauthAccounts = await getOAuthAccounts({
 		...query,
 		type: "webex",
 	});
@@ -347,9 +346,8 @@ export async function getWebexAccounts(
 			}
 		}
 
-		let accountOut: WebexAccount;
 		const { authParams, ...rest } = oauthAccount;
-		accountOut = {
+		const accountOut: WebexAccount = {
 			...rest,
 			authUrl: getAuthUrl(user, host, id),
 			displayName: account.owner?.displayName,
@@ -379,7 +377,7 @@ export async function addWebexAccount(
 	groupId: string,
 	accountIn: WebexAccountCreate
 ) {
-	let oauthAccountIn: OAuthAccountCreate = {
+	const oauthAccountIn: OAuthAccountCreate = {
 		...accountIn,
 		type: "webex",
 		groupId,
@@ -461,22 +459,26 @@ export async function revokeAuthWebexAccount(
 	return accountOut;
 }
 
-/*
+/**
  * Handle Webex API error.
  *
  * @error:object 	The error object returned by the Axios instance.
  */
-function webexApiError(error: any) {
-	const { response } = error;
-	if (response && response.status >= 400 && response.status < 500) {
-		const { message, errors } = response.data;
-		console.error(message, errors);
-		if (response.status === 404)
-			throw new NotFoundError("Webex meeting not found");
-		const description = `${message}\n` + errors.join("\n");
-		throw new Error(`Webex API error ${response.status}: ${description}`);
+function webexApiError(error: unknown) {
+	if (error instanceof AxiosError) {
+		const { response } = error;
+		if (response && response.status >= 400 && response.status < 500) {
+			const { message, errors } = response.data;
+			console.error(message, errors);
+			if (response.status === 404)
+				throw new NotFoundError("Webex meeting not found");
+			const description = `${message}\n` + errors.join("\n");
+			throw new Error(
+				`Webex API error ${response.status}: ${description}`
+			);
+		}
 	}
-	throw new Error(error);
+	throw error;
 }
 
 async function getWebexAccountOwner(id: number) {
@@ -503,21 +505,23 @@ async function getWebexMeetingPreferencesSites(
 	id: number
 ): Promise<WebexSites[]> {
 	const api = await getWebexAccountApi(id);
-	let url = "/meetingPreferences/sites";
+	const url = "/meetingPreferences/sites";
 	return api
 		.get(url)
 		.then((response) => response.data.sites)
 		.catch(webexApiError);
 }
 
+/*
 async function setWebexDefaultSite(id: number, siteUrl: string) {
 	const api = await getWebexAccountApi(id);
-	let url = "/meetingPreferences/sites?defaultSite=true";
+	const url = "/meetingPreferences/sites?defaultSite=true";
 	return api
 		.put(url, { siteUrl })
 		.then((response) => response.data)
 		.catch(webexApiError);
 }
+*/
 
 async function getWebexMeetingPreferences(
 	id: number

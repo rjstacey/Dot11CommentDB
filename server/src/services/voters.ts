@@ -91,7 +91,7 @@ export function getVoters(constraints?: VoterQuery): Promise<Voter[]> {
 		"FROM votersCurrent";
 
 	if (constraints) {
-		let wheres: string[] = [];
+		const wheres: string[] = [];
 		if (constraints.ballot_id)
 			wheres.push(db.format("ballot_id IN (?)", [constraints.ballot_id]));
 		if (constraints.sapin)
@@ -181,7 +181,7 @@ export async function addVoters(
 		id: voter.id || uuid(),
 	}));
 	const results = voters.map((voter) => {
-		let { id, ...voterDB } = voter;
+		const { id, ...voterDB } = voter;
 		return db.query<ResultSetHeader>(
 			"INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);",
 			[voterDB, id]
@@ -197,7 +197,7 @@ export async function updateVoters(
 	workingGroupId: string,
 	updates: VoterUpdate[]
 ) {
-	let results = updates.map(({ id, changes }) =>
+	const results = updates.map(({ id, changes }) =>
 		db.query<ResultSetHeader>(
 			"UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)",
 			[changes, id]

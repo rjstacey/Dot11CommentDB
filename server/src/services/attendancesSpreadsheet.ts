@@ -8,7 +8,7 @@ import { Session } from "@schemas/sessions.js";
 type Col = {
 	label: string;
 	width: number;
-	set?: (m: MemberAttendance) => any;
+	set?: (m: MemberAttendance) => string | number | boolean;
 };
 
 const attendanceColumns: Col[] = [
@@ -35,7 +35,7 @@ export function genAttendanceSpreadsheet(
 ) {
 	const workbook = new ExcelJS.Workbook();
 	workbook.creator = user.Name;
-	let worksheet = workbook.addWorksheet();
+	const worksheet = workbook.addWorksheet();
 
 	Object.values(attendanceColumns).forEach((col, i) => {
 		worksheet.getColumn(i + 1).width = col.width;

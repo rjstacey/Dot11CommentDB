@@ -118,8 +118,8 @@ export function selectComments(
 	constraints1?: QueryConstraints,
 	constraints2?: QueryConstraints
 ): Promise<CommentResolution[]> {
-	let conditions1 = constraints1 ? getConditions(constraints1) : [];
-	let conditions2 = constraints2 ? getConditions(constraints2) : [];
+	const conditions1 = constraints1 ? getConditions(constraints1) : [];
+	const conditions2 = constraints2 ? getConditions(constraints2) : [];
 
 	let sql = "SELECT * FROM commentResolutions";
 	if (conditions1.length > 0 || conditions2.length > 0) {
@@ -407,7 +407,7 @@ export async function uploadComments(
 	user: User,
 	ballot: Ballot,
 	startCommentId: number,
-	file: any
+	file: Express.Multer.File
 ) {
 	let comments: Partial<Comment>[];
 	if (ballot.Type === BallotType.SA) {
@@ -452,7 +452,7 @@ export async function uploadUserComments(
 	const startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
 	const startIndex = MaxIndex ? MaxIndex + 1 : 1;
 
-	let comments: CommentCreate[] = await parseEpollUserComments(
+	const comments: CommentCreate[] = await parseEpollUserComments(
 		commenter,
 		startCommentId,
 		startIndex,

@@ -209,7 +209,7 @@ export async function getMember(
  */
 export function getUsers() {
 	// prettier-ignore
-	let sql =
+	const sql =
 		"SELECT " +
 			"SAPIN, " +
 			"Email, " +
@@ -242,6 +242,7 @@ export function getUserMembers(
 	return db.query<(RowDataPacket & UserMember)[]>(sql);
 }
 
+// eslint-disable-next-line
 function isValidStatus(status: any): status is StatusType {
 	return statusValues.includes(status);
 }
@@ -266,13 +267,13 @@ export async function getMembersSnapshot(
 			"Obsolete",
 		],
 	});
-	let fromDate = new Date(date);
+	const fromDate = new Date(date);
 	//console.log(date.toISOString().substr(0,10));
 	members = members
 		.filter((m) => m.DateAdded && new Date(m.DateAdded) < fromDate)
 		.map((m) => {
 			//m.StatusChangeHistory.forEach(h => h.Date = new Date(h.Date));
-			let history = m.StatusChangeHistory.map((h) => ({
+			const history = m.StatusChangeHistory.map((h) => ({
 				...h,
 				Date: new Date(h.Date || ""),
 			})).sort((h1, h2) => h2.Date.valueOf() - h1.Date.valueOf());
@@ -377,7 +378,7 @@ function memberEntry(m: Partial<Member>) {
 }
 
 function memberSetsSql(entry: Partial<GroupMemberDB>) {
-	let sets: string[] = [];
+	const sets: string[] = [];
 	Object.entries(entry).forEach(([key, value]) => {
 		sets.push(
 			db.format(key === "groupId" ? "??=UUID_TO_BIN(?)" : "??=?", [
@@ -421,7 +422,7 @@ type StatusChangeUpdate = {
 	changes: Partial<StatusChangeEntry>;
 };
 
-function validStatusChangeEntry(entry: any): entry is StatusChangeEntry {
+function validStatusChangeEntry(entry: unknown): entry is StatusChangeEntry {
 	return (
 		isPlainObject(entry) &&
 		typeof entry.id === "number" &&
@@ -433,12 +434,14 @@ function validStatusChangeEntry(entry: any): entry is StatusChangeEntry {
 }
 
 function validStatusChangeEntries(
-	entries: any
+	entries: unknown
 ): entries is StatusChangeEntry[] {
 	return Array.isArray(entries) && entries.every(validStatusChangeEntry);
 }
 
-function validStatusChangeUpdate(update: any): update is StatusChangeUpdate {
+function validStatusChangeUpdate(
+	update: unknown
+): update is StatusChangeUpdate {
 	return (
 		isPlainObject(update) &&
 		typeof update.id === "number" &&
@@ -447,19 +450,19 @@ function validStatusChangeUpdate(update: any): update is StatusChangeUpdate {
 }
 
 function validStatusChangeUpdates(
-	updates: any
+	updates: unknown
 ): updates is StatusChangeUpdate[] {
 	return Array.isArray(updates) && updates.every(validStatusChangeUpdate);
 }
 
-function validStatusChangeIds(ids: any): ids is number[] {
+function validStatusChangeIds(ids: unknown): ids is number[] {
 	return Array.isArray(ids) && ids.every((id) => typeof id === "number");
 }
 
 export async function addMemberStatusChangeEntries(
 	groupId: string,
 	sapin: number,
-	entries: any
+	entries: unknown
 ) {
 	if (!validStatusChangeEntries(entries))
 		throw new TypeError("Expected array of status change entries");
@@ -483,7 +486,7 @@ export async function addMemberStatusChangeEntries(
 export async function updateMemberStatusChangeEntries(
 	groupId: string,
 	sapin: number,
-	updates: any
+	updates: unknown
 ) {
 	if (!validStatusChangeUpdates(updates))
 		throw new TypeError(
@@ -512,7 +515,7 @@ export async function updateMemberStatusChangeEntries(
 export async function deleteMemberStatusChangeEntries(
 	groupId: string,
 	sapin: number,
-	ids: any
+	ids: unknown
 ) {
 	if (!validStatusChangeIds(ids))
 		throw new TypeError(
@@ -624,7 +627,7 @@ async function updateMemberStatus(
 		member.Status === "Obsolete" && status !== "Obsolete"
 			? null
 			: member.ReplacedBySAPIN;
-	let sql = db.format(
+	const sql = db.format(
 		"UPDATE groupMembers SET " +
 			"Status=?, " +
 			"StatusChangeDate=?, " +
@@ -648,7 +651,7 @@ export async function updateMember(
 	sapin: number,
 	changes: Partial<Member> & { StatusChangeReason?: string }
 ) {
-	const p: Promise<any>[] = [];
+	const p: Promise<void | ResultSetHeader>[] = [];
 	const { Status, StatusChangeReason, ...changesRest } = changes;
 
 	/* If the member status changes, then update the status change history */
@@ -672,7 +675,7 @@ export async function updateMember(
 			entry1,
 			sapin,
 		]);
-		p.push(db.query(sql));
+		p.push(db.query<ResultSetHeader>(sql));
 	}
 
 	const entry2 = memberEntry(changesRest);
@@ -681,7 +684,7 @@ export async function updateMember(
 			"UPDATE groupMembers SET ? WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
 			[entry2, groupId, sapin]
 		);
-		p.push(db.query(sql));
+		p.push(db.query<ResultSetHeader>(sql));
 	}
 
 	if (p.length > 0) await Promise.all(p);
@@ -738,7 +741,7 @@ export async function deleteMembers(groupId: string, ids: number[]) {
 }
 
 async function uploadDatabaseMembers(groupId: string, buffer: Buffer) {
-	let members = (await parseMembersSpreadsheet(buffer)).filter(
+	const members = (await parseMembersSpreadsheet(buffer)).filter(
 		(m) => m.SAPIN > 0
 	);
 
@@ -747,7 +750,7 @@ async function uploadDatabaseMembers(groupId: string, buffer: Buffer) {
 	]);
 
 	if (members.length > 0) {
-		let users = members.map((r) => ({
+		const users = members.map((r) => ({
 			...userEntry(r),
 			SAPIN: r.SAPIN,
 		}));
@@ -764,7 +767,7 @@ async function uploadDatabaseMembers(groupId: string, buffer: Buffer) {
 			updateKeys.map((k) => k + "=VALUES(" + k + ")");
 		await db.query(sql);
 
-		let groupMembers = members.map((r) => ({
+		const groupMembers = members.map((r) => ({
 			groupId,
 			SAPIN: r.SAPIN,
 			Affiliation: r.Affiliation,
@@ -941,6 +944,7 @@ async function uploadDatabaseMemberHistory(groupId: string, buffer: Buffer) {
 const uploadFormats = ["members", "sapins", "emails", "history"] as const;
 type UploadFormat = (typeof uploadFormats)[number];
 
+// eslint-disable-next-line
 function isUploadFormat(format: any): format is UploadFormat {
 	return uploadFormats.includes(format);
 }
@@ -980,7 +984,7 @@ export async function importMyProjectRoster(
 	);
 
 	if (roster.length > 0) {
-		let users = roster.map((r) => ({
+		const users = roster.map((r) => ({
 			...userEntry(r),
 			SAPIN: r.SAPIN,
 		}));
@@ -989,7 +993,7 @@ export async function importMyProjectRoster(
 		let insertValues = users.map((u) =>
 			insertKeys.map((key) => db.escape(u[key])).join(", ")
 		);
-		let updateKeys = insertKeys.filter((k) => k !== "SAPIN");
+		const updateKeys = insertKeys.filter((k) => k !== "SAPIN");
 		let sql =
 			db.format("INSERT INTO users (??) VALUES ", [insertKeys]) +
 			insertValues.map((s) => "(" + s + ")").join(", ") +
@@ -1003,7 +1007,7 @@ export async function importMyProjectRoster(
 		);
 		await db.query(sql);
 
-		let members = roster.map((r) => ({
+		const members = roster.map((r) => ({
 			...memberEntry(r),
 			groupId,
 			SAPIN: r.SAPIN,
@@ -1058,7 +1062,7 @@ export async function updateMyProjectRosterWithMemberStatus(
 	options: UpdateRosterOptions,
 	res: Response
 ) {
-	let members = await getMembers(AccessLevel.admin, {
+	const members = await getMembers(AccessLevel.admin, {
 		groupId,
 		Status: [
 			"Voter",
@@ -1073,12 +1077,12 @@ export async function updateMyProjectRosterWithMemberStatus(
 }
 
 export async function exportMembersPublic(groupId: string, res: Response) {
-	let members = await getMembers(AccessLevel.admin, {
+	const members = await getMembers(AccessLevel.admin, {
 		groupId,
 		Status: ["Voter", "Aspirant", "Potential Voter", "ExOfficio"],
 	});
 
-	let ssData = members.map((m) => ({
+	const ssData = members.map((m) => ({
 		"Family Name": m.LastName,
 		"Given Name": m.FirstName,
 		MI: m.MI,
@@ -1192,7 +1196,7 @@ export async function exportMembersPrivate(
 		const h = member.StatusChangeHistory.find(
 			(h) => h.NewStatus === "Voter" && h.OldStatus !== "Voter"
 		);
-		let voterDate = h?.Date ? DateTime.fromISO(h.Date) : null;
+		const voterDate = h?.Date ? DateTime.fromISO(h.Date) : null;
 
 		if (member.SAPIN === 4051)
 			console.log(participation.ballotSeriesParticipationSummaries);
@@ -1222,7 +1226,7 @@ export async function exportMembersPrivate(
 		}
 	}
 
-	let ssData = memberIds.map((id) => {
+	const ssData = memberIds.map((id) => {
 		const m = memberEntities[id];
 		return {
 			//SAPIN: m.SAPIN,
@@ -1249,12 +1253,12 @@ export async function exportVotingMembers(
 	const Status = forPlenarySession
 		? ["Voter", "ExOfficio", "Potential Voter"]
 		: ["Voter", "ExOfficio"];
-	let members = await getMembers(AccessLevel.admin, {
+	const members = await getMembers(AccessLevel.admin, {
 		groupId: group.id,
 		Status,
 	});
 
-	let ssData = members.map((m) => ({
+	const ssData = members.map((m) => ({
 		SAPIN: m.SAPIN,
 		"Last Name": m.LastName,
 		"First Name": m.FirstName,

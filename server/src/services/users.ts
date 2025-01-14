@@ -5,9 +5,7 @@ export type User = {
 	SAPIN: number;
 	Name: string;
 	Email: string;
-	//Status: string;
-	//Access: number;
-	Token: any;
+	Token: string | null;
 	ieeeClient?: AxiosInstance;
 };
 
@@ -24,7 +22,7 @@ export async function selectUser({
 			'SAPIN, Name, Email, Null as Token ' +
 		'FROM users ' +
 		'WHERE ' + (SAPIN? `SAPIN=${db.escape(SAPIN)}`: `Email=${db.escape(Email)}`);
-	let [user] = (await db.query(sql)) as User[];
+	const [user] = (await db.query(sql)) as User[];
 
 	return user;
 }

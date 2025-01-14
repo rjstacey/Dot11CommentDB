@@ -10,24 +10,24 @@ import { getSheetName } from "./commentsSpreadsheet.js";
 
 function populateSummaryWorksheet(ws: ExcelJS.Worksheet, ballots: Ballot[]) {
 	let colNum = 1;
-	let labelCol = [
+	const labelCol = [
 		"Ballot",
 		"Opened:",
 		"Closed:",
 		"Duration:",
 		"Voting pool:",
-		,
+		undefined,
 		"Result",
 		"Approve:",
 		"Disapprove:",
 		"Abstain:",
 		"Total returns:",
-		,
+		undefined,
 		"Invalid Votes",
 		"Not in pool:",
 		"Disapprove without comment:",
 		"Abstain reason:",
-		,
+		undefined,
 		"Approval Criteria",
 		"Approval rate (> 75%):",
 		"Returns as % of pool (> 50%):",
@@ -77,24 +77,24 @@ function populateSummaryWorksheet(ws: ExcelJS.Worksheet, ballots: Ballot[]) {
 		const returnsRate = r.TotalReturns / r.ReturnsPoolSize;
 		const abstainsRate = r.Abstain / (r.VotingPoolSize || 0);
 
-		let dataCol = [
+		const dataCol = [
 			b.BallotID,
 			opened,
 			closed,
 			duration,
 			r.VotingPoolSize,
-			,
+			undefined,
 			"",
 			r.Approve,
 			r.Disapprove,
 			r.Abstain,
 			r.TotalReturns,
-			,
+			undefined,
 			"",
 			r.InvalidVote,
 			r.InvalidDisapprove,
 			r.InvalidAbstain,
-			,
+			undefined,
 			"",
 			approvalRate,
 			returnsRate,

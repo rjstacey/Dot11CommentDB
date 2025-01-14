@@ -16,7 +16,7 @@ async function init() {
 		);
 	}
 
-	let options: PoolOptions = {
+	const options: PoolOptions = {
 		host: process.env.DB_HOST,
 		port: Number(process.env.DB_PORT),
 		user: process.env.DB_USER,
@@ -58,10 +58,10 @@ const query = <
 		| ResultSetHeader
 		| ResultSetHeader[]
 		| RowDataPacket[]
-		| RowDataPacket[][]
+		| RowDataPacket[][],
 >(
 	...args: QueryArgs
-) => pool.query<T>(...(args as [any])).then(([rows, fields]) => rows);
+) => pool.query<T>(...(args as [any])).then(([rows]) => rows);
 //const query2 = (...args: QueryArgs) => pool.query(...(args as [any]));
 
 export { init, query, escape, format };
