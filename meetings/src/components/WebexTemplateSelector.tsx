@@ -23,7 +23,7 @@ function WebexTemplateSelector({
 		return account?.templates || [];
 	}, [accountId, entities]);
 
-	let values = options.filter((o) => o.id === value);
+	const values = options.filter((o) => o.id === value);
 
 	React.useEffect(() => {
 		if (values.length === 0) {

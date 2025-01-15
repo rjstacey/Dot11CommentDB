@@ -54,17 +54,8 @@ function LabeledCurrentSessionSelector({
 }: {
 	allowShowDateRange?: boolean;
 } & React.ComponentProps<typeof CurrentSessionSelector>) {
-	const navigate = useNavigate();
-	const location = useLocation();
 	const dispatch = useAppDispatch();
 	const showDateRange = useAppSelector(selectShowDateRange);
-
-	const handleShowDateRange = (show: boolean) => {
-		const s = new URLSearchParams(location.search);
-		s.delete("showDateRange");
-		if (showDateRange) s.set("showDateRange", "1");
-		navigate({ search: s.toString() });
-	};
 
 	return (
 		<div style={{ display: "flex", alignItems: "center" }}>

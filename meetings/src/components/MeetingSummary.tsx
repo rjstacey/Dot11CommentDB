@@ -8,7 +8,7 @@ function MeetingSummary({ meetingId }: { meetingId?: number | null }) {
 	const meeting = meetingId ? meetingEntities[meetingId] : undefined;
 	let content: JSX.Element | null = null;
 	if (meeting) {
-		let summary = (meeting.isCancelled ? "🚫 " : "") + meeting.summary;
+		const summary = (meeting.isCancelled ? "🚫 " : "") + meeting.summary;
 		content = (
 			<>
 				<span>{summary}</span>

@@ -28,8 +28,7 @@ export function GroupSelector({
 		[onChange]
 	);
 
-	let values: Group[];
-	values = groups.filter((group) => group.id === (value as string));
+	const values = groups.filter((group) => group.id === (value as string));
 
 	return (
 		<Select

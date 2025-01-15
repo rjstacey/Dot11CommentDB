@@ -160,14 +160,14 @@ function SelectJoinBeforeHostMinutes({
 	React.ComponentProps<typeof Select>,
 	"values" | "onChange" | "options"
 >) {
-	let options = joinMinutes.map((value) => ({
+	const options = joinMinutes.map((value) => ({
 		value,
 		label: value.toString(),
 	}));
 	if (typeof value === "number" && !joinMinutes.includes(value))
 		options.concat([{ value, label: value.toString() }]);
 
-	let values = options.filter((e) => e.value === value);
+	const values = options.filter((e) => e.value === value);
 
 	const handleChange = (values: typeof options) =>
 		onChange(values.length > 0 ? values[0].value : 0);
@@ -718,7 +718,7 @@ export type MultipleWebexMeetingEntry = Multiple<
 function convertWebexMeetingToEntry(
 	webexMeeting: SyncedWebexMeeting
 ): WebexMeetingEntry {
-	let { start, end, ...rest } = webexMeeting;
+	const { start, end, ...rest } = webexMeeting;
 
 	const zone = webexMeeting.timezone;
 	const startDT = DateTime.fromISO(start, { zone });
@@ -741,11 +741,11 @@ function convertWebexMeetingToEntry(
 export function convertEntryToWebexMeeting(
 	entry: WebexMeetingEntry
 ): Omit<WebexMeetingChange, "id"> {
-	let { date, startTime, endTime, accountId, ...rest } = entry;
+	const { date, startTime, endTime, accountId, ...rest } = entry;
 	const webexMeeting = { ...rest };
 
 	const zone = webexMeeting.timezone;
-	let startDT = DateTime.fromFormat(
+	const startDT = DateTime.fromFormat(
 		`${date} ${startTime}`,
 		"yyyy-MM-dd HH:mm",
 		{ zone }
@@ -872,7 +872,7 @@ class WebexMeetingDetail extends React.Component<
 	};
 
 	getUpdates = () => {
-		let { entry, saved, webexMeetings } = this.state;
+		const { entry, saved, webexMeetings } = this.state;
 
 		// Find differences
 		const diff: PartialWebexMeetingEntry = deepDiff(saved, entry) || {};

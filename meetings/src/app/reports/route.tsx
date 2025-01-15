@@ -36,7 +36,7 @@ const sessionsLoader: LoaderFunction = async ({
 	dispatch(loadImatMeetings(groupName));
 	await dispatch(loadSessions(groupName));
 	if (sessionNumber) {
-		let session = selectSessionByNumber(getState(), sessionNumber);
+		const session = selectSessionByNumber(getState(), sessionNumber);
 		if (session) {
 			const imatMeetingId = session.imatMeetingId;
 			if (imatMeetingId) {

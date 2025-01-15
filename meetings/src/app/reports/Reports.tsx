@@ -151,7 +151,7 @@ function copyToClipboard(svg: SVGSVGElement | null) {
 	navigator.clipboard
 		.write([item])
 		.then(() => blinkElement(svg))
-		.catch((error) => {
+		.catch(() => {
 			svgToPngBlob(svg).then((blob) => {
 				const item = new ClipboardItem({ "image/png": blob! });
 				navigator.clipboard

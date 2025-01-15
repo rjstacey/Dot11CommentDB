@@ -60,7 +60,7 @@ function SelectDisplayFormat({
 function MeetingsActions() {
 	const dispatch = useAppDispatch();
 
-	let showDays: number = useAppSelector(selectUiProperties).showDays | 0;
+	const showDays: number = useAppSelector(selectUiProperties).showDays || 0;
 	const setShowDays = (showDays: number) =>
 		dispatch(setUiProperties({ showDays }));
 

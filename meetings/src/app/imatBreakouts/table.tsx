@@ -38,7 +38,7 @@ export function ImatMeetingInfo({
 }: {
 	imatMeeting?: ImatMeeting;
 }) {
-	let content = imatMeeting ? (
+	const content = imatMeeting ? (
 		<>
 			<span>{imatMeeting.name}</span>
 			<span>{displayDateRange(imatMeeting.start, imatMeeting.end)}</span>
@@ -166,7 +166,7 @@ const defaultTablesColumns = {
 	],
 };
 
-let defaultTablesConfig: TablesConfig = {};
+const defaultTablesConfig: TablesConfig = {};
 let tableView: keyof typeof defaultTablesColumns;
 for (tableView in defaultTablesColumns) {
 	const tableConfig: TableConfig = {
@@ -195,7 +195,7 @@ function breakoutsRowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 		timeRange: getField(b, "timeRange"),
 	};
 	if (rowIndex > 0) {
-		let b_prev = entities[ids[rowIndex - 1]];
+		const b_prev = entities[ids[rowIndex - 1]];
 		if (b.dayDate === getField(b_prev, "dayDate")) {
 			b = { ...b, dayDate: "" };
 			if (b.timeRange === getField(b_prev, "timeRange"))

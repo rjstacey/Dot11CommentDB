@@ -117,7 +117,7 @@ function selectOfficers(state: RootState, groupId: EntityId) {
 }
 
 function selectMeetingsGroups(state: RootState) {
-	let groups = selectGroups(state);
+	const groups = selectGroups(state);
 	const meetingEntities = selectSyncedMeetingEntities(state);
 	const meetingIds = selectMeetingIds(state);
 
@@ -141,7 +141,7 @@ function selectEmails(state: RootState, groupIds: EntityId[]) {
 	const meetingIds = selectMeetingIds(state);
 	const user = selectUser(state)!;
 
-	const emails: Dictionary<any> = {};
+	const emails: Dictionary<Email> = {};
 	for (const id of groupIds) {
 		const group = groupEntities[id]!;
 
@@ -211,7 +211,9 @@ function MeetingEmail({ close }: { close: () => void }) {
 
 	async function send() {
 		setBusy(true);
-		await dispatch(sendEmails(groupName!, Object.values(emails)));
+		await dispatch(
+			sendEmails(groupName!, Object.values(emails) as Email[])
+		);
 		setBusy(false);
 		close();
 	}
@@ -254,7 +256,7 @@ function MeetingEmail({ close }: { close: () => void }) {
 					<TabPanel key={key}>
 						<div
 							dangerouslySetInnerHTML={{
-								__html: email.Message.Body.Html.Data,
+								__html: email!.Message.Body.Html!.Data,
 							}}
 						/>
 					</TabPanel>

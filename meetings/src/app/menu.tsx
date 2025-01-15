@@ -139,7 +139,7 @@ function Nav() {
 			{isSmall ? (
 				<Dropdown
 					className="nav-small-menu"
-					selectRenderer={(props) => <SmallNavMenu />}
+					selectRenderer={() => <SmallNavMenu />}
 					dropdownRenderer={(props) => (
 						<NavMenu
 							className="nav-menu-vertical"

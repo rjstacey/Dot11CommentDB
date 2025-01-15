@@ -274,7 +274,7 @@ const defaultTablesColumns = {
 	],
 };
 
-let defaultTablesConfig: TablesConfig = {};
+const defaultTablesConfig: TablesConfig = {};
 let tableView: keyof typeof defaultTablesColumns;
 for (tableView in defaultTablesColumns) {
 	const tableConfig: TableConfig = {
@@ -300,14 +300,14 @@ function webexMeetingsRowGetter({
 	ids,
 	entities,
 }: RowGetterProps<SyncedWebexMeeting>) {
-	let webexMeeting = entities[ids[rowIndex]]!;
+	const webexMeeting = entities[ids[rowIndex]]!;
 	let b = {
 		...webexMeeting,
 		dayDate: getField(webexMeeting, "dayDate"),
 		timeRange: getField(webexMeeting, "timeRange"),
 	};
 	if (rowIndex > 0) {
-		let b_prev = entities[ids[rowIndex - 1]]!;
+		const b_prev = entities[ids[rowIndex - 1]]!;
 		if (b.dayDate === getField(b_prev, "dayDate")) {
 			b = { ...b, dayDate: "" };
 			if (b.timeRange === getField(b_prev, "timeRange"))

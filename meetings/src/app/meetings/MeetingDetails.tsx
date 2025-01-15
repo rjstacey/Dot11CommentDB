@@ -80,9 +80,9 @@ function timeRangeToDuration(startTime: string, endTime: string) {
 }
 
 function endTimeFromDuration(startTime: string, duration: string) {
-	let d = duration.trim();
-	let m = /^(\d*):(\d{2})$/.exec(d);
-	let dt = Duration.fromObject(
+	const d = duration.trim();
+	const m = /^(\d*):(\d{2})$/.exec(d);
+	const dt = Duration.fromObject(
 		m
 			? { hours: m[1] ? Number(m[1]) : 0, minutes: Number(m[2]) }
 			: { hours: Number(d) }
@@ -123,7 +123,7 @@ function convertMeetingToEntry(
 	meeting: SyncedMeeting,
 	session?: Session
 ): MeetingEntry {
-	let { start: startIn, end: endIn, webexMeeting, ...rest } = meeting;
+	const { start: startIn, end: endIn, webexMeeting, ...rest } = meeting;
 
 	const zone =
 		session && isSessionMeeting(session)
@@ -193,7 +193,7 @@ export function convertEntryToMeeting(
 		zone = entry.timezone;
 		endTime = endTimeFromDuration(startTime, duration);
 	}
-	let start = DateTime.fromISO(date, { zone }).set(fromTimeStr(startTime));
+	const start = DateTime.fromISO(date, { zone }).set(fromTimeStr(startTime));
 	let end = DateTime.fromISO(date, { zone }).set(fromTimeStr(endTime));
 	if (end < start) end = end.plus({ days: 1 });
 
@@ -320,8 +320,8 @@ class MeetingDetails extends React.Component<
 
 			let date: string | typeof MULTIPLE | null = null,
 				roomId: number | typeof MULTIPLE | null = null,
-				slotId: number | typeof MULTIPLE | null = null,
-				dates: string[] = [];
+				slotId: number | typeof MULTIPLE | null = null;
+			const dates: string[] = [];
 			for (const id of selectedSlots) {
 				const [date_, slotId_, roomId_] = fromSlotId(id);
 				dates.push(date_);
@@ -412,10 +412,10 @@ class MeetingDetails extends React.Component<
 	reinitState = (action: Actions) => this.setState(this.initState(action));
 
 	getUpdates = () => {
-		let { entry, saved, session, meetings } = this.state;
+		const { entry, saved, session, meetings } = this.state;
 
 		// Get modified local entry without dates[]
-		let { dates, ...e } = entry;
+		const { dates, ...e } = entry;
 		if (dates.length === 1) e.date = dates[0];
 
 		// Find differences
@@ -514,7 +514,8 @@ class MeetingDetails extends React.Component<
 	add = async () => {
 		const { addMeetings, setSelectedMeetings, setSelectedSlots, session } =
 			this.props;
-		let { action, entry, slots } = this.state;
+		const { action, slots } = this.state;
+		let { entry } = this.state;
 
 		// If a webex account is given, then add a webex meeting
 		if (entry.webexAccountId) {

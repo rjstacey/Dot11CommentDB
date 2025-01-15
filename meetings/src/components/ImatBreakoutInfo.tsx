@@ -14,12 +14,12 @@ function ImatBreakoutInfo({
 }) {
 	const imatBreakoutEntities = useAppSelector(selectBreakoutEntities);
 	const breakoutMeetingId = useAppSelector(selectBreakoutMeetingId);
-	let breakout =
+	const breakout =
 		breakoutMeetingId === imatMeetingId
 			? imatBreakoutEntities[breakoutId]
 			: undefined;
 
-	let content = breakout ? (
+	const content = breakout ? (
 		<>
 			<span>{breakout.name}</span>
 			<span>{displayDayDate(breakout.start)}</span>

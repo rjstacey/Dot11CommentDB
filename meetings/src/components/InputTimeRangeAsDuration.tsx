@@ -2,13 +2,13 @@ import * as React from "react";
 import { Input } from "dot11-components";
 
 function timeRangeToDuration(startTime: string, endTime: string) {
-	let [startHstr, startMstr] = startTime.split(":");
-	let [endHstr, endMstr] = endTime.split(":");
+	const [startHstr, startMstr] = startTime.split(":");
+	const [endHstr, endMstr] = endTime.split(":");
 	try {
-		let startH = startHstr ? parseInt(startHstr) : 0;
-		let startM = startMstr ? parseInt(startMstr) : 0;
-		let endH = endHstr ? parseInt(endHstr) : 0;
-		let endM = endMstr ? parseInt(endMstr) : 0;
+		const startH = startHstr ? parseInt(startHstr) : 0;
+		const startM = startMstr ? parseInt(startMstr) : 0;
+		const endH = endHstr ? parseInt(endHstr) : 0;
+		const endM = endMstr ? parseInt(endMstr) : 0;
 		let d = endH - startH + (endM - startM) / 60;
 		if (d < 0) {
 			// If less than zero, assume endTime is next day
@@ -18,7 +18,7 @@ function timeRangeToDuration(startTime: string, endTime: string) {
 		const mm = (d - hh) * 60;
 		if (mm) return "" + hh + ":" + ("0" + mm).slice(-2);
 		else return "" + hh;
-	} catch (error) {
+	} catch {
 		return "";
 	}
 }
@@ -36,9 +36,9 @@ function endTimeFromDuration(startTime: string, duration: string) {
 			return undefined;
 		}
 	}
-	let [startHstr, startMstr] = startTime.split(":");
-	let startH = parseInt(startHstr);
-	let startM = parseInt(startMstr);
+	const [startHstr, startMstr] = startTime.split(":");
+	const startH = parseInt(startHstr);
+	const startM = parseInt(startMstr);
 	const endHour = startH + startM * 60 + d;
 	let endH = Math.floor(endHour);
 	const endM = (endHour - endH) * 60;

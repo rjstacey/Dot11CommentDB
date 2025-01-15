@@ -47,16 +47,16 @@ const isSessionMeeting = (session: Session | undefined) =>
 
 function validDuration(duration: string) {
 	if (!duration) return false;
-	let d = duration.trim();
-	let m = /^(\d*):(\d{2})$/.exec(d);
+	const d = duration.trim();
+	const m = /^(\d*):(\d{2})$/.exec(d);
 	try {
-		let dt = Duration.fromObject(
+		const dt = Duration.fromObject(
 			m
 				? { hours: m[1] ? Number(m[1]) : 0, minutes: Number(m[2]) }
 				: { hours: Number(d) }
 		);
 		return dt.isValid;
-	} catch (error) {
+	} catch {
 		return false;
 	}
 }

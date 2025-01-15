@@ -47,7 +47,7 @@ const meetingsLoader: LoaderFunction<LoaderData> = async ({
 	dispatch(loadImatMeetings(groupName));
 	await dispatch(loadSessions(groupName));
 	if (sessionNumber) {
-		let session = selectSessionByNumber(getState(), sessionNumber);
+		const session = selectSessionByNumber(getState(), sessionNumber);
 		if (session) {
 			dispatch(setCurrentSessionId(session.id));
 			dispatch(setShowDateRange(showDateRange));

@@ -31,7 +31,6 @@ const CreditGrid = ({
 
 function GridColumnLabel({
 	style,
-	colIndex,
 	date,
 }: {
 	style?: React.CSSProperties;
@@ -220,7 +219,7 @@ function SessionCredit({
 	}
 
 	function toggleDefaultCredit(day: number, slotIndex: number) {
-		let credits = defaultCredits.slice();
+		const credits = defaultCredits.slice();
 		credits[day] = credits[day].slice();
 		let i = creditOptions.indexOf(credits[day][slotIndex]);
 		if (i < 0 || ++i >= creditOptions.length) i = 0;

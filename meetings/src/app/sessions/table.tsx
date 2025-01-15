@@ -187,7 +187,7 @@ const defaultTablesColumns = {
 	],
 };
 
-let defaultTablesConfig: TablesConfig = {};
+const defaultTablesConfig: TablesConfig = {};
 let tableView: keyof typeof defaultTablesColumns;
 for (tableView in defaultTablesColumns) {
 	const tableConfig: TableConfig = {

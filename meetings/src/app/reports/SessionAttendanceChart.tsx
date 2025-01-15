@@ -85,7 +85,7 @@ export function generateBreakoutAttendanceEntries(
 	groupEntities: Dictionary<Group>,
 	attendanceCountEntities: Record<number, number>
 ): BreakoutAttendanceEntry[] {
-	const groups: Group[] = Object.values<any>(groupEntities);
+	const groups = Object.values(groupEntities) as Group[];
 
 	const entries: BreakoutAttendanceEntry[] = [];
 
@@ -159,13 +159,16 @@ const selectAttendanceSeriesInfo = createSelector(
 	selectBreakoutAttendanceEntries,
 	(entries) => {
 		// Create series entities
-		const seriesEntities = entries.reduce((seriesEntities, entry) => {
-			const seriesId = entry.date + " " + entry.slotName;
-			seriesEntities[seriesId] = (seriesEntities[seriesId] || []).concat(
-				entry
-			);
-			return seriesEntities;
-		}, {} as Record<string, BreakoutAttendanceEntry[]>);
+		const seriesEntities = entries.reduce(
+			(seriesEntities, entry) => {
+				const seriesId = entry.date + " " + entry.slotName;
+				seriesEntities[seriesId] = (
+					seriesEntities[seriesId] || []
+				).concat(entry);
+				return seriesEntities;
+			},
+			{} as Record<string, BreakoutAttendanceEntry[]>
+		);
 
 		// Create a sorted list of series identifiers
 		const seriesIds = Object.keys(seriesEntities).sort(

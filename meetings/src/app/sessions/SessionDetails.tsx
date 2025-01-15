@@ -370,10 +370,7 @@ class SessionDetail extends React.Component<
 		this.triggerSave.flush();
 	}
 
-	componentDidUpdate(
-		prevProps: SessionDetailInternalProps,
-		prevState: SessionDetailState
-	) {
+	componentDidUpdate(prevProps: SessionDetailInternalProps) {
 		const { props } = this;
 		if (props.selected.join() !== prevProps.selected.join()) {
 			this.triggerSave.flush();

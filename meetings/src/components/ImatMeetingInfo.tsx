@@ -5,7 +5,7 @@ import { selectImatMeetingEntities } from "@/store/imatMeetings";
 function ImatMeetingInfo({ imatMeetingId }: { imatMeetingId: number }) {
 	const imatMeetingEntities = useAppSelector(selectImatMeetingEntities);
 	const imatMeeting = imatMeetingEntities[imatMeetingId];
-	let content = imatMeeting ? (
+	const content = imatMeeting ? (
 		<>
 			<span>{imatMeeting.name}</span>
 			<span>{displayDateRange(imatMeeting.start, imatMeeting.end)}</span>

@@ -47,7 +47,7 @@ export function EditTable({
 		.map((col) => col.gridTemplate || "auto")
 		.join(" ");
 
-	let header = (
+	const header = (
 		<tr>
 			{columns.map((col, i) => (
 				<th key={col.key} style={col.styleCell}>
@@ -57,7 +57,7 @@ export function EditTable({
 		</tr>
 	);
 
-	let rows = values.map((entry, i) => (
+	const rows = values.map((entry, i) => (
 		<tr key={rowId ? entry[rowId] : i}>
 			{columns.map((col) => (
 				<td key={col.key} style={col.styleCell}>

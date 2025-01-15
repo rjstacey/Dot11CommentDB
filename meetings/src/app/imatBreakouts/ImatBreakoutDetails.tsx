@@ -89,7 +89,7 @@ function convertBreakoutToMeetingEntry(
 		groups.find((g) => breakout.name.match(new RegExp(g.name, "i"))) || // case invariant substring match
 		groups.find((g) => g.name.match(bNameRe)); // both ways
 
-	let organizationId = group?.id || groupId;
+	const organizationId = group?.id || groupId;
 
 	const entry: MultipleMeetingEntry = {
 		summary: breakout.name,
@@ -808,7 +808,7 @@ class BreakoutDetails extends React.Component<
 
 	getUpdates = () => {
 		/* Only called when action === "update" */
-		let { entry, saved, imatMeetingId, breakouts } = this
+		const { entry, saved, imatMeetingId, breakouts } = this
 			.state as BreakoutDetailsUpdateState;
 
 		// Find differences
