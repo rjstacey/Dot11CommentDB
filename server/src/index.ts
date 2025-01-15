@@ -89,7 +89,8 @@ const requestLog: RequestHandler = function (req, res, next) {
 	next();
 };
 
-const errorHandler: ErrorRequestHandler = function (err, req, res) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 	if (process.env.NODE_ENV === "development") console.warn(err);
 
 	let message: string = "";

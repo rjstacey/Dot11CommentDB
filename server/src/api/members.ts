@@ -283,7 +283,7 @@ async function patchMyProjectRoster(
 ) {
 	const { user, query, file } = req;
 	const group = req.group!;
-	let options: UpdateRosterOptions = {};
+	const options: UpdateRosterOptions = {};
 	if (query.appendNew === "true") options.appendNew = true;
 	if (query.removeUnchanged === "true") options.removeUnchanged = true;
 	try {
@@ -347,9 +347,10 @@ async function getVoters(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
 	const access = group.permissions.members || AccessLevel.none;
 	const forPlenary = Boolean(req.query.plenary);
+	const forDVL = Boolean(req.query.dvl);
 	try {
 		if (access < AccessLevel.admin) throw new ForbiddenError();
-		await exportVotingMembers(group, forPlenary, res);
+		await exportVotingMembers(group, forPlenary, forDVL, res);
 		res.end();
 	} catch (error) {
 		next(error);

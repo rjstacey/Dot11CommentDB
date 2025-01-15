@@ -1245,9 +1245,43 @@ export async function exportMembersPrivate(
 	res.status(200).send(csv);
 }
 
+function memberToVotingMemberEntry(m: Member) {
+	return {
+		SAPIN: m.SAPIN,
+		"Last Name": m.LastName,
+		"First Name": m.FirstName,
+		"Middle Name": m.MI,
+		Email: m.Email,
+		Employer: m.Employer,
+		Affiliation: m.Affiliation,
+		Status: m.Status,
+	};
+}
+
+function memberToDVLVotingMemberEntry(m: Member) {
+	return {
+		"First Name": m.FirstName,
+		"Last Name": m.LastName,
+		Email: m.Email,
+		MobilePhone: "",
+		City: "",
+		State: "",
+		Zipcode: "",
+		Country: "",
+		AllocatedVotes: "",
+	};
+}
+
+type MemberMapper = (
+	m: Member
+) =>
+	| ReturnType<typeof memberToVotingMemberEntry>
+	| ReturnType<typeof memberToDVLVotingMemberEntry>;
+
 export async function exportVotingMembers(
 	group: Group,
 	forPlenarySession: boolean,
+	forDVL: boolean,
 	res: Response
 ) {
 	const Status = forPlenarySession
@@ -1258,18 +1292,19 @@ export async function exportVotingMembers(
 		Status,
 	});
 
-	const ssData = members.map((m) => ({
-		SAPIN: m.SAPIN,
-		"Last Name": m.LastName,
-		"First Name": m.FirstName,
-		"Middle Name": m.MI,
-		Email: m.Email,
-		Employer: m.Employer,
-		Affiliation: m.Affiliation,
-		Status: m.Status,
-	}));
+	let memberMapper: MemberMapper;
+	let filename: string;
+	if (forDVL) {
+		memberMapper = memberToDVLVotingMemberEntry;
+		filename = `${group.name}-voting-members-dvl.csv`;
+	} else {
+		memberMapper = memberToVotingMemberEntry;
+		filename = `${group.name}-voting-members.csv`;
+	}
 
+	const ssData = members.map(memberMapper);
 	const csv = await csvStringify(ssData, { header: true });
-	res.attachment(group.name + "-voting-members.csv");
+
+	res.attachment(filename);
 	res.status(200).send(csv);
 }
