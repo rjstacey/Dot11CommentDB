@@ -9,7 +9,7 @@ export const googleCalendarSchema = z.object({
 	id: z.string(), // Identifier of the calendar.
 	summary: z.string(), // Title of the calendar.
 	description: z.string(), // Description of the calendar.
-	location: z.string(), // Geographic location of the calendar as free-form text.
+	location: z.string().optional(), // Geographic location of the calendar as free-form text.
 	timeZone: z.string(), // The time zone of the calendar. (Formatted as an IANA Time Zone Database name, e.g. "Europe/Zurich".)
 });
 
