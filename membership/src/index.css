@@ -63,6 +63,7 @@ div#root {
 	flex: 1; /* remaining height */
 	width: 100%;
 	flex-direction: column;
+	overflow: hidden;
 }
 
 .table-container.centered-rows .AppTable__dataRow,

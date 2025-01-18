@@ -6,6 +6,7 @@ import {
 	displayDateRange,
 	shallowDiff,
 	useDebounce,
+	ActionButton,
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -13,9 +14,9 @@ import {
 	getBallotId,
 	selectBallotParticipationState,
 	selectMemberBallotParticipationCount,
+	selectSyncedBallotSeriesEntities,
 	updateBallotParticipation,
 	BallotSeriesParticipationSummary,
-	selectSyncedBallotSeriesEntities,
 } from "@/store/ballotParticipation";
 
 import {
@@ -251,9 +252,25 @@ function MemberBallotParticipation({
 		triggerSave,
 	]);
 
+	const renderBallotParticipation = useRenderBallotParticipation();
+	function copyToClipboard() {
+		const html = renderBallotParticipation(SAPIN);
+		const type = "text/html";
+		const blob = new Blob([html], { type });
+		const data = [new ClipboardItem({ [type]: blob })];
+		navigator.clipboard.write(data);
+	}
+
 	return (
 		<Col>
-			<label>{`Recent ballot series participation: ${count}/${total}`}</label>
+			<div className="top-row">
+				<label>{`Recent ballot series participation: ${count}/${total}`}</label>
+				<ActionButton
+					name="copy"
+					title="Copy to clipboard"
+					onClick={copyToClipboard}
+				/>
+			</div>
 			<Table columns={columns} values={values} />
 		</Col>
 	);

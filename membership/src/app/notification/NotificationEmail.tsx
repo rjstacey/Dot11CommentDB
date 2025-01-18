@@ -2,7 +2,6 @@ import React from "react";
 import { useParams } from "react-router";
 import { Html } from "@react-email/html";
 import { render } from "@react-email/render";
-//import reactDOMS from "react-dom/server";
 import {
 	Select,
 	Row,
@@ -174,10 +173,6 @@ function genEmails({
 				renderBallotParticipation
 			);
 
-			/*console.log(
-				"before",
-				reactDOMS.hasOwnProperty("renderToReadableStream")
-			);*/
 			const html = await render(<FormatBody body={email.body} />);
 
 			const ToAddresses = email.to ? email.to.split(";") : [member.Email];

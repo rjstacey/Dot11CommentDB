@@ -7,6 +7,7 @@ import {
 	displayDateRange,
 	shallowDiff,
 	useDebounce,
+	ActionButton,
 } from "dot11-components";
 
 import type { RootState } from "@/store";
@@ -320,9 +321,25 @@ function MemberAttendances({
 		});
 	}, [sessionEntities, readOnly, setEditedAttendances, triggerSave]);
 
+	const renderSessionAttendances = useRenderSessionAttendances();
+	function copyToClipboard() {
+		const html = renderSessionAttendances(SAPIN);
+		const type = "text/html";
+		const blob = new Blob([html], { type });
+		const data = [new ClipboardItem({ [type]: blob })];
+		navigator.clipboard.write(data);
+	}
+
 	return (
 		<Col>
-			<label>{`Recent session attendance: ${count}/${total}`}</label>
+			<div className="top-row">
+				<label>{`Recent session attendance: ${count}/${total}`}</label>
+				<ActionButton
+					name="copy"
+					title="Copy to clipboard"
+					onClick={copyToClipboard}
+				/>
+			</div>
 			<Table columns={columns} values={values} />
 		</Col>
 	);
