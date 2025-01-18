@@ -249,7 +249,7 @@ export async function getCalendarAccounts(
 	query?: CalendarAccountsQuery
 ) {
 	const proxyHost = req.headers["x-forwarded-host"] as string;
-	const m = /(http[s]?:\/\/[^\/]+)\//.exec(req.headers["referer"] || "");
+	const m = /(http[s]?:\/\/[^/]+)\//.exec(req.headers["referer"] || "");
 	const host = m ? m[1] : proxyHost || req.headers.host || "";
 
 	// Use "get" as a way to clean stale entries in the cache
@@ -395,6 +395,7 @@ export async function revokeAuthCalendarAccount(
 	return accountOut;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function calendarApiError(error: any) {
 	const { response, status } = error;
 	if (response && status >= 400 && status < 500) {
@@ -407,7 +408,7 @@ function calendarApiError(error: any) {
 		throw new Error(`calendar api: status=${status} ${message}`);
 	}
 	console.log(error);
-	throw new Error(error);
+	throw error;
 }
 
 function touchAccount(account: CalendarAccountLocal) {

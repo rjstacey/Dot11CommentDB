@@ -47,6 +47,7 @@ const router = Router();
 router.use("/timezones", timezones);
 
 /* A get on root tests connectivity and provides server info */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 router.get("/", (req, res, next) =>
 	res.json({
 		name: pkg.name,
@@ -64,6 +65,7 @@ router.get("/", (req, res, next) =>
 router.use(authorize);
 
 declare global {
+	// eslint-disable-next-line @typescript-eslint/no-namespace
 	namespace Express {
 		interface Request {
 			user: User;

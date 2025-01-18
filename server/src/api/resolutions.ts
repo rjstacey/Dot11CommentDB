@@ -168,7 +168,7 @@ function uploadMany(req: Request, res: Response, next: NextFunction) {
 			)
 		);
 
-	let params: any;
+	let params: unknown;
 	try {
 		params = JSON.parse(req.body.params);
 		validateUploadParams(params);
@@ -191,15 +191,16 @@ function uploadMany(req: Request, res: Response, next: NextFunction) {
 const upload = Multer();
 const router = Router();
 
-const validToUpdate = (toUpdate: any): toUpdate is FieldToUpdate[] =>
+const validToUpdate = (toUpdate: unknown): toUpdate is FieldToUpdate[] =>
 	Array.isArray(toUpdate) &&
 	toUpdate.every((f) => toUpdateOptions.includes(f));
-const validMatchAlgo = (o: unknown): o is MatchAlgo =>
-	typeof o === "string" && matchAlgoOptions.includes(o as any);
-const validMatchUpdate = (f: unknown): f is MatchUpdate =>
-	typeof f === "string" && matchUpdateOptions.includes(f as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const validMatchAlgo = (o: any): o is MatchAlgo => matchAlgoOptions.includes(o);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const validMatchUpdate = (f: any): f is MatchUpdate =>
+	matchUpdateOptions.includes(f);
 
-function validateUploadParams(params: any): asserts params is {
+function validateUploadParams(params: unknown): asserts params is {
 	toUpdate: FieldToUpdate[];
 	matchAlgorithm: MatchAlgo;
 	matchUpdate: MatchUpdate;

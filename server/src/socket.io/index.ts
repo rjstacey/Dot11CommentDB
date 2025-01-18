@@ -3,7 +3,9 @@ import { Server as SocketIoServer, Socket } from "socket.io";
 import onPollConnect from "./poll.js";
 import { verifyToken } from "../auth/jwt.js";
 
-async function authSocket(socket: Socket, next: Function) {
+type NextFunction = (err?: Error) => void;
+
+async function authSocket(socket: Socket, next: NextFunction) {
 	console.log("auth");
 	try {
 		const token = socket.handshake.query.token;
@@ -13,11 +15,12 @@ async function authSocket(socket: Socket, next: Function) {
 		next();
 	} catch (error) {
 		console.error(error);
-		next(error);
+		if (error instanceof Error) next(error);
+		else throw error;
 	}
 }
 
-let io: any;
+let io: SocketIoServer;
 export function init(httpServer: HttpServer) {
 	io = new SocketIoServer(httpServer);
 	io.of("/poll")

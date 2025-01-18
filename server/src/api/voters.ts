@@ -139,7 +139,6 @@ function postMembersnapshot(req: Request, res: Response, next: NextFunction) {
 	} catch (error) {
 		return next(error);
 	}
-	const { date } = req.body;
 	votersFromMembersSnapshot(user, workingGroup.id, ballot.id, params.date)
 		.then((data) => res.json(data))
 		.catch(next);

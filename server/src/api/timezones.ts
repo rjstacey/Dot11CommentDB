@@ -13,6 +13,8 @@ const timezones = Object.keys(tzdata.zones)
 	.sort();
 
 const router = Router();
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 router.get("/", (req, res, next) => res.json(timezones));
 
 export default router;

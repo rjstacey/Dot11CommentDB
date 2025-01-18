@@ -42,8 +42,6 @@ import {
 	deleteMeetings,
 } from "../services/meetings.js";
 import {
-	MeetingCreate,
-	MeetingUpdate,
 	meetingCreatesSchema,
 	meetingUpdatesSchema,
 	meetingIdsSchema,
@@ -102,7 +100,6 @@ async function updateMany(req: Request, res: Response, next: NextFunction) {
 }
 
 async function removeMany(req: Request, res: Response, next: NextFunction) {
-	let ids: number[];
 	try {
 		const ids = meetingIdsSchema.parse(req.body);
 		const data = await deleteMeetings(req.user, ids);

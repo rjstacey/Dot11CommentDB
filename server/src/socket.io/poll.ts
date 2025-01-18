@@ -51,17 +51,19 @@ export class NoGroupError extends Error {
 	name = "NoGroupError";
 }
 
-function validCallback(callback: unknown): callback is Function {
+type CallbackFunction = (response: unknown) => void;
+
+function validCallback(callback: unknown): callback is CallbackFunction {
 	if (typeof callback === "function") return true;
 	console.warn("Bad callback");
 	return false;
 }
 
-function okCallback<T extends {}>(callback: Function, data?: T) {
+function okCallback<T extends object>(callback: CallbackFunction, data?: T) {
 	callback({ status: "OK", ...data } satisfies PollingOK);
 }
 
-function errorCallback(callback: Function, error: any) {
+function errorCallback(callback: CallbackFunction, error: unknown) {
 	console.log(error);
 	let errorObj: { name: string; message: string };
 	if (error instanceof Error) {
@@ -216,7 +218,7 @@ async function onEventDelete(
 async function onPollsGet(this: Socket, payload: unknown, callback: unknown) {
 	if (!validCallback(callback)) return;
 	try {
-		const groupId = getSocketGroupId(this);
+		//const groupId = getSocketGroupId(this);
 		const query = pollsQuerySchema.parse(payload);
 		const polls = await getPolls(query);
 		okCallback(callback, { polls } satisfies PollsGetResponse);
@@ -372,7 +374,7 @@ async function onGroupJoin(this: Socket, payload: unknown, callback: unknown) {
 	}
 }
 
-async function onGroupLeave(this: Socket, payload: unknown, callback: unknown) {
+async function onGroupLeave(this: Socket) {
 	leaveRooms(this);
 	clearSocketGroupId(this);
 }

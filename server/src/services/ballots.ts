@@ -1,7 +1,7 @@
 import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { DateTime } from "luxon";
-import { NotFoundError } from "../utils/index.js";
+import { isPlainObject, NotFoundError } from "../utils/index.js";
 
 import { getResults } from "./results.js";
 import { getWorkingGroup } from "./groups.js";
@@ -295,12 +295,12 @@ async function addBallot(
 			ballotSetSql(entry);
 		const results = await db.query<ResultSetHeader>(sql);
 		id = results.insertId;
-	} catch (err: any) {
-		throw err.code == "ER_DUP_ENTRY"
+	} catch (error) {
+		throw isPlainObject(error) && error.code == "ER_DUP_ENTRY"
 			? new TypeError(
 					"An entry already exists with BallotID=" + entry.BallotID
 				)
-			: err;
+			: error;
 	}
 
 	return getBallotWithNewResultsSummary(user, workingGroup.id, id);
