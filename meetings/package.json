@@ -10,12 +10,13 @@
 		"build": "vite build --emptyOutDir",
 		"test": "vite test",
 		"check": "eslint",
+		"type-check": "tsc --noEmit",
 		"assets": "vite-node scripts/generateIcon.ts"
 	},
 	"dependencies": {
 		"@reduxjs/toolkit": "^1.9.7",
 		"d3": "^7.8.5",
-		"dot11-components": "^1.9.97",
+		"dot11-components": "^1.9.98",
 		"idb-keyval": "^6.2.1",
 		"luxon": "^3.5.0",
 		"react": "^18.3.1",
@@ -32,6 +33,7 @@
 		"@types/d3": "^7.4.3",
 		"@types/luxon": "^3.3.7",
 		"@types/node": "^22.10.5",
+		"@types/react": "^18.3.1",
 		"@types/react-dom": "^18.2.18",
 		"@types/react-virtualized-auto-sizer": "^1.0.4",
 		"@types/redux-logger": "^3.0.12",

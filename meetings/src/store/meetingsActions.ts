@@ -76,14 +76,14 @@ export const loadMeetings =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url, query)
-			.then((response: any) => {
+			.then((response) => {
 				const { meetings, webexMeetings } =
 					meetingsGetResponse.parse(response);
 				dispatch(getSuccess(meetings));
 				dispatch(setSelectedSlots([]));
 				dispatch(setWebexMeetings(webexMeetings));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})
@@ -138,8 +138,10 @@ export const deleteMeetings =
 		const { groupName } = selectMeetingsState(getState());
 		return fetcher
 			.delete(`/api/${groupName}/meetings`, ids)
-			.then(() => dispatch(removeMany(ids)))
-			.catch((error: any) =>
-				dispatch(setError(`Unable to delete meetings ${ids}`, error))
-			);
+			.then(() => {
+				dispatch(removeMany(ids));
+			})
+			.catch((error: unknown) => {
+				dispatch(setError(`Unable to delete meetings ${ids}`, error));
+			});
 	};

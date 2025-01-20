@@ -2,9 +2,19 @@ import {
 	combineReducers,
 	configureStore as configureReduxStore,
 } from "@reduxjs/toolkit";
-import type { Action, ThunkAction, Middleware } from "@reduxjs/toolkit";
+import type {
+	Action,
+	AnyAction,
+	ThunkAction,
+	Middleware,
+} from "@reduxjs/toolkit";
 import { createLogger } from "redux-logger";
-import { persistStore, persistReducer, createTransform } from "redux-persist";
+import {
+	persistStore,
+	persistReducer,
+	createTransform,
+	PersistConfig,
+} from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import { get, set, del } from "idb-keyval";
 
@@ -45,19 +55,20 @@ const dataAppSliceNames = [
 	imatMeetingAttendanceSlice.name,
 	ieee802WorldSlice.name,
 	calendarAccountsSlice.name,
-	webexAccountsSlice.name
+	webexAccountsSlice.name,
 ];
 
 /*
  * For the dataApp slices (anything that maintains a 'loading' state)
  * clear the loading state when restoring from cache.
  */
+type GenericObject = Record<string, unknown>;
 const transformState = createTransform(
-	(state: any) => {
+	(state: GenericObject) => {
 		const { loading, ...rest } = state;
 		return rest;
 	},
-	(state) => {
+	(state: GenericObject) => {
 		return { ...state, loading: false };
 	},
 	{ whitelist: dataAppSliceNames }
@@ -83,16 +94,19 @@ const appReducer = combineReducers({
 	[ieee802WorldSlice.name]: ieee802WorldSlice.reducer,
 });
 
-const rootReducer = (state: any, action: Action) => {
+const rootReducer = (
+	state: ReturnType<typeof appReducer> | undefined,
+	action: AnyAction
+) => {
 	if (action.type === RESET_STORE_ACTION) state = undefined;
 	return appReducer(state, action);
 };
 
 const middleware: Middleware[] = [];
 if (process.env.NODE_ENV !== "production")
-	middleware.push(createLogger({ collapsed: true }));
+	middleware.push(createLogger({ collapsed: true }) as Middleware);
 
-const persistConfig = {
+const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	key: "meetings",
 	version,
 	storage: {
@@ -119,7 +133,7 @@ const persistConfig = {
 	],
 	transforms: [transformState],
 	stateReconciler: autoMergeLevel2,
-	migrate: (state: any) => {
+	migrate: (state) => {
 		if (state && state._persist && state._persist.version !== version)
 			return Promise.reject("Discard old version");
 		return Promise.resolve(state);
@@ -127,7 +141,7 @@ const persistConfig = {
 };
 
 export const store = configureReduxStore({
-	reducer: persistReducer(persistConfig, rootReducer as any),
+	reducer: persistReducer(persistConfig, rootReducer),
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({
 			immutableCheck: false,

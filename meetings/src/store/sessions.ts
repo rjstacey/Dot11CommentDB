@@ -74,7 +74,7 @@ export type SessionType = keyof typeof SessionTypeLabels;
 
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 	([value, label]) =>
-		({ value, label } as { value: SessionType; label: string })
+		({ value, label }) as { value: SessionType; label: string }
 );
 
 export const displaySessionType = (type: SessionType | null) =>
@@ -196,7 +196,7 @@ export const clearSessions = createAction(dataSet + "/clear");
 /* Selectors */
 export const selectSessionsState = (state: RootState) => state[dataSet];
 const selectSessionsAge = (state: RootState) => {
-	let lastLoad = selectSessionsState(state).lastLoad;
+	const lastLoad = selectSessionsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -298,11 +298,12 @@ export const loadSessions =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response) => {
 				const sessions = sessionsSchema.parse(response);
 				dispatch(getSuccess(sessions));
+				return sessions;
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 				return [];
