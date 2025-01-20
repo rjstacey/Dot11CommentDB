@@ -68,7 +68,7 @@ export const selectMemberEntities = (state: RootState) =>
 export const selectMember = (state: RootState, sapin: number) =>
 	selectMembersState(state).entities[sapin];
 const selectMembersAge = (state: RootState) => {
-	let lastLoad = selectMembersState(state).lastLoad;
+	const lastLoad = selectMembersState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -103,12 +103,12 @@ export const loadMembers =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const userMembers = userMembersSchema.parse(response);
 				dispatch(getSuccess(userMembers));
 				return selectMembers(getState());
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 				return selectMembers(getState());

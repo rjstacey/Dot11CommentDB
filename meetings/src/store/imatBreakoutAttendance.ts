@@ -105,7 +105,7 @@ export const clearBreakoutAttendance = createAction(dataSet + "/clear");
 export const selectBreakoutAttendanceState = (state: RootState) =>
 	state[dataSet];
 const selectBreakoutAttendanceAge = (state: RootState) => {
-	let lastLoad = selectBreakoutAttendanceState(state).lastLoad;
+	const lastLoad = selectBreakoutAttendanceState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -167,13 +167,13 @@ export const loadBreakoutAttendance =
 		const url = `/api/${groupName}/imat/attendance/${imatMeetingId}/${imatBreakoutId}`;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const imatBreakoutAttendances =
 					imatBreakoutAttendancesSchema.parse(response);
 				dispatch(getSuccess(imatBreakoutAttendances));
 				return selectImatBreakoutAttendances(getState());
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 				return [];

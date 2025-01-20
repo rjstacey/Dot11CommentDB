@@ -384,7 +384,7 @@ class SessionDetail extends React.Component<
 			.map((id) => sessionEntities[id]!)
 			.filter((s) => Boolean(s));
 		const diff: MultipleSession = sessions.reduce(
-			(diff, s) => deepMergeTagMultiple(diff as {}, s),
+			(diff, s) => deepMergeTagMultiple(diff, s),
 			{} as MultipleSession
 		);
 		return {

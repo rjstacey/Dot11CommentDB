@@ -95,7 +95,7 @@ export const setCalendarAccountDefaultId = slice.actions.setDefaultId;
 /* Selectors */
 export const selectCalendarAccountsState = (state: RootState) => state[dataSet];
 const selectCalendarAccountsAge = (state: RootState) => {
-	let lastLoad = selectCalendarAccountsState(state).lastLoad;
+	const lastLoad = selectCalendarAccountsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -132,11 +132,11 @@ export const loadCalendarAccounts =
 		const url = `/api/${groupName}/calendar/accounts`;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const calendar = calendarAccountsSchema.parse(response);
 				dispatch(getSuccess(calendar));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

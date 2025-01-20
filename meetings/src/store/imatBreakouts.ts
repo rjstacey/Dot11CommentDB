@@ -190,7 +190,7 @@ export const clearBreakouts = createAction(dataSet + "/clear");
 /* Selectors */
 export const selectBreakoutsState = (state: RootState) => state[dataSet];
 const selectBreakoutsAge = (state: RootState) => {
-	let lastLoad = selectBreakoutsState(state).lastLoad;
+	const lastLoad = selectBreakoutsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -274,14 +274,14 @@ export const loadBreakouts =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const { breakouts, timeslots, committees } =
 					getImatBreakoutsResponseSchema.parse(response);
 				dispatch(getSuccess(breakouts));
 				dispatch(setDetails({ timeslots, committees }));
 				return selectBreakouts(getState());
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 				return selectBreakouts(getState());

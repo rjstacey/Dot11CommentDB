@@ -12,7 +12,7 @@ export type User = {
 	SAPIN: number;
 	Name: string;
 	Email: string;
-	Token: any;
+	Token: string | null;
 };
 
 const initialState: User = {

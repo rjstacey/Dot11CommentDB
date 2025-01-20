@@ -79,7 +79,7 @@ export function copyChartToClipboard() {
 			blinkElement(svg);
 			console.log("copied");
 		})
-		.catch((error) => {
+		.catch(() => {
 			svgToPngBlob(svg!).then((blob) => {
 				const item = new ClipboardItem({ "image/png": blob! });
 				navigator.clipboard

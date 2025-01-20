@@ -179,7 +179,7 @@ const defaultTablesColumns = {
 	],
 };
 
-let defaultTablesConfig: TablesConfig = {};
+const defaultTablesConfig: TablesConfig = {};
 let tableView: keyof typeof defaultTablesColumns;
 for (tableView in defaultTablesColumns) {
 	const tableConfig: TableConfig = {
@@ -201,8 +201,8 @@ for (tableView in defaultTablesColumns) {
  * Don't display date and time if it is the same as previous line
  */
 function rowGetter({ rowIndex, ids, entities }: RowGetterProps<SyncedMeeting>) {
-	let meeting = entities[ids[rowIndex]]!;
-	let b = {
+	const meeting = entities[ids[rowIndex]]!;
+	const b = {
 		...meeting,
 		day: getField(meeting, "day"),
 		date: getField(meeting, "date"),
@@ -211,7 +211,7 @@ function rowGetter({ rowIndex, ids, entities }: RowGetterProps<SyncedMeeting>) {
 		location: getField(meeting, "location"),
 	};
 	if (rowIndex > 0) {
-		let b_prev = entities[ids[rowIndex - 1]]!;
+		const b_prev = entities[ids[rowIndex - 1]]!;
 		if (b.day === getField(b_prev, "day")) {
 			b.day = "";
 			if (b.date === getField(b_prev, "date")) {
@@ -226,7 +226,7 @@ function rowGetter({ rowIndex, ids, entities }: RowGetterProps<SyncedMeeting>) {
 }
 
 function MeetingsTable() {
-	let showDays: number = useAppSelector(selectUiProperties).showDays | 0;
+	const showDays: number = useAppSelector(selectUiProperties).showDays | 0;
 
 	return (
 		<SplitPanel selectors={meetingsSelectors} actions={meetingsActions}>
@@ -257,11 +257,7 @@ function MeetingsTable() {
 							measureRowHeight
 							selectors={meetingsSelectors}
 							actions={meetingsActions}
-							rowGetter={
-								rowGetter as (
-									p: RowGetterProps<SyncedMeeting>
-								) => any
-							}
+							rowGetter={rowGetter}
 						/>
 					</div>
 				</Panel>

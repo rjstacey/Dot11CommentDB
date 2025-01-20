@@ -65,7 +65,7 @@ const { getPending, getSuccess, getFailure } = slice.actions;
 /* Selectors */
 export const selectOfficersState = (state: RootState) => state[dataSet];
 const selectOfficersAge = (state: RootState) => {
-	let lastLoad = selectOfficersState(state).lastLoad;
+	const lastLoad = selectOfficersState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -110,12 +110,12 @@ export const loadOfficers =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const officers = officersSchema.parse(response);
 				dispatch(getSuccess(officers));
 				return selectOfficers(getState());
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 				return selectOfficers(getState());

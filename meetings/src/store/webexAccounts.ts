@@ -129,7 +129,7 @@ export const setWebexAccountDefaultId = slice.actions.setDefaultId;
 /* Selectors */
 export const selectWebexAccountsState = (state: RootState) => state[dataSet];
 const selectWebexAccountsAge = (state: RootState) => {
-	let lastLoad = selectWebexAccountsState(state).lastLoad;
+	const lastLoad = selectWebexAccountsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -163,16 +163,20 @@ export const loadWebexAccounts =
 			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ groupName }));
+		loading = true;
 		const url = `/api/${groupName}/webex/accounts`;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const accounts = webexAccountsSchema.parse(response);
 				dispatch(getSuccess(accounts));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
+			})
+			.finally(() => {
+				loading = false;
 			});
 		return loadingPromise;
 	};
@@ -197,7 +201,7 @@ export const updateWebexAccount =
 		try {
 			const response = await fetcher.patch(url, changes);
 			account = webexAccountSchema.parse(response);
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(setError("Unable to update webex account", error));
 			return;
 		}
@@ -213,7 +217,7 @@ export const addWebexAccount =
 		try {
 			const response = await fetcher.post(url, accountIn);
 			account = webexAccountSchema.parse(response);
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(setError("POST " + url, error));
 			return;
 		}
@@ -228,7 +232,7 @@ export const deleteWebexAccount =
 		dispatch(removeOne(id));
 		try {
 			await fetcher.delete(url);
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(setError("DELETE " + url, error));
 		}
 	};

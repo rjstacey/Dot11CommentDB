@@ -184,7 +184,15 @@ export function convertEntryToMeeting(
 	entry: MeetingEntry,
 	session?: Session
 ): MeetingCreate {
-	let { date, startTime, endTime, startSlotId, duration, ...rest } = entry;
+	const {
+		date,
+		startTime,
+		endTime: endTimeIn,
+		startSlotId,
+		duration,
+		...rest
+	} = entry;
+	let endTime = endTimeIn;
 
 	let zone;
 	if (isSessionMeeting(session)) {

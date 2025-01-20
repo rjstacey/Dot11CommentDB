@@ -1,4 +1,4 @@
-import { createSelector, EntityId } from "@reduxjs/toolkit";
+import { createSelector, isPlainObject, EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
 import {
@@ -9,7 +9,6 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	AppTableDataState,
-	isObject,
 	Fields,
 } from "dot11-components";
 
@@ -85,8 +84,7 @@ export function getField(entity: Ieee802WorldScheduleEntry, key: string) {
 			"-" +
 			entity.endTime.substring(0, 5)
 		);
-	if (!entity.hasOwnProperty(key))
-		console.warn(dataSet + " has no field " + key);
+	if (!(key in entity)) console.warn(dataSet + " has no field " + key);
 	return entity[key as keyof Ieee802WorldScheduleEntry];
 }
 
@@ -162,23 +160,30 @@ export const ieee802WorldSelectors = getAppTableDataSelectors(
 );
 
 /* Thunk actions */
-function validEntry(entry: any): entry is Ieee802WorldScheduleEntry {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isGenericObject(o: unknown): o is Record<string, any> {
+	return isPlainObject(o);
+}
+
+function validEntry(entry: unknown): entry is Ieee802WorldScheduleEntry {
 	return (
-		isObject(entry) &&
+		isGenericObject(entry) &&
 		typeof entry.id === "number" &&
 		typeof entry.startTime === "string" &&
 		typeof entry.endTime === "string"
 	);
 }
 
-function validResponse(response: any): response is Ieee802WorldScheduleEntry[] {
+function validResponse(
+	response: unknown
+): response is Ieee802WorldScheduleEntry[] {
 	return Array.isArray(response) && response.every(validEntry);
 }
 
 const url = "/api/802world";
 export const load802WorldSchedule = (): AppThunk => async (dispatch) => {
 	dispatch(getPending());
-	let response: any;
+	let response: unknown;
 	try {
 		response = await fetcher.get(url);
 		if (!validResponse(response))

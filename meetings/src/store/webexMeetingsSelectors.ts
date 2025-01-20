@@ -151,7 +151,7 @@ export const dataSet = "webexMeetings";
 
 export const selectWebexMeetingsState = (state: RootState) => state[dataSet];
 export const selectWebexMeetingsAge = (state: RootState) => {
-	let lastLoad = selectWebexMeetingsState(state).lastLoad;
+	const lastLoad = selectWebexMeetingsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };

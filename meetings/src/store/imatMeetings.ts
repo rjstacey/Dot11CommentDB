@@ -24,7 +24,7 @@ export const fields: Fields = {
 	id: { label: "Meeting number", type: FieldType.NUMERIC },
 	start: {
 		label: "Start",
-		dataRenderer: /*displayDate*/ (d: any) => `Here: ${d}`,
+		dataRenderer: /*displayDate*/ (d: string) => `Here: ${d}`,
 		type: FieldType.DATE,
 	},
 	end: { label: "End", dataRenderer: displayDate, type: FieldType.DATE },
@@ -83,7 +83,7 @@ export const clearImatMeetings = createAction(dataSet + "/clear");
 /* Selectors */
 export const selectImatMeetingsState = (state: RootState) => state[dataSet];
 const selectImatMeetingsAge = (state: RootState) => {
-	let lastLoad = selectImatMeetingsState(state).lastLoad;
+	const lastLoad = selectImatMeetingsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -145,11 +145,11 @@ export const loadImatMeetings =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const imatMeetings = imatMeetingsSchema.parse(response);
 				dispatch(getSuccess(imatMeetings));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

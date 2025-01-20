@@ -49,7 +49,7 @@ export function EditTable({
 
 	const header = (
 		<tr>
-			{columns.map((col, i) => (
+			{columns.map((col) => (
 				<th key={col.key} style={col.styleCell}>
 					{col.label}
 				</th>

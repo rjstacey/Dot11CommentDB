@@ -90,7 +90,7 @@ export const fields: Fields = {
 /*
  * Fields derived from other fields
  */
-export function getField(entity: SyncedMeeting, key: string): any {
+export function getField(entity: SyncedMeeting, key: string) {
 	if (key === "day")
 		return DateTime.fromISO(entity.start, { zone: entity.timezone })
 			.weekdayShort;
@@ -135,15 +135,14 @@ export function getField(entity: SyncedMeeting, key: string): any {
 		return webexMeeting
 			? `${webexAccountName}: ${displayMeetingNumber(
 					webexMeeting.meetingNumber
-			  )}`
+				)}`
 			: "";
 	}
 	if (key === "meetingNumber")
 		return entity.webexMeeting
 			? displayMeetingNumber(entity.webexMeeting.meetingNumber)
 			: "";
-	if (!entity.hasOwnProperty(key))
-		console.warn(dataSet + " has no field " + key);
+	if (!(key in entity)) console.warn(dataSet + " has no field " + key);
 	return entity[key as keyof Meeting];
 }
 
@@ -154,7 +153,7 @@ export const dataSet = "meetings";
 
 export const selectMeetingsState = (state: RootState) => state[dataSet];
 export const selectMeetingsAge = (state: RootState) => {
-	let lastLoad = selectMeetingsState(state).lastLoad;
+	const lastLoad = selectMeetingsState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -184,7 +183,7 @@ export const selectSyncedMeetingEntities = createSelector(
 		const entities: Record<EntityId, SyncedMeeting> = {};
 		for (const [id, meeting] of Object.entries(meetingEntities) as [
 			string,
-			Meeting
+			Meeting,
 		][]) {
 			const group: Group | undefined = meeting.organizationId
 				? groupEntities[meeting.organizationId]
@@ -207,7 +206,7 @@ export const selectSyncedMeetingEntities = createSelector(
 			const room = meeting!.sessionId
 				? sessionEntities[meeting.sessionId]!.rooms?.find(
 						(room) => room.id === meeting.roomId
-				  )
+					)
 				: undefined;
 			const sessionName = meeting!.sessionId
 				? sessionEntities[meeting.sessionId]!.name

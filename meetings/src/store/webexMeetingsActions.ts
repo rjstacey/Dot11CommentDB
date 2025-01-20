@@ -56,11 +56,11 @@ export const loadWebexMeetings =
 		loading = true;
 		loadingPromise = fetcher
 			.get(url, query)
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const webexMeetings = webexMeetingsSchema.parse(response);
 				dispatch(getSuccess(webexMeetings));
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

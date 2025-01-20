@@ -27,7 +27,7 @@ const sortComparer = (a: Meeting, b: Meeting) => {
 };
 
 function toggleListItems(list: string[], items: string[]) {
-	for (let id of items) {
+	for (const id of items) {
 		const i = list.indexOf(id);
 		if (i >= 0) list.splice(i, 1);
 		else list.push(id);

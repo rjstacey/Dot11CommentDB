@@ -90,7 +90,7 @@ export const clearImatMeetingAttendance = createAction(dataSet + "/clear");
 export const selectMeetingAttendanceState = (state: RootState) =>
 	state[dataSet];
 const selectMeetingAttendanceAge = (state: RootState) => {
-	let lastLoad = selectMeetingAttendanceState(state).lastLoad;
+	const lastLoad = selectMeetingAttendanceState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -168,7 +168,7 @@ export const loadImatMeetingAttendance =
 					breakouts: Breakout[]
 				): Promise<ImatMeetingAttendance[]> => {
 					let allAttendances: ImatMeetingAttendance[] = [];
-					let p: {
+					const p: {
 						id: number;
 						promise: Promise<ImatBreakoutAttendance[]>;
 					}[] = [];
@@ -210,7 +210,7 @@ export const loadImatMeetingAttendance =
 					return seelctMeetingAttendances(getState());
 				}
 			)
-			.catch((error: any) => {
+			.catch(() => {
 				dispatch(getFailure());
 				return [];
 			})
