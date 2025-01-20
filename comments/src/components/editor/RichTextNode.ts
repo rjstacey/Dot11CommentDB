@@ -206,7 +206,8 @@ export class RichTextNode extends TextNode {
 		};
 	}
 
-	exportDOM(editor: LexicalEditor): DOMExportOutput {
+	exportDOM(editor: LexicalEditor): DOMExportOutput;
+	exportDOM() {
 		let element: HTMLElement | Text = document.createTextNode(this.__text);
 		if (this.hasFormat("bold")) element = wrapElementWith(element, "b");
 		if (this.hasFormat("italic")) element = wrapElementWith(element, "i");
