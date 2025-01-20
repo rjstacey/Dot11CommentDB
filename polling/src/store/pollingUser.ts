@@ -115,7 +115,7 @@ export const pollingUserSubmitVote =
 				votes: pollVotes,
 			} satisfies PollVote);
 			dispatch(setSubmitMessage("Submit successful"));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(setSubmitMessage("Submit error"));
 			dispatch(handleError(error));
 		}

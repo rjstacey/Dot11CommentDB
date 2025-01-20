@@ -10,7 +10,6 @@ import { AccessLevel, selectUser, setUser } from "@/store/user";
 import pkg from "../../package.json";
 
 import styles from "./app.module.css";
-import { renderIcon } from "@/icon";
 
 const viewOptions = [
 	{ value: true, label: "Admin" },

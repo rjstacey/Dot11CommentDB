@@ -60,7 +60,7 @@ export const selectTimeZonesState = (state: RootState): TimeZonesState =>
 export const selectDefaultTimeZone = (state: RootState) =>
 	selectTimeZonesState(state).timeZone;
 export const selectTimeZonesAge = (state: RootState) => {
-	let lastLoad = selectTimeZonesState(state).lastLoad;
+	const lastLoad = selectTimeZonesState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };

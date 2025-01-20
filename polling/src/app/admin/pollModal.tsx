@@ -177,7 +177,7 @@ function PollOptionsEdit({
 }) {
 	const inputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
 	const buttonRef = React.useRef<HTMLButtonElement | null>(null);
-	let options = [...poll.options];
+	const options = [...poll.options];
 	if (options.length < 2) options.unshift("");
 	if (options.length < 2) options.unshift("");
 
@@ -247,14 +247,14 @@ function PollOptionsEdit({
 function PollActions({ poll }: { poll: Poll }) {
 	const dispatch = useAppDispatch();
 
-	let showDisabled = poll.state === "opened" || poll.state === "closed";
+	const showDisabled = poll.state === "opened" || poll.state === "closed";
 
-	let openDisabled =
+	const openDisabled =
 		poll.state === null ||
 		poll.state === "closed" ||
 		(poll.type === "m" && (!poll.movedSAPIN || !poll.secondedSAPIN));
 
-	let closeDisabled = poll.state === null || poll.state === "shown";
+	const closeDisabled = poll.state === null || poll.state === "shown";
 
 	function showPoll() {
 		dispatch(
@@ -328,8 +328,8 @@ function PollForm({
 
 	function changePoll(changes: Partial<Poll>) {
 		if (event.autoNumber && ("type" in changes || "title" in changes)) {
-			let changedPoll = { ...editPoll, ...changes };
-			let prefix = titlePrefix(changedPoll.type, changedPoll.index);
+			const changedPoll = { ...editPoll, ...changes };
+			const prefix = titlePrefix(changedPoll.type, changedPoll.index);
 			if (!changedPoll.title.startsWith(prefix)) {
 				changes.title = changedPoll.title.replace(
 					/^(M|S)[a-z]*\s+[0-9]+/i,

@@ -65,7 +65,7 @@ export function getSocket() {
 	return socket;
 }
 
-function isOkResponse(response: any): response is PollingOK {
+function isOkResponse(response: unknown): response is PollingOK {
 	return (
 		isPlainObject(response) &&
 		"status" in response &&
@@ -73,7 +73,7 @@ function isOkResponse(response: any): response is PollingOK {
 	);
 }
 
-function isErrorResponse(response: any): response is PollingError {
+function isErrorResponse(response: unknown): response is PollingError {
 	return (
 		isPlainObject(response) &&
 		"status" in response &&
@@ -108,16 +108,16 @@ export function okResponse<T extends z.ZodTypeAny>(
 
 export function pollingSocketEmit(
 	message: string,
-	data?: any
+	data?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ): Promise<undefined>;
 export function pollingSocketEmit<T extends z.ZodTypeAny>(
 	message: string,
-	data?: any,
+	data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
 	schema?: T
 ): Promise<z.infer<T>>;
 export function pollingSocketEmit<T extends z.ZodTypeAny>(
 	message: string,
-	data?: any,
+	data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
 	schema?: T
 ): Promise<z.infer<T> | undefined> {
 	return new Promise((resolve, reject) => {
@@ -129,17 +129,17 @@ export function pollingSocketEmit<T extends z.ZodTypeAny>(
 						? okResponse(response, schema)
 						: okResponse(response);
 					resolve(result);
-				} catch (error: any) {
+				} catch (error) {
 					reject(error);
 				}
 			});
-		} catch (error: any) {
+		} catch (error) {
 			reject(error);
 		}
 	});
 }
 
-export function handleError(error: any) {
+export function handleError(error: unknown) {
 	let name = "Error";
 	let message = "Unknown";
 	if (error instanceof Error) {
@@ -172,12 +172,11 @@ export const pollingSocketConnect =
 		});
 	};
 
-export const pollingSocketDisconnect =
-	(): AppThunk => async (dispatch, getState) => {
-		assertHasSocket(socket);
-		dispatch(setDisconnected());
-		socket.close();
-	};
+export const pollingSocketDisconnect = (): AppThunk => async (dispatch) => {
+	assertHasSocket(socket);
+	dispatch(setDisconnected());
+	socket.close();
+};
 
 export const pollingSocketJoinGroup =
 	(groupId: string): AppThunk =>
@@ -200,16 +199,15 @@ export const pollingSocketJoinGroup =
 			dispatch(pollingUserSetEvent(event || null));
 			dispatch(pollingUserSetPolls(r.polls));
 			dispatch(pollingUserSetActivePollId(r.pollId || null));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};
 
-export const pollingSocketLeaveGroup =
-	(): AppThunk => async (dispatch, getState) => {
-		try {
-			await pollingSocketEmit("group:leave");
-		} catch (error: any) {
-			dispatch(handleError(error));
-		}
-	};
+export const pollingSocketLeaveGroup = (): AppThunk => async (dispatch) => {
+	try {
+		await pollingSocketEmit("group:leave");
+	} catch (error) {
+		dispatch(handleError(error));
+	}
+};

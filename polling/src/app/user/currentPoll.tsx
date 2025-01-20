@@ -1,5 +1,5 @@
 import React from "react";
-import { Row, Button, FieldLeft, Checkbox } from "dot11-components";
+import { Row, FieldLeft, Checkbox } from "dot11-components";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 import {

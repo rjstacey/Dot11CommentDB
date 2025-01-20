@@ -174,7 +174,7 @@ export const pollingAdminEventsGet =
 				eventsGetResponseSchema
 			);
 			dispatch(setEvents(events));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};
@@ -190,7 +190,7 @@ export const pollingAdminSelectEvent =
 				pollsGetResponseSchema
 			);
 			dispatch(setPolls(polls));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};
@@ -202,7 +202,7 @@ export const pollingAdminEventPublish =
 			const msg = "event:" + (isPublished ? "publish" : "unpublish");
 			await pollingSocketEmit(msg, { eventId } satisfies EventPublish);
 			dispatch(updateEvent({ id: eventId, changes: { isPublished } }));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};
@@ -217,7 +217,7 @@ export const pollingAdminCreateEvent =
 				eventCreateResponseSchema
 			);
 			dispatch(addEvent(event));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};
@@ -232,7 +232,7 @@ export const pollingAdminUpdateEvent =
 				eventUpdateResponseSchema
 			);
 			dispatch(setEvent(event));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};
@@ -243,14 +243,14 @@ export const pollingAdminDeleteEvent =
 		try {
 			await pollingSocketEmit("event:delete", id satisfies EventDelete);
 			dispatch(removeEvent(id));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};
 
 export const pollingAdminAddPoll =
 	(pollIn: PollCreate): AppThunk =>
-	async (dispatch, getState) => {
+	async (dispatch) => {
 		try {
 			const { poll } = await pollingSocketEmit(
 				"poll:create",
@@ -259,7 +259,7 @@ export const pollingAdminAddPoll =
 			);
 			dispatch(addPoll(poll));
 			dispatch(setSelectedPollId(poll.id));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};
@@ -274,7 +274,7 @@ export const pollingAdminUpdatePoll =
 				pollUpdateResponseSchema
 			);
 			dispatch(setPoll(poll));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};
@@ -285,7 +285,7 @@ export const pollingAdminDeletePoll =
 		try {
 			await pollingSocketEmit("poll:delete", id satisfies PollDelete);
 			dispatch(removePoll(id));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};
@@ -305,7 +305,7 @@ export const pollingAdminPollAction =
 			else if (action === "open") state = "opened";
 			else if (action === "close") state = "closed";
 			dispatch(updatePoll({ id: pollId, changes: { state } }));
-		} catch (error: any) {
+		} catch (error) {
 			dispatch(handleError(error));
 		}
 	};

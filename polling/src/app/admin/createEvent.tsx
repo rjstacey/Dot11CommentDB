@@ -63,7 +63,7 @@ function CreateEventForm({ methods }: DropdownRendererProps) {
 			setErrorText("Invalid date");
 			return;
 		}
-		let t = DateTime.fromFormat(time, "HH:mm");
+		const t = DateTime.fromFormat(time, "HH:mm");
 		if (!t.isValid) {
 			setErrorText("Invalid time");
 			return;
@@ -141,11 +141,7 @@ function CreateEventDropdown() {
 	return (
 		<Dropdown
 			handle={false}
-			selectRenderer={({
-				props,
-				state,
-				methods,
-			}: DropdownRendererProps) => (
+			selectRenderer={({ state, methods }: DropdownRendererProps) => (
 				<Button
 					title="Export a list of voters"
 					isActive={state.isOpen}

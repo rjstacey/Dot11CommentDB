@@ -69,7 +69,7 @@ const subgroupLoader: LoaderFunction = async ({ params }) => {
 	await dispatch(loadGroups());
 	await dispatch(loadGroups(groupName));
 
-	let subgroup =
+	const subgroup =
 		subgroupName === "WG"
 			? selectSelectedGroup(getState())
 			: selectSubgroupByName(getState(), subgroupName);

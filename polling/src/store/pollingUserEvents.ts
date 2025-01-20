@@ -19,7 +19,7 @@ import {
 	setActivePollId,
 } from "./pollingUser";
 
-function pollingUserEventOpened(params: any, cb: Function) {
+function pollingUserEventOpened(params: unknown) {
 	const { dispatch } = store;
 	try {
 		const p = eventOpenedSchema.parse(params);
@@ -31,7 +31,7 @@ function pollingUserEventOpened(params: any, cb: Function) {
 	}
 }
 
-function pollingUserPollAdded(params: any, cb: Function) {
+function pollingUserPollAdded(params: unknown) {
 	const { dispatch } = store;
 	try {
 		const poll = pollAddedSchema.parse(params);
@@ -41,7 +41,7 @@ function pollingUserPollAdded(params: any, cb: Function) {
 	}
 }
 
-function pollingUserPollUpdated(params: any, cb: Function) {
+function pollingUserPollUpdated(params: unknown) {
 	const { dispatch } = store;
 	try {
 		const poll = pollUpdatedSchema.parse(params);
@@ -51,7 +51,7 @@ function pollingUserPollUpdated(params: any, cb: Function) {
 	}
 }
 
-function pollingUserPollRemoved(params: any, cb: Function) {
+function pollingUserPollRemoved(params: unknown) {
 	const { dispatch } = store;
 	try {
 		const id = pollDeletedSchema.parse(params);
@@ -61,11 +61,7 @@ function pollingUserPollRemoved(params: any, cb: Function) {
 	}
 }
 
-function pollingUserPollAction(
-	pollAction: PollAction,
-	params: any,
-	cb: Function
-) {
+function pollingUserPollAction(pollAction: PollAction, params: unknown) {
 	const { dispatch } = store;
 	try {
 		const pollId = pollIdSchema.parse(params);
@@ -87,16 +83,16 @@ export function pollingUserSocketRegister(socket: Socket) {
 		.on("poll:added", pollingUserPollAdded)
 		.on("poll:updated", pollingUserPollUpdated)
 		.on("poll:removed", pollingUserPollRemoved)
-		.on("poll:unshown", (params: any, cb: Function) =>
-			pollingUserPollAction("unshow", params, cb)
+		.on("poll:unshown", (params: unknown) =>
+			pollingUserPollAction("unshow", params)
 		)
-		.on("poll:shown", (params: any, cb: Function) =>
-			pollingUserPollAction("show", params, cb)
+		.on("poll:shown", (params: unknown) =>
+			pollingUserPollAction("show", params)
 		)
-		.on("poll:opened", (params: any, cb: Function) =>
-			pollingUserPollAction("open", params, cb)
+		.on("poll:opened", (params: unknown) =>
+			pollingUserPollAction("open", params)
 		)
-		.on("poll:closed", (params: any, cb: Function) =>
-			pollingUserPollAction("close", params, cb)
+		.on("poll:closed", (params: unknown) =>
+			pollingUserPollAction("close", params)
 		);
 }

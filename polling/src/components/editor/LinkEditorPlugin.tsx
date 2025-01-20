@@ -23,7 +23,7 @@ import {
 	LexicalEditor,
 	RangeSelection,
 	ElementNode,
-	TextNode 
+	TextNode,
 } from "lexical";
 
 export function getSelectedNode(
@@ -54,7 +54,6 @@ const SUPPORTED_URL_PROTOCOLS = new Set([
 export function sanitizeUrl(url: string): string {
 	try {
 		const parsedUrl = new URL(url);
-		// eslint-disable-next-line no-script-url
 		if (!SUPPORTED_URL_PROTOCOLS.has(parsedUrl.protocol)) {
 			return "about:blank";
 		}
@@ -126,9 +125,8 @@ function FloatingLinkEditor({
 	const inputRef = React.useRef<HTMLInputElement>(null);
 	const [linkUrl, setLinkUrl] = React.useState("");
 	const [editedLinkUrl, setEditedLinkUrl] = React.useState("https://");
-	const [lastSelection, setLastSelection] = React.useState<
-		BaseSelection | null
-	>(null);
+	const [lastSelection, setLastSelection] =
+		React.useState<BaseSelection | null>(null);
 
 	const updateLinkEditor = React.useCallback(() => {
 		const selection = $getSelection();

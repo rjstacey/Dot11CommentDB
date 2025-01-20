@@ -5,7 +5,12 @@ import {
 import type { Action, ThunkAction, Middleware } from "@reduxjs/toolkit";
 
 import { createLogger } from "redux-logger";
-import { persistStore, persistReducer, createTransform } from "redux-persist";
+import {
+	persistStore,
+	persistReducer,
+	createTransform,
+	PersistConfig,
+} from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import { get, set, del } from "idb-keyval";
 
@@ -23,12 +28,13 @@ const RESET_STORE_ACTION = "root/RESET_STORE";
 const PERSIST_VERSION = 1;
 
 /* Transform presistant state so that we reset "loading" state */
+type GenericObject = Record<string, unknown>;
 const transformState = createTransform(
-	(state: any) => {
+	(state: GenericObject) => {
 		const { loading, ...rest } = state;
 		return rest;
 	},
-	(state) => ({ ...state, loading: false }),
+	(state: GenericObject) => ({ ...state, loading: false }),
 	{
 		whitelist: [],
 	}
@@ -45,12 +51,15 @@ const appReducer = combineReducers({
 	[errorsSlice.name]: errorsSlice.reducer,
 });
 
-const rootReducer = (state: any, action: Action) => {
+const rootReducer = (
+	state: ReturnType<typeof appReducer> | undefined,
+	action: Action<unknown>
+) => {
 	if (action.type === RESET_STORE_ACTION) state = undefined;
 	return appReducer(state, action);
 };
 
-const persistConfig = {
+const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	key: "polling",
 	version: PERSIST_VERSION,
 	storage: {
@@ -67,7 +76,7 @@ const persistConfig = {
 	],
 	stateReconciler: autoMergeLevel2,
 	transforms: [transformState],
-	migrate: (state: any) => {
+	migrate: (state) => {
 		if (
 			state &&
 			state._persist &&
@@ -80,10 +89,10 @@ const persistConfig = {
 
 const middleware: Middleware[] = [];
 if (process.env.NODE_ENV !== "production")
-	middleware.push(createLogger({ collapsed: true }));
+	middleware.push(createLogger({ collapsed: true }) as Middleware);
 
 export const store = configureReduxStore({
-	reducer: persistReducer(persistConfig, rootReducer as any),
+	reducer: persistReducer(persistConfig, rootReducer),
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({
 			immutableCheck: false,
@@ -91,7 +100,7 @@ export const store = configureReduxStore({
 		}).concat(middleware),
 });
 
-export const persistor = persistStore(store, null);
+export const persistor = persistStore(store);
 
 export const resetStore = (): Action => ({ type: RESET_STORE_ACTION });
 

@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet } from "react-router";
 import { ErrorModal, ConfirmModal } from "dot11-components";
 import { useAppSelector } from "@/store/hooks";
 import { selectSelectedGroup } from "@/store/groups";

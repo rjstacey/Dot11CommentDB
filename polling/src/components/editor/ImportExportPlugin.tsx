@@ -36,7 +36,7 @@ function InportExportPlugin({
 	const debouncedOnChange = useDebounce(() => {
 		if (readOnly) return;
 		editor.update(() => {
-			let newValue = $getRoot().getTextContent()
+			const newValue = $getRoot().getTextContent()
 				? $generateHtmlFromNodes(editor)
 				: "";
 			if (newValue !== value) {
@@ -79,7 +79,7 @@ function InportExportPlugin({
 				},
 			}
 		);
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+	}, []);
 
 	React.useEffect(() => {
 		editor.setEditable(!readOnly);

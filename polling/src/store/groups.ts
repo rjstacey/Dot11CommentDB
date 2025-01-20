@@ -132,7 +132,7 @@ export const selectGroupEntities = (state: RootState) =>
 export const selectGroupIds = (state: RootState) =>
 	selectGroupsState(state).ids;
 const selectGroupsAge = (state: RootState, groupName: string) => {
-	let lastLoad = selectGroupsState(state).lastLoad[groupName];
+	const lastLoad = selectGroupsState(state).lastLoad[groupName];
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
@@ -198,11 +198,8 @@ export const selectSubgroupIds = createSelector(
 			}
 			return ids.filter(isDescendent);
 		} else {
-			return ids.filter(
-				(id) =>
-					(ids = ids.filter((id) =>
-						["r", "c", "wg"].includes(entities[id]!.type!)
-					))
+			return ids.filter((id) =>
+				["r", "c", "wg"].includes(entities[id]!.type!)
 			);
 		}
 	}
@@ -284,12 +281,12 @@ export const loadGroups =
 		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
 		loadingPromise[groupName] = fetcher
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
-			.then((response: any) => {
+			.then((response: unknown) => {
 				const groups = groupsSchema.parse(response);
 				dispatch(getSuccess(groups));
 				return groups;
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 				return [];

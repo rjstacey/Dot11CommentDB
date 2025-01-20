@@ -14,7 +14,7 @@ import {
 	removePoll,
 } from "./pollingAdmin";
 
-function pollingAdminEventOpened(params: any, cb: Function) {
+function pollingAdminEventOpened(params: unknown) {
 	const { dispatch } = store;
 	try {
 		const p = eventOpenedSchema.parse(params);
@@ -26,7 +26,7 @@ function pollingAdminEventOpened(params: any, cb: Function) {
 	}
 }
 
-function pollingAdminPollAdded(params: any, cb: Function) {
+function pollingAdminPollAdded(params: unknown) {
 	const { dispatch } = store;
 	try {
 		const poll = pollAddedSchema.parse(params);
@@ -36,7 +36,7 @@ function pollingAdminPollAdded(params: any, cb: Function) {
 	}
 }
 
-function pollingAdminPollUpdated(params: any, cb: Function) {
+function pollingAdminPollUpdated(params: unknown) {
 	const { dispatch } = store;
 	try {
 		const poll = pollUpdatedSchema.parse(params);
@@ -46,7 +46,7 @@ function pollingAdminPollUpdated(params: any, cb: Function) {
 	}
 }
 
-function pollingAdminPollRemoved(params: any, cb: Function) {
+function pollingAdminPollRemoved(params: unknown) {
 	const { dispatch } = store;
 	try {
 		const id = pollDeletedSchema.parse(params);

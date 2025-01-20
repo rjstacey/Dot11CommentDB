@@ -8,7 +8,7 @@ import {
 	LexicalEditor,
 	LexicalNode,
 	$createTextNode,
-	TextFormatType
+	TextFormatType,
 } from "lexical";
 
 function wrapElementWith(
@@ -22,9 +22,9 @@ function wrapElementWith(
 
 function convertTextDOMNode(domNode: Node): DOMConversionOutput {
 	let textContent = domNode.textContent || "";
-	textContent = textContent.replace(/\r/g, '').replace(/[ \t\n]+/g, ' ');
-	if (textContent === '') {
-		return {node: null};
+	textContent = textContent.replace(/\r/g, "").replace(/[ \t\n]+/g, " ");
+	if (textContent === "") {
+		return { node: null };
 	}
 	return { node: $createTextNode(textContent) };
 }
@@ -41,17 +41,17 @@ const nodeNameToTextFormat: Record<string, TextFormatType> = {
 	sup: "superscript",
 	u: "underline",
 	ins: "underline",
-	mark: "highlight"
+	mark: "highlight",
 };
 
 function convertTextFormatElement(domNode: Node): DOMConversionOutput {
-	let format: TextFormatType | undefined = nodeNameToTextFormat[domNode.nodeName.toLowerCase()];
+	let format: TextFormatType | undefined =
+		nodeNameToTextFormat[domNode.nodeName.toLowerCase()];
 
 	// Google Docs wraps all copied HTML in a <b> with font-weight normal
 	if (domNode.nodeName.toLowerCase() === "b") {
 		const b = domNode as HTMLElement;
-		if (b.style.fontWeight === 'normal')
-			format = undefined;
+		if (b.style.fontWeight === "normal") format = undefined;
 	}
 
 	if (format === undefined) {
@@ -125,7 +125,7 @@ export class RichTextNode extends TextNode {
 	}
 
 	isSimpleText() {
-		console.error('simple text')
+		console.error("simple text");
 		return (
 			(this.__type === "text" || this.__type === "rich-text") &&
 			this.__mode === 0
@@ -206,7 +206,8 @@ export class RichTextNode extends TextNode {
 		};
 	}
 
-	exportDOM(editor: LexicalEditor): DOMExportOutput {
+	exportDOM(editor: LexicalEditor): DOMExportOutput;
+	exportDOM() {
 		let element: HTMLElement | Text = document.createTextNode(this.__text);
 		if (this.hasFormat("bold")) element = wrapElementWith(element, "b");
 		if (this.hasFormat("italic")) element = wrapElementWith(element, "i");
@@ -221,7 +222,7 @@ export class RichTextNode extends TextNode {
 			element.setAttribute("spellcheck", "false");
 		}
 
-		return {element};
+		return { element };
 	}
 }
 

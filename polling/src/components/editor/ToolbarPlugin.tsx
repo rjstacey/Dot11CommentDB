@@ -134,7 +134,7 @@ function BlockStyleButtons({
 			}),
 			editor.registerCommand(
 				SELECTION_CHANGE_COMMAND,
-				(_payload, newEditor) => {
+				() => {
 					updateState();
 					return false;
 				},
@@ -199,7 +199,7 @@ function BlockStyleButtons({
 		}
 	}
 
-	let buttons = blockTypeOptions
+	const buttons = blockTypeOptions
 		.map((o) => (
 			<button
 				key={o.value}
@@ -210,7 +210,7 @@ function BlockStyleButtons({
 				}
 				disabled={disabled}
 				onClick={() => onChange(o.value)}
-				arial-label={o.label}
+				//arial-label={o.label}
 				title={o.label}
 			>
 				<i className={o.icon} />
@@ -316,7 +316,7 @@ function InlineStyleButtons({
 			}),
 			editor.registerCommand(
 				SELECTION_CHANGE_COMMAND,
-				(_payload, newEditor) => {
+				() => {
 					updateFormatState();
 					return false;
 				},
@@ -355,7 +355,7 @@ function InlineStyleButtons({
 				onClick={() => {
 					editor.dispatchCommand(FORMAT_TEXT_COMMAND, o.value);
 				}}
-				arial-label={o.label}
+				//arial-label={o.label}
 				title={o.label}
 			>
 				<i className={o.icon} />
@@ -435,14 +435,18 @@ function SelectAlignment({
 		else editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value);
 	}
 
-	const selectRenderer = (props: DropdownRendererProps) => (
+	const selectRenderer: (
+		props: DropdownRendererProps
+	) => JSX.Element = () => (
 		<button disabled={disabled}>
 			<i className="bi-text-left" />
 			<i className="bi-chevron-down" style={{ fontSize: "0.5em" }} />
 		</button>
 	);
 
-	const dropdownRenderer = (props: DropdownRendererProps) => (
+	const dropdownRenderer: (
+		props: DropdownRendererProps
+	) => JSX.Element = () => (
 		<>
 			{alignmentOptions.map((o, i) =>
 				o.value ? (
@@ -544,7 +548,7 @@ export default function ToolbarPlugin({ shown }: { shown: boolean }) {
 		const el = containerRef.current?.parentElement;
 		if (!el) return;
 		const ro = new ResizeObserver((entries) => {
-			let entry = entries[0];
+			const entry = entries[0];
 			const contentBoxSize = entry.contentBoxSize[0];
 			const { inlineSize } = contentBoxSize;
 			let size: Size = "large";
