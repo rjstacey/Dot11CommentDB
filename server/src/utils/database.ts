@@ -50,25 +50,9 @@ async function init() {
 }
 
 /* There seems to be a bug in the typing; dateStrings should be an option */
-/*type QueryArgs =
-	| [string, any?]
-	| [QueryOptions | { dateStrings?: boolean }, any?];
-
-const query = <
-	T extends
-		| ResultSetHeader
-		| ResultSetHeader[]
-		| RowDataPacket[]
-		| RowDataPacket[][],
->(
-	...args: QueryArgs
-) => pool.query<T>(...(args as [any])).then(([rows]) => rows);
-//const query2 = (...args: QueryArgs) => pool.query(...(args as [any]));
-*/
 interface QueryOptions2 extends QueryOptions {
 	dateStrings: boolean;
 }
-
 function query<T extends QueryResult>(
 	sql: string,
 	values?: any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -77,7 +61,7 @@ function query<T extends QueryResult>(
 	options: QueryOptions2,
 	values?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ): Promise<T>;
-function query<T extends QueryResult>(
+async function query<T extends QueryResult>(
 	sql: any, // eslint-disable-line @typescript-eslint/no-explicit-any
 	values?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ) {
