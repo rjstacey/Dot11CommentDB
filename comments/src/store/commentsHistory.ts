@@ -80,10 +80,15 @@ const { getPending, getSuccess, getFailure } = slice.actions;
 export const selectCommentsHistoryState = (state: RootState) => state[dataSet];
 
 /* Thunk actions */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isGenericObject(o: unknown): o is Record<string, any> {
+	return isPlainObject(o);
+}
+
 function validResponse(
 	response: unknown
 ): response is { history: CommentHistoryEntry[] } {
-	return isPlainObject(response) && Array.isArray(response.history);
+	return isGenericObject(response) && Array.isArray(response.history);
 }
 
 export const loadCommentsHistory =

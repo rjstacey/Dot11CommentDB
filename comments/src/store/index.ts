@@ -85,8 +85,10 @@ const rootReducer = (
 };
 
 const middleware: Middleware[] = []; //[thunk];
-if (process.env.NODE_ENV !== "production")
-	middleware.push(createLogger({ collapsed: true }));
+if (process.env.NODE_ENV !== "production") {
+	const logger = createLogger({ collapsed: true });
+	middleware.push(logger as Middleware);
+}
 
 const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	key: "comments",

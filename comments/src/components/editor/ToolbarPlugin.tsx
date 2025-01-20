@@ -210,7 +210,7 @@ function BlockStyleButtons({
 				}
 				disabled={disabled}
 				onClick={() => onChange(o.value)}
-				arial-label={o.label}
+				aria-label={o.label}
 				title={o.label}
 			>
 				<i className={o.icon} />
@@ -355,7 +355,7 @@ function InlineStyleButtons({
 				onClick={() => {
 					editor.dispatchCommand(FORMAT_TEXT_COMMAND, o.value);
 				}}
-				arial-label={o.label}
+				aria-label={o.label}
 				title={o.label}
 			>
 				<i className={o.icon} />
@@ -435,14 +435,18 @@ function SelectAlignment({
 		else editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value);
 	}
 
-	const selectRenderer = (props: DropdownRendererProps) => (
+	const selectRenderer: (
+		props: DropdownRendererProps
+	) => JSX.Element = () => (
 		<button disabled={disabled}>
 			<i className="bi-text-left" />
 			<i className="bi-chevron-down" style={{ fontSize: "0.5em" }} />
 		</button>
 	);
 
-	const dropdownRenderer = (props: DropdownRendererProps) => (
+	const dropdownRenderer: (
+		props: DropdownRendererProps
+	) => JSX.Element = () => (
 		<>
 			{alignmentOptions.map((o, i) =>
 				o.value ? (

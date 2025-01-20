@@ -1,4 +1,9 @@
-import { createSlice, Action, PayloadAction } from "@reduxjs/toolkit";
+import {
+	createSlice,
+	Action,
+	PayloadAction,
+	isPlainObject,
+} from "@reduxjs/toolkit";
 import { REHYDRATE } from "redux-persist";
 import { fetcher } from "dot11-components";
 import type { StoreType, RootState, AppThunk, AppDispatch } from ".";
@@ -125,11 +130,17 @@ const scheduleRetry =
 		return dispatch(delayStart(timerId));
 	};
 
-function mustDiscard(error: any) {
-	if (!("status" in error)) return true;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isGenericObject(o: unknown): o is Record<string, any> {
+	return isPlainObject(o);
+}
 
-	// discard for http 4xx errors
-	return error.status >= 400 && error.status < 500;
+function mustDiscard(error: unknown) {
+	if (isGenericObject(error) && "status" in error) {
+		// discard for http 4xx errors
+		return error.status >= 400 && error.status < 500;
+	}
+	return true;
 }
 
 const delaySchedule = [
@@ -146,7 +157,7 @@ function retryDelay(retries: number) {
 	return delaySchedule[retries] || null;
 }
 
-const send = (): AppThunk => async (dispatch, getState) => {
+const send = (): AppThunk<unknown> => async (dispatch, getState) => {
 	const state = selectOfflineState(getState());
 	if (state.outbox.length === 0 || !state.online) return;
 
