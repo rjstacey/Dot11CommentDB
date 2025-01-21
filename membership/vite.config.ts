@@ -9,6 +9,7 @@ import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
 
 const target = "http://localhost:8080";
+//const target = "https://test.802tools.org";
 
 export default defineConfig(({ command, mode }) => {
 	const __dirname = process.cwd();
@@ -26,7 +27,7 @@ export default defineConfig(({ command, mode }) => {
 			VitePWA({
 				registerType: "autoUpdate",
 				devOptions: {
-					enabled: true,
+					enabled: false,
 				},
 				manifest: {
 					name: "802 tools | Membeship",

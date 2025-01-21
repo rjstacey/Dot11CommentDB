@@ -70,6 +70,9 @@ export const memberContactInfoEmpty: ContactInfo = {
 export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	Name: { label: "Name" },
+	LastName: { label: "Family name" },
+	FirstName: { label: "Given name" },
+	MI: { label: "MI" },
 	Email: { label: "Email" },
 	Employer: { label: "Employer" },
 	Affiliation: { label: "Affiliation" },

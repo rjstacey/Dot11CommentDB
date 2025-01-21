@@ -146,6 +146,21 @@ export const tableColumns: ColumnProperties[] = [
 		cellRenderer: renderNameAndEmail,
 	},
 	{ key: "Name", ...fields.Name, width: 200, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "LastName",
+		...fields.LastName,
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
+		key: "FirstName",
+		...fields.FirstName,
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{ key: "MI", ...fields.MI, width: 80, flexGrow: 1, flexShrink: 1 },
 	{ key: "Email", ...fields.Email, width: 200, flexGrow: 1, flexShrink: 1 },
 	{
 		key: "Employer/Affiliation",
