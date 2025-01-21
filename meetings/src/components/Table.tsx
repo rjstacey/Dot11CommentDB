@@ -11,14 +11,17 @@ export const tableEmpty = (
 	</tr>
 );
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RenderCell = (entry: any) => React.ReactNode;
+
 export type TableColumn = {
 	/** Column key */
 	key: string;
 	/** Column label (used in <th>{label}</th>) */
 	label: string | JSX.Element;
-	gridTemplate?: any;
+	gridTemplate?: string;
 	/** A function to render cell element for entry */
-	renderCell?: (entry: any) => React.ReactNode;
+	renderCell?: RenderCell;
 	/** style for the <th> and <td> column cell */
 	styleCell?: React.CSSProperties;
 };
@@ -40,7 +43,7 @@ export function EditTable({
 	rowId,
 }: {
 	columns: TableColumn[] /** Column definitions */;
-	values: any[];
+	values: { [X: string]: unknown }[];
 	rowId?: string;
 }) {
 	const gridTemplateColumns = columns
@@ -58,10 +61,20 @@ export function EditTable({
 	);
 
 	const rows = values.map((entry, i) => (
-		<tr key={rowId ? entry[rowId] : i}>
+		<tr
+			key={
+				rowId
+					? (entry[
+							rowId
+						] as any) /*eslint-disable-line @typescript-eslint/no-explicit-any*/
+					: i
+			}
+		>
 			{columns.map((col) => (
 				<td key={col.key} style={col.styleCell}>
-					{col.renderCell ? col.renderCell(entry) : entry[col.key]}
+					{col.renderCell
+						? col.renderCell(entry)
+						: (entry[col.key] as React.ReactNode)}
 				</td>
 			))}
 		</tr>

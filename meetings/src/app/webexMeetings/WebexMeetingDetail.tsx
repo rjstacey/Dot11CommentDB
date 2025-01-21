@@ -827,6 +827,7 @@ class WebexMeetingDetail extends React.Component<
 			});
 		let entry: MultipleWebexMeetingEntry;
 		if (action === "update") {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const entryMerge: any = webexMeetings.reduce(
 				(entry, webexMeeting) =>
 					deepMergeTagMultiple(

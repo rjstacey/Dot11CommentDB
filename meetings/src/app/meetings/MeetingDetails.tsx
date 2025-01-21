@@ -314,12 +314,12 @@ class MeetingDetails extends React.Component<
 						? toSlotId(entry.date, timeslot, room)
 						: null;
 				return {
-					...deepMergeTagMultiple(accumulatedEntry as {}, entry),
+					...deepMergeTagMultiple(accumulatedEntry as {}, entry), // eslint-disable-line @typescript-eslint/no-empty-object-type
 					dates: accumulatedEntry.dates.concat([entry.date]),
 					slots: accumulatedEntry.slots.concat([slot]),
 				};
 			},
-			{ dates: [], slots: [] } as any
+			{ dates: [], slots: [] } as any // eslint-disable-line @typescript-eslint/no-explicit-any
 		);
 		entry.dates = [...new Set(entry.dates.sort())]; // array of unique dates
 
@@ -559,8 +559,10 @@ class MeetingDetails extends React.Component<
 						session
 					);
 				});
-			} catch (error: any) {
-				this.props.setError("Internal error", error.message);
+			} catch (error: unknown) {
+				let message = "Unknown";
+				if (error instanceof Error) message = error.message;
+				this.props.setError("Internal error", message);
 				meetings = [];
 			}
 		} else {

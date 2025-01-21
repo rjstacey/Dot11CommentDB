@@ -1,5 +1,5 @@
 {
-	"name": "meetings",
+	"name": "@802tools/meetings",
 	"description": "Manage session and telecon meetings",
 	"version": "1.1.5",
 	"private": true,
@@ -9,8 +9,7 @@
 		"start": "vite",
 		"build": "vite build --emptyOutDir",
 		"test": "vite test",
-		"check": "eslint",
-		"type-check": "tsc --noEmit",
+		"check": "tsc --noEmit && eslint",
 		"assets": "vite-node scripts/generateIcon.ts"
 	},
 	"dependencies": {

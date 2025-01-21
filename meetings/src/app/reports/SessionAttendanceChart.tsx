@@ -7,6 +7,7 @@ import { useAppSelector } from "@/store/hooks";
 
 import { selectMeetingEntities, type Meeting } from "@/store/meetings";
 import {
+	selectBreakoutMeeting,
 	selectBreakoutIds,
 	selectBreakoutEntities,
 	selectBreakoutTimeslots,
@@ -17,6 +18,7 @@ import { selectMeetingAttendanceCountsByBreakout } from "@/store/imatMeetingAtte
 import { Group, selectGroupEntities } from "@/store/groups";
 
 import type { ReportChartProps } from "./chart";
+import { SyncedImatMeeting } from "@/store/imatMeetings";
 
 interface F {
 	(element: SVGElement, text: string): number;
@@ -78,6 +80,7 @@ export type BreakoutAttendanceEntry = {
 };
 
 export function generateBreakoutAttendanceEntries(
+	imatMeeting: SyncedImatMeeting | undefined,
 	breakoutIds: EntityId[],
 	breakoutEntities: Dictionary<Breakout>,
 	timeslots: ImatTimeslot[],
@@ -86,7 +89,8 @@ export function generateBreakoutAttendanceEntries(
 	attendanceCountEntities: Record<number, number>
 ): BreakoutAttendanceEntry[] {
 	const groups = Object.values(groupEntities) as Group[];
-
+	if (!imatMeeting) console.error("imatMeeting not found");
+	const startDate = imatMeeting!.start;
 	const entries: BreakoutAttendanceEntry[] = [];
 
 	// Create series entities from breakouts
@@ -124,9 +128,12 @@ export function generateBreakoutAttendanceEntries(
 			);
 			const color = group?.color || "yellow";
 			if (attendanceCount && slot) {
+				const date = DateTime.fromISO(startDate).plus({
+					days: breakout.day,
+				});
 				const entry = {
 					label,
-					date: "" + DateTime.fromISO(breakout.start).toISODate(),
+					date: "" + date.toISODate(),
 					slotName: slot.name,
 					startTime: slot.startTime,
 					color,
@@ -141,6 +148,7 @@ export function generateBreakoutAttendanceEntries(
 }
 
 export const selectBreakoutAttendanceEntries = createSelector(
+	selectBreakoutMeeting,
 	selectBreakoutIds,
 	selectBreakoutEntities,
 	selectBreakoutTimeslots,
