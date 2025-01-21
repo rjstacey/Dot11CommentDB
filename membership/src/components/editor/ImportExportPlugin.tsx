@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { $getRoot, LexicalNode } from "lexical";
+import { $getRoot, $isElementNode, LexicalNode } from "lexical";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
@@ -9,7 +9,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { useDebounce } from "dot11-components";
 
 function recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
-	if (!node) return;
+	if (!$isElementNode(node)) return;
 	if (node.getChildren)
 		node.getChildren().forEach(recursivelyReplaceLinkWithAutoLink);
 	if ($isLinkNode(node)) {
@@ -37,9 +37,9 @@ function InportExportPlugin({
 		if (readOnly) return;
 		editor.update(() => {
 			const newValue = $generateHtmlFromNodes(editor, null);
-            if (newValue !== value) {
-			    onChange(newValue);
-            }
+			if (newValue !== value) {
+				onChange(newValue);
+			}
 		});
 	});
 
@@ -66,7 +66,7 @@ function InportExportPlugin({
 
 			recursivelyReplaceLinkWithAutoLink($getRoot());
 		});
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+	}, []);
 
 	React.useEffect(() => {
 		editor.setEditable(!readOnly);

@@ -181,7 +181,6 @@ function MemberBallotParticipation({
 			id: number,
 			changes: Partial<BallotSeriesParticipationSummary>
 		) {
-			console.log(id, changes);
 			setEditedParticipation((entities) => ({
 				...entities,
 				[id]: { ...entities[id], ...changes },

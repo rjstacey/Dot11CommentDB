@@ -77,7 +77,6 @@ export function copyChartToClipboard() {
 		.write([item])
 		.then(() => {
 			blinkElement(svg);
-			console.log("copied");
 		})
 		.catch(() => {
 			svgToPngBlob(svg!).then((blob) => {

@@ -1,6 +1,7 @@
 import {
 	createSelector,
 	createAction,
+	isPlainObject,
 	EntityId,
 	Action,
 } from "@reduxjs/toolkit";
@@ -12,7 +13,6 @@ import {
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
-	isObject,
 	Fields,
 } from "dot11-components";
 
@@ -240,9 +240,14 @@ export const sessionAttendeesSelectors = getAppTableDataSelectors(
 /*
  * Thunk actions
  */
-function validSessionAttendee(entry: any): entry is SessionAttendee {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isGenericObject(o: unknown): o is Record<string, any> {
+	return isPlainObject(o);
+}
+
+function validSessionAttendee(entry: unknown): entry is SessionAttendee {
 	return (
-		isObject(entry) &&
+		isGenericObject(entry) &&
 		typeof entry.SAPIN === "number" &&
 		typeof entry.Name === "string" &&
 		typeof entry.Email === "string"

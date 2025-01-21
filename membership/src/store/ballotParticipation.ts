@@ -2,6 +2,7 @@ import {
 	createSelector,
 	createAction,
 	createEntityAdapter,
+	isPlainObject,
 	Action,
 	PayloadAction,
 	Dictionary,
@@ -15,7 +16,6 @@ import {
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
-	isObject,
 	Fields,
 } from "dot11-components";
 
@@ -371,13 +371,18 @@ export const ballotParticipationSelectors = getAppTableDataSelectors(
 /*
  * Thunk actions
  */
-function validResponse(response: any): response is {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isGenericObject(o: unknown): o is Record<string, any> {
+	return isPlainObject(o);
+}
+
+function validResponse(response: unknown): response is {
 	ballots: Ballot[];
 	ballotSeries: BallotSeries[];
 	ballotSeriesParticipation: RecentBallotSeriesParticipation[];
 } {
 	return (
-		isObject(response) &&
+		isGenericObject(response) &&
 		Array.isArray(response.ballots) &&
 		Array.isArray(response.ballotSeries) &&
 		Array.isArray(response.ballotSeriesParticipation)

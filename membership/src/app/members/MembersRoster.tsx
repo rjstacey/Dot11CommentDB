@@ -45,8 +45,9 @@ function RosterUpdateDropdown({ methods }: DropdownRendererProps) {
 			busy={busy}
 		>
 			<Row>
-				Take the roster as exported by MyProject and update the
-				"Involvement Level" column to reflect member status.
+				{
+					'Take the roster as exported by MyProject and update the "Involvement Level" column to reflect member status.'
+				}
 			</Row>
 			<Row>
 				<Field label="Remove rows with no change:">

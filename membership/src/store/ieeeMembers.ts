@@ -1,11 +1,15 @@
-import { createAction, createSelector, Action } from "@reduxjs/toolkit";
+import {
+	createAction,
+	createSelector,
+	isPlainObject,
+	Action,
+} from "@reduxjs/toolkit";
 
 import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
 	FieldType,
-	isObject,
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
@@ -98,8 +102,13 @@ export const selectIeeeMembers = createSelector(
 );
 
 /* Thunk actions */
-function validIeeeMember(member: any): member is IeeeMember {
-	return isObject(member) && typeof member.SAPIN === "number";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isGenericObject(o: unknown): o is Record<string, any> {
+	return isPlainObject(o);
+}
+
+function validIeeeMember(member: unknown): member is IeeeMember {
+	return isGenericObject(member) && typeof member.SAPIN === "number";
 }
 
 function validResponse(members: unknown): members is IeeeMember[] {

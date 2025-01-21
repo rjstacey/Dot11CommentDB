@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import styles from "./Table.module.css";
 
 /** Render table for embedding in an email */
@@ -21,20 +21,27 @@ export function renderTable(headings: string[], values: string[][]) {
 	return table;
 }
 
+const Table = ({ className, ...props }: React.ComponentProps<"table">) => (
+	<table className={styles.table} {...props} />
+);
+
 export const tableEmpty = (
 	<tr>
 		<td className="empty">Empty</td>
 	</tr>
 );
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RenderCell = (entry: any) => React.ReactNode;
+
 export type TableColumn = {
 	/** Column key */
 	key: string;
 	/** Column label (used in <th>{label}</th>) */
 	label: string | JSX.Element;
-	gridTemplate?: any;
+	gridTemplate?: string;
 	/** A function to render cell element for entry */
-	renderCell?: (entry: any) => React.ReactNode;
+	renderCell?: RenderCell;
 	/** style for the <th> and <td> column cell */
 	styleCell?: React.CSSProperties;
 };
@@ -59,7 +66,7 @@ export function EditTable({
 	...props
 }: {
 	columns: TableColumn[] /** Column definitions */;
-	values: any[];
+	values: { [X: string]: unknown }[];
 	rowId?: string;
 } & React.ComponentProps<"table">) {
 	const gridTemplateColumns = columns
@@ -68,7 +75,7 @@ export function EditTable({
 
 	const header = (
 		<tr>
-			{columns.map((col, i) => (
+			{columns.map((col) => (
 				<th key={col.key} style={col.styleCell}>
 					{col.label}
 				</th>
@@ -77,10 +84,20 @@ export function EditTable({
 	);
 
 	const rows = values.map((entry, i) => (
-		<tr key={rowId ? entry[rowId] : i}>
+		<tr
+			key={
+				rowId
+					? (entry[
+							rowId
+						] as any) /*eslint-disable-line @typescript-eslint/no-explicit-any*/
+					: i
+			}
+		>
 			{columns.map((col) => (
 				<td key={col.key} style={col.styleCell}>
-					{col.renderCell ? col.renderCell(entry) : entry[col.key]}
+					{col.renderCell
+						? col.renderCell(entry)
+						: (entry[col.key] as React.ReactNode)}
 				</td>
 			))}
 		</tr>
@@ -97,3 +114,5 @@ export function EditTable({
 		</table>
 	);
 }
+
+export default Table;

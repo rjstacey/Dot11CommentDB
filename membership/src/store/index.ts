@@ -42,7 +42,7 @@ const transformState = createTransform(
 		const { loading, ...rest } = state;
 		return rest;
 	},
-	(state) => ({ ...state, loading: false }),
+	(state: GenericObject) => ({ ...state, loading: false }),
 	{
 		whitelist: [
 			membersSlice.name,
@@ -83,7 +83,7 @@ const appReducer = combineReducers({
 
 const rootReducer = (
 	state: ReturnType<typeof appReducer> | undefined,
-	action: Action
+	action: Action<unknown>
 ) => {
 	if (action.type === RESET_STORE_ACTION) state = undefined;
 	return appReducer(state, action);
@@ -131,7 +131,7 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 
 const middleware: Middleware[] = [];
 if (process.env.NODE_ENV !== "production")
-	middleware.push(createLogger({ collapsed: true }));
+	middleware.push(createLogger({ collapsed: true }) as Middleware);
 
 export const store = configureReduxStore({
 	reducer: persistReducer(persistConfig, rootReducer),
@@ -142,7 +142,7 @@ export const store = configureReduxStore({
 		}).concat(middleware),
 });
 
-export const persistor = persistStore(store, null);
+export const persistor = persistStore(store);
 
 export const resetStore = (): Action => ({ type: RESET_STORE_ACTION });
 

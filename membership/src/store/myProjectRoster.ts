@@ -1,6 +1,7 @@
 import {
 	createAction,
 	createSelector,
+	isPlainObject,
 	Action,
 	Dictionary,
 } from "@reduxjs/toolkit";
@@ -11,7 +12,6 @@ import {
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
-	isObject,
 	Fields,
 } from "dot11-components";
 
@@ -155,9 +155,16 @@ export const myProjectRosterSelectors = getAppTableDataSelectors(
 );
 
 /** Thunk actions */
-function validMyProjectRosterEntry(entry: any): entry is MyProjectRosterEntry {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isGenericObject(o: unknown): o is Record<string, any> {
+	return isPlainObject(o);
+}
+
+function validMyProjectRosterEntry(
+	entry: unknown
+): entry is MyProjectRosterEntry {
 	return (
-		isObject(entry) &&
+		isGenericObject(entry) &&
 		typeof entry.id === "number" &&
 		(entry.SAPIN === null || typeof entry.SAPIN === "number") &&
 		typeof entry.Email === "string" &&

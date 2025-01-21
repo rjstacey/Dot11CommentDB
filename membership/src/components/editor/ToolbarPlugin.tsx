@@ -613,7 +613,8 @@ export default function ToolbarPlugin() {
 				}
 				if (!blockTypeOptions.find((o) => o.value === type)) type = "";
 				setBlockType(type);
-				setFormatType(element.getFormatType());
+				if (element instanceof ElementNode)
+					setFormatType(element.getFormatType());
 				setFontFamily(
 					$getSelectionStyleValueForProperty(selection, "font-family")
 				);

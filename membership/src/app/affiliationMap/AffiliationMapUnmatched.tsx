@@ -24,7 +24,6 @@ function AffiliationMapUnmatched() {
 		for (const map of maps) {
 			const re = matchRegExp(map);
 			if (re) unmatched = unmatched.filter((m) => !re.test(m));
-			console.log(unmatched.length);
 		}
 
 		return unmatched.sort((a, b) => a.localeCompare(b));

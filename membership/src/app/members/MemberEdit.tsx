@@ -192,13 +192,20 @@ function ExpandingInput({
 	updateMember,
 	...props
 }: {
-	dataKey: keyof MultipleMember;
+	dataKey: keyof Omit<
+		MultipleMember,
+		| "ContactInfo"
+		| "ContactEmails"
+		| "ObsoleteSAPINs"
+		| "StatusChangeHistory"
+	>;
 	member: MultipleMember;
 	saved?: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
 } & React.ComponentProps<typeof Input>) {
-	const value: any = member[dataKey] || "";
-	const savedValue: any = saved?.[dataKey] || "";
+	const value = "" + member[dataKey];
+	const savedValue: string | number | boolean | null | undefined =
+		saved?.[dataKey] || "";
 	return (
 		<div
 			style={{
@@ -533,7 +540,9 @@ type NormalizeOptions<T> = {
 };
 
 function normalize<T>(arr: T[], options?: NormalizeOptions<T>) {
-	const selectId = options?.selectId || ((entry: any) => entry.id);
+	const selectId =
+		options?.selectId ||
+		((entry: T) => (entry as { id: string | number }).id);
 	const ids: (number | string)[] = [];
 	const entities: Record<number | string, T> = {};
 	arr.forEach((entity) => {
@@ -571,7 +580,8 @@ function arrayDiff<T extends { id: number | string }>(
 	const updates: { id: number | string; changes: Partial<T> }[] = [];
 	const deletes: (number | string)[] = [];
 	const { ids: ids1, entities: entities1 } = normalize(originalArr1);
-	let { ids: ids2, entities: entities2 } = normalize(updatedArr2);
+	const { ids: _ids2, entities: entities2 } = normalize(updatedArr2);
+	let ids2 = _ids2;
 	ids1.forEach((id1) => {
 		if (entities2[id1]) {
 			const changes = shallowDiff(entities1[id1], entities2[id1]);

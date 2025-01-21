@@ -419,7 +419,7 @@ export const UploadFormat = {
 };
 
 export const uploadMembers =
-	(format: string, file: any): AppThunk =>
+	(format: string, file: File): AppThunk =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
@@ -515,7 +515,6 @@ export const exportVotingMembers =
 		if (plenary) search.append("plenary", "true");
 		if (dvl) search.append("dvl", "true");
 		if (search.size > 0) url += "?" + search.toString();
-		console.log(search.size, url);
 		try {
 			await fetcher.getFile(url);
 		} catch (error) {

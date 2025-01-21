@@ -75,7 +75,6 @@ function MemberEmailSelector({
 		const value = values
 			.map((m) => (m.Name ? `${m.Name} <${m.Email}>` : m.Email))
 			.join("; ");
-		console.log(value);
 		onChange(value);
 	}
 

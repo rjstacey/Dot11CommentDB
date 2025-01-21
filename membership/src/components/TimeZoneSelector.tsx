@@ -21,7 +21,7 @@ function TimeZoneSelector({
 
 	React.useEffect(() => {
 		if (!valid && !loading) dispatch(loadTimeZones());
-	}, [dispatch]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, []);
 
 	const options = React.useMemo(
 		() => timeZones.map((tz) => ({ value: tz, label: tz })),
