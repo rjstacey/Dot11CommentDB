@@ -69,5 +69,8 @@ export async function sendEmail(user: User, email: Email) {
 export async function sendEmails(user: User, emails: Email[]) {
 	if (!sesClient) throw new Error("eMail service has not been initialized");
 
-	return Promise.all(emails.map((email) => sendEmail(user, email)));
+	while (emails.length > 0) {
+		const toSend = emails.splice(0, 10);
+		await Promise.all(toSend.map((email) => sendEmail(user, email)));
+	}
 }

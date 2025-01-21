@@ -98,10 +98,10 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 	if (typeof err === "string") {
 		message = err;
 	} else if (err instanceof Error) {
-		message = err.message + ":\n";
+		message = err.name + ":" + err.message;
 		if (err instanceof ZodError) {
 			const m = err.issues.map((e) => `${e.path[0]}: ${e.message}`);
-			message += m.join("\n");
+			message += "\n" + m.join("\n");
 		}
 		if (err.name === "TypeError" || "sqlState" in err) status = 400;
 		else if (err.name === "AuthError") status = 401;
@@ -122,7 +122,7 @@ const __dirname = process.cwd();
 function initExpressApp() {
 	const app = express();
 
-	app.use(express.json());
+	app.use(express.json({ limit: "10MB" }));
 	app.use(express.urlencoded({ extended: true }));
 
 	// Log requests to console

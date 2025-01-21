@@ -12,7 +12,7 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=../build/server.js",
 		"prod": "cd ../build && node server.js",
-		"type-check": "tsc --noEmit",
+		"check": "tsc --noEmit && eslint",
 		"eslint": "eslint"
 	},
 	"dependencies": {
