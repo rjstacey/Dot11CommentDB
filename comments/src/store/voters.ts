@@ -9,7 +9,7 @@ import {
 } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
-import { updateBallotsLocal } from "./ballots";
+import { selectCurrentBallot_id, updateBallotsLocal } from "./ballots";
 import {
 	Voter,
 	VoterCreate,
@@ -213,13 +213,12 @@ export const updateVoter =
 		}
 	};
 
-export const exportVoters =
-	(ballot_id: number): AppThunk =>
-	async (dispatch) => {
-		const url = `${baseUrl}/${ballot_id}/export`;
-		try {
-			await fetcher.getFile(url);
-		} catch (error) {
-			dispatch(setError("GET " + url, error));
-		}
-	};
+export const exportVoters = (): AppThunk => async (dispatch, getState) => {
+	const ballot_id = selectCurrentBallot_id(getState());
+	const url = `${baseUrl}/${ballot_id}/export`;
+	try {
+		await fetcher.getFile(url);
+	} catch (error) {
+		dispatch(setError("GET " + url, error));
+	}
+};

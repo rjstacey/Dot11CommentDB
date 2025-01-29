@@ -5,11 +5,10 @@
 	"homepage": "comments",
 	"type": "module",
 	"scripts": {
-		"start": "vite",
+		"start": "vite --force",
 		"build": "vite build --emptyOutDir",
 		"test": "vite test",
-		"type-check": "tsc --noEmit",
-		"check": "eslint",
+		"check": "tsc --noEmit && eslint",
 		"assets": "vite-node scripts/generateIcon.ts"
 	},
 	"dependencies": {

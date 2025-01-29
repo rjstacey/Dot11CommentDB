@@ -1,10 +1,9 @@
 import {
-	Action,
 	combineReducers,
 	configureStore as configureReduxStore,
+	isPlainObject,
 } from "@reduxjs/toolkit";
-import type { ThunkAction, AnyAction } from "@reduxjs/toolkit";
-import type { Middleware } from "redux";
+import type { Action, ThunkAction, Middleware } from "@reduxjs/toolkit";
 import { createLogger } from "redux-logger";
 import {
 	persistStore,
@@ -47,13 +46,15 @@ const dataAppSliceNames = [
  * For the dataApp slices (anything that maintains a 'loading' state)
  * clear the loading state when restoring from cache.
  */
-type GenericObject = Record<string, unknown>;
+type GenericObject = { [x: string]: unknown };
+const isGenericObject = (o: unknown): o is GenericObject => isPlainObject(o);
 const transformState = createTransform(
-	(state: GenericObject) => {
+	(state) => {
+		if (!isGenericObject(state)) return state;
 		const { loading, ...rest } = state;
 		return rest;
 	},
-	(state) => {
+	(state: GenericObject) => {
 		return { ...state, loading: false };
 	},
 	{ whitelist: dataAppSliceNames }
@@ -76,7 +77,7 @@ const appReducer = combineReducers({
 
 const rootReducer = (
 	state: ReturnType<typeof appReducer> | undefined,
-	action: AnyAction
+	action: Action<unknown>
 ) => {
 	if (action.type === RESET_STORE_ACTION) {
 		state = undefined;
@@ -84,11 +85,9 @@ const rootReducer = (
 	return appReducer(state, action);
 };
 
-const middleware: Middleware[] = []; //[thunk];
-if (process.env.NODE_ENV !== "production") {
-	const logger = createLogger({ collapsed: true });
-	middleware.push(logger as Middleware);
-}
+const middleware: Middleware[] = [];
+if (process.env.NODE_ENV !== "production")
+	middleware.push(createLogger({ collapsed: true }) as Middleware);
 
 const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	key: "comments",

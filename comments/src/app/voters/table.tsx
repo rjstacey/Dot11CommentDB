@@ -1,6 +1,4 @@
 import React from "react";
-import { useOutletContext } from "react-router";
-import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
 	ActionButton,
 	AppTable,
@@ -10,6 +8,8 @@ import {
 	ShowFilters,
 	ColumnProperties,
 } from "dot11-components";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { BallotType, selectBallot } from "@/store/ballots";
 import {
 	fields,
 	deleteVoters,
@@ -71,11 +71,12 @@ const tableColumns: ColumnPropertiesWithWidth[] = [
 	},
 ];
 
-function VotersTable() {
-	const { setVotersState } = useOutletContext<VotersContext>();
+function VotersTable({ setVotersState }: VotersContext) {
 	const dispatch = useAppDispatch();
-	const votersBallot_id = useAppSelector(selectVotersBallot_id);
-
+	const id = useAppSelector(selectVotersBallot_id);
+	const b = useAppSelector((state) =>
+		id ? selectBallot(state, id) : undefined
+	);
 	const [columns, maxWidth] = React.useMemo(() => {
 		const onDelete = async (voter: Voter) => {
 			const ok = await ConfirmModal.show(
@@ -99,11 +100,7 @@ function VotersTable() {
 		return [columns, maxWidth];
 	}, [dispatch, setVotersState]);
 
-	if (!votersBallot_id) {
-		return <span>No voting pool</span>;
-	}
-
-	return (
+	return b?.Type === BallotType.WG ? (
 		<div className="table-container centered-rows">
 			<ShowFilters
 				style={{ maxWidth }}
@@ -121,6 +118,10 @@ function VotersTable() {
 				selectors={votersSelectors}
 				actions={votersActions}
 			/>
+		</div>
+	) : (
+		<div className="table-container" style={{ justifyContent: "center" }}>
+			<span>No voting pool</span>
 		</div>
 	);
 }

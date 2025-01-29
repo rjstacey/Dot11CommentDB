@@ -56,7 +56,7 @@ function VotersActions({ setVotersState }: VotersContext) {
 				name="export"
 				title="Export voters"
 				disabled={!votersBallot_id || !isOnline}
-				onClick={() => dispatch(exportVoters(votersBallot_id!))}
+				onClick={() => dispatch(exportVoters())}
 			/>
 			<ActionButton
 				name="refresh"

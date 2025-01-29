@@ -1,9 +1,4 @@
-import {
-	defineConfig,
-	loadEnv,
-	searchForWorkspaceRoot,
-	type UserConfig,
-} from "vite";
+import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
@@ -51,7 +46,7 @@ export default defineConfig(({ command, mode }) => {
 		resolve: {
 			alias: {
 				"@": "/src",
-				"@schemas": path.resolve("../schemas"),
+				"@schemas": path.resolve(__dirname, "../schemas"),
 			},
 		},
 		server: {
@@ -68,12 +63,6 @@ export default defineConfig(({ command, mode }) => {
 					changeOrigin: true,
 					ws: true,
 				},
-			},
-			fs: {
-				allow: [
-					searchForWorkspaceRoot(process.cwd()),
-					"../../dot11-components",
-				],
 			},
 		},
 	} satisfies UserConfig;

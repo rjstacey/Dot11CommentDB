@@ -12,7 +12,6 @@ import {
 import { clearVoters, loadVoters } from "@/store/voters";
 
 import VotersLayout from "./layout";
-import VotersTable from "./table";
 
 const indexLoader: LoaderFunction = async () => {
 	store.dispatch(clearVoters());
@@ -58,12 +57,10 @@ const route: RouteObject = {
 		{
 			index: true,
 			loader: indexLoader,
-			element: null,
 		},
 		{
 			path: ":ballotId",
 			loader: ballotIdLoader,
-			element: <VotersTable />,
 		},
 	],
 };
