@@ -28,7 +28,7 @@ export const meetingSchema = z.object({
 	imatBreakoutId: z.number().nullable(),
 	sessionId: z.number(),
 	roomId: z.number().nullable(),
-	roomName: z.string().optional(),
+	roomName: z.string().nullable().optional(),
 });
 export const meetingsSchema = meetingSchema.array();
 
