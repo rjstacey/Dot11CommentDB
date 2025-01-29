@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
-import { csvStringify, parseSpreadsheet, BasicFile } from "../utils/index.js";
+import { parseSpreadsheet, BasicFile } from "../utils/index.js";
+import ExcelJS from "exceljs";
 
 import type { Response } from "express";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
@@ -15,6 +16,7 @@ import type {
 	VoterCreate,
 	VoterUpdate,
 } from "@schemas/voters.js";
+import { Ballot } from "@schemas/ballots.js";
 
 type VoterFromSpreadsheet = {
 	SAPIN: number;
@@ -35,11 +37,11 @@ const createViewVotersCurrent = `
 	CREATE VIEW votersCurrent AS
 	WITH membersCurrent AS (
 		SELECT
-			SAPIN, SAPIN as CurrentSAPIN, Name, Email, Affiliation, Status, groupId
+			SAPIN, SAPIN as CurrentSAPIN, Name, LastName, FirstName, MI, Email, Affiliation, Status, groupId
 		FROM members WHERE Status<>'Obsolete'
 		UNION ALL
 		SELECT
-			m1.SAPIN, m1.ReplacedBySAPIN as CurrentSAPIN, m2.Name, m2.Email, m2.Affiliation, m2.Status, m2.groupId
+			m1.SAPIN, m1.ReplacedBySAPIN as CurrentSAPIN, m2.Name, m2.LastName, m2.FirstName, m2.MI, m2.Email, m2.Affiliation, m2.Status, m2.groupId
 		FROM members m1
 			LEFT JOIN members m2 ON m1.groupId=m2.groupId AND m2.SAPIN=m1.ReplacedBySAPIN
 		WHERE m1.Status='Obsolete'
@@ -47,13 +49,14 @@ const createViewVotersCurrent = `
 	SELECT
 		v.id,
 		v.SAPIN,
-		m.CurrentSAPIN, m.Name, m.Email, m.Affiliation,
+		m.CurrentSAPIN, m.Name, m.LastName, m.FirstName, m.MI, m.Email, m.Affiliation,
 		v.Status,
 		v.Excused,
-		v.ballot_id,
+		b.id as ballot_id,
+		b.initial_id,
 		m.groupId
 	FROM wgVoters v
-		LEFT JOIN ballots b ON b.id=v.ballot_id
+		LEFT JOIN ballotsStage b ON b.initial_id=v.ballot_id
 		LEFT JOIN membersCurrent m ON v.SAPIN=m.SAPIN AND b.workingGroupId=m.groupId;
 `;
 
@@ -83,11 +86,12 @@ export function getVoters(constraints?: VoterQuery): Promise<Voter[]> {
 		"SELECT " +
 			"BIN_TO_UUID(id) AS id, " +
 			"SAPIN, " + 
-			"CurrentSAPIN, Name, Email, Affiliation, " +
+			"CurrentSAPIN, Name, LastName, FirstName, MI, Email, Affiliation, " +
 			"BIN_TO_UUID(groupId) as groupId, " +
 			"Status, " +
 			"Excused, " +
-			"ballot_id " +
+			"ballot_id, " +
+			"initial_id " +
 		"FROM votersCurrent";
 
 	if (constraints) {
@@ -269,15 +273,59 @@ export async function votersFromMembersSnapshot(
 	return insertVoters(workingGroupId, ballot_id, voters);
 }
 
-export async function exportVoters(
-	workingGroupId: string,
-	ballot_id: number,
-	res: Response
+function populateVotersWorksheet(
+	ws: ExcelJS.Worksheet,
+	ballot: Ballot,
+	voters: Voter[]
 ) {
-	const voters = await getVoters({ ballot_id });
-	const arr = voters.map((v) => [v.SAPIN, v.Name, v.Email]);
-	arr.unshift(["SA PIN", "Name", "Email"]);
-	const csv = await csvStringify(arr, {});
-	res.attachment("voters.csv");
-	res.status(200).send(csv);
+	/* Create a table with the voters */
+	const columns = [
+		{ dataKey: "LastName", label: "Family Name", width: 30 },
+		{ dataKey: "FirstName", label: "Given Name", width: 30 },
+		{ dataKey: "MI", label: "Middle Initial", width: 18 },
+		{ dataKey: "Status", label: "Status", width: 20 },
+	];
+
+	const cell = ws.getRow(1).getCell(1);
+	cell.value = `Voters List for ${ballot.BallotID}\n(${ballot.Document})`;
+	cell.alignment = {
+		horizontal: "center",
+		vertical: "middle",
+		wrapText: true,
+	};
+	cell.font = { bold: true, size: 16 };
+	ws.mergeCells(1, 1, 1, columns.length);
+	ws.getRow(1).height = 100;
+
+	ws.addTable({
+		name: `${ballot.BallotID}Voters`,
+		ref: "A2",
+		headerRow: true,
+		totalsRow: false,
+		style: {
+			theme: "TableStyleLight16",
+			showRowStripes: true,
+		},
+		columns: columns.map((col) => ({
+			name: col.label,
+			filterButton: true,
+		})),
+		rows: voters.map((row) => columns.map((col) => row[col.dataKey])),
+	});
+	columns.forEach((col, i) => {
+		ws.getColumn(i + 1).width = col.width;
+	});
+}
+
+export async function exportVoters(user: User, ballot: Ballot, res: Response) {
+	const voters = await getVoters({ ballot_id: ballot.id });
+	console.log(`ballot ${ballot.BallotID} has ${voters.length} voters`);
+
+	const workbook = new ExcelJS.Workbook();
+	workbook.creator = user.Name;
+
+	const ws = workbook.addWorksheet("Voters");
+	populateVotersWorksheet(ws, ballot, voters);
+	res.attachment(`${ballot.BallotID}_voters.xlsx`);
+	return workbook.xlsx.write(res);
 }

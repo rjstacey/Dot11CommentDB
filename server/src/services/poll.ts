@@ -76,6 +76,7 @@ export async function getPolls(query: PollsQuery = {}): Promise<Poll[]> {
 			"p.title, " +
 			"p.body, " +
 			"p.type, " +
+			"p.recordType, " +
 			"p.options, " +
 			"p.choice, " +
 			"p.movedSAPIN, " + 
@@ -148,7 +149,7 @@ export async function pollVote(user: User, poll: Poll, votes: number[]) {
 	await db.query(sql);
 }
 
-export async function pollResults(poll: Poll): Promise<PollResult[]> {
+export async function pollResults(poll: Poll) {
 	if (poll.state !== "opened" && poll.state !== "closed")
 		throw new TypeError("Poll in bad state");
 
@@ -156,6 +157,12 @@ export async function pollResults(poll: Poll): Promise<PollResult[]> {
 		"SELECT pollId, SAPIN, votes FROM pollVotes WHERE pollId=?",
 		[poll.id]
 	);
-	const results = db.query<(RowDataPacket & PollResult)[]>(sql);
-	return results;
+	const results = await db.query<(RowDataPacket & PollResult)[]>(sql);
+	const resultsSummary: number[] = new Array(poll.options.length).fill(0);
+	for (const r of results) {
+		for (const i of r.votes) {
+			if (i >= 0 && i <= poll.options.length) resultsSummary[i]++;
+		}
+	}
+	return { results, resultsSummary };
 }

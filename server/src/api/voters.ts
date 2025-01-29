@@ -94,16 +94,7 @@ function removeMany(req: Request, res: Response, next: NextFunction) {
 }
 
 function getExport(req: Request, res: Response, next: NextFunction) {
-	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup)
-		return next(
-			new NotFoundError(
-				`Can't find working group for ${req.groups![0].id}`
-			)
-		);
-
-	const ballot = req.ballot!;
-	exportVoters(workingGroup.id, ballot.id, res).catch(next);
+	exportVoters(req.user, req.ballot!, res).catch(next);
 }
 
 function postUpload(req: Request, res: Response, next: NextFunction) {
