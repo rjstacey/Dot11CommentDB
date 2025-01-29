@@ -79,6 +79,13 @@ export const pollIdSchema = z.number();
 export const pollTypeSchema = z.enum(["m", "sp"]);
 export type PollType = z.infer<typeof pollTypeSchema>;
 
+export enum PollRecordType {
+	ANONYMOUS = 0,
+	ADMIN_VIEW,
+	RECORDED,
+}
+export const pollRecordTypeSchema = z.nativeEnum(PollRecordType);
+
 export const pollActionSchema = z.enum(["show", "unshow", "open", "close"]);
 export const pollStateSchema = z.enum(["shown", "opened", "closed"]).nullable();
 
@@ -98,6 +105,7 @@ export const pollSchema = z.object({
 	title: z.string(),
 	body: z.string(),
 	type: pollTypeSchema,
+	recordType: pollRecordTypeSchema,
 	options: pollOptionsSchema,
 	choice: pollChoiceSchema,
 	movedSAPIN: z.number().nullable(),

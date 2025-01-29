@@ -8,11 +8,15 @@ export const voterSchema = z.object({
 	SAPIN: z.number(),
 	CurrentSAPIN: z.number(),
 	Name: z.string(),
+	LastName: z.string(),
+	FirstName: z.string(),
+	MI: z.string(),
 	Email: z.string().email(),
 	Affiliation: z.string(),
 	Status: z.string(),
 	Excused: z.boolean(),
 	ballot_id: z.number(),
+	initial_id: z.number(),
 });
 export const votersSchema = voterSchema.array();
 
