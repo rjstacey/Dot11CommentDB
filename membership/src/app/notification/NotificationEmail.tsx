@@ -16,11 +16,11 @@ import {
 	Spinner,
 } from "dot11-components";
 
-import Editor, {
-	replaceClassWithInlineStyle,
-} from "@/components/editor/Editor";
-import { useRenderSessionAttendances } from "../sessionParticipation/MemberAttendances";
-import { useRenderBallotParticipation } from "../ballotParticipation/MemberBallotParticipation";
+import Editor from "@/components/editor/Editor";
+import { replaceClassWithInlineStyle } from "@/components/editor/utils";
+
+import { useRenderSessionAttendances } from "../sessionParticipation/renderSessionAttendances";
+import { useRenderBallotParticipation } from "../ballotParticipation/renderBallotParticipation";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {

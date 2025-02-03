@@ -29,7 +29,7 @@ import {
 import { selectRecentSessions } from "@/store/sessions";
 import { SessionAttendanceSummary } from "@/store/attendanceSummary";
 
-import { renderNameAndEmail } from "../members/table";
+import { renderNameAndEmail } from "../members/membersTableColumns";
 import MemberDetail from "../members/MemberDetail";
 
 const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) => (

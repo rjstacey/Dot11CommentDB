@@ -9,6 +9,7 @@ import {
 	setError,
 } from "dot11-components";
 
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";
 import {
 	selectGroupsState,
@@ -29,14 +30,11 @@ import {
 import ShowAccess from "@/components/ShowAccess";
 import {
 	GroupEntryForm,
-	useGroupAdd,
-	useGroupsDelete,
-	useGroupsUpdate,
 	GroupEntry,
 	MultipleGroupEntry,
 	EditAction,
 } from "./GroupEntry";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useGroupAdd, useGroupsDelete, useGroupsUpdate } from "./utils";
 
 const BLANK_STR = "(Blank)";
 

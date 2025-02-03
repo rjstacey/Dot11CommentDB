@@ -19,15 +19,17 @@ import {
 	type MemberCreate,
 } from "@/store/members";
 
+import ShowAccess from "@/components/ShowAccess";
 import {
 	MemberEntryForm,
-	useMembersAdd,
-	useMembersUpdate,
-	useMembersDelete,
 	type MultipleMember,
 	type EditAction,
 } from "./MemberEdit";
-import ShowAccess from "@/components/ShowAccess";
+import {
+	useMembersAdd,
+	useMembersUpdate,
+	useMembersDelete,
+} from "./membersEdit";
 
 const defaultMember: MemberCreate & { ContactInfo: ContactInfo } = {
 	SAPIN: 0,

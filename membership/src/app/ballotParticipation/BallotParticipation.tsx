@@ -33,7 +33,7 @@ import {
 } from "@/store/ballotParticipation";
 
 import MemberDetail from "../members/MemberDetail";
-import { renderNameAndEmail } from "../members/table";
+import { renderNameAndEmail } from "../members/membersTableColumns";
 import BulkStatusUpdate from "../sessionParticipation/BulkStatusUpdate";
 import { refresh } from "./route";
 

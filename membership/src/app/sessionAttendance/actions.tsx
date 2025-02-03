@@ -44,10 +44,10 @@ import {
 
 import SessionSelector from "./SessionSelector";
 import { refresh } from "./routes";
-import { tableColumns as sessionAttendeesColumns } from "./table";
-import { tableColumns as sessionRegistrationColumns } from "./sessionRegistration";
+import { tableColumns as sessionAttendeesColumns } from "./sessionAttendanceTableColumns";
+import { tableColumns as sessionRegistrationColumns } from "./sessionRegistrationTableColumns";
 import { copyChartToClipboard, downloadChart } from "@/components/copyChart";
-import { sessionAttendeeToNewMember } from "./detail";
+import { sessionAttendeeToNewMember } from "./utils";
 
 function ImportRegistrationForm({ methods }: DropdownRendererProps) {
 	const dispatch = useAppDispatch();

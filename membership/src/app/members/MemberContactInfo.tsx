@@ -8,7 +8,8 @@ import {
 	ContactInfo,
 	memberContactInfoEmpty,
 } from "@/store/members";
-import { hasChangesStyle, type MultipleMember } from "./MemberEdit";
+import type { MultipleMember } from "./MemberEdit";
+import { hasChangesStyle } from "./utils";
 
 import { EditTable as Table, TableColumn } from "@/components/Table";
 
