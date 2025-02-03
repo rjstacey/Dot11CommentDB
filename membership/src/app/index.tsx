@@ -1,6 +1,14 @@
 import * as React from "react";
 import { createBrowserRouter, RouterProvider } from "react-router";
 import routes from "./routes";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+
+import { store, persistor, resetStore } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectUser, setUser, type User } from "@/store/user";
+
+import "./index.css";
 
 const getRouter = () =>
 	createBrowserRouter(routes, { basename: "/membership" });
@@ -12,4 +20,28 @@ function App() {
 	return <RouterProvider router={router} />;
 }
 
-export default App;
+function AppVerifySameUser({ user }: { user: User }) {
+	const dispatch = useAppDispatch();
+	const storeUser = useAppSelector(selectUser);
+
+	React.useEffect(() => {
+		if (storeUser.SAPIN !== user.SAPIN) dispatch(resetStore());
+		dispatch(setUser(user)); // Make sure we have the latest user info
+	}, []);
+
+	return <App />;
+}
+
+function AppInitStore({ user }: { user: User }) {
+	return (
+		<React.StrictMode>
+			<Provider store={store}>
+				<PersistGate loading="Loading..." persistor={persistor}>
+					<AppVerifySameUser user={user} />
+				</PersistGate>
+			</Provider>
+		</React.StrictMode>
+	);
+}
+
+export default AppInitStore;

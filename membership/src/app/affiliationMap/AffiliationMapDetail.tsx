@@ -1,5 +1,6 @@
 import * as React from "react";
 import { shallowEqual } from "react-redux";
+import type { EntityId } from "@reduxjs/toolkit";
 
 import { ConfirmModal, ActionButton } from "dot11-components";
 
@@ -7,16 +8,14 @@ import {
 	useAffiliationMapAdd,
 	useAffiliationMapUpdate,
 	useAffiliationMapsDelete,
-	EditAction,
-	AffiliationMapEntryForm,
-} from "./AffiliationMapEntry";
+} from "./utils";
+import { EditAction, AffiliationMapEntryForm } from "./AffiliationMapEntry";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	AffiliationMap,
 	selectAffiliationMapState,
 	setSelected,
 } from "@/store/affiliationMap";
-import { EntityId } from "@reduxjs/toolkit";
 import AffiliationMapTest from "./AffiliationMapMatches";
 import AffiliationMapUnmatched from "./AffiliationMapUnmatched";
 
