@@ -653,11 +653,16 @@ export async function getWebexMeeting(
 	id: string,
 	timezone?: string
 ): Promise<WebexMeeting> {
+	const account = await getActiveWebexAccount(accountId);
 	const api = await getWebexAccountApi(accountId);
 	const config = timezone ? { headers: { timezone } } : undefined;
 	return api
 		.get(`/meetings/${id}`, config)
-		.then((response) => response.data)
+		.then((response) => ({
+			accountId,
+			accountName: account.name,
+			...response.data,
+		}))
 		.catch(webexApiError);
 }
 

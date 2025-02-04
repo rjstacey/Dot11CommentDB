@@ -193,19 +193,20 @@ export async function parseMyProjectResults(file: Express.Multer.File) {
 
 /*
  * MyProject Roster
+ * Changed around 1/30/2025. Removed middle name and address.
  */
 const myProjectRosterHeader = [
 	"SA PIN",
 	"Last Name",
 	"First Name",
-	"Middle Name",
+	//	"Middle Name",
 	"Email Address",
-	"Street Address/PO Box",
-	"City",
-	"State/Province",
-	"Postal Code",
-	"Country",
-	"Phone",
+	//	"Street Address/PO Box",
+	//	"City",
+	//	"State/Province",
+	//	"Postal Code",
+	//	"Country",
+	//	"Phone",
 	"Employer",
 	"Affiliation",
 	"Officer Role",
@@ -263,20 +264,20 @@ const myProjectRosterColumns: Record<string, Col> = {
 		width: 20,
 		set: (m) => m.FirstName,
 	},
-	"Middle Name": {
+	/*"Middle Name": {
 		width: 18,
 		set: (m) => m.MI,
-	},
+	},*/
 	"Email Address": {
 		width: 41,
 		set: (m) => m.Email,
 	},
-	"Street Address/PO Box": { width: 41 },
+	/*"Street Address/PO Box": { width: 41 },
 	City: { width: 41 },
 	"State/Province": { width: 41 },
 	"Postal Code": { width: 41 },
 	Country: { width: 41 },
-	Phone: { width: 31 },
+	Phone: { width: 31 },*/
 	Employer: {
 		width: 25,
 		set: (m) => m.Employer,
@@ -460,9 +461,10 @@ export async function updateMyProjectRoster(
 		ws = ws2;
 	}
 
+	console.log(options);
 	if (options.appendNew) {
 		for (const m of members) {
-			if (!activeStatus.includes[m.Status]) continue;
+			if (!activeStatus.includes(m.Status)) continue;
 			const values = Object.values(myProjectRosterColumns).map((col) =>
 				typeof col.set === "function" ? col.set(m) : col.set || ""
 			);
