@@ -271,21 +271,26 @@ function SessionAttendanceActions() {
 				>
 					<div style={{ display: "flex", alignItems: "center" }}>
 						<Checkbox
+							id="useDaily"
 							checked={useDaily}
 							onChange={toggleUseDaily}
 							disabled={loading}
 						/>
-						<label style={{ marginLeft: 10 }}>
+						<label htmlFor="useDaily" style={{ marginLeft: 10 }}>
 							Daily attendance
 						</label>
 					</div>
 					<div style={{ display: "flex", alignItems: "center" }}>
 						<Checkbox
+							id="not_useDaily"
 							checked={!useDaily}
 							onChange={toggleUseDaily}
 							disabled={loading}
 						/>
-						<label style={{ marginLeft: 10 }}>
+						<label
+							htmlFor="not_useDaily"
+							style={{ marginLeft: 10 }}
+						>
 							Attendance summary
 						</label>
 					</div>

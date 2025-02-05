@@ -95,6 +95,7 @@ function MemberContactEmails({
 			if (col.key === "Email") {
 				renderCell = (entry: ContactEmail) => (
 					<Input
+						id={col.key + entry.id}
 						type="text"
 						style={{ width: "100%" }}
 						value={entry.Email}
@@ -110,6 +111,7 @@ function MemberContactEmails({
 			if (col.key === "Primary") {
 				renderCell = (entry: ContactEmail) => (
 					<Checkbox
+						id={col.key + entry.id}
 						checked={!!entry.Primary}
 						onChange={(e) =>
 							updateContactEmail(entry.id, {
@@ -123,6 +125,7 @@ function MemberContactEmails({
 			if (col.key === "Broken") {
 				renderCell = (entry: ContactEmail) => (
 					<Checkbox
+						id={col.key + entry.id}
 						checked={!!entry.Broken}
 						onChange={(e) =>
 							updateContactEmail(entry.id, {
@@ -193,8 +196,11 @@ function MemberContactInfoEdit({
 
 	const contactInfoRows = ContactInfoFields.map((f) => (
 		<div key={f.key} style={{ display: "flex", alignItems: "center" }}>
-			<label style={{ fontWeight: "bold", width: 100 }}>{f.label}</label>
+			<label htmlFor={f.key} style={{ fontWeight: "bold", width: 100 }}>
+				{f.label}
+			</label>
 			<Input
+				id={f.key}
 				style={hasChangesStyle(
 					editedContactInfo,
 					savedContactInfo || undefined,
@@ -212,6 +218,7 @@ function MemberContactInfoEdit({
 					})
 				}
 				disabled={readOnly}
+				autoComplete="none"
 			/>
 		</div>
 	));

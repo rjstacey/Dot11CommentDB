@@ -25,7 +25,7 @@
 		"@react-email/render": "^1.0.4",
 		"@reduxjs/toolkit": "^1.9.7",
 		"d3": "^7.9.0",
-		"dot11-components": "^1.9.106",
+		"dot11-components": "^1.9.107",
 		"idb-keyval": "^6.2.1",
 		"lexical": "^0.23.0",
 		"lodash.debounce": "^4.0.8",

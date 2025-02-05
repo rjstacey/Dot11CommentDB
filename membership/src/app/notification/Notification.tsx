@@ -43,7 +43,7 @@ function MostRecentBallotSummary() {
 
 	return (
 		<div style={{ display: "flex", flexDirection: "column" }}>
-			<label>Most recent ballot series:</label>
+			<span>Most recent ballot series:</span>
 			{content}
 		</div>
 	);
@@ -79,7 +79,7 @@ function MostRecentSessionSummary() {
 
 	return (
 		<div style={{ display: "flex", flexDirection: "column" }}>
-			<label>Most recent session:</label>
+			<span>Most recent session:</span>
 			{content}
 		</div>
 	);

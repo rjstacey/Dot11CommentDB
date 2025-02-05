@@ -10,6 +10,6 @@
 	margin: 0 10px;
 }
 
-.labelValue label {
+.labelValue span:first-child {
 	font-weight: bold;
 }

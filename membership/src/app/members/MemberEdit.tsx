@@ -251,6 +251,7 @@ export function MemberBasicInfo({
 				}
 				pattern="\d+"
 				disabled={basicOnly || readOnly}
+				autoComplete="none"
 			/>
 		);
 	}
@@ -258,30 +259,34 @@ export function MemberBasicInfo({
 	return (
 		<>
 			<Row>
-				<FieldLeft label={sapinsLabel}>{sapinsEl}</FieldLeft>
+				<FieldLeft id="sapin" label={sapinsLabel}>
+					{sapinsEl}
+				</FieldLeft>
 				<FieldLeft label="Date added:">
 					{renderDate(member.DateAdded)}
 				</FieldLeft>
 			</Row>
 			<Row>
-				<Field label="Name:">
+				<Field id="name" label="Name:">
 					<ExpandingInput
 						dataKey="Name"
 						member={member}
 						saved={saved}
 						updateMember={updateMember}
 						disabled={readOnly}
+						autoComplete="none"
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Family name:">
+				<Field id="familyname" label="Family name:">
 					<ExpandingInput
 						dataKey="LastName"
 						member={member}
 						saved={saved}
 						updateMember={updateMember}
 						disabled={readOnly}
+						autoComplete="none"
 					/>
 				</Field>
 			</Row>
@@ -294,6 +299,7 @@ export function MemberBasicInfo({
 							saved={saved}
 							updateMember={updateMember}
 							disabled={readOnly}
+							autoComplete="none"
 						/>
 						<div style={{ padding: 5 }} />
 						<ExpandingInput
@@ -302,12 +308,13 @@ export function MemberBasicInfo({
 							saved={saved}
 							updateMember={updateMember}
 							disabled={readOnly}
+							autoComplete="none"
 						/>
 					</div>
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Email:">
+				<Field id="email" label="Email:">
 					<ExpandingInput
 						dataKey="Email"
 						member={member}
@@ -315,28 +322,31 @@ export function MemberBasicInfo({
 						updateMember={updateMember}
 						disabled={readOnly}
 						pattern={emailPattern}
+						autoComplete="none"
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Employer:">
+				<Field id="employer" label="Employer:">
 					<ExpandingInput
 						dataKey="Employer"
 						member={member}
 						saved={saved}
 						updateMember={updateMember}
 						disabled={readOnly}
+						autoComplete="none"
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Affiliation:">
+				<Field id="affiliation" label="Affiliation:">
 					<ExpandingInput
 						dataKey="Affiliation"
 						member={member}
 						saved={saved}
 						updateMember={updateMember}
 						disabled={readOnly}
+						autoComplete="none"
 					/>
 				</Field>
 			</Row>
@@ -372,7 +382,7 @@ export function MemberBasicInfo({
 						member.ObsoleteSAPINs.length > 0 && (
 							<Row>
 								<Col>
-									<label>Replaces:</label>
+									<span className="label">Replaces:</span>
 									<ShortMemberSummary
 										sapins={member.ObsoleteSAPINs}
 									/>

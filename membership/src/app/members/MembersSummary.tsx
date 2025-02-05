@@ -34,8 +34,8 @@ const selectMembersSummary = createSelector(selectMemberEntities, (members) => {
 
 const LabelValue = ({ label, value }: { label: string; value: number }) => (
 	<div className={styles.labelValue}>
-		<label>{label}</label>
-		<div>{value}</div>
+		<span>{label}</span>
+		<span>{value}</span>
 	</div>
 );
 
