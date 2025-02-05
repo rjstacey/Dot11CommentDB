@@ -27,7 +27,8 @@ div#root {
 	color: #bdbdbd;
 }
 
-.details-panel .main label {
+.details-panel .main label,
+.details-panel .main .label {
 	font-weight: bold;
 }
 

@@ -13,8 +13,12 @@ function LiveUpdateSwitch({ className }: { className?: string }) {
 			className={className}
 			style={{ display: "flex", alignItems: "center" }}
 		>
-			<label>Live updates:</label>
-			<SliderSwitch value={isLive} onChange={() => setIsLive(!isLive)} />
+			<label htmlFor="liveupdate">Live updates:</label>
+			<SliderSwitch
+				id="liveupdate"
+				value={isLive}
+				onChange={() => setIsLive(!isLive)}
+			/>
 		</div>
 	);
 }

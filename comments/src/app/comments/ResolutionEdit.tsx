@@ -51,7 +51,7 @@ export function ResolutionAssignee({
 						: {
 								SAPIN: resolution.AssigneeSAPIN || 0,
 								Name: resolution.AssigneeName || "",
-						  }
+							}
 				}
 				onChange={({ SAPIN, Name }) =>
 					updateResolution({
@@ -133,6 +133,7 @@ export function ResolutionApproval({
 			<List label="">
 				<ListItem>
 					<Checkbox
+						id="ReadyForMotion"
 						name="ReadyForMotion"
 						indeterminate={isMultiple(resolution.ReadyForMotion)}
 						checked={!!resolution.ReadyForMotion}
@@ -143,17 +144,18 @@ export function ResolutionApproval({
 						}
 						disabled={readOnly}
 					/>
-					<label>Ready for motion</label>
+					<label htmlFor="ReadyForMotion">Ready for motion</label>
 				</ListItem>
 				<ListItem>
 					<Checkbox
+						id="Approved"
 						name="Approved"
 						indeterminate={isMultiple(resolution.ApprovedByMotion)}
 						checked={!!resolution.ApprovedByMotion}
 						onChange={changeApproved}
 						disabled={readOnly}
 					/>
-					<label>Approved by motion: </label>
+					<label htmlFor="Approved">Approved by motion: </label>
 					<Input
 						type="search"
 						size={value.length || placeholder.length}
@@ -193,6 +195,7 @@ function ResnStatus({
 		>
 			<div>
 				<Checkbox
+					id="accepted-checkbox"
 					name="ResnStatus"
 					value="A"
 					checked={value === "A"}
@@ -200,10 +203,11 @@ function ResnStatus({
 					onChange={handleChange}
 					disabled={readOnly}
 				/>
-				<label>ACCEPTED</label>
+				<label htmlFor="accepted-checkbox">ACCEPTED</label>
 			</div>
 			<div>
 				<Checkbox
+					id="revised-checkbox"
 					name="ResnStatus"
 					value="V"
 					checked={value === "V"}
@@ -211,10 +215,11 @@ function ResnStatus({
 					onChange={handleChange}
 					disabled={readOnly}
 				/>
-				<label>REVISED</label>
+				<label htmlFor="revised-checkbox">REVISED</label>
 			</div>
 			<div>
 				<Checkbox
+					id="rejected-checkbox"
 					name="ResnStatus"
 					value="J"
 					checked={value === "J"}
@@ -222,7 +227,7 @@ function ResnStatus({
 					onChange={handleChange}
 					disabled={readOnly}
 				/>
-				<label>REJECTED</label>
+				<label htmlFor="rejected-checkbox">REJECTED</label>
 			</div>
 		</div>
 	);
@@ -251,7 +256,7 @@ export function ResolutionAndStatus({
 		"#fafafa";
 	return (
 		<Col className={styles.resolutionField}>
-			<label>Resolution:</label>
+			<span className="label">Resolution:</span>
 			<div
 				className={
 					styles.resolutionContainer + (readOnly ? " readonly" : "")

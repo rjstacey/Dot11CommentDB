@@ -79,7 +79,7 @@ function InportExportPlugin({
 				},
 			}
 		);
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+	}, []);
 
 	React.useEffect(() => {
 		editor.setEditable(!readOnly);

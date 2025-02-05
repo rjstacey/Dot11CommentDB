@@ -9,8 +9,8 @@ function copyHtmlToClipboard(html: string) {
 		const type = "text/html";
 		const blob = new Blob([html], { type });
 		navigator.clipboard.write([new ClipboardItem({ [type]: blob })]);
-	} catch (err: any) {
-		alert(err.name + ": " + err.message);
+	} catch (err: unknown) {
+		if (err instanceof Error) alert(err.name + ": " + err.message);
 	}
 }
 

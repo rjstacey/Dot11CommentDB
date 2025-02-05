@@ -97,7 +97,7 @@ export function Column1({
 
 			{ballot.Type !== BallotType.SA && (
 				<Row>
-					<Field label="ePoll number:">
+					<Field id="ePollNumber" label="ePoll number:">
 						<Input
 							type="search"
 							name="EpollNum"
@@ -123,7 +123,7 @@ export function Column1({
 				</Row>
 			)}
 			<Row>
-				<Field label="Document:">
+				<Field id="Document" label="Document:">
 					<Input
 						type="search"
 						name="Document"

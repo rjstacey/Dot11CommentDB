@@ -193,7 +193,7 @@ export function CommentNotes({
 					justifyContent: "space-between",
 				}}
 			>
-				<label>Notes:</label>
+				<span className="label">Notes:</span>
 				{!forceShowNotes && (
 					<IconCollapse
 						isCollapsed={!showNotes}
@@ -252,10 +252,12 @@ export const CommentCategorization = ({
 );
 
 function CommentPage({
+	id,
 	comment,
 	setComment,
 	readOnly,
 }: {
+	id?: string;
 	comment: Multiple<CommentEditable>;
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
@@ -264,8 +266,8 @@ function CommentPage({
 		isMultiple(comment.Page)
 			? ""
 			: comment.Page
-			? comment.Page.toFixed(2)
-			: ""
+				? comment.Page.toFixed(2)
+				: ""
 	);
 	const pattern = "^\\d*\\.?\\d{0,2}$";
 
@@ -296,6 +298,7 @@ function CommentPage({
 	return (
 		<>
 			<Input
+				id={id}
 				type="text"
 				size={10}
 				value={value}
@@ -323,10 +326,12 @@ function CommentPage({
 }
 
 function CommentClause({
+	id,
 	comment,
 	setComment,
 	readOnly,
 }: {
+	id?: string;
 	comment: Multiple<CommentEditable>;
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
@@ -337,6 +342,7 @@ function CommentClause({
 	return (
 		<>
 			<Input
+				id={id}
 				type="text"
 				size={10}
 				value={isMultiple(comment.Clause) ? "" : comment.Clause || ""}
@@ -387,7 +393,7 @@ export function CommentBasics({
 			</Row>
 			<Row>
 				<Col>
-					<FieldLeft label="Page/Line:">
+					<FieldLeft id="page-line" label="Page/Line:">
 						<CommentPage
 							//key={comment.id}
 							comment={comment}
@@ -397,7 +403,7 @@ export function CommentBasics({
 					</FieldLeft>
 				</Col>
 				<Col>
-					<FieldLeft label="Clause:">
+					<FieldLeft id="clause" label="Clause:">
 						<CommentClause
 							comment={comment}
 							setComment={updateComment}

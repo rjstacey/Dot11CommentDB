@@ -45,21 +45,27 @@ function ResultsExportForm({
 				<List>
 					<ListItem>
 						<input
+							id="thisBallot"
 							type="radio"
 							title={ballotId}
 							checked={!forProject}
 							onChange={() => setForProject(!forProject)}
 						/>
-						<label>This ballot {ballotId}</label>
+						<label htmlFor="thisBallot">
+							This ballot {ballotId}
+						</label>
 					</ListItem>
 					<ListItem>
 						<input
+							id="forProject"
 							type="radio"
 							title={ballot.Project}
 							checked={forProject}
 							onChange={() => setForProject(!forProject)}
 						/>
-						<label>This project {ballot.Project}</label>
+						<label htmlFor="forProject">
+							This project {ballot.Project}
+						</label>
 					</ListItem>
 				</List>
 			</Row>

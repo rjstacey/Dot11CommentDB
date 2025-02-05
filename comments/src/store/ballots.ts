@@ -267,7 +267,7 @@ export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
 	if (m) {
 		const label = m[1];
 		const entry = Object.entries(BallotTypeLabels).find(
-			([key, value]) => value === label
+			([, value]) => value === label
 		);
 		if (!entry) return;
 		const type = Number(entry[0]);

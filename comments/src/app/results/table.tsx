@@ -138,7 +138,7 @@ function EditResultModal({
 					</Field>
 				</Row>
 				<Row>
-					<Field label="Notes:">
+					<Field id="notes" label="Notes:">
 						<TextArea
 							style={{ width: "100%" }}
 							rows={2}

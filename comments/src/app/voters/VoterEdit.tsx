@@ -92,7 +92,7 @@ function VoterEditForm({
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Excused:">
+				<Field id="excused" label="Excused:">
 					<Checkbox
 						checked={state.Excused}
 						onChange={() =>

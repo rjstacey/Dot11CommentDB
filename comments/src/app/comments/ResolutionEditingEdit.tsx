@@ -80,6 +80,7 @@ function EditStatus({
 		<List label="" onClick={(e) => e.stopPropagation()}>
 			<ListItem>
 				<Checkbox
+					id="implementedindraft"
 					name="EditStatus"
 					value="I"
 					indeterminate={isMultiple(resolution.EditStatus)}
@@ -87,7 +88,9 @@ function EditStatus({
 					onChange={changeEditStatus}
 					disabled={readOnly}
 				/>
-				<label>Implemented in draft:</label>
+				<label htmlFor="implementedindraft">
+					Implemented in draft:
+				</label>
 				<Input
 					type="number"
 					style={{ width: 80 }}
@@ -102,6 +105,7 @@ function EditStatus({
 			</ListItem>
 			<ListItem>
 				<Checkbox
+					id="nochange"
 					name="EditStatus"
 					value="N"
 					indeterminate={isMultiple(resolution.EditStatus)}
@@ -109,7 +113,7 @@ function EditStatus({
 					onChange={changeEditStatus}
 					disabled={readOnly}
 				/>
-				<label>No Change</label>
+				<label htmlFor="nochange">No Change</label>
 			</ListItem>
 		</List>
 	);
@@ -142,7 +146,7 @@ export function EditingEdit({
 						justifyContent: "space-between",
 					}}
 				>
-					<label>Editing:</label>
+					<span className="label">Editing:</span>
 					{!forceShowEditing && (
 						<IconCollapse
 							isCollapsed={!showEditing}
