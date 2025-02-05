@@ -1,4 +1,3 @@
-import React from "react";
 import { Row, FieldLeft, Checkbox } from "dot11-components";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
@@ -11,7 +10,7 @@ import {
 	PollChoice,
 } from "@/store/pollingUser";
 import MemberShow from "@/components/MemberShow";
-import css from "./pollModal.module.css";
+import css from "./activePoll.module.css";
 
 function PollOptions({ poll }: { poll: Poll }) {
 	const dispatch = useAppDispatch();
@@ -23,7 +22,7 @@ function PollOptions({ poll }: { poll: Poll }) {
 		if (poll.choice === PollChoice.MULTIPLE) {
 			const i = newVotes.indexOf(index);
 			if (i >= 0) newVotes.splice(i, 1);
-			else newVotes.push(i);
+			else newVotes.push(index);
 		} else {
 			newVotes = [index];
 		}
@@ -37,15 +36,19 @@ function PollOptions({ poll }: { poll: Poll }) {
 	return (
 		<div className={css.pollOptionsContainer}>
 			<div className={css.pollOptions}>
-				{poll.options.map((o, i) => (
-					<div key={i} className={css.pollOption}>
-						<Checkbox
-							checked={pollVotes.includes(i)}
-							onChange={() => toggleVote(i)}
-						/>
-						<label>{o}</label>
-					</div>
-				))}
+				{poll.options.map((o, i) => {
+					const id = `pollOption-${i}`;
+					return (
+						<div key={id} className={css.pollOption}>
+							<Checkbox
+								id={id}
+								checked={pollVotes.includes(i)}
+								onChange={() => toggleVote(i)}
+							/>
+							<label htmlFor={id}>{o}</label>
+						</div>
+					);
+				})}
 			</div>
 			<div className={css.pollOptionsSubmit}>
 				<button onClick={submitVote} disabled={poll.state !== "opened"}>
@@ -80,7 +83,7 @@ function PollForm({ poll }: { poll: Poll }) {
 						<MemberShow sapin={poll.movedSAPIN} />
 					</FieldLeft>
 					<FieldLeft label="Seconded:">
-						<MemberShow sapin={poll.secondedSAPIN} />
+						<MemberShow id="seconded" sapin={poll.secondedSAPIN} />
 					</FieldLeft>
 				</Row>
 			)}

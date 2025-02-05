@@ -1,4 +1,4 @@
-import cn from "./toggle.module.css";
+import css from "./toggle.module.css";
 
 function LabeledToggle<V = string>({
 	className,
@@ -6,12 +6,16 @@ function LabeledToggle<V = string>({
 	value,
 	onChange,
 	options,
+	disabled,
+	buttonRef,
 }: {
 	className?: string;
 	label: string;
 	value: V;
 	onChange: (value: V) => void;
 	options: { label: string; value: V }[];
+	disabled?: boolean;
+	buttonRef?: (ref: HTMLButtonElement | null) => void;
 }) {
 	const widestLabel = options.reduce(
 		(w, o) => (o.label.length > w.length ? o.label : w),
@@ -26,12 +30,17 @@ function LabeledToggle<V = string>({
 		onChange(options[ii].value);
 	}
 
+	const id = `toggle-${label}`;
+
 	return (
-		<div className={cn.toggle + (className ? " " + className : "")}>
-			<label>{label}</label>
+		<div className={css.toggle + (className ? " " + className : "")}>
+			<label htmlFor={id}>{label}</label>
 			<button
+				id={id}
+				ref={buttonRef}
 				style={{ position: "relative", cursor: "pointer" }}
 				onClick={toggle}
+				disabled={disabled}
 			>
 				<span style={{ visibility: "hidden" }}>{widestLabel}</span>
 				<span style={{ position: "absolute", left: 10 }}>

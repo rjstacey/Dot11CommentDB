@@ -66,7 +66,7 @@ const editorStyles: Record<string, string> = {
 	mark: "background-color: yellow;",
 };
 
-export function useEditorStylesheet(className: string) {
+function useEditorStylesheet(className: string) {
 	React.useEffect(() => {
 		const text = Object.entries(editorStyles)
 			.map(([key, value]) => `.${className} .${key} {${value}}`)

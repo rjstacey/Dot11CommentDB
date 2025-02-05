@@ -75,3 +75,47 @@
 .tabPanel:global(.selected) {
 	display: block;
 }
+
+.tab:global(.active__) {
+	box-shadow:
+		inset 0 0 2px rgba(255, 255, 255, 0.05),
+		inset 4px 4px 6px rgba(0, 0, 0, 0.2);
+
+	color: yellow;
+
+	text-shadow:
+		0 0 15px yellow,
+		0 0 25px yellow;
+
+	animation: glow 1.5s linear infinite;
+}
+
+@keyframes glow {
+	0% {
+		filter: hue-rotate(0deg);
+	}
+
+	100% {
+		filter: hue-rotate(360deg);
+	}
+}
+
+.tab:global(.active) {
+	font-weight: bold;
+	text-shadow:
+		0 0 15px yellow,
+		0 0 25px yellow;
+	animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+	0% {
+		color: orange;
+	}
+	25% {
+		color: red;
+	}
+	50% {
+		color: black;
+	}
+}

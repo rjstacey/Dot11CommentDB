@@ -22,6 +22,7 @@ import {
 	PollAction,
 	PollState,
 	PollType,
+	PollRecordType,
 	PollChoice,
 	pollsGetResponseSchema,
 	pollCreateResponseSchema,
@@ -31,9 +32,49 @@ import { AppThunk, RootState } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
 
 export type { Event, EventCreate, Poll, PollType, PollCreate };
-export { PollChoice };
+export { PollRecordType, PollChoice };
 
 export const motionPollOptions: readonly string[] = ["Yes", "No", "Abstain"];
+
+export function titlePrefix(type: PollType, index: number) {
+	return (type === "m" ? "Motion " : "Strawpoll ") + (index + 1).toString();
+}
+
+const maxIndex = (polls: Poll[]) =>
+	polls.reduce(
+		(maxIndex, poll) => (maxIndex > poll.index ? maxIndex : poll.index),
+		0
+	);
+
+export function defaultMotion(event: Event, polls: Poll[]) {
+	const type = "m";
+	const index = maxIndex(polls) + 1;
+	return {
+		eventId: event.id,
+		index,
+		title: titlePrefix(type, index),
+		body: "",
+		type,
+		recordType: PollRecordType.ANONYMOUS,
+		choice: PollChoice.SINGLE,
+		options: [...motionPollOptions],
+	} satisfies PollCreate;
+}
+
+export function defaultStrawpoll(event: Event, polls: Poll[]) {
+	const type = "sp";
+	const index = maxIndex(polls) + 1;
+	return {
+		eventId: event.id,
+		index,
+		title: titlePrefix(type, index),
+		body: "",
+		type,
+		recordType: PollRecordType.ANONYMOUS,
+		choice: PollChoice.SINGLE,
+		options: [],
+	} satisfies PollCreate;
+}
 
 const eventsAdapter = createEntityAdapter<Event>();
 const sortComparer = (p1: Poll, p2: Poll) => p1.index - p2.index;

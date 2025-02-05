@@ -9,7 +9,6 @@ import {
 } from "@lexical/link";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $findMatchingParent, mergeRegister } from "@lexical/utils";
-import { $isAtNodeEnd } from "@lexical/selection";
 import {
 	$getSelection,
 	$isRangeSelection,
@@ -21,28 +20,9 @@ import {
 	SELECTION_CHANGE_COMMAND,
 	BaseSelection,
 	LexicalEditor,
-	RangeSelection,
-	ElementNode,
-	TextNode,
 } from "lexical";
+import { getSelectedNode } from "./utils";
 
-export function getSelectedNode(
-	selection: RangeSelection
-): TextNode | ElementNode {
-	const anchor = selection.anchor;
-	const focus = selection.focus;
-	const anchorNode = selection.anchor.getNode();
-	const focusNode = selection.focus.getNode();
-	if (anchorNode === focusNode) {
-		return anchorNode;
-	}
-	const isBackward = selection.isBackward();
-	if (isBackward) {
-		return $isAtNodeEnd(focus) ? anchorNode : focusNode;
-	} else {
-		return $isAtNodeEnd(anchor) ? anchorNode : focusNode;
-	}
-}
 const SUPPORTED_URL_PROTOCOLS = new Set([
 	"http:",
 	"https:",
@@ -51,7 +31,7 @@ const SUPPORTED_URL_PROTOCOLS = new Set([
 	"tel:",
 ]);
 
-export function sanitizeUrl(url: string): string {
+function sanitizeUrl(url: string): string {
 	try {
 		const parsedUrl = new URL(url);
 		if (!SUPPORTED_URL_PROTOCOLS.has(parsedUrl.protocol)) {
@@ -66,7 +46,7 @@ export function sanitizeUrl(url: string): string {
 const VERTICAL_GAP = 10;
 const HORIZONTAL_OFFSET = 5;
 
-export function setFloatingElemPositionForLinkEditor(
+function setFloatingElemPositionForLinkEditor(
 	targetRect: DOMRect | null,
 	floatingElem: HTMLElement,
 	anchorElem: HTMLElement,
@@ -330,7 +310,7 @@ function FloatingLinkEditor({
 }
 
 function FloatingLinkEditorPlugin({
-	anchorElem = document.body,
+	anchorElem = document.getElementById("root") || document.body,
 }: {
 	anchorElem?: HTMLElement;
 }) {

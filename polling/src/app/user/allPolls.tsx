@@ -4,7 +4,7 @@ import {
 	selectPollingUserPolls,
 	Poll,
 } from "@/store/pollingUser";
-import css from "./user.module.css";
+import css from "./allPolls.module.css";
 import editorCss from "@/components/editor/editor.module.css";
 
 function PollEntry({ poll }: { poll: Poll }) {

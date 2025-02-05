@@ -1,7 +1,14 @@
-.actionRow {
+.topRow {
 	display: flex;
 	justify-content: space-between;
-	margin: 10px 0 20px 0;
+}
+
+.topRowGroup {
+	display: flex;
+}
+
+.topRowItem {
+	margin: 10px 10px 10px 0;
 }
 
 .pollChoice {

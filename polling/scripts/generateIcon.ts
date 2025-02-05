@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { convert } from "convert-svg-to-png";
 import { renderIcon } from "../src/icon";
 
-const svgString = renderToStaticMarkup(renderIcon("802", "MTG"));
+const svgString = renderToStaticMarkup(renderIcon("802", "POLL"));
 fs.writeFileSync("public/favicon.svg", svgString);
 
 const png96x96 = await convert(svgString, {

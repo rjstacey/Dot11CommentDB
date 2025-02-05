@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import { RouteObject, LoaderFunction } from "react-router";
 
 import { store } from "@/store";
@@ -5,8 +6,8 @@ import { AccessLevel } from "@/store/user";
 import {
 	loadGroups,
 	selectTopLevelGroupByName,
-	selectSelectedGroup,
 	selectSubgroupByName,
+	setTopLevelGroupId,
 	setSelectedGroupId,
 } from "@/store/groups";
 import { loadTimeZones } from "@/store/timeZones";
@@ -15,8 +16,10 @@ import { loadMembers } from "@/store/members";
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
 import Polling from "./polling";
-import PollAdmin from "./admin";
-import PollUser from "./user";
+//import PollAdmin from "./admin";
+const PollAdmin = lazy(() => import("./admin"));
+//import PollUser from "./user";
+const PollUser = lazy(() => import("./user"));
 
 /*
  * Routing loaders
@@ -29,7 +32,7 @@ const rootLoader: LoaderFunction = async () => {
 };
 
 const groupIndexLoader: LoaderFunction = async () => {
-	store.dispatch(setSelectedGroupId(null));
+	store.dispatch(setTopLevelGroupId(null));
 	return null;
 };
 
@@ -47,8 +50,8 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	const access = group.permissions.members || AccessLevel.none;
 	if (access < AccessLevel.ro)
 		throw new Error("You don't have permission to view this data");
+	dispatch(setTopLevelGroupId(group.id));
 
-	dispatch(setSelectedGroupId(group.id));
 	dispatch(loadGroups(groupName));
 	dispatch(loadMembers(groupName));
 
@@ -69,11 +72,7 @@ const subgroupLoader: LoaderFunction = async ({ params }) => {
 	await dispatch(loadGroups());
 	await dispatch(loadGroups(groupName));
 
-	const subgroup =
-		subgroupName === "WG"
-			? selectSelectedGroup(getState())
-			: selectSubgroupByName(getState(), subgroupName);
-
+	const subgroup = selectSubgroupByName(getState(), subgroupName);
 	dispatch(setSelectedGroupId(subgroup?.id || null));
 
 	return null;

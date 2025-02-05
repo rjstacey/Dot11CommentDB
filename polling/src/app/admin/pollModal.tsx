@@ -6,55 +6,46 @@ import {
 	pollingAdminUpdatePoll,
 	setSelectedPollId,
 	Poll,
-	PollCreate,
 	Event,
 	PollType,
+	PollRecordType,
 	PollChoice,
 	pollingAdminPollAction,
 	selectPollingAdminEventEntities,
 	motionPollOptions,
+	titlePrefix,
 } from "@/store/pollingAdmin";
 import Editor from "@/components/editor";
 import LabeledToggle from "@/components/toggle";
 import MemberSelector from "@/components/MemberSelector";
 import css from "./pollModal.module.css";
 
-function titlePrefix(type: PollType, index: number) {
-	return (type === "m" ? "Motion " : "Strawpoll ") + (index + 1).toString();
-}
+const pollVisibilityOptions: { label: string; value: boolean }[] = [
+	{ label: "Inactive", value: false },
+	{ label: "Active", value: true },
+];
 
-const maxIndex = (polls: Poll[]) =>
-	polls.reduce(
-		(maxIndex, poll) => (maxIndex > poll.index ? maxIndex : poll.index),
-		0
+function PollShow({
+	value,
+	onChange,
+	disabled,
+	className,
+}: {
+	value: boolean;
+	onChange: (value: boolean) => void;
+	disabled?: boolean;
+	className?: string;
+}) {
+	return (
+		<LabeledToggle
+			className={className}
+			label="Make this poll:"
+			options={pollVisibilityOptions}
+			value={value}
+			onChange={onChange}
+			disabled={disabled}
+		/>
 	);
-
-export function defaultMotion(event: Event, polls: Poll[]) {
-	const type = "m";
-	const index = maxIndex(polls) + 1;
-	return {
-		eventId: event.id,
-		index,
-		title: titlePrefix(type, index),
-		body: "",
-		type,
-		options: [...motionPollOptions],
-		choice: PollChoice.SINGLE,
-	} satisfies PollCreate;
-}
-
-export function defaultStrawpoll(event: Event, polls: Poll[]) {
-	const type = "sp";
-	const index = maxIndex(polls) + 1;
-	return {
-		eventId: event.id,
-		index,
-		title: titlePrefix(type, index),
-		body: "",
-		type,
-		options: [],
-		choice: PollChoice.SINGLE,
-	} satisfies PollCreate;
 }
 
 const pollTypeOptions: { label: string; value: PollType }[] = [
@@ -65,16 +56,51 @@ const pollTypeOptions: { label: string; value: PollType }[] = [
 function PollTypeSelect({
 	value,
 	onChange,
+	disabled,
+	className,
 }: {
 	value: PollType;
 	onChange: (value: PollType) => void;
+	disabled?: boolean;
+	className?: string;
 }) {
 	return (
 		<LabeledToggle
+			className={className}
 			label="Poll:"
 			options={pollTypeOptions}
 			value={value}
 			onChange={onChange}
+			disabled={disabled}
+		/>
+	);
+}
+
+const pollRecordOptions: { label: string; value: PollRecordType }[] = [
+	{ label: "Anonymous", value: PollRecordType.ANONYMOUS },
+	{ label: "Admin view", value: PollRecordType.ADMIN_VIEW },
+	{ label: "Recorded", value: PollRecordType.RECORDED },
+];
+
+function PollRecordTypeSelect({
+	value,
+	onChange,
+	disabled,
+	className,
+}: {
+	value: PollRecordType;
+	onChange: (value: PollRecordType) => void;
+	disabled?: boolean;
+	className?: string;
+}) {
+	return (
+		<LabeledToggle
+			className={className}
+			label="Result:"
+			options={pollRecordOptions}
+			value={value}
+			onChange={onChange}
+			disabled={disabled}
 		/>
 	);
 }
@@ -82,16 +108,20 @@ function PollTypeSelect({
 function PollTitle({
 	value,
 	onChange,
+	disabled,
 }: {
 	value: string;
 	onChange: (value: string) => void;
+	disabled?: boolean;
 }) {
 	return (
 		<div className={css.pollTitle}>
 			<input
+				id="poll-title"
 				type="text"
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
+				disabled={disabled}
 			/>
 		</div>
 	);
@@ -100,34 +130,40 @@ function PollTitle({
 function PollOptions({ options }: { options: string[] }) {
 	return (
 		<div className={css.pollOptions}>
-			{options.map((o, i) => (
-				<div key={i} className={css.pollOption}>
-					<Checkbox />
-					<label>{o}</label>
-				</div>
-			))}
+			{options.map((o, i) => {
+				const id = `poll-option-${i}`;
+				return (
+					<div key={id} className={css.pollOption}>
+						<Checkbox id={id} disabled={true} />
+						<label htmlFor={id}>{o}</label>
+					</div>
+				);
+			})}
 		</div>
 	);
 }
 
 const pollChoiceOptions: { label: string; value: PollChoice }[] = [
-	{ value: PollChoice.SINGLE, label: "Choose one" },
-	{ value: PollChoice.MULTIPLE, label: "Choose many" },
+	{ value: PollChoice.SINGLE, label: "Select one" },
+	{ value: PollChoice.MULTIPLE, label: "Select many" },
 ];
 function PollOptionChoice({
 	value,
 	onChange,
+	disabled,
 }: {
 	value: PollChoice;
 	onChange: (value: PollChoice) => void;
+	disabled?: boolean;
 }) {
 	return (
 		<LabeledToggle
 			className={css.pollChoice}
-			label="Voting:"
+			label="Voting choice:"
 			options={pollChoiceOptions}
 			value={value}
 			onChange={onChange}
+			disabled={disabled}
 		/>
 	);
 }
@@ -139,6 +175,7 @@ function PollOptionEdit({
 	onDelete,
 	onTab,
 	setRef,
+	disabled,
 }: {
 	index: number;
 	value: string;
@@ -146,34 +183,40 @@ function PollOptionEdit({
 	onDelete: () => void;
 	onTab: () => void;
 	setRef: (ref: HTMLInputElement | null) => void;
+	disabled?: boolean;
 }) {
 	function keyPress(e: React.KeyboardEvent) {
 		if (e.key === "Tab") onTab();
 	}
+	const id = `poll-option-${index}`;
 	return (
-		<div className={css.pollOption + " " + css.edit}>
-			<Checkbox disabled={true} />
+		<label className={css.pollOption + " " + css.edit}>
+			<Checkbox id={id} disabled={true} />
 			<input
+				id={id + "-label"}
 				ref={(ref) => setRef(ref)}
 				type="text"
 				value={value}
 				onKeyDown={keyPress}
 				onChange={(e) => onChange(e.target.value)}
 				placeholder={"Option " + (index + 1)}
+				disabled={disabled}
 			/>
-			<button onClick={onDelete}>
+			<button onClick={onDelete} disabled={disabled}>
 				<i className="bi-trash" />
 			</button>
-		</div>
+		</label>
 	);
 }
 
 function PollOptionsEdit({
 	poll,
 	changePoll,
+	disabled,
 }: {
 	poll: Poll;
 	changePoll: (changes: Partial<Poll>) => void;
+	disabled?: boolean;
 }) {
 	const inputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
 	const buttonRef = React.useRef<HTMLButtonElement | null>(null);
@@ -218,6 +261,7 @@ function PollOptionsEdit({
 						onChange={(v) => changeOptions(i, v)}
 						onDelete={() => deleteOption(i)}
 						onTab={() => onTab(i)}
+						disabled={disabled}
 					/>
 				))}
 				<div className={css.pollOption} style={{ display: "flex" }}>
@@ -231,15 +275,12 @@ function PollOptionsEdit({
 							buttonRef.current = ref;
 						}}
 						onClick={addOption}
+						disabled={disabled}
 					>
 						+ Option
 					</button>
 				</div>
 			</div>
-			<PollOptionChoice
-				value={poll.choice}
-				onChange={(choice) => changePoll({ choice })}
-			/>
 		</>
 	);
 }
@@ -247,23 +288,12 @@ function PollOptionsEdit({
 function PollActions({ poll }: { poll: Poll }) {
 	const dispatch = useAppDispatch();
 
-	const showDisabled = poll.state === "opened" || poll.state === "closed";
-
 	const openDisabled =
 		poll.state === null ||
 		poll.state === "closed" ||
 		(poll.type === "m" && (!poll.movedSAPIN || !poll.secondedSAPIN));
 
 	const closeDisabled = poll.state === null || poll.state === "shown";
-
-	function showPoll() {
-		dispatch(
-			pollingAdminPollAction(
-				poll.id,
-				poll.state === "shown" ? "unshow" : "show"
-			)
-		);
-	}
 
 	function openPoll() {
 		dispatch(
@@ -285,17 +315,6 @@ function PollActions({ poll }: { poll: Poll }) {
 
 	return (
 		<>
-			<Button
-				isActive={
-					poll.state === "shown" ||
-					poll.state === "opened" ||
-					poll.state === "closed"
-				}
-				onClick={showPoll}
-				disabled={showDisabled}
-			>
-				Show
-			</Button>
 			<Button
 				isActive={poll.state === "opened" || poll.state === "closed"}
 				onClick={openPoll}
@@ -326,7 +345,9 @@ function PollForm({
 	const dispatch = useAppDispatch();
 	const [editPoll, setEditPoll] = React.useState(poll);
 
-	function changePoll(changes: Partial<Poll>) {
+	const disabled = poll.state === "opened" || poll.state === "closed";
+
+	const changePoll = (changes: Partial<Poll>) => {
 		if (event.autoNumber && ("type" in changes || "title" in changes)) {
 			const changedPoll = { ...editPoll, ...changes };
 			const prefix = titlePrefix(changedPoll.type, changedPoll.index);
@@ -343,27 +364,56 @@ function PollForm({
 			}
 		}
 		if ("type" in changes) {
-			if (changes.type === "m") changes.options = [...motionPollOptions];
-			else changes.options = [];
+			if (changes.type === "m") {
+				changes.options = [...motionPollOptions];
+				changes.choice = PollChoice.SINGLE;
+			} else {
+				changes.options = [];
+			}
 		}
 		setEditPoll((poll) => ({ ...poll, ...changes }));
 		dispatch(pollingAdminUpdatePoll({ id: poll.id, changes }));
+	};
+
+	function setShowPoll(show: boolean) {
+		dispatch(pollingAdminPollAction(poll.id, show ? "show" : "unshow"));
 	}
 
 	return (
 		<>
-			<div className={css.actionRow}>
-				<PollTypeSelect
-					value={editPoll.type}
-					onChange={(type) => changePoll({ type })}
-				/>
+			<div className={css.topRow}>
+				<div className={css.topRowGroup}>
+					<PollTypeSelect
+						className={css.topRowItem}
+						value={editPoll.type}
+						onChange={(type) => changePoll({ type })}
+						disabled={disabled}
+					/>
 
-				<Button onClick={close}>x</Button>
+					<PollRecordTypeSelect
+						className={css.topRowItem}
+						value={editPoll.recordType}
+						onChange={(recordType) => changePoll({ recordType })}
+						disabled={disabled}
+					/>
+				</div>
+				<div className={css.topRowGroup}>
+					<PollShow
+						className={css.topRowItem}
+						value={Boolean(poll.state)}
+						onChange={setShowPoll}
+						disabled={
+							poll.state === "opened" || poll.state === "closed"
+						}
+					/>
+					<Button onClick={close}>x</Button>
+				</div>
 			</div>
 			<div className={css.pollTitleRow}>
 				<PollTitle
 					value={editPoll.title}
 					onChange={(title) => changePoll({ title })}
+					disabled={disabled}
 				/>
 			</div>
 			<div className={css.pollBodyRow} style={{ position: "relative" }}>
@@ -371,6 +421,7 @@ function PollForm({
 					style={{ width: "100%" }}
 					value={editPoll.body}
 					onChange={(body) => changePoll({ body })}
+					readOnly={disabled}
 				/>
 			</div>
 			<div
@@ -380,8 +431,19 @@ function PollForm({
 				{poll.type === "m" ? (
 					<PollOptions options={poll.options} />
 				) : (
-					<PollOptionsEdit poll={poll} changePoll={changePoll} />
+					<PollOptionsEdit
+						poll={poll}
+						changePoll={changePoll}
+						disabled={disabled}
+					/>
 				)}
+				<div style={{ display: "flex", flexDirection: "column" }}>
+					<PollOptionChoice
+						value={poll.choice}
+						onChange={(choice) => changePoll({ choice })}
+						disabled={disabled || poll.type === "m"}
+					/>
+				</div>
 			</div>
 			{poll.type === "m" && (
 				<Row>
@@ -420,7 +482,6 @@ function PollModal() {
 			style={{ width: "60%" }}
 			isOpen={Boolean(poll)}
 			onRequestClose={close}
-			parentSelector={() => document.querySelector("#root")}
 		>
 			{poll && event && (
 				<PollForm event={event} poll={poll} close={close} />

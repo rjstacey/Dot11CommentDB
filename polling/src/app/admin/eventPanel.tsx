@@ -11,8 +11,9 @@ import {
 	setSelectedPollId,
 	pollingAdminDeletePoll,
 	pollingAdminUpdateEvent,
+	defaultMotion,
+	defaultStrawpoll,
 } from "@/store/pollingAdmin";
-import { defaultMotion, defaultStrawpoll } from "./pollModal";
 import LabeledToggle from "@/components/toggle";
 import css from "./admin.module.css";
 import editorCss from "@/components/editor/editor.module.css";

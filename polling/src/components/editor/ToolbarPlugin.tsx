@@ -13,7 +13,6 @@ import {
 	$getSelection,
 	$isRangeSelection,
 	$createParagraphNode,
-	RangeSelection,
 	LexicalEditor,
 	ElementFormatType,
 	TextFormatType,
@@ -26,7 +25,7 @@ import {
 	$createLinkNode,
 	TOGGLE_LINK_COMMAND,
 } from "@lexical/link";
-import { $setBlocksType, $isAtNodeEnd } from "@lexical/selection";
+import { $setBlocksType } from "@lexical/selection";
 import {
 	$getNearestNodeOfType,
 	$findMatchingParent,
@@ -49,25 +48,10 @@ import { $createCodeNode, $isCodeNode } from "@lexical/code";
 
 import { Dropdown, DropdownRendererProps } from "dot11-components";
 
+import { getSelectedNode } from "./utils";
 import styles from "./editor.module.css";
 
 const LowPriority = 1;
-
-function getSelectedNode(selection: RangeSelection) {
-	const anchor = selection.anchor;
-	const focus = selection.focus;
-	const anchorNode = selection.anchor.getNode();
-	const focusNode = selection.focus.getNode();
-	if (anchorNode === focusNode) {
-		return anchorNode;
-	}
-	const isBackward = selection.isBackward();
-	if (isBackward) {
-		return $isAtNodeEnd(focus) ? anchorNode : focusNode;
-	} else {
-		return $isAtNodeEnd(anchor) ? focusNode : anchorNode;
-	}
-}
 
 const blockTypeOptions = [
 	{ value: "paragraph", label: "Clear formatting", icon: "bi-eraser" },

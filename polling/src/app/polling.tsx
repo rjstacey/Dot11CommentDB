@@ -1,5 +1,5 @@
 import React from "react";
-import { Outlet } from "react-router";
+import { Outlet, useBeforeUnload } from "react-router";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectSelectedGroup } from "@/store/groups";
 import {
@@ -14,9 +14,20 @@ function Polling() {
 
 	const group = useAppSelector(selectSelectedGroup);
 
+	useBeforeUnload(
+		React.useCallback(() => {
+			console.log("unload");
+			dispatch(pollingSocketLeaveGroup());
+			dispatch(pollingSocketDisconnect());
+		}, [])
+	);
+
 	React.useEffect(() => {
+		console.log("mount");
 		dispatch(pollingSocketConnect());
 		return () => {
+			console.log("unmount");
+			dispatch(pollingSocketLeaveGroup());
 			dispatch(pollingSocketDisconnect());
 		};
 	}, [dispatch]);
@@ -28,7 +39,9 @@ function Polling() {
 
 	return (
 		<div style={{ width: "100%" }}>
-			<Outlet />
+			<React.Suspense fallback={<span>Loading...</span>}>
+				<Outlet />
+			</React.Suspense>
 		</div>
 	);
 }

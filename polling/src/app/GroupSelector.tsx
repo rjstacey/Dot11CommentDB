@@ -34,10 +34,10 @@ export function GroupSelector(
 	let values: Group[];
 	if (isGroupSelection) {
 		options = groupOptions;
-		values = options.filter((g) => g === group);
+		values = []; //options.filter((g) => g.id === group?.id);
 	} else {
 		options = subgroupOptions;
-		values = options.filter((g) => g === subgroup);
+		values = options.filter((g) => g.id === subgroup?.id);
 	}
 
 	function handleChange(values: typeof options) {

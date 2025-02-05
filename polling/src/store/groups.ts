@@ -10,15 +10,16 @@ import {
 import { fetcher, setError } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
-import {
+import { groupsSchema, groupTypesOrdered } from "@schemas/groups";
+import type {
 	GroupType,
 	Group,
 	GroupCreate,
 	GroupUpdate,
-	groupsSchema,
-	groupTypesOrdered,
 } from "@schemas/groups";
 export type { GroupType, Group, GroupCreate, GroupUpdate };
+
+const topLevelGroupTypes = ["r", "c", "wg"] as const satisfies GroupType[];
 
 function arrangeIdsHeirarchically(
 	ids: EntityId[],
@@ -147,7 +148,7 @@ export const selectTopLevelGroups = createSelector(
 	(ids, entities) =>
 		ids
 			.map((id) => entities[id]!)
-			.filter((g) => ["r", "c", "wg"].includes(g.type!))
+			.filter((g) => topLevelGroupTypes.includes(g.type as any)) // eslint-disable-line @typescript-eslint/no-explicit-any
 );
 
 /** Select top level group by name. Only for root (r), committee (c) and working group (wg). Root is selected with groupName = "". */
@@ -183,8 +184,9 @@ export const selectSubgroupIds = createSelector(
 		if (topLevelGroupId) {
 			const parent = entities[topLevelGroupId];
 			if (parent && (parent.type === "r" || parent.type === "c")) {
-				ids = ids.filter((id) =>
-					["r", "c", "wg"].includes(entities[id]!.type!)
+				ids = ids.filter(
+					(id) =>
+						topLevelGroupTypes.includes(entities[id]!.type as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 				);
 			}
 			function isDescendent(id: EntityId) {
@@ -198,8 +200,8 @@ export const selectSubgroupIds = createSelector(
 			}
 			return ids.filter(isDescendent);
 		} else {
-			return ids.filter((id) =>
-				["r", "c", "wg"].includes(entities[id]!.type!)
+			return ids.filter(
+				(id) => topLevelGroupTypes.includes(entities[id]!.type as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 			);
 		}
 	}
@@ -208,7 +210,13 @@ export const selectSubgroupIds = createSelector(
 export const selectSubgroups = createSelector(
 	selectSubgroupIds,
 	selectGroupEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) =>
+		ids.map((id, i) => {
+			let g = entities[id]!;
+			// The first entry is the top level group. Change name to "R", "C", or "WG"
+			if (i === 0) g = { ...g, name: g.type!.toLocaleUpperCase() };
+			return g;
+		})
 );
 
 /** Select subgroup by name. */

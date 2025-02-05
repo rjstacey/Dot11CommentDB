@@ -38,10 +38,16 @@ const slice = createSlice({
 			state.event = action.payload;
 		},
 		setPollVotes(state, action: PayloadAction<number[]>) {
-			const votes = action.payload;
-			if (state.pollVotes.join() !== votes.join()) {
-				state.pollVotes = votes;
-				state.submitMsg = "";
+			let votes = action.payload;
+			const poll = state.pollId
+				? state.polls.entities[state.pollId]
+				: undefined;
+			if (poll) {
+				votes = votes.filter((i) => i >= 0 && i < poll.options.length);
+				if (state.pollVotes.join() !== votes.join()) {
+					state.pollVotes = votes;
+					state.submitMsg = "";
+				}
 			}
 		},
 		setSubmitMessage(state, action: PayloadAction<string>) {

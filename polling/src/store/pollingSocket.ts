@@ -173,6 +173,7 @@ export const pollingSocketConnect =
 	};
 
 export const pollingSocketDisconnect = (): AppThunk => async (dispatch) => {
+	console.log("disconnect");
 	assertHasSocket(socket);
 	dispatch(setDisconnected());
 	socket.close();
@@ -205,6 +206,7 @@ export const pollingSocketJoinGroup =
 	};
 
 export const pollingSocketLeaveGroup = (): AppThunk => async (dispatch) => {
+	console.log("leave group");
 	try {
 		await pollingSocketEmit("group:leave");
 	} catch (error) {
