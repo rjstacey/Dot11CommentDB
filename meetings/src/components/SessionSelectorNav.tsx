@@ -59,8 +59,9 @@ function LabeledCurrentSessionSelector({
 						marginLeft: 10,
 					}}
 				>
-					<label>Show date range</label>
+					<label htmlFor="show-date-range">Show date range</label>
 					<Checkbox
+						id="show-date-range"
 						checked={showDateRange}
 						onChange={toggleShowDateRange}
 					/>

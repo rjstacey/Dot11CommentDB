@@ -33,13 +33,11 @@ import {
 	updateWebexMeetings,
 	deleteWebexMeetings,
 	setSelected,
-	defaultWebexMeetingParams,
 	WebexMeeting,
 	WebexMeetingOptions,
 	WebexAudioConnectionOptions,
 	WebexMeetingUpdate,
 	WebexEntryExitTone,
-	WebexMeetingChange,
 	SyncedWebexMeeting,
 } from "@/store/webexMeetings";
 import { updateMeetings, Meeting } from "@/store/meetings";
@@ -52,19 +50,17 @@ import TimeZoneSelector from "@/components/TimeZoneSelector";
 import InputTimeRangeAsDuration from "@/components/InputTimeRangeAsDuration";
 import MeetingSelector from "@/components/MeetingSelector";
 
+import {
+	defaultWebexMeeting,
+	convertEntryToWebexMeeting,
+	convertWebexMeetingToEntry,
+	WebexMeetingEntry,
+	PartialWebexMeetingEntry,
+	MultipleWebexMeetingEntry,
+} from "./convertWebexMeetingEntry";
+
 const MULTIPLE_STR = "(Multiple)";
 const BLANK_STR = "(Blank)";
-
-export const defaultWebexMeeting: WebexMeetingEntry = {
-	...defaultWebexMeetingParams,
-	accountId: null,
-	title: "",
-	timezone: "",
-	date: "",
-	startTime: "",
-	endTime: "02:00",
-	//templateId: null,
-};
 
 export function WebexMeetingAccount({
 	entry,
@@ -372,7 +368,7 @@ function WebexMeetingOptionsEdit({
 }) {
 	return (
 		<Row style={{ flexWrap: "wrap" }}>
-			<FieldLeft label="Chat:">
+			<FieldLeft id="meeting-options-chat" label="Chat:">
 				<Checkbox
 					checked={
 						isMultiple(entry.enabledChat)
@@ -386,7 +382,7 @@ function WebexMeetingOptionsEdit({
 					disabled={readOnly}
 				/>
 			</FieldLeft>
-			<FieldLeft label="Video:">
+			<FieldLeft id="meeting-options-video" label="Video:">
 				<Checkbox
 					checked={
 						isMultiple(entry.enabledVideo)
@@ -400,7 +396,7 @@ function WebexMeetingOptionsEdit({
 					disabled={readOnly}
 				/>
 			</FieldLeft>
-			<FieldLeft label="Notes:">
+			<FieldLeft id="meeting-options-notes" label="Notes:">
 				<Checkbox
 					checked={
 						isMultiple(entry.enabledNote)
@@ -414,7 +410,7 @@ function WebexMeetingOptionsEdit({
 					disabled={readOnly}
 				/>
 			</FieldLeft>
-			<FieldLeft label="Closed captions:">
+			<FieldLeft id="meeting-options-cc" label="Closed captions:">
 				<Checkbox
 					checked={
 						isMultiple(entry.enabledClosedCaptions)
@@ -428,7 +424,10 @@ function WebexMeetingOptionsEdit({
 					disabled={readOnly}
 				/>
 			</FieldLeft>
-			<FieldLeft label="File transfer:">
+			<FieldLeft
+				id="meeting-options-file-transfer"
+				label="File transfer:"
+			>
 				<Checkbox
 					checked={
 						isMultiple(entry.enabledFileTransfer)
@@ -466,7 +465,7 @@ export function WebexMeetingParamsEdit({
 	return (
 		<>
 			<Row>
-				<Field label="Password:">
+				<Field id="meeting-password" label="Password:">
 					<Input
 						type="search"
 						value={
@@ -525,7 +524,10 @@ export function WebexMeetingParamsEdit({
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Connect audio before host:">
+				<Field
+					id="audio-before-host"
+					label="Connect audio before host:"
+				>
 					<Checkbox
 						checked={
 							isMultiple(entry.enableConnectAudioBeforeHost)
@@ -688,81 +690,6 @@ function WebexMeetingEntryForm({
 			</Row>
 		</Form>
 	);
-}
-
-export type WebexMeetingEntry = Omit<
-	WebexMeetingChange,
-	"accountId" | "id" | "start" | "end"
-> & {
-	accountId: number | null;
-	date: string;
-	startTime: string;
-	endTime: string;
-	meetingId?: number;
-};
-
-export type PartialWebexMeetingEntry = Partial<
-	Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">
-> & {
-	meetingOptions?: Partial<WebexMeetingOptions>;
-	audioConnectionOptions?: Partial<WebexAudioConnectionOptions>;
-};
-
-export type MultipleWebexMeetingEntry = Multiple<
-	Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">
-> & {
-	meetingOptions: Multiple<WebexMeetingOptions>;
-	audioConnectionOptions: Multiple<WebexAudioConnectionOptions>;
-};
-
-function convertWebexMeetingToEntry(
-	webexMeeting: SyncedWebexMeeting
-): WebexMeetingEntry {
-	const { start, end, ...rest } = webexMeeting;
-
-	const zone = webexMeeting.timezone;
-	const startDT = DateTime.fromISO(start, { zone });
-	const endDT = DateTime.fromISO(end, { zone });
-	const date = startDT.toISODate()!;
-	const startTime = startDT.toFormat("HH:mm");
-	const endTime = endDT.toFormat("HH:mm");
-
-	if (endDT.diff(startDT, "days").days > 1)
-		console.warn("Duration greater than one day");
-
-	return {
-		...rest,
-		date,
-		startTime,
-		endTime,
-	};
-}
-
-export function convertEntryToWebexMeeting(
-	entry: WebexMeetingEntry
-): Omit<WebexMeetingChange, "id"> {
-	const { date, startTime, endTime, accountId, ...rest } = entry;
-	const webexMeeting = { ...rest };
-
-	const zone = webexMeeting.timezone;
-	const startDT = DateTime.fromFormat(
-		`${date} ${startTime}`,
-		"yyyy-MM-dd HH:mm",
-		{ zone }
-	);
-	let endDT = DateTime.fromFormat(`${date} ${endTime}`, "yyyy-MM-dd HH:mm", {
-		zone,
-	});
-	if (endDT.toMillis() < startDT.toMillis()) endDT = endDT.plus({ days: 1 });
-	const start = startDT.toISO()!;
-	const end = endDT.toISO()!;
-
-	return {
-		...rest,
-		accountId: accountId!, // Checks ensure that accountId is not null
-		start,
-		end,
-	};
 }
 
 type Actions = "add" | "update";

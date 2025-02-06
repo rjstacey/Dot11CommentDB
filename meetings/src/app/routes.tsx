@@ -1,7 +1,6 @@
-import { Navigate, RouteObject, LoaderFunction } from "react-router";
+import { RouteObject, LoaderFunction } from "react-router";
 
 import { store } from "../store";
-import { useAppSelector } from "../store/hooks";
 import { AccessLevel } from "../store/user";
 import {
 	selectTopLevelGroupByName,
@@ -9,17 +8,15 @@ import {
 	loadGroups,
 } from "@/store/groups";
 import { loadCalendarAccounts } from "@/store/calendarAccounts";
-import {
-	loadWebexAccounts,
-	selectWebexAccountsGroupName,
-} from "@/store/webexAccounts";
+import { loadWebexAccounts } from "@/store/webexAccounts";
 import { loadMembers } from "@/store/members";
 import { loadOfficers } from "@/store/officers";
 import { loadTimeZones } from "@/store/timeZones";
 
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
-import WorkingGroupSelector from "./WorkingGroupSelector";
+import RootMain from "./rootMain";
+import { NavigateToGroupAccounts } from "./NavigateToGroupAccounts";
 import accountsRoute from "./accounts/route";
 import sessionsRoute from "./sessions/route";
 import reportsRoute from "./reports/route";
@@ -30,8 +27,6 @@ import imatMeetingsRoute from "./imatMeetings/route";
 import imatAttendanceRoute from "./imatAttendance/route";
 import calendarRoute from "./calendar/route";
 import ieee802WorldRoute from "./ieee802World/route";
-
-import styles from "./app.module.css";
 
 /*
  * Routing loader functions
@@ -59,25 +54,6 @@ const groupLoader: LoaderFunction = async ({ params }) => {
 	dispatch(loadOfficers(groupName));
 	return null;
 };
-
-/*
- * Top level components
- */
-
-function Root() {
-	return (
-		<div className={styles.root}>
-			<div className="intro">Working group/Committee</div>
-			<WorkingGroupSelector />
-		</div>
-	);
-}
-
-function NavigateToGroupAccounts() {
-	const groupName = useAppSelector(selectWebexAccountsGroupName);
-	const path = groupName ? `/${groupName}/accounts` : "/";
-	return <Navigate to={path} />;
-}
 
 /*
  * Routes
@@ -159,7 +135,7 @@ const routes: AppRoute[] = [
 		children: [
 			{
 				index: true,
-				element: <Root />,
+				element: <RootMain />,
 			},
 			{
 				// Oauth2 completion will dump us here; navigate to the current group account
@@ -173,7 +149,7 @@ const routes: AppRoute[] = [
 				children: [
 					{
 						index: true,
-						element: <Root />,
+						element: <RootMain />,
 					},
 					...groupRoutes,
 					{

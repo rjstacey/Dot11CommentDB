@@ -20,7 +20,7 @@ import SessionSelectorNav from "@/components/SessionSelectorNav";
 import MeetingsEmail from "./MeetingsEmail";
 import CopyMeetingListButton from "./CopyMeetingList";
 
-import { tableColumns } from "./table";
+import { tableColumns } from "./tableColumns";
 import { refresh } from "./route";
 
 const DisplayFormat = {

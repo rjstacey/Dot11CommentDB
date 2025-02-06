@@ -13,7 +13,7 @@ import {
 import ImatMeetingSelector from "@/components/ImatMeetingSelector";
 import ImatMeetingInfo from "@/components/ImatMeetingInfo";
 
-import { tableColumns } from "./table";
+import { tableColumns } from "./tableColumns";
 import { refresh } from "./route";
 
 function ImatBreakoutsActions() {

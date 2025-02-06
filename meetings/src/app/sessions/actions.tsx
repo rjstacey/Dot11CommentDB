@@ -17,7 +17,7 @@ import {
 	sessionsActions,
 } from "@/store/sessions";
 
-import { tableColumns } from "./table";
+import { tableColumns } from "./tableColumns";
 import { refresh } from "./route";
 
 function SessionsActions() {

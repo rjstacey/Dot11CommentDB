@@ -5,7 +5,7 @@ const Table = ({ className, ...props }: React.ComponentProps<"table">) => (
 	<table className={styles.table} {...props} />
 );
 
-export const tableEmpty = (
+const tableEmpty = (
 	<tr>
 		<td className="empty">Empty</td>
 	</tr>

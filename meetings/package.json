@@ -1,7 +1,7 @@
 {
 	"name": "@802tools/meetings",
 	"description": "Manage session and telecon meetings",
-	"version": "1.1.5",
+	"version": "1.1.6",
 	"private": true,
 	"homepage": "/meetings",
 	"type": "module",
@@ -15,7 +15,7 @@
 	"dependencies": {
 		"@reduxjs/toolkit": "^1.9.7",
 		"d3": "^7.8.5",
-		"dot11-components": "^1.9.98",
+		"dot11-components": "^1.9.107",
 		"idb-keyval": "^6.2.1",
 		"luxon": "^3.5.0",
 		"react": "^18.3.1",
@@ -42,6 +42,8 @@
 		"convert-svg-to-png": "^0.6.4",
 		"eslint": "^9.18.0",
 		"eslint-plugin-react": "^7.37.4",
+		"eslint-plugin-react-hooks": "^5.1.0",
+		"eslint-plugin-react-refresh": "^0.4.18",
 		"globals": "^15.14.0",
 		"typescript-eslint": "^8.20.0",
 		"vite": "^6.0.7",

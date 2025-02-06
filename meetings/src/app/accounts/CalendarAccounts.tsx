@@ -47,6 +47,8 @@ function AccountName({ account, readOnly }: CellProps) {
 		dispatch(updateCalendarAccount(id, changes));
 	return (
 		<Input
+			id={`cal-account-${account.id}-name`}
+			aria-label={`Calendar account ${account.id} name`}
 			type="search"
 			value={account.name}
 			onChange={(e) => handleChange(account.id, { name: e.target.value })}
@@ -100,7 +102,14 @@ function Defaults({ account }: CellProps) {
 	const isDefault = account.id === defaultId;
 	const toggleDefaultId = () =>
 		dispatch(setCalendarAccountDefaultId(isDefault ? null : account.id));
-	return <Checkbox checked={isDefault} onChange={toggleDefaultId} />;
+	return (
+		<Checkbox
+			id={`cal-account-${account.id}-use-by-default`}
+			aria-label={`Calendar account ${account.id} use by default`}
+			checked={isDefault}
+			onChange={toggleDefaultId}
+		/>
+	);
 }
 
 function Actions({ account }: CellProps) {

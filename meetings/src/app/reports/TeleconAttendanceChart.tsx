@@ -8,17 +8,20 @@ import {
 	//useDimensions,
 	selectBreakoutAttendanceEntries,
 	type BreakoutAttendanceEntry,
-} from "./SessionAttendanceChart";
+} from "./breakoutAttendanceEntries";
 
 import type { ReportChartProps } from "./chart";
 
 const selectAttendanceSeriesInfo = createSelector(
 	selectBreakoutAttendanceEntries,
 	(entries) => {
-		const seriesEntities = entries.reduce((seriesEntities, entry, i) => {
-			seriesEntities[i] = entry;
-			return seriesEntities;
-		}, {} as Record<string, BreakoutAttendanceEntry>);
+		const seriesEntities = entries.reduce(
+			(seriesEntities, entry, i) => {
+				seriesEntities[i] = entry;
+				return seriesEntities;
+			},
+			{} as Record<string, BreakoutAttendanceEntry>
+		);
 
 		// Sort by date and time
 		const seriesIds = Object.keys(seriesEntities).sort((id1, id2) => {

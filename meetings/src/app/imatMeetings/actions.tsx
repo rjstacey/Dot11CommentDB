@@ -10,7 +10,7 @@ import {
 	imatMeetingsActions,
 } from "@/store/imatMeetings";
 
-import { tableColumns } from "./table";
+import { tableColumns } from "./tableColumns";
 import { refresh } from "./route";
 
 function ImatMeetingsActions() {

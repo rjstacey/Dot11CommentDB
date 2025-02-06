@@ -47,10 +47,13 @@ function AccountName({ account, readOnly }: CellProps) {
 		dispatch(updateWebexAccount(id, changes));
 	return (
 		<Input
+			id={`webex-account-${account.id}-name`}
+			aria-label={`Webex account ${account.id} name`}
 			type="search"
 			value={account.name}
 			onChange={(e) => handleChange(account.id, { name: e.target.value })}
 			readOnly={readOnly}
+			autoComplete="none"
 		/>
 	);
 }
@@ -100,7 +103,14 @@ function Defaults({ account }: CellProps) {
 	const isDefault = account.id === defaultId;
 	const toggleDefaultId = () =>
 		dispatch(setWebexAccountDefaultId(isDefault ? null : account.id));
-	return <Checkbox checked={isDefault} onChange={toggleDefaultId} />;
+	return (
+		<Checkbox
+			id={`webex-account-${account.id}-use-by-default`}
+			aria-label={`Webex account ${account.id} use by default`}
+			checked={isDefault}
+			onChange={toggleDefaultId}
+		/>
+	);
 }
 
 function Actions({ account }: CellProps) {

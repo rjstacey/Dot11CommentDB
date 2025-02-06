@@ -12,7 +12,7 @@ import {
 import SessionSelectorNav from "@/components/SessionSelectorNav";
 import CopyWebexMeetingListButton from "./CopyWebexMeetingList";
 
-import { tableColumns } from "./table";
+import { tableColumns } from "./tableColumns";
 import { refresh } from "./route";
 
 function WebexMeetingsActions() {

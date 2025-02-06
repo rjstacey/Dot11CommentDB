@@ -90,6 +90,8 @@ function RoomDetails({
 			if (col.key === "name") {
 				col.renderCell = (entry) => (
 					<Input
+						id={`room-${entry.id}-name`}
+						aria-label={`Room ${entry.id} name`}
 						type="search"
 						value={entry.name}
 						onChange={(e) =>
@@ -101,6 +103,8 @@ function RoomDetails({
 			} else if (col.key === "description") {
 				col.renderCell = (entry) => (
 					<Input
+						id={`room-${entry.id}-description`}
+						aria-label={`Room ${entry.id} description`}
 						type="search"
 						value={entry.description}
 						onChange={(e) =>

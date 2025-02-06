@@ -27,10 +27,10 @@ import ImatCommitteeSelector from "@/components/ImatCommitteeSelector";
 import MeetingSelector from "@/components/MeetingSelector";
 import {
 	convertEntryToMeeting,
-	MeetingEntry,
-	MultipleMeetingEntry,
-	PartialMeetingEntry,
-} from "../meetings/MeetingDetails";
+	type MeetingEntry,
+	type MultipleMeetingEntry,
+	type PartialMeetingEntry,
+} from "../meetings/convertMeetingEntry";
 import MeetingEntryForm from "../meetings/MeetingEntry";
 
 import { RootState } from "@/store";

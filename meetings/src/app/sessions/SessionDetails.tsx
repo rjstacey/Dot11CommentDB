@@ -126,7 +126,7 @@ function SessionBasics({
 	return (
 		<>
 			<Row>
-				<Field label="Session number:">
+				<Field id="session-number" label="Session number:">
 					<Input
 						style={{ fontSize: "1em" }}
 						type="number"
@@ -151,11 +151,12 @@ function SessionBasics({
 						disabled={readOnly}
 						min={1}
 						step={0.1}
+						autoComplete="none"
 					/>
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Session name:">
+				<Field id="session-name" label="Session name:">
 					<TextArea
 						style={{ width: `${nameMinWidthCh}ch` }}
 						name="Name"
@@ -165,6 +166,7 @@ function SessionBasics({
 						}
 						onChange={(e) => handleChange({ name: e.target.value })}
 						disabled={readOnly}
+						autoComplete="none"
 					/>
 				</Field>
 			</Row>
@@ -193,7 +195,7 @@ function SessionBasics({
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Start:">
+				<Field id="session-start" label="Start:">
 					<Input
 						type="date"
 						value={
@@ -214,7 +216,7 @@ function SessionBasics({
 				</Field>
 			</Row>
 			<Row>
-				<Field label="End:">
+				<Field id="session-end" label="End:">
 					<Input
 						type="date"
 						value={

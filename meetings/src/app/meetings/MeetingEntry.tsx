@@ -19,7 +19,6 @@ import {
 import {
 	selectCurrentSession,
 	selectCurrentSessionDates,
-	Session,
 } from "@/store/sessions";
 
 import { selectGroupEntities } from "@/store/groups";
@@ -30,20 +29,18 @@ import CalendarAccountSelector from "@/components/CalendarAccountSelector";
 import ImatMeetingSelector from "@/components/ImatMeetingSelector";
 
 import {
-	PartialWebexMeetingEntry,
 	WebexMeetingAccount,
 	WebexMeetingParamsEdit,
 } from "../webexMeetings/WebexMeetingDetail";
-import type {
-	MultipleMeetingEntry,
-	PartialMeetingEntry,
-} from "./MeetingDetails";
+import { PartialWebexMeetingEntry } from "../webexMeetings/convertWebexMeetingEntry";
+import {
+	isSessionMeeting,
+	type MultipleMeetingEntry,
+	type PartialMeetingEntry,
+} from "./convertMeetingEntry";
 
 const MULTIPLE_STR = "(Multiple)";
 const BLANK_STR = "(Blank)";
-
-const isSessionMeeting = (session: Session | undefined) =>
-	session ? session.type === "p" || session.type === "i" : false;
 
 function validDuration(duration: string) {
 	if (!duration) return false;
@@ -101,7 +98,7 @@ function TeleconMeetingTime({
 				</Field>
 			</Row>
 			<Row>
-				<Field label={action === "add" ? "Dates:" : "Date:"}>
+				<Field id="dates" label={action === "add" ? "Dates:" : "Date:"}>
 					<InputDates
 						disablePast
 						multi={action === "add"}
@@ -115,7 +112,7 @@ function TeleconMeetingTime({
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Start time:">
+				<Field id="start-time" label="Start time:">
 					<InputTime
 						value={
 							isMultiple(entry.startTime) ? "" : entry.startTime
@@ -131,7 +128,7 @@ function TeleconMeetingTime({
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Duration:">
+				<Field id="duration" label="Duration:">
 					<Input
 						type="text"
 						value={isMultiple(entry.duration) ? "" : entry.duration}
@@ -284,7 +281,7 @@ function SessionMeetingTime({
 				</Field>
 			</Row>
 			<Row>
-				<Field label="Start time:">
+				<Field id="start-time" label="Start time:">
 					<InputTime
 						value={
 							isMultiple(entry.startTime) ? "" : entry.startTime
@@ -300,7 +297,7 @@ function SessionMeetingTime({
 				</Field>
 			</Row>
 			<Row>
-				<Field label="End time:">
+				<Field id="end-time" label="End time:">
 					<InputTime
 						value={isMultiple(entry.endTime) ? "" : entry.endTime}
 						onChange={(endTime) => changeEntry({ endTime })}
@@ -410,7 +407,7 @@ export function MeetingEntryForm({
 		>
 			<div style={{ overflow: "auto" }}>
 				<Row>
-					<Field label="Cancel meeting:">
+					<Field id="cancel-meeting" label="Cancel meeting:">
 						<Checkbox
 							checked={!!entry.isCancelled}
 							indeterminate={isMultiple(entry.isCancelled)}
@@ -526,7 +523,10 @@ export function MeetingEntryForm({
 				)}
 				{!isSession && (
 					<Row>
-						<Field label="Agenda includes motions:">
+						<Field
+							id="agenda-includes-motions"
+							label="Agenda includes motions:"
+						>
 							<Checkbox
 								indeterminate={isMultiple(entry.hasMotions)}
 								checked={
