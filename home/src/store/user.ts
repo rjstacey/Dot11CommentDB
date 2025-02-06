@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { RootState } from ".";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import type { RootState } from ".";
 
 export const AccessLevel = {
 	none: 0,
@@ -12,7 +12,7 @@ export type User = {
 	SAPIN: number;
 	Name: string;
 	Email: string;
-	Token: any;
+	Token: string | null;
 };
 
 const initialState: User = {

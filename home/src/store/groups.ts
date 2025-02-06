@@ -1,168 +1,118 @@
 import {
-	Action,
-	EntityId,
-	PayloadAction,
-	createAction,
+	createSlice,
+	createEntityAdapter,
 	createSelector,
+	PayloadAction,
+	EntityId,
+	Dictionary,
 } from "@reduxjs/toolkit";
 
-import {
-	fetcher,
-	setError,
-	createAppTableDataSlice,
-	getAppTableDataSelectors,
-	isObject,
-} from "dot11-components";
+import { fetcher, setError } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
+import { groupsSchema, groupTypesOrdered } from "@schemas/groups";
+import type {
+	GroupType,
+	Group,
+	GroupCreate,
+	GroupUpdate,
+} from "@schemas/groups";
+export type { GroupType, Group, GroupCreate, GroupUpdate };
 
-const GroupTypeLabels = {
-	c: "Committee",
-	wg: "Working Group",
-	sg: "Study Group",
-	tg: "Task Group",
-	sc: "Standing Committee",
-	ah: "Ad-hoc Group",
-};
+function arrangeIdsHeirarchically(
+	ids: EntityId[],
+	entities: Dictionary<Group>
+) {
+	interface Node {
+		id: EntityId;
+		children: Node[];
+	}
 
-export type GroupType = keyof typeof GroupTypeLabels;
+	// Order by group type and then alphabetically
+	function compare(id1: EntityId, id2: EntityId) {
+		const g1 = entities[id1]!;
+		const g2 = entities[id2]!;
+		const g1TypeIndex = g1.type
+			? groupTypesOrdered.indexOf(g1.type)
+			: groupTypesOrdered.length;
+		const g2TypeIndex = g2.type
+			? groupTypesOrdered.indexOf(g2.type)
+			: groupTypesOrdered.length;
+		let n = g1TypeIndex - g2TypeIndex;
+		if (n === 0) n = g1.name.localeCompare(g2.name);
+		return n;
+	}
 
-export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(
-	([value, label]) =>
-		({ value, label } as { value: GroupType; label: string })
-);
-const groupTypes = Object.keys(GroupTypeLabels);
+	function buildTree(parent_id: EntityId | null): Node[] {
+		return ids
+			.filter((id) => entities[id]!.parent_id === parent_id)
+			.sort(compare)
+			.map((id) => ({ id, children: buildTree(id) }));
+	}
 
-export const GroupStatusOptions = [
-	{ value: 0, label: "Inactive" },
-	{ value: 1, label: "Active" },
-];
+	function flattenTree(nodes: Node[]): EntityId[] {
+		let ids: EntityId[] = [];
+		for (const node of nodes)
+			ids = ids.concat(node.id, flattenTree(node.children));
+		return ids;
+	}
 
-export type Group = {
-	id: string;
-	parent_id: string | null;
-	name: string;
-	status: number;
-	symbol: string | null;
-	color: string | null;
-	type: GroupType | null;
-	project: string | null;
-	permissions: Record<string, number>;
-};
+	const nodes = buildTree(null);
+	const sortedIds = flattenTree(nodes);
 
-export type GroupCreate = Omit<Group, "id"> & { id?: string };
+	if (ids.length !== sortedIds.length) {
+		console.warn("One or more groups present without its parent");
+		return ids;
+	}
 
-function validGroup(group: any): group is Group {
-	const isGood =
-		isObject(group) &&
-		typeof group.id === "string" &&
-		(group.parent_id === null || typeof group.parent_id === "string") &&
-		typeof group.name === "string" &&
-		(group.symbol === null || typeof group.symbol === "string") &&
-		(group.color === null || typeof group.color === "string");
-	if (!isGood) console.log(group);
-	return isGood;
+	return sortedIds.join() !== ids.join() ? sortedIds : ids;
 }
-
-export const fields = {
-	id: {},
-	parent_id: {},
-	name: { label: "Group" },
-	type: { label: "Type", dataRenderer: (v: GroupType) => GroupTypeLabels[v] },
-	status: {
-		label: "Status",
-		dataRenderer: (v: number) => (v ? "Active" : "Inactive"),
-	},
-	symbol: { label: "Committee" },
-};
 
 /* Create slice */
 const dataSet = "groups";
+const dataAdapter = createEntityAdapter<Group>();
 const initialState: {
-	workingGroupId: string | null;
+	topLevelGroupId: string | null;
+	lastLoad: Record<string, string | null>;
+	loading: boolean;
+	valid: boolean;
 } = {
-	workingGroupId: null,
+	topLevelGroupId: null,
+	lastLoad: {},
+	loading: false,
+	valid: false,
 };
-const slice = createAppTableDataSlice({
+const slice = createSlice({
 	name: dataSet,
-	fields,
-	initialState,
-	selectId: (e: Group) => e.id,
+	initialState: dataAdapter.getInitialState(initialState),
 	reducers: {
-		setWorkingGroupId(state, action: PayloadAction<string | null>) {
-			state.workingGroupId = action.payload;
+		setTopLevelGroupId(state, action: PayloadAction<string | null>) {
+			state.topLevelGroupId = action.payload;
 		},
-	},
-	extraReducers: (builder, dataAdapter) => {
-		builder.addMatcher(
-			(action: Action) => action.type === getSuccess2.toString(),
-			(state, action: PayloadAction<Group[]>) => {
-				dataAdapter.setMany(state, action.payload); // add or replace
-				state.loading = false;
-				state.valid = true;
-				const { ids, entities } = state;
-
-				interface Node {
-					id: EntityId;
-					children: Node[];
-				}
-
-				// Order by group type and then alphabetically
-				function compare(id1: EntityId, id2: EntityId) {
-					const g1 = entities[id1]!;
-					const g2 = entities[id2]!;
-					let n =
-						groupTypes.indexOf(g1.type || "") -
-						groupTypes.indexOf(g2.type || "");
-					if (n === 0) n = g1.name.localeCompare(g2.name);
-					return n;
-				}
-
-				function buildTree(parent_id: EntityId | null): Node[] {
-					return ids
-						.filter((id) => entities[id]!.parent_id === parent_id)
-						.sort(compare)
-						.map((id) => ({ id, children: buildTree(id) }));
-				}
-
-				function flattenTree(nodes: Node[]): EntityId[] {
-					let ids: EntityId[] = [];
-					for (const node of nodes)
-						ids = ids.concat(node.id, flattenTree(node.children));
-					return ids;
-				}
-
-				const nodes = buildTree(null);
-				const sortedIds = flattenTree(nodes);
-
-				if (ids.length !== sortedIds.length) {
-					console.warn(
-						"One or more groups present without its parent"
-					);
-				} else {
-					if (sortedIds.join() !== ids.join()) state.ids = sortedIds;
-				}
-			}
-		);
+		getPending(state, action: PayloadAction<{ groupName: string }>) {
+			const { groupName } = action.payload;
+			state.loading = true;
+			state.lastLoad[groupName] = new Date().toISOString();
+		},
+		getFailure(state) {
+			state.loading = false;
+		},
+		getSuccess(state, action: PayloadAction<Group[]>) {
+			const groups = action.payload;
+			dataAdapter.setMany(state, groups); // add or replace
+			state.loading = false;
+			state.valid = true;
+			state.ids = arrangeIdsHeirarchically(state.ids, state.entities);
+		},
 	},
 });
 
 export default slice;
 
 /* Slice actions */
-export const groupsActions = slice.actions;
-
-const {
-	getPending,
-	getFailure,
-	setSelected,
-	setFilter,
-	clearFilter,
-	setWorkingGroupId,
-} = slice.actions;
-
-export { setSelected, setFilter, clearFilter, setWorkingGroupId };
-const getSuccess2 = createAction<Group[]>(dataSet + "/getSuccess2");
+const { getPending, getFailure, getSuccess, setTopLevelGroupId } =
+	slice.actions;
+export { setTopLevelGroupId };
 
 /* Selectors */
 export const selectGroupsState = (state: RootState) => state[dataSet];
@@ -170,49 +120,64 @@ export const selectGroupEntities = (state: RootState) =>
 	selectGroupsState(state).entities;
 export const selectGroupIds = (state: RootState) =>
 	selectGroupsState(state).ids;
+const selectGroupsAge = (state: RootState, groupName: string) => {
+	const lastLoad = selectGroupsState(state).lastLoad[groupName];
+	if (!lastLoad) return NaN;
+	return new Date().valueOf() - new Date(lastLoad).valueOf();
+};
 
-export const selectWorkingGroups = (state: RootState) => {
+export const selectTopLevelGroups = (state: RootState) => {
 	const { ids, entities } = selectGroupsState(state);
 	return ids
 		.map((id) => entities[id]!)
-		.filter((g) => g.type === "c" || g.type === "wg");
+		.filter((g) => ["r", "c", "wg"].includes(g.type!));
 };
-export const selectWorkingGroupByName = (
+
+/** Select top level group by name. Only for root ("r"), committee (c) and working group (wg). Root is selected with groupName = "". */
+export const selectTopLevelGroupByName = (
 	state: RootState,
 	groupName: string
 ) => {
-	const groups = selectWorkingGroups(state);
-	return groups.find((g) => g.name === groupName);
+	const groups = selectTopLevelGroups(state);
+	return groups.find((g) =>
+		groupName
+			? (g.type === "c" || g.type === "wg") && g.name === groupName
+			: g.type === "r"
+	);
 };
 
-export const selectWorkingGroupId = (state: RootState) =>
-	selectGroupsState(state).workingGroupId;
-export const selectWorkingGroup = (state: RootState) => {
-	const { workingGroupId, entities } = selectGroupsState(state);
-	return (workingGroupId && entities[workingGroupId]) || undefined;
+export const selectTopLevelGroupId = (state: RootState) =>
+	selectGroupsState(state).topLevelGroupId;
+export const selectTopLevelGroup = (state: RootState) => {
+	const { topLevelGroupId, entities } = selectGroupsState(state);
+	return (topLevelGroupId && entities[topLevelGroupId]) || undefined;
 };
-export const selectWorkingGroupName = (state: RootState) =>
-	selectWorkingGroup(state)?.name || "";
 
 export const selectWorkingGroupIds = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
-	selectWorkingGroupId,
-	(ids, entities, workingGroupId) => {
-		function isWorkingGroupDescendent(id: EntityId) {
-			if (id === workingGroupId) return true;
-			let g: Group | undefined = entities[id]!;
-			do {
-				if (g.parent_id === workingGroupId) return true; // id is descendent of workingGroupId
-				g = g.parent_id ? entities[g.parent_id] : undefined;
-			} while (g);
-			return false; // id is not an descendent of workingGroupId
-		}
-		if (workingGroupId) {
+	selectTopLevelGroupId,
+	(ids, entities, topLevelGroupId) => {
+		if (topLevelGroupId) {
+			const parent = entities[topLevelGroupId];
+			if (parent && (parent.type === "r" || parent.type === "c")) {
+				ids = ids.filter((id) =>
+					["r", "c", "wg"].includes(entities[id]!.type!)
+				);
+			}
+			function isWorkingGroupDescendent(id: EntityId) {
+				if (id === topLevelGroupId) return true;
+				let g: Group | undefined = entities[id]!;
+				do {
+					if (g.parent_id === topLevelGroupId) return true; // id is descendent of ownerGroupId
+					g = g.parent_id ? entities[g.parent_id] : undefined;
+				} while (g);
+				return false; // id is not an descendent of ownerGroupId
+			}
 			return ids.filter(isWorkingGroupDescendent);
 		} else {
 			return ids.filter((id) => {
-				let g = entities[id]!;
+				const g = entities[id]!;
 				return g.type === "c" || g.type === "wg";
 			});
 		}
@@ -227,45 +192,77 @@ export const selectGroups = createSelector(
 
 export const selectGroupParents = createSelector(
 	selectGroupEntities,
-	selectWorkingGroupId,
-	(entities, workingGroupId) => {
+	selectTopLevelGroupId,
+	(entities, topLevelGroupId) => {
 		const groups: Group[] = [];
-		while (workingGroupId) {
-			const group = entities[workingGroupId];
+		while (topLevelGroupId) {
+			const group = entities[topLevelGroupId];
 			if (group) {
 				groups.unshift(group);
-				workingGroupId = group.parent_id;
+				topLevelGroupId = group.parent_id;
 			} else {
-				workingGroupId = null;
+				topLevelGroupId = null;
 			}
 		}
 		return groups;
 	}
 );
 
-export const groupsSelectors = getAppTableDataSelectors(selectGroupsState);
+export const selectGroup = (state: RootState, groupId: string) =>
+	selectGroupsState(state).entities[groupId];
+
+export const selectGroupPermissions = (
+	state: RootState,
+	groupId: string
+): Record<string, number> => {
+	const group = selectGroup(state, groupId);
+	return group ? group.permissions : {};
+};
 
 /* Thunk actions */
 const baseUrl = "/api/groups";
-
-function validResponse(response: any): response is Group[] {
-	return Array.isArray(response) && response.every(validGroup);
-}
-
+const AGE_STALE = 60 * 60 * 1000; // 1 hour
+const loadingPromise: Record<string, Promise<Group[]> | undefined> = {};
 export const loadGroups =
-	(groupName?: string): AppThunk =>
-	(dispatch) => {
-		dispatch(getPending());
+	(groupName: string = ""): AppThunk<Group[]> =>
+	async (dispatch, getState) => {
+		if (groupName) {
+			await loadingPromise[""];
+			if (selectTopLevelGroup(getState())?.name !== groupName) {
+				const group = selectTopLevelGroupByName(getState(), groupName);
+				if (!group) {
+					setError(
+						"Unable to load subgroups",
+						"Invalid top level group: " + groupName
+					);
+					return [];
+				}
+				dispatch(setTopLevelGroupId(group.id));
+			}
+		}
+		if (loadingPromise[groupName]) {
+			return loadingPromise[groupName]!;
+		}
+		const age = selectGroupsAge(getState(), groupName);
+		if (age && age < AGE_STALE) {
+			return loadingPromise[groupName]!;
+		}
+		dispatch(getPending({ groupName }));
 		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
-		return fetcher
+		loadingPromise[groupName] = fetcher
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
-			.then((response: any) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response");
-				dispatch(getSuccess2(response));
+			.then((response: unknown) => {
+				const groups = groupsSchema.parse(response);
+				dispatch(getSuccess(groups));
+				return groups;
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get groups", error));
+				dispatch(setError("GET " + url, error));
+				return [];
+			})
+			.finally(() => {
+				delete loadingPromise[groupName];
 			});
+		return loadingPromise[groupName]!;
 	};

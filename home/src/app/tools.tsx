@@ -1,5 +1,5 @@
 import { useLocation, useParams } from "react-router";
-import { selectWorkingGroupByName } from "../store/groups";
+import { selectTopLevelGroupByName } from "../store/groups";
 import { useAppSelector } from "../store/hooks";
 import styles from "./app.module.css";
 
@@ -25,7 +25,7 @@ function Tools() {
 	const location = useLocation();
 	const { groupName } = useParams();
 	const group = useAppSelector((state) =>
-		selectWorkingGroupByName(state, groupName!)
+		selectTopLevelGroupByName(state, groupName!)
 	);
 
 	const showCommentResolution = (group?.permissions.comments || 0) >= 0;

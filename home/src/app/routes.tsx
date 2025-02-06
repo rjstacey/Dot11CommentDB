@@ -1,29 +1,14 @@
-import {
-	useRouteError,
-	Outlet,
-	RouteObject,
-	LoaderFunction,
-	Link,
-} from "react-router";
+import { RouteObject, LoaderFunction } from "react-router";
+import { getUser, fetcher, User, loginAndReturn } from "dot11-components";
+import { store } from "@/store";
+import { loadGroups } from "@/store/groups";
+import { setUser } from "@/store/user";
 
-import { store } from "../store";
-import { loadGroups } from "../store/groups";
-import { setUser } from "../store/user";
-
-import {
-	ErrorModal,
-	ConfirmModal,
-	getUser,
-	fetcher,
-	User,
-	loginAndReturn,
-} from "dot11-components";
-import Header from "./Header";
 import Root from "./root";
+import ErrorPage from "./errorPage";
 import Tools from "./tools";
+import Layout from "./layout";
 import Privacy from "./privacy";
-
-import styles from "./app.module.css";
 
 /*
  * Routing loader functions
@@ -42,40 +27,6 @@ const rootLoader: LoaderFunction = async () => {
 	await dispatch(loadGroups());
 	return null;
 };
-
-/*
- * Top level components
- */
-function Layout() {
-	return (
-		<>
-			<Header />
-			<main className={styles.main}>
-				<Outlet />
-			</main>
-			<footer>
-				<Link to="privacy-policy">Privacy policy</Link>
-			</footer>
-			<ErrorModal />
-			<ConfirmModal />
-		</>
-	);
-}
-
-function ErrorPage() {
-	const error: any = useRouteError();
-	console.error(error);
-
-	return (
-		<div id="error-page">
-			<h1>Oops!</h1>
-			<p>Sorry, an unexpected error has occurred.</p>
-			<p>
-				<i>{error.statusText || error.message}</i>
-			</p>
-		</div>
-	);
-}
 
 /*
  * Routes
