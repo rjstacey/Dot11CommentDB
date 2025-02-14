@@ -4,8 +4,6 @@ import {
 	AppTable,
 	SelectHeaderCell,
 	SelectCell,
-	TableColumnHeader,
-	HeaderCellRendererProps,
 	ColumnProperties,
 	ActionButton,
 	ShowFilters,
@@ -32,8 +30,11 @@ import {
 	selectBallotSeriesIds,
 } from "@/store/ballotParticipation";
 
-import MemberDetail from "../members/MemberDetail";
-import { renderNameAndEmail } from "../members/membersTableColumns";
+import { MemberDetail } from "../members/detail";
+import {
+	renderNameAndEmail,
+	renderHeaderNameAndEmail,
+} from "../members/tableColumns";
 import BulkStatusUpdate from "../sessionParticipation/BulkStatusUpdate";
 import { refresh } from "./route";
 
@@ -60,13 +61,6 @@ function BallotSeriesSummary() {
 
 	return <>{elements}</>;
 }
-
-const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) => (
-	<>
-		<TableColumnHeader {...props} dataKey="Name" label="Name" />
-		<TableColumnHeader {...props} dataKey="Email" label="Email" />
-	</>
-);
 
 const renderBallotSeriesParticipationSummary = (
 	summary?: BallotSeriesParticipationSummary

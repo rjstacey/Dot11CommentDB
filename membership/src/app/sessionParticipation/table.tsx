@@ -29,8 +29,8 @@ import {
 import { selectRecentSessions } from "@/store/sessions";
 import { SessionAttendanceSummary } from "@/store/attendanceSummary";
 
-import { renderNameAndEmail } from "../members/membersTableColumns";
-import MemberDetail from "../members/MemberDetail";
+import { renderNameAndEmail } from "../members/tableColumns";
+import { MemberDetail } from "../members/detail";
 
 const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) => (
 	<>
