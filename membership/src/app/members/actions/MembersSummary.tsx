@@ -39,7 +39,7 @@ const LabelValue = ({ label, value }: { label: string; value: number }) => (
 	</div>
 );
 
-function MembersSummary(props: React.ComponentProps<"div">) {
+export function MembersSummary(props: React.ComponentProps<"div">) {
 	const summary = useAppSelector(selectMembersSummary);
 
 	return (
@@ -52,5 +52,3 @@ function MembersSummary(props: React.ComponentProps<"div">) {
 		</div>
 	);
 }
-
-export default MembersSummary;

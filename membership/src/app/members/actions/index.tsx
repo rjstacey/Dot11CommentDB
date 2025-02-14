@@ -6,13 +6,13 @@ import { useAppSelector } from "@/store/hooks";
 import { selectMembersState, Member, MembersDictionary } from "@/store/members";
 
 import { copyChartToClipboard, downloadChart } from "@/components/copyChart";
-import MembersUpload from "./MembersUpload";
-import MembersSummary from "./MembersSummary";
-import MembersRoster from "./MembersRoster";
-import MembersExport from "./MembersExport";
-import { MembersTableActions } from "./table";
-import { MyProjectRosterTableActions } from "./roster";
-import { refresh } from "./route";
+import { MembersUpload } from "./MembersUpload";
+import { MembersSummary } from "./MembersSummary";
+import { MembersRoster } from "./MembersRoster";
+import { MembersExport } from "./MembersExport";
+import { MembersTableActions } from "../table";
+import { RosterTableActions } from "../roster";
+import { refresh } from "../route";
 
 function copyHtmlToClipboard(html: string) {
 	const type = "text/html";
@@ -56,25 +56,27 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 	copyHtmlToClipboard(table);
 }
 
-function MembersActions() {
+export function MembersActions() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const { selected, entities: members } = useAppSelector(selectMembersState);
 
 	const showChart = /chart$/.test(location.pathname);
 	const toggleShowChart = () => {
+		console.log("toggle show chart");
 		navigate(showChart ? "" : "chart");
 	};
 
 	const showRoster = /roster$/.test(location.pathname);
 	const toggleShowRoster = () => {
+		console.log("toggle show roster");
 		navigate(showRoster ? "" : "roster");
 	};
 
 	const tableActionsEl = showChart ? (
 		<div />
 	) : showRoster ? (
-		<MyProjectRosterTableActions />
+		<RosterTableActions />
 	) : (
 		<MembersTableActions />
 	);
@@ -131,5 +133,3 @@ function MembersActions() {
 		</div>
 	);
 }
-
-export default MembersActions;

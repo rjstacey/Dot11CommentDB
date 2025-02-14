@@ -28,13 +28,14 @@ import {
 } from "@/store/members";
 import { selectIeeeMemberEntities } from "@/store/ieeeMembers";
 
-import IeeeMemberSelector from "./IeeeMemberSelector";
-import MemberSelector from "./MemberAllSelector";
-import MemberStatus from "./MemberStatus";
-import MemberContactInfo from "./MemberContactInfo";
-import MemberAttendances from "../sessionParticipation/MemberAttendances";
-import MemberBallotParticipation from "../ballotParticipation/MemberBallotParticipation";
-import { hasChangesStyle } from "./utils";
+import MemberAttendances from "../../sessionParticipation/MemberAttendances";
+import MemberBallotParticipation from "../../ballotParticipation/MemberBallotParticipation";
+
+import { MemberStatus } from "./MemberStatus";
+import { IeeeMemberSelector } from "./IeeeMemberSelector";
+import { MemberAllSelector } from "./MemberAllSelector";
+import { MemberContactInfo } from "./MemberContactInfo";
+import { hasChangesStyle } from "../utils";
 
 export type MultipleMember = Multiple<
 	Omit<MemberCreate, "StatusChangeHistory" | "ContactEmails" | "ContactInfo">
@@ -353,7 +354,7 @@ export function MemberBasicInfo({
 			{member.Status === "Obsolete" && (
 				<Row>
 					<Field label="Replaced by:">
-						<MemberSelector
+						<MemberAllSelector
 							style={{ maxWidth: 400, flex: 1 }}
 							value={
 								isMultiple(member.ReplacedBySAPIN)

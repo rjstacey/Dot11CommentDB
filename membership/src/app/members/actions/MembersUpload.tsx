@@ -117,7 +117,7 @@ function MembersUploadForm({ methods }: DropdownRendererProps) {
 	);
 }
 
-const MembersUpload = () => (
+export const MembersUpload = () => (
 	<ActionButtonDropdown
 		name="upload"
 		title="Upload members"
@@ -138,5 +138,3 @@ const MembersUpload = () => (
 		dropdownRenderer={(props) => <MembersUploadForm {...props} />}
 	/>
 );
-
-export default MembersUpload;

@@ -1,13 +1,11 @@
 import { Outlet } from "react-router";
-import Actions from "./actions";
+import { MembersActions } from "./actions";
 
-function MembersLayout() {
+export function MembersLayout() {
 	return (
 		<>
-			<Actions />
+			<MembersActions />
 			<Outlet />
 		</>
 	);
 }
-
-export default MembersLayout;

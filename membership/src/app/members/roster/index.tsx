@@ -8,8 +8,6 @@ import {
 	SplitTableButtonGroup,
 } from "dot11-components";
 
-import MemberDetail from "./MemberDetail";
-
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	fields,
@@ -19,9 +17,10 @@ import {
 	myProjectRosterActions,
 } from "@/store/myProjectRoster";
 
-import { tableColumns, defaultTablesConfig } from "./rosterTableColumns";
+import { MemberDetail } from "../detail";
+import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
-export const MyProjectRosterTableActions = (
+export const RosterTableActions = (
 	props: Omit<
 		React.ComponentProps<typeof SplitTableButtonGroup>,
 		"columns" | "selectors" | "actions"
@@ -35,7 +34,7 @@ export const MyProjectRosterTableActions = (
 	/>
 );
 
-function MyProjectRosterTable() {
+export function RosterTable() {
 	const dispatch = useAppDispatch();
 	const { selected } = useAppSelector(selectMyProjectRosterState);
 
@@ -79,5 +78,3 @@ function MyProjectRosterTable() {
 		</div>
 	);
 }
-
-export default MyProjectRosterTable;

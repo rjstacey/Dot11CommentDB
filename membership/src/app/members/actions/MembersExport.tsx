@@ -79,7 +79,7 @@ function VotingMembersExportDropdown() {
 	);
 }
 
-function MembersExport() {
+export function MembersExport() {
 	const dispatch = useAppDispatch();
 
 	return (
@@ -102,5 +102,3 @@ function MembersExport() {
 		</>
 	);
 }
-
-export default MembersExport;

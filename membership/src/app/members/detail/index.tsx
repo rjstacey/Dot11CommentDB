@@ -93,7 +93,7 @@ function useInitState(selected: EntityId[]) {
 	}, [loading, valid, selected, entities]);
 }
 
-function MemberDetail({
+export function MemberDetail({
 	selected,
 	setSelected,
 }: {
@@ -305,5 +305,3 @@ function MemberDetail({
 		</>
 	);
 }
-
-export default MemberDetail;

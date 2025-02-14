@@ -17,7 +17,7 @@ import { EditTable as Table } from "@/components/Table";
 
 import StatusSelector from "./StatusSelector";
 import type { MultipleMember } from "./MemberEdit";
-import { hasChangesStyle } from "./utils";
+import { hasChangesStyle } from "../utils";
 
 const MULTIPLE_STR = "(Multiple)";
 const BLANK_STR = "(Blank)";
@@ -135,7 +135,7 @@ const statusChangeHistoryColumns = [
 	},
 ];
 
-function MemberStatusChangeHistory({
+export function MemberStatus({
 	member,
 	saved,
 	updateMember,
@@ -287,5 +287,3 @@ function MemberStatusChangeHistory({
 		</div>
 	);
 }
-
-export default MemberStatusChangeHistory;

@@ -17,7 +17,7 @@ function itemRenderer({ item: member }: { item: IeeeMember }) {
 	);
 }
 
-function IeeeMemberSelector({
+export function IeeeMemberSelector({
 	value, // value is SAPIN
 	onChange,
 	readOnly,
@@ -55,5 +55,3 @@ function IeeeMemberSelector({
 		/>
 	);
 }
-
-export default IeeeMemberSelector;

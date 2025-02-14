@@ -4,17 +4,16 @@ import { store } from "@/store";
 import { AccessLevel } from "@/store/user";
 import { loadGroups, selectTopLevelGroupByName } from "@/store/groups";
 import { loadIeeeMembers } from "@/store/ieeeMembers";
-import { loadMembers } from "@/store/members";
+import { loadMembers, selectMembersState } from "@/store/members";
 import { loadOfficers } from "@/store/officers";
 import { loadRecentAttendanceSummaries } from "@/store/attendanceSummary";
 import { loadBallotParticipation } from "@/store/ballotParticipation";
 import { loadAffiliationMap } from "@/store/affiliationMap";
 
-import MembersLayout from "./layout";
-import MembersTable from "./table";
-import MembersChart from "./chart";
-import { selectMembersState } from "@/store/members";
-import MyProjectRosterTable from "./roster";
+import { MembersLayout } from "./layout";
+import { MembersTable } from "./table";
+import { MembersChart } from "./chart";
+import { RosterTable } from "./roster";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -63,7 +62,7 @@ const route = {
 		},
 		{
 			path: "roster",
-			element: <MyProjectRosterTable />,
+			element: <RosterTable />,
 		},
 	],
 };

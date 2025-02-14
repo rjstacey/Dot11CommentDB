@@ -84,7 +84,7 @@ function RosterUpdateDropdown({ methods }: DropdownRendererProps) {
 	);
 }
 
-function MembersRoster() {
+export function MembersRoster() {
 	return (
 		<ActionButtonDropdown
 			title="Update roster"
@@ -106,5 +106,3 @@ function MembersRoster() {
 		/>
 	);
 }
-
-export default MembersRoster;

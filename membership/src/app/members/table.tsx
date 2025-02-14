@@ -8,8 +8,6 @@ import {
 	SplitTableButtonGroup,
 } from "dot11-components";
 
-import MemberDetail from "./MemberDetail";
-
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	fields,
@@ -19,7 +17,8 @@ import {
 	membersActions,
 } from "@/store/members";
 
-import { tableColumns, defaultTablesConfig } from "./membersTableColumns";
+import { tableColumns, defaultTablesConfig } from "./tableColumns";
+import { MemberDetail } from "./detail";
 
 export const MembersTableActions = (
 	props: Omit<
@@ -35,7 +34,7 @@ export const MembersTableActions = (
 	/>
 );
 
-function MembersTable() {
+export function MembersTable() {
 	const dispatch = useAppDispatch();
 	const { selected } = useAppSelector(selectMembersState);
 
@@ -76,5 +75,3 @@ function MembersTable() {
 		</div>
 	);
 }
-
-export default MembersTable;

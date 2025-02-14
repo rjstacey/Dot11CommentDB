@@ -8,10 +8,10 @@ import {
 	ContactInfo,
 	memberContactInfoEmpty,
 } from "@/store/members";
-import type { MultipleMember } from "./MemberEdit";
-import { hasChangesStyle } from "./utils";
-
+import { hasChangesStyle } from "../utils";
 import { EditTable as Table, TableColumn } from "@/components/Table";
+
+import type { MultipleMember } from "./MemberEdit";
 
 type ContactInfoFieldType = {
 	key: keyof ContactInfo;
@@ -180,7 +180,7 @@ const ContactInfoFields: ContactInfoFieldType[] = [
 	{ key: "Phone", label: "Phone" },
 ];
 
-function MemberContactInfoEdit({
+export function MemberContactInfo({
 	edited,
 	saved,
 	onChange,
@@ -235,5 +235,3 @@ function MemberContactInfoEdit({
 		</Col>
 	);
 }
-
-export default MemberContactInfoEdit;

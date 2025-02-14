@@ -5,7 +5,7 @@ import { Select } from "dot11-components";
 import { useAppSelector } from "@/store/hooks";
 import { selectAllMembers } from "@/store/members";
 
-function MemberSelector({
+export function MemberAllSelector({
 	value,
 	onChange,
 	readOnly,
@@ -42,5 +42,3 @@ function MemberSelector({
 		/>
 	);
 }
-
-export default MemberSelector;

@@ -95,7 +95,7 @@ const membersByAffiliation = createSelector(
 	}
 );
 
-function MembersChart() {
+export function MembersChart() {
 	const { ids, entities } = useAppSelector(membersByAffiliation);
 
 	return (
@@ -120,5 +120,3 @@ function MembersChart() {
 		</div>
 	);
 }
-
-export default MembersChart;
