@@ -8,16 +8,16 @@ import {
 	selectSessionAttendeesState,
 } from "@/store/sessionAttendees";
 import { loadAffiliationMap } from "@/store/affiliationMap";
-
-import SessionAttendanceLayout from "./layout";
-import SessionAttendanceTable from "./table";
-import SessionAttendanceChart from "./chart";
-import SessionRegistration from "./sessionRegistration";
 import {
 	loadRecentAttendanceSummaries,
 	selectAttendanceSummaryState,
 } from "@/store/attendanceSummary";
 import { loadSessions, selectSessionByNumber } from "@/store/sessions";
+
+import { SessionAttendanceLayout } from "./layout";
+import { SessionAttendanceTable } from "./table";
+import { SessionAttendanceChart } from "./chart";
+import { SessionRegistrationTable } from "./registration";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -89,7 +89,7 @@ const route = {
 				},
 				{
 					path: "registration",
-					element: <SessionRegistration />,
+					element: <SessionRegistrationTable />,
 				},
 			],
 		},

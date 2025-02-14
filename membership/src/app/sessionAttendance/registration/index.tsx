@@ -5,12 +5,9 @@ import {
 	fields,
 } from "@/store/sessionRegistration";
 
-import {
-	tableColumns,
-	defaultTablesConfig,
-} from "./sessionRegistrationTableColumns";
+import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
-function SessionRegistrationTable() {
+export function SessionRegistrationTable() {
 	return (
 		<div className="table-container">
 			<ShowFilters
@@ -29,5 +26,3 @@ function SessionRegistrationTable() {
 		</div>
 	);
 }
-
-export default SessionRegistrationTable;

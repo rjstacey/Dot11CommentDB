@@ -42,12 +42,12 @@ import {
 	MemberUpdate,
 } from "@/store/members";
 
-import SessionSelector from "./SessionSelector";
-import { refresh } from "./routes";
-import { tableColumns as sessionAttendeesColumns } from "./sessionAttendanceTableColumns";
-import { tableColumns as sessionRegistrationColumns } from "./sessionRegistrationTableColumns";
 import { copyChartToClipboard, downloadChart } from "@/components/copyChart";
-import { sessionAttendeeToNewMember } from "./utils";
+import { SessionSelector } from "./SessionSelector";
+import { tableColumns as sessionAttendeesColumns } from "../tableColumns";
+import { tableColumns as sessionRegistrationColumns } from "../registration/tableColumns";
+import { refresh } from "../routes";
+import { sessionAttendeeToNewMember } from "../utils";
 
 function ImportRegistrationForm({ methods }: DropdownRendererProps) {
 	const dispatch = useAppDispatch();
@@ -202,7 +202,7 @@ function BulkUpdateForm({ methods }: DropdownRendererProps) {
 	);
 }
 
-function SessionAttendanceActions() {
+export function SessionAttendanceActions() {
 	const dispatch = useAppDispatch();
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -417,5 +417,3 @@ function SessionAttendanceActions() {
 		</div>
 	);
 }
-
-export default SessionAttendanceActions;

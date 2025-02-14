@@ -25,7 +25,7 @@ const renderSession = ({ item: session }: { item: Session }) => (
 	</div>
 );
 
-function SessionSelector({
+export function SessionSelector({
 	value,
 	onChange,
 	readOnly,
@@ -59,5 +59,3 @@ function SessionSelector({
 		/>
 	);
 }
-
-export default SessionSelector;

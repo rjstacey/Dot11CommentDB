@@ -6,14 +6,10 @@ import {
 	fields,
 } from "@/store/sessionAttendees";
 
-import MemberAttendanceDetail from "./detail";
+import { MemberAttendanceDetail } from "./detail";
+import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
-import {
-	tableColumns,
-	defaultTablesConfig,
-} from "./sessionAttendanceTableColumns";
-
-function SessionAttendanceTable() {
+export function SessionAttendanceTable() {
 	return (
 		<div className="table-container">
 			<ShowFilters
@@ -42,5 +38,3 @@ function SessionAttendanceTable() {
 		</div>
 	);
 }
-
-export default SessionAttendanceTable;

@@ -17,7 +17,7 @@ const renderRegistration = ({ item: reg }: { item: SessionRegistration }) => (
 	</div>
 );
 
-function RegistrationSelector({
+export function RegistrationSelector({
 	value,
 	onChange,
 	readOnly,
@@ -50,5 +50,3 @@ function RegistrationSelector({
 		/>
 	);
 }
-
-export default RegistrationSelector;

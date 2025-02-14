@@ -1,13 +1,11 @@
 import { Outlet } from "react-router";
-import Actions from "./actions";
+import { SessionAttendanceActions } from "./actions";
 
-function SessionAttendanceLayout() {
+export function SessionAttendanceLayout() {
 	return (
 		<>
-			<Actions />
+			<SessionAttendanceActions />
 			<Outlet />
 		</>
 	);
 }
-
-export default SessionAttendanceLayout;

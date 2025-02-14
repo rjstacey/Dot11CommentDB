@@ -45,9 +45,12 @@ import {
 	emailPattern,
 	type MultipleMember,
 	type EditAction,
-} from "../members/detail/MemberEdit";
-import { useMembersAdd, useMembersUpdate } from "../members/detail/membersEdit";
-import { sessionAttendeeToNewMember, useAttendanceUpdate } from "./utils";
+} from "../../members/detail/MemberEdit";
+import {
+	useMembersAdd,
+	useMembersUpdate,
+} from "../../members/detail/membersEdit";
+import { sessionAttendeeToNewMember, useAttendanceUpdate } from "../utils";
 
 import ShowAccess from "@/components/ShowAccess";
 
@@ -593,5 +596,3 @@ export function MemberAttendanceDetail() {
 		</>
 	);
 }
-
-export default MemberAttendanceDetail;

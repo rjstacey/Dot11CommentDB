@@ -107,7 +107,7 @@ const attendeesByAffiliation = createSelector(
 	}
 );
 
-function SessionAttendanceChart() {
+export function SessionAttendanceChart() {
 	const { ids, entities } = useAppSelector(attendeesByAffiliation);
 
 	return (
@@ -132,5 +132,3 @@ function SessionAttendanceChart() {
 		</div>
 	);
 }
-
-export default SessionAttendanceChart;
