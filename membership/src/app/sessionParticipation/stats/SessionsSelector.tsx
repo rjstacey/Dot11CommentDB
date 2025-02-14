@@ -2,7 +2,7 @@ import { Checkbox, displayDateRange } from "dot11-components";
 import { useAppSelector } from "@/store/hooks";
 import { selectRecentSessions } from "@/store/sessions";
 
-function SessionsSelector({
+export function SessionsSelector({
 	selected,
 	setSelected,
 }: {
@@ -66,5 +66,3 @@ function SessionsSelector({
 		</div>
 	);
 }
-
-export default SessionsSelector;
