@@ -10,7 +10,7 @@ import {
 	displaySessionType,
 } from "@/store/sessions";
 
-import styles from "./sessionAttendance.module.css";
+import styles from "./actions.module.css";
 
 const renderSession = ({ item: session }: { item: Session }) => (
 	<div className={styles.sessionItem}>

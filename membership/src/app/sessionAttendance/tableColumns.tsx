@@ -14,7 +14,7 @@ import {
 	fields,
 } from "@/store/sessionAttendees";
 
-import styles from "./sessionAttendance.module.css";
+import styles from "./table.module.css";
 
 const BLANK_STR = "(Blank)";
 

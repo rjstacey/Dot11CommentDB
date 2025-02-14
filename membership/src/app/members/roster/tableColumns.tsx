@@ -16,7 +16,7 @@ import {
 	myProjectRosterActions,
 } from "@/store/myProjectRoster";
 
-import styles from "../../sessionAttendance/sessionAttendance.module.css";
+import styles from "../../sessionAttendance/table.module.css";
 
 const BLANK_STR = "(Blank)";
 

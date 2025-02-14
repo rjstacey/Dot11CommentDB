@@ -8,7 +8,7 @@ import {
 	selectBallotParticipationState,
 } from "@/store/ballotParticipation";
 
-import BallotParticipation from "./BallotParticipation";
+import { BallotParticipationLayout } from "./layout";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -36,7 +36,7 @@ const ballotParticipationLoader: LoaderFunction = async ({ params }) => {
 };
 
 const route: RouteObject = {
-	element: <BallotParticipation />,
+	element: <BallotParticipationLayout />,
 	loader: ballotParticipationLoader,
 };
 

@@ -27,7 +27,7 @@ import {
 } from "@/store/attendanceSummary";
 import { selectSessionEntities } from "@/store/sessions";
 
-import styles from "../sessionAttendance/sessionAttendance.module.css";
+import styles from "../sessionAttendance/actions/actions.module.css";
 
 import { EditTable as Table, TableColumn } from "@/components/Table";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
