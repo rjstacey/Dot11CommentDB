@@ -49,7 +49,7 @@ import {
 import {
 	useMembersAdd,
 	useMembersUpdate,
-} from "../../members/detail/membersEdit";
+} from "../../members/detail/useMembersEdit";
 import { sessionAttendeeToNewMember, useAttendanceUpdate } from "../utils";
 
 import ShowAccess from "@/components/ShowAccess";

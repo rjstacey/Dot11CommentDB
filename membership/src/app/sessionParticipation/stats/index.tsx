@@ -5,7 +5,7 @@ import {
 	selectSessionParticipationWithMembershipAndSummary,
 } from "@/store/sessionParticipation";
 import { EditTable, TableColumn } from "@/components/Table";
-import SessionsSelector from "./sessionsSelector";
+import { SessionsSelector } from "./SessionsSelector";
 
 type TableEntries = {
 	numAttended: string | number;
@@ -112,8 +112,6 @@ function InPersonAttendance() {
 	);
 }
 
-function Stats() {
+export function SessionParticipationStats() {
 	return <InPersonAttendance />;
 }
-
-export default Stats;

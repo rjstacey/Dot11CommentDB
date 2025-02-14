@@ -1,12 +1,12 @@
-import { ActionButton, displayDateRange } from "dot11-components";
 import { useLocation, useNavigate } from "react-router";
+import { ActionButton, displayDateRange } from "dot11-components";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectRecentSessions } from "@/store/sessions";
 
-import BulkStatusUpdate from "./BulkStatusUpdate";
-import { SessionParticipationTableActions } from "./table";
-import { refresh } from "./route";
+import { BulkStatusUpdate } from "./BulkStatusUpdate";
+import { SessionParticipationTableActions } from "../table";
+import { refresh } from "../route";
 
 function SessionSummary() {
 	const sessions = useAppSelector(selectRecentSessions);
@@ -53,7 +53,7 @@ function SessionSummary() {
 	);
 }
 
-function SessionPartipationActions() {
+export function SessionParticipationActions() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const showStats = /\/stats$/.test(location.pathname);
@@ -86,5 +86,3 @@ function SessionPartipationActions() {
 		</>
 	);
 }
-
-export default SessionPartipationActions;

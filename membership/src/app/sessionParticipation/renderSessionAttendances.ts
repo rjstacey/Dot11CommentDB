@@ -2,6 +2,7 @@ import React from "react";
 
 import { displayDateRange } from "dot11-components";
 
+import { useAppSelector } from "@/store/hooks";
 import {
 	selectMemberAttendances,
 	selectAttendanceSummarySessionIds,
@@ -10,7 +11,6 @@ import {
 import { selectSessionEntities, Session } from "@/store/sessions";
 
 import { renderTable } from "@/components/renderTable";
-import { useAppSelector } from "@/store/hooks";
 
 const headings = ["Session", "Attendance", "Notes"];
 

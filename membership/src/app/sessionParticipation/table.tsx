@@ -125,7 +125,7 @@ export const SessionParticipationTableActions = () => (
 	</>
 );
 
-function SessionParticipationTable() {
+export function SessionParticipationTable() {
 	const dispatch = useAppDispatch();
 
 	const selected = useAppSelector(selectSessionParticipationSelected);
@@ -208,5 +208,3 @@ function SessionParticipationTable() {
 		</>
 	);
 }
-
-export default SessionParticipationTable;

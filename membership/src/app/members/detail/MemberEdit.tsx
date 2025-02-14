@@ -28,7 +28,7 @@ import {
 } from "@/store/members";
 import { selectIeeeMemberEntities } from "@/store/ieeeMembers";
 
-import MemberAttendances from "../../sessionParticipation/MemberAttendances";
+import { MemberSessionParticipation } from "../../sessionParticipation/MemberSessionParticipation";
 import MemberBallotParticipation from "../../ballotParticipation/MemberBallotParticipation";
 
 import { MemberStatus } from "./MemberStatus";
@@ -152,7 +152,10 @@ export function MemberDetailInfo({
 			</TabPanel>
 			{!basicOnly && (
 				<TabPanel>
-					<MemberAttendances SAPIN={sapin} readOnly={readOnly} />
+					<MemberSessionParticipation
+						SAPIN={sapin}
+						readOnly={readOnly}
+					/>
 				</TabPanel>
 			)}
 			{!basicOnly && (

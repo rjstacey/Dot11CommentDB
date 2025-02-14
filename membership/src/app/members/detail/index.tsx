@@ -29,7 +29,7 @@ import {
 	useMembersAdd,
 	useMembersUpdate,
 	useMembersDelete,
-} from "./membersEdit";
+} from "./useMembersEdit";
 
 const defaultMember: MemberCreate & { ContactInfo: ContactInfo } = {
 	SAPIN: 0,

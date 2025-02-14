@@ -189,7 +189,7 @@ type BulkStatusUpdateProps = {
 	isSession: boolean;
 } & React.ComponentProps<typeof Dropdown>;
 
-function BulkStatusUpdate({
+export function BulkStatusUpdate({
 	disabled,
 	isSession,
 	...rest
@@ -220,5 +220,3 @@ function BulkStatusUpdate({
 		/>
 	);
 }
-
-export default BulkStatusUpdate;

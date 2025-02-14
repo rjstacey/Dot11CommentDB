@@ -2,11 +2,14 @@ import { LoaderFunction, Outlet, RouteObject } from "react-router";
 import { store } from "@/store";
 import { AccessLevel } from "@/store/user";
 import { loadGroups, selectTopLevelGroupByName } from "@/store/groups";
-import { loadRecentAttendanceSummaries } from "@/store/attendanceSummary";
-import SessionParticipationLayout from "./layout";
-import { selectAttendanceSummaryGroupName } from "@/store/attendanceSummary";
 import { loadSessions } from "@/store/sessions";
-import SessionParticipationStats from "./stats";
+import {
+	loadRecentAttendanceSummaries,
+	selectAttendanceSummaryGroupName,
+} from "@/store/attendanceSummary";
+
+import { SessionParticipationLayout } from "./layout";
+import { SessionParticipationStats } from "./stats";
 
 export async function refresh() {
 	const { dispatch, getState } = store;

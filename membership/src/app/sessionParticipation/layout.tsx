@@ -1,7 +1,7 @@
-import SessionParticipationActions from "./actions";
-import SessionParticipationTable from "./table";
+import { SessionParticipationActions } from "./actions";
+import { SessionParticipationTable } from "./table";
 
-function SessionParticipationLayout() {
+export function SessionParticipationLayout() {
 	return (
 		<>
 			<SessionParticipationActions />
@@ -9,5 +9,3 @@ function SessionParticipationLayout() {
 		</>
 	);
 }
-
-export default SessionParticipationLayout;
