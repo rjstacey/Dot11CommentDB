@@ -197,12 +197,6 @@ function StackedBarChart({
 	const plotWidth = viewWidth - 2 * margin - yAxisWidth;
 	const plotHeight = viewHeight - 2 * margin - marginTop - xAxisHeight;
 
-	//const { ids, entities } = useAppSelector(attendeesByAffiliation);
-	/*const keys = React.useMemo(
-		() => (ids.length > 0 ? Object.keys(entities[ids[0]]) : []),
-		[ids, entities]
-	);*/
-
 	const maxCount = React.useMemo(
 		() => deriveMaxSum(keys, ids, entities),
 		[keys, ids, entities]
@@ -226,7 +220,8 @@ function StackedBarChart({
 		const gRef = gxRef.current!;
 		xAxis({ gRef, xScale });
 		const b = gRef.getBoundingClientRect();
-		setXAxisHeight(b.height);
+		// Prevent repeated re-rendering by rounding to 0.1
+		setXAxisHeight(Math.ceil(b.height * 10) / 10);
 	}, [xScale]);
 
 	const gyRef = React.useRef<SVGSVGElement>(null);
@@ -234,7 +229,8 @@ function StackedBarChart({
 		const gRef = gyRef.current!;
 		yAxis({ gRef, yScale, plotHeight, label: yLabel });
 		const b = gRef.getBoundingClientRect();
-		setYAxisWidth(b.width);
+		// Prevent repeated re-rendering by rounding to 0.1
+		setYAxisWidth(Math.ceil(b.width * 10) / 10);
 	}, [yScale, plotHeight, yLabel]);
 
 	const gLegendRef = React.useRef<SVGSVGElement>(null);
