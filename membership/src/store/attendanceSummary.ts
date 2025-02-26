@@ -11,7 +11,11 @@ import isEqual from "lodash.isequal";
 import { fetcher, setError } from "dot11-components";
 
 import type { RootState, AppThunk } from ".";
-import { selectMemberEntities } from "./members";
+import {
+	selectMemberIds,
+	selectMemberEntities,
+	isActiveMember,
+} from "./members";
 import {
 	selectRecentSessions,
 	selectSessionByNumber,
@@ -171,8 +175,9 @@ export type MembersSessionAttendanceSummaries = Record<
 export const selectMemberAttendances = createSelector(
 	selectAttendanceSummaryIds,
 	selectAttendanceSummaryEntities,
+	selectMemberIds,
 	selectMemberEntities,
-	(ids, entities, memberEntities) => {
+	(ids, entities, sapins, memberEntities) => {
 		const membersAttendanceEntities: MembersSessionAttendanceSummaries = {};
 		for (const id of ids) {
 			const entity = entities[id]!;
@@ -184,6 +189,15 @@ export const selectMemberAttendances = createSelector(
 					...membersAttendanceEntities[sapin],
 					[entity.session_id]: { ...entity, CurrentSAPIN: sapin },
 				};
+			}
+		}
+		// Include active members without attendance
+		for (const sapin of sapins as number[]) {
+			if (
+				!membersAttendanceEntities[sapin] &&
+				isActiveMember(memberEntities[sapin]!)
+			) {
+				membersAttendanceEntities[sapin] = {};
 			}
 		}
 		return membersAttendanceEntities;

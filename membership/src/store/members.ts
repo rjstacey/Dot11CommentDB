@@ -44,6 +44,15 @@ export type {
 
 export type ExpectedStatusType = StatusType | "";
 
+export function isActiveMember(member: Member) {
+	return (
+		member.Status === "Voter" ||
+		member.Status === "Potential Voter" ||
+		member.Status === "Aspirant" ||
+		member.Status === "ExOfficio"
+	);
+}
+
 export const statusOptions = statusValues.map((v) => ({
 	value: v,
 	label: v,
@@ -175,8 +184,9 @@ export { setSelected, setUiProperties };
 export function selectMembersState(state: RootState) {
 	return state[dataSet];
 }
-export const selectMemberIds = (state: RootState) =>
-	selectMembersState(state).ids;
+export function selectMemberIds(state: RootState) {
+	return selectMembersState(state).ids;
+}
 export function selectMemberEntities(state: RootState) {
 	return selectMembersState(state).entities;
 }
@@ -191,11 +201,7 @@ export const selectActiveMembers = createSelector(
 	(ids, entities) =>
 		ids
 			.map((id) => entities[id]!)
-			.filter((m) =>
-				["Voter", "Potential Voter", "Aspirant", "ExOfficio"].includes(
-					m.Status
-				)
-			)
+			.filter(isActiveMember)
 			.sort((m1, m2) => m1.Name.localeCompare(m2.Name))
 );
 
