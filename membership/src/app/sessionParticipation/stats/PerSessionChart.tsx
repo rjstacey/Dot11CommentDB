@@ -2,7 +2,9 @@ import React from "react";
 import * as d3 from "d3";
 
 import {
+	AttendanceCount,
 	useAttendancePerSession,
+	statusOrder,
 	type AttendancePerSession,
 } from "./useSessionParticipationData";
 
@@ -10,25 +12,62 @@ import { useDimensions } from "./useDimensions";
 import { XAxis } from "./XAxis";
 import { YAxis } from "./YAxis";
 
-// Set of pastel colors as an array of hex strings
-const colors = [
-	"#FF6F61",
-	"#6B5B95",
-	"#88B04B",
-	"#F7CAC9",
-	"#92A8D1",
-	"#955251",
-	"#B565A7",
-	"#009B77",
-	"#DD4124",
-	"#D65076",
-	"#45B8AC",
-];
+const colors = ["#0000ff", "#ffa500", "#008000", "#ff0000"];
+const colorScale: Record<string, string> = {};
+statusOrder.forEach((status, i) => {
+	colorScale[status] = colors[i];
+});
 
-const marginLeft = 20,
+const viewWidth = 1600,
+	viewHeight = 900,
+	marginLeft = 20,
 	marginRight = 20,
 	marginBottom = 50,
 	marginTop = 20;
+
+function Legend({ x, y, keys }: { x: number; y: number; keys: string[] }) {
+	const ref = React.useRef<SVGGElement>(null);
+
+	React.useEffect(() => {
+		keys = keys.sort(
+			(a, b) => statusOrder.indexOf(a) - statusOrder.indexOf(b)
+		);
+		const itemHeight = 22;
+		const yScale = d3
+			.scaleBand()
+			.domain(keys)
+			.range([0, itemHeight * keys.length])
+			.padding(0.2);
+		d3.select(ref.current!).selectChildren().remove();
+		d3.select(ref.current!)
+			.append("rect")
+			.attr("width", 200)
+			.attr("height", yScale.range()[1])
+			.attr("fill", "white")
+			.attr("stroke", "gray");
+		d3.select(ref.current!)
+			.selectAll("g")
+			.data(keys)
+			.enter()
+			.append("g")
+			.call((g) => {
+				g.append("rect")
+					.attr("x", 10)
+					.attr("y", (key) => yScale(key)!)
+					.attr("width", yScale.bandwidth())
+					.attr("height", yScale.bandwidth())
+					.attr("fill", (key) => colorScale[key])
+					.attr("opacity", 0.5);
+				g.append("text")
+					.attr("x", yScale.bandwidth() + 20)
+					.attr("y", (key) => yScale(key)!)
+					.attr("dy", "1em")
+					.text((key) => key);
+			});
+	}, [keys]);
+
+	return <g ref={ref} transform={`translate(${x}, ${y})`} />;
+}
 
 function Plot({
 	x,
@@ -45,70 +84,114 @@ function Plot({
 }) {
 	const ref = React.useRef<SVGGElement>(null);
 	React.useEffect(() => {
+		const colorScale = d3.scaleOrdinal(statusOrder, colors);
+
 		const x2Scale = d3
 			.scaleBand()
 			.domain(["remoteOnly", "inPerson"])
 			.range([0, xScale.bandwidth()])
 			.padding(0.1);
 
-		const remoteX = x2Scale("remoteOnly")!;
-		const remoteY = (d: AttendancePerSession) => yScale(d.remoteCountPct);
-		const remoteHeight = (d: AttendancePerSession) =>
-			yScale(0) - yScale(d.remoteCountPct);
-		const remoteLabel = (d: AttendancePerSession) =>
-			remoteHeight(d) > 10
-				? `${d.remoteCount} (${d.remoteCountPct.toFixed(1)}%)`
-				: "";
+		const y = (d: AttendanceCount) => yScale(d.countPctSum);
+		const height = (d: AttendanceCount) => yScale(0) - yScale(d.countPct);
+		const label = (d: AttendanceCount) =>
+			height(d) > 20 ? `${d.count} (${d.countPct.toFixed(1)}%)` : "";
+		const color = (d: AttendanceCount, i: number) =>
+			colorScale(statusOrder[i]);
 
-		const inPersonX = x2Scale("inPerson")!;
-		const inPersonY = (d: AttendancePerSession) =>
-			yScale(d.inPersonCountPct);
-		const inPersonHeight = (d: AttendancePerSession) =>
-			yScale(0) - yScale(d.inPersonCountPct);
-		const inPersonLabel = (d: AttendancePerSession) =>
-			inPersonHeight(d) > 10
-				? `${d.inPersonCount} (${d.inPersonCountPct.toFixed(1)}%)`
-				: "";
+		function stackedBar(
+			selection: d3.Selection<
+				SVGGElement,
+				AttendancePerSession,
+				SVGGElement,
+				unknown
+			>,
+			col: "remoteOnly" | "inPerson"
+		) {
+			const col_g = selection
+				.append("g")
+				.attr("transform", `translate(${x2Scale(col)!}, 0)`);
+
+			col_g
+				.selectAll("rect")
+				.data((d) => (col === "remoteOnly" ? d.remote : d.inPerson))
+				.enter()
+				.call((g) => {
+					g.append("rect")
+						.attr("x", 0)
+						.attr("y", y)
+						.attr("height", height)
+						.attr("width", x2Scale.bandwidth())
+						.attr("fill", color)
+						.attr("opacity", 0.5);
+					g.append("text")
+						.attr("x", 10)
+						.attr("y", y)
+						.attr("dy", "1.2em")
+						.text(label);
+				});
+			col_g
+				.selectAll("text.columnValue")
+				.data((d) => [
+					col === "remoteOnly"
+						? d.remote[d.remote.length - 1]
+						: d.inPerson[d.inPerson.length - 1],
+				])
+				.enter()
+				.append("text")
+				.attr("class", "columnValue")
+				.attr("x", 0)
+				.attr("y", y)
+				.attr("dy", "-0.5em")
+				.text((d) => d.countPctSum.toFixed(1) + "%");
+			col_g
+				.append("text")
+				.attr("x", x2Scale.bandwidth() / 2)
+				.attr("y", yScale(0))
+				.attr("dy", "1em")
+				.attr("text-anchor", "middle")
+				.text(col === "remoteOnly" ? "Remote-only" : "In-person");
+		}
 
 		d3.select(ref.current!).selectAll("*").remove();
-		d3.select(ref.current!)
+		const sessionGroups = d3
+			.select(ref.current!)
 			.selectAll("g")
 			.data(data)
-			.join("g")
+			.enter()
+			.append("g")
 			.attr(
 				"transform",
-				(d) => `translate(${xScale(String(d.sessionId))}, 0)`
-			)
-			.call((g) => {
-				g.append("text")
-					.attr("x", remoteX)
-					.attr("y", yScale(0) + 20)
-					.text("Remote-only");
-				g.append("text")
-					.attr("x", inPersonX)
-					.attr("y", yScale(0) + 20)
-					.text("In-person");
-				g.append("rect")
-					.attr("x", remoteX)
-					.attr("y", remoteY)
-					.attr("height", remoteHeight)
-					.attr("width", x2Scale.bandwidth())
-					.attr("fill", colors[0]);
-				g.append("rect")
-					.attr("x", inPersonX)
-					.attr("y", inPersonY)
-					.attr("height", inPersonHeight)
-					.attr("width", x2Scale.bandwidth())
-					.attr("fill", colors[1]);
-				g.append("text")
-					.attr("x", remoteX + 10)
-					.attr("y", (d) => remoteY(d) + 20)
-					.text(remoteLabel);
-				g.append("text")
-					.attr("x", inPersonX + 10)
-					.attr("y", (d) => inPersonY(d) + 20)
-					.text(inPersonLabel);
-			});
+				(d) => `translate(${xScale(d.sessionLabel)}, 0)`
+			);
+		stackedBar(sessionGroups, "remoteOnly");
+		stackedBar(sessionGroups, "inPerson");
+		const lineX = (d: AttendancePerSession) =>
+			xScale(d.sessionLabel)! +
+			x2Scale("inPerson")! +
+			x2Scale.bandwidth() / 2;
+		const lineY = (d: AttendancePerSession) =>
+			yScale(d.inPerson.reduce((sum, a) => sum + a.countPct, 0));
+		const line = d3.line(lineX, lineY);
+		d3.select(ref.current!)
+			.append("path")
+			.attr("d", line(data))
+			.attr("stroke-width", 4)
+			.attr("stroke", "red")
+			.attr("fill", "none")
+			.attr("opacity", 0.3);
+		d3.select(ref.current!)
+			.selectAll("circle")
+			.data(data)
+			.enter()
+			.append("circle")
+			.attr("cx", lineX)
+			.attr("cy", lineY)
+			.attr("r", 3)
+			.attr("stroke", "red")
+			.attr("stroke-width", 4)
+			.attr("fill", "none")
+			.attr("opacity", 0.3);
 	}, [data, xScale, yScale]);
 	return <g ref={ref} transform={`translate(${x}, ${y})`} />;
 }
@@ -125,22 +208,25 @@ function Chart({
 	statuses: string[];
 }) {
 	const svgRef = React.useRef<SVGSVGElement>(null);
-	const [yAxisWidth, setYAxisWidth] = React.useState(40);
-	const [xAxisHeight, setXAxisHeight] = React.useState(40);
+	const [yAxisActualWidth, setYAxisActualWidth] = React.useState(40);
+	const [xAxisActualHeight, setXAxisActualHeight] = React.useState(40);
+
+	const yAxisWidth = (yAxisActualWidth / width) * viewWidth;
+	const xAxisHeight = (xAxisActualHeight / height) * viewHeight;
+	const plotWidth = viewWidth - marginLeft - marginRight - yAxisWidth;
+	const plotHeight = viewHeight - marginBottom - marginTop - xAxisHeight;
+
 	const data = useAttendancePerSession({
 		selected,
 		statuses,
 	});
 	const groups = data.map((d, i) => String(i + 1));
 
-	const plotWidth = width - marginLeft - marginRight - yAxisWidth;
-	const plotHeight = height - marginBottom - marginTop - xAxisHeight;
-
 	const xScale = React.useMemo(
 		() =>
 			d3
 				.scaleBand()
-				.domain(selected.map(String))
+				.domain(data.map((d) => d.sessionLabel))
 				.range([0, plotWidth])
 				.padding(0.1),
 
@@ -152,20 +238,28 @@ function Chart({
 	);
 
 	return (
-		<svg ref={svgRef} width={width} height={height}>
+		<svg
+			id="chart"
+			ref={svgRef}
+			viewBox={`0 0 ${viewWidth} ${viewHeight}`}
+			width={width}
+			height={height}
+			fontSize={14}
+			style={{ color: "black" }}
+		>
 			<XAxis
 				x={marginLeft + yAxisWidth}
-				y={height - marginBottom - xAxisHeight}
+				y={viewHeight - marginBottom - xAxisHeight}
 				scale={xScale}
-				label="Session"
-				setHeigth={setXAxisHeight}
+				label=""
+				setHeigth={setXAxisActualHeight}
 			/>
 			<YAxis
 				x={marginLeft + yAxisWidth}
 				y={marginTop}
 				scale={yScale}
-				label="Remote and in-person attendance as percentage of total attendance"
-				setWidth={setYAxisWidth}
+				label="Attendance as percentage of total attendance"
+				setWidth={setYAxisActualWidth}
 			/>
 			<Plot
 				x={marginLeft + yAxisWidth}
@@ -173,6 +267,11 @@ function Chart({
 				xScale={xScale}
 				yScale={yScale}
 				data={data}
+			/>
+			<Legend
+				x={marginLeft + yAxisWidth + plotWidth - 300}
+				y={marginTop + 100}
+				keys={statuses}
 			/>
 		</svg>
 	);

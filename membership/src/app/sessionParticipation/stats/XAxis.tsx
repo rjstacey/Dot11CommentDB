@@ -17,15 +17,21 @@ export function XAxis({
 	const ref = React.useRef<SVGGElement>(null);
 	React.useEffect(() => {
 		const g = d3.select(ref.current!);
-		g.selectAll("*").remove();
-		g.attr("font-size", "1em");
-		g.call(d3.axisBottom(scale))
+		g.selectChildren().remove();
+		g.call(d3.axisBottom(scale)).attr("font-size", null);
+		g.selectAll(".tick text").attr("dy", "2em");
+		g.selectAll("text.x-axis-label")
+			.data([0])
+			.enter()
 			.append("text")
+			.attr("class", "x-axis-label");
+		g.select("text.x-axis-label")
 			.attr("x", "50%")
-			.attr("y", 40)
+			.attr("y", 60)
 			.attr("fill", "black")
 			.attr("anchor", "middle")
 			.text(label);
+
 		setHeigth?.(Math.ceil(ref.current!.getBBox().height * 10) / 10);
 	}, [scale, label]);
 	return <g ref={ref} transform={`translate(${x}, ${y})`} />;

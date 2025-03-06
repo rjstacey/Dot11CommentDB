@@ -86,7 +86,7 @@ export function MembersActions() {
 			name="copy"
 			title="Copy chart to clipboard"
 			disabled={!showChart}
-			onClick={copyChartToClipboard}
+			onClick={() => copyChartToClipboard("#chart")}
 		/>
 	) : (
 		<ActionButton

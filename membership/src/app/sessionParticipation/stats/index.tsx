@@ -3,7 +3,8 @@ import { SessionsSelector } from "./SessionsSelector";
 //import { SessionParticipationTable } from "./Table";
 import { CummulativeChart } from "./CumulativeChart";
 import { PerSessionChart } from "./PerSessionChart";
-import { Button, Checkbox } from "dot11-components";
+import { Button, ActionButton, Checkbox } from "dot11-components";
+import { copyChartToClipboard } from "@/components/copyChart";
 
 export function SessionParticipationStats() {
 	const [selected, setSelected] = React.useState<number[]>([]);
@@ -13,7 +14,7 @@ export function SessionParticipationStats() {
 		"Voter",
 	]);
 	const [chart, setChart] = React.useState<"cumulative" | "per-session">(
-		"cumulative"
+		"per-session"
 	);
 
 	function toggleStatus(status: string) {
@@ -36,6 +37,11 @@ export function SessionParticipationStats() {
 				}}
 			>
 				<div style={{ display: "flex", flexDirection: "column" }}>
+					<ActionButton
+						name="copy"
+						title="Copy chart to clipboard"
+						onClick={() => copyChartToClipboard("#chart")}
+					/>
 					<Button onClick={() => setChart("per-session")}>
 						Each Session
 					</Button>

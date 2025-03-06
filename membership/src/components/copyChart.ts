@@ -57,8 +57,8 @@ const svgToPngBlob: F = async function (svg) {
 	});
 };
 
-export function copyChartToClipboard() {
-	const svg = document.getElementById("chart");
+export function copyChartToClipboard(selector: string = "") {
+	const svg = document.querySelector("svg" + selector);
 	if (!svg) return;
 
 	let svgText = svg.outerHTML;

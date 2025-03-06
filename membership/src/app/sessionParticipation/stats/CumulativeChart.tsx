@@ -25,7 +25,9 @@ const colors = [
 	"#45B8AC",
 ];
 
-const marginLeft = 20,
+const viewWidth = 1600,
+	viewHeight = 900,
+	marginLeft = 20,
 	marginRight = 20,
 	marginBottom = 50,
 	marginTop = 20;
@@ -45,8 +47,6 @@ function Plot({
 }) {
 	const ref = React.useRef<SVGGElement>(null);
 	React.useEffect(() => {
-		const groups = data.map((d, i) => String(i + 1));
-
 		const colorScale = d3
 			.scaleOrdinal<number, string>()
 			.domain([0, data.length + 1])
@@ -59,10 +59,6 @@ function Plot({
 			.padding(0.1);
 
 		// Bar co-ordinate funcitons
-		const x = (d: AttendanceCumulative) =>
-			x2Scale(
-				d.sessionsAttendedInPerson === 0 ? "remoteOnly" : "inPerson"
-			)!;
 		const y = (d: AttendanceCumulative) => yScale(d.sumPct);
 		const width = x2Scale.bandwidth();
 		const height = (d: AttendanceCumulative) =>
@@ -71,14 +67,20 @@ function Plot({
 			colorScale(d.sessionsAttendedInPerson);
 		const label = (d: AttendanceCumulative) =>
 			height(d) > 10 ? `${d.count} (${d.countPct.toFixed(1)}%)` : "";
+		const labelTop = (d: AttendanceCumulative, i: number) =>
+			i === 0 ? `${d.sum} (${d.sumPct.toFixed(1)}%)` : "";
 
-		d3.select(ref.current!).selectAll("*").remove();
+		d3.select(ref.current!).selectChildren().remove();
 		d3.select(ref.current!)
 			.selectAll("g#group")
-			.data(groups)
-			.join("g")
+			.data(data)
+			.enter()
+			.append("g")
 			.attr("id", "group")
-			.attr("transform", (d) => `translate(${xScale(d)}, 0)`)
+			.attr(
+				"transform",
+				(d) => `translate(${xScale(String(d[0].sessionsAttended))}, 0)`
+			)
 			.call((g) => {
 				g.append("text")
 					.attr("x", x2Scale("remoteOnly")! + x2Scale.bandwidth() / 2)
@@ -90,22 +92,80 @@ function Plot({
 					.attr("y", yScale(0) + 20)
 					.attr("text-anchor", "middle")
 					.text("In-person");
-			})
-			.selectAll("g#subgroup")
-			.data((d) => data[Number(d) - 1])
-			.join("g")
-			.attr("id", "subgroup")
-			.call((g) => {
-				g.append("rect")
-					.attr("x", x)
+				const gr = g
+					.append("g")
+					.attr(
+						"transform",
+						`translate(${x2Scale("remoteOnly")}, 0)`
+					);
+				gr.selectAll("rect")
+					.data((d) => d.slice(0, 1))
+					.enter()
+					.append("rect")
+					.attr("x", 0)
 					.attr("y", y)
 					.attr("height", height)
 					.attr("width", width)
 					.attr("fill", color);
-				g.append("text")
-					.attr("x", (d) => x(d) + 10)
+				gr.selectAll("text#labelTop")
+					.data((d) => d.slice(0, 1))
+					.enter()
+					.append("text")
+					.attr("id", "labelTop")
+					.attr("x", 0)
+					.attr("y", y)
+					.attr("dy", "-0.7em")
+					.text(labelTop);
+				const gi = g
+					.append("g")
+					.attr("transform", `translate(${x2Scale("inPerson")}, 0)`);
+				gi.selectAll("rect")
+					.data((d) => d.slice(1))
+					.enter()
+					.append("rect")
+					.attr("x", 0)
+					.attr("y", y)
+					.attr("height", height)
+					.attr("width", width)
+					.attr("fill", color);
+				gi.selectAll("text#label")
+					.data((d) => {
+						const a = d.slice(1);
+						return a.length > 1 ? a : [];
+					})
+					.enter()
+					.append("text")
+					.attr("id", "inside")
+					.attr("x", 10)
 					.attr("y", (d) => y(d) + 20)
 					.text(label);
+				gi.selectAll("text")
+					.data((d) => {
+						const a = d.slice(1);
+						return a.length > 1 ? a : [];
+					})
+					.enter()
+					.append("text")
+					.attr("x", 10)
+					.attr("y", (d) => y(d) + 20)
+					.text(label);
+				gi.selectAll("text#tag")
+					.data((d) => d.slice(1))
+					.enter()
+					.append("text")
+					.attr("id", "tag")
+					.attr("x", x2Scale.bandwidth() / 2)
+					.attr("y", (d) => y(d) + height(d) / 2)
+					.text((d) => d.sessionsAttendedInPerson);
+				gi.selectAll("text#labelTop")
+					.data((d) => d.slice(-1))
+					.enter()
+					.append("text")
+					.attr("id", "labelTop")
+					.attr("x", 0)
+					.attr("y", y)
+					.attr("dy", "-0.7em")
+					.text(labelTop);
 			});
 	}, [data, xScale, yScale]);
 	return <g ref={ref} transform={`translate(${x}, ${y})`} />;
@@ -123,16 +183,19 @@ function Chart({
 	statuses: string[];
 }) {
 	const svgRef = React.useRef<SVGSVGElement>(null);
-	const [yAxisWidth, setYAxisWidth] = React.useState(40);
-	const [xAxisHeight, setXAxisHeight] = React.useState(40);
+	const [yAxisActualWidth, setYAxisActualWidth] = React.useState(40);
+	const [xAxisActualHeight, setXAxisActualHeight] = React.useState(40);
+
+	const yAxisWidth = (yAxisActualWidth / width) * viewWidth;
+	const xAxisHeight = (xAxisActualHeight / height) * viewHeight;
+	const plotWidth = viewWidth - marginLeft - marginRight - yAxisWidth;
+	const plotHeight = viewHeight - marginBottom - marginTop - xAxisHeight;
+
 	const data = useAttendanceCumulative({
 		selected,
 		statuses,
 	});
 	const groups = data.map((d, i) => String(i + 1));
-
-	const plotWidth = width - marginLeft - marginRight - yAxisWidth;
-	const plotHeight = height - marginBottom - marginTop - xAxisHeight;
 
 	const xScale = React.useMemo(
 		() => d3.scaleBand().domain(groups).range([0, plotWidth]).padding(0.1),
@@ -144,20 +207,28 @@ function Chart({
 	);
 
 	return (
-		<svg ref={svgRef} width={width} height={height}>
+		<svg
+			id="chart"
+			ref={svgRef}
+			viewBox={`0 0 ${viewWidth} ${viewHeight}`}
+			width={width}
+			height={height}
+			fontSize={14}
+			style={{ color: "black" }}
+		>
 			<XAxis
 				x={marginLeft + yAxisWidth}
-				y={height - marginBottom - xAxisHeight}
+				y={viewHeight - marginBottom - xAxisHeight}
 				scale={xScale}
 				label="Number of sessions attended"
-				setHeigth={setXAxisHeight}
+				setHeigth={setXAxisActualHeight}
 			/>
 			<YAxis
 				x={marginLeft + yAxisWidth}
 				y={marginTop}
 				scale={yScale}
-				label="Remote-only and in-person attendance as percentage of total attendance"
-				setWidth={setYAxisWidth}
+				label="Attendance as percentage of total attendance"
+				setWidth={setYAxisActualWidth}
 			/>
 			<Plot
 				x={marginLeft + yAxisWidth}

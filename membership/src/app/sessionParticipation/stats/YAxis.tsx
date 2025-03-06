@@ -18,7 +18,7 @@ export function YAxis({
 	React.useEffect(() => {
 		const g = d3.select(ref.current!);
 		g.selectAll("*").remove();
-		g.call(d3.axisLeft(scale)).attr("font-size", "1em");
+		g.call(d3.axisLeft(scale)).attr("font-size", null);
 		g.append("text")
 			.attr("dy", "-40")
 			.attr("dx", -scale.range()[0] / 2)
