@@ -1,6 +1,5 @@
 import * as React from "react";
 import { createBrowserRouter, RouterProvider } from "react-router";
-import routes from "./routes";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 
@@ -9,6 +8,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectUser, setUser, type User } from "@/store/user";
 
 import "./index.css";
+import { routes } from "./routes";
 
 const getRouter = () =>
 	createBrowserRouter(routes, { basename: "/membership" });

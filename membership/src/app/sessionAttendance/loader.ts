@@ -14,11 +14,6 @@ import {
 } from "@/store/attendanceSummary";
 import { loadSessions, selectSessionByNumber } from "@/store/sessions";
 
-import { SessionAttendanceLayout } from "./layout";
-import { SessionAttendanceTable } from "./table";
-import { SessionAttendanceChart } from "./chart";
-import { SessionRegistrationTable } from "./registration";
-
 export function refresh() {
 	const { dispatch, getState } = store;
 	const { groupName } = selectAttendanceSummaryState(getState());
@@ -30,7 +25,10 @@ export function refresh() {
 	dispatch(loadRecentAttendanceSummaries(groupName, true));
 }
 
-const sessionAttendanceLoader: LoaderFunction = async ({ params, request }) => {
+export const sessionAttendanceLoader: LoaderFunction = async ({
+	params,
+	request,
+}) => {
 	const { groupName, sessionNumber } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
@@ -63,37 +61,12 @@ const sessionAttendanceLoader: LoaderFunction = async ({ params, request }) => {
 	return null;
 };
 
-const sessionAttendanceChartLoader: LoaderFunction = async ({ params }) => {
+export const sessionAttendanceChartLoader: LoaderFunction = async ({
+	params,
+}) => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch } = store;
 	dispatch(loadAffiliationMap(groupName));
 };
-
-const route = {
-	element: <SessionAttendanceLayout />,
-	children: [
-		{
-			path: ":sessionNumber",
-			loader: sessionAttendanceLoader,
-			children: [
-				{
-					index: true,
-					element: <SessionAttendanceTable />,
-				},
-				{
-					path: "chart",
-					loader: sessionAttendanceChartLoader,
-					element: <SessionAttendanceChart />,
-				},
-				{
-					path: "registration",
-					element: <SessionRegistrationTable />,
-				},
-			],
-		},
-	],
-};
-
-export default route;

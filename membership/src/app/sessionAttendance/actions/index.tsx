@@ -46,7 +46,7 @@ import { copyChartToClipboard, downloadChart } from "@/components/copyChart";
 import { SessionSelector } from "./SessionSelector";
 import { tableColumns as sessionAttendeesColumns } from "../tableColumns";
 import { tableColumns as sessionRegistrationColumns } from "../registration/tableColumns";
-import { refresh } from "../routes";
+import { refresh } from "../loader";
 import { sessionAttendeeToNewMember } from "../utils";
 
 function ImportRegistrationForm({ methods }: DropdownRendererProps) {
@@ -400,7 +400,7 @@ export function SessionAttendanceActions() {
 					name="copy"
 					title="Copy chart to clipboard"
 					disabled={!showChart}
-					onClick={copyChartToClipboard}
+					onClick={() => copyChartToClipboard()}
 				/>
 				<ActionButton
 					name="export"

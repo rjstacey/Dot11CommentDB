@@ -1,11 +1,11 @@
 import React from "react";
-import { NavLink, useLocation, useParams } from "react-router";
+import { NavLink, useLocation } from "react-router";
 
 import { Dropdown, DropdownRendererProps } from "dot11-components";
 
 import { useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";
-import { selectTopLevelGroupByName } from "@/store/groups";
+import { selectWorkingGroup } from "@/store/groups";
 
 import { selectSessionAttendeesSession } from "@/store/sessionAttendees";
 
@@ -15,10 +15,13 @@ type MenuItem = {
 };
 
 function useMenuLinks() {
-	const groupName = useParams().groupName || "";
-	const group = useAppSelector((state) =>
+	//const groupName = useParams().groupName || "";
+	const group = useAppSelector(selectWorkingGroup);
+	const groupName = group?.name || "";
+	console.log(groupName);
+	/*const group = useAppSelector((state) =>
 		selectTopLevelGroupByName(state, groupName)
-	);
+	);*/
 	const session = useAppSelector(selectSessionAttendeesSession);
 
 	// Only display links for which the use has permissions
@@ -72,6 +75,10 @@ function useMenuLinks() {
 			menu.push({
 				link: `/${group.name}/affiliationMap`,
 				label: "Affiliation map",
+			});
+			menu.push({
+				link: `/${group.name}/reports`,
+				label: "Reports",
 			});
 		}
 

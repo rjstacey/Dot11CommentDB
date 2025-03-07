@@ -1,7 +1,7 @@
 import { BallotParticipationActions } from "./actions";
 import { BallotParticipationTable } from "./table";
 
-export function BallotParticipationLayout() {
+export function BallotParticipation() {
 	return (
 		<>
 			<BallotParticipationActions />

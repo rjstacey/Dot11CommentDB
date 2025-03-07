@@ -1,5 +1,6 @@
 import React from "react";
 import * as d3 from "d3";
+import { useOutletContext } from "react-router";
 
 import {
 	AttendanceCount,
@@ -7,6 +8,7 @@ import {
 	statusOrder,
 	type AttendancePerSession,
 } from "./useSessionParticipationData";
+import type { SessionParticipationReportContext } from "./layout";
 
 import { useDimensions } from "./useDimensions";
 import { XAxis } from "./XAxis";
@@ -277,14 +279,10 @@ function Chart({
 	);
 }
 
-export function PerSessionChart({
-	selected,
-	statuses,
-}: {
-	selected: number[];
-	statuses: string[];
-}) {
+export function PerSessionChart() {
 	const { ref, width, height } = useDimensions();
+	const { selected, statuses } =
+		useOutletContext<SessionParticipationReportContext>();
 	return (
 		<div ref={ref} style={{ flex: 1, width: "100%" }}>
 			<div style={{ overflow: "visible", width: 0, height: 0 }}>

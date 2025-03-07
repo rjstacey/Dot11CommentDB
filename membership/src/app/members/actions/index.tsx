@@ -12,7 +12,7 @@ import { MembersRoster } from "./MembersRoster";
 import { MembersExport } from "./MembersExport";
 import { MembersTableActions } from "../table";
 import { RosterTableActions } from "../roster";
-import { refresh } from "../route";
+import { refresh } from "../loader";
 
 function copyHtmlToClipboard(html: string) {
 	const type = "text/html";

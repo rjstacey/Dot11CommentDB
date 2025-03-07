@@ -1,10 +1,12 @@
 import * as React from "react";
 import * as d3 from "d3";
+import { useOutletContext } from "react-router";
 
 import {
 	useAttendanceCumulative,
 	type AttendanceCumulative,
 } from "./useSessionParticipationData";
+import type { SessionParticipationReportContext } from "./layout";
 
 import { useDimensions } from "./useDimensions";
 import { XAxis } from "./XAxis";
@@ -241,13 +243,9 @@ function Chart({
 	);
 }
 
-export function CummulativeChart({
-	selected,
-	statuses,
-}: {
-	selected: number[];
-	statuses: string[];
-}) {
+export function CumulativeChart() {
+	const { selected, statuses } =
+		useOutletContext<SessionParticipationReportContext>();
 	const { ref, width, height } = useDimensions();
 	return (
 		<div ref={ref} style={{ flex: 1, width: "100%" }}>

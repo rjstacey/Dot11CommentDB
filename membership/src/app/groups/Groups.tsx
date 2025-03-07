@@ -24,7 +24,7 @@ import {
 import { selectMemberEntities } from "@/store/members";
 
 import GroupDetail from "./GroupDetail";
-import { refresh } from "./route";
+import { refresh } from "./loader";
 
 function GroupOfficers({ group }: { group: GroupWithOfficers }) {
 	const { officers } = group;

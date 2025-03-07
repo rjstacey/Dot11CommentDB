@@ -3,7 +3,7 @@ import { ErrorModal, ConfirmModal } from "dot11-components";
 import Header from "./Header";
 import styles from "./app.module.css";
 
-function AppLayout() {
+export function AppLayout() {
 	return (
 		<>
 			<Header />
@@ -15,5 +15,3 @@ function AppLayout() {
 		</>
 	);
 }
-
-export default AppLayout;

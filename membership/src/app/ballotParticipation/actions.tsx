@@ -16,7 +16,7 @@ import {
 
 import { BulkStatusUpdate } from "../sessionParticipation/actions/BulkStatusUpdate";
 import { useTableColumns } from "./tableColumns";
-import { refresh } from "./route";
+import { refresh } from "./loader";
 
 function BallotSeriesSummary() {
 	const ballotSeriesIds = useAppSelector(selectBallotSeriesIds);
