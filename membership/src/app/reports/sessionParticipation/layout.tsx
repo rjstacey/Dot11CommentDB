@@ -16,26 +16,17 @@ export function SessionParticipationReport() {
 		"Voter",
 	]);
 	return (
-		<div style={{ display: "flex", flexDirection: "column" }}>
+		<div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
 			<SessionsSelector selected={selected} setSelected={setSelected} />
 			<StatusesSelector statuses={statuses} setStatuses={setStatuses} />
-			<div
-				style={{
-					display: "flex",
-					flexDirection: "row",
-					flex: 1,
-					width: "100%",
-				}}
-			>
-				<Outlet
-					context={
-						{
-							selected,
-							statuses,
-						} satisfies SessionParticipationReportContext
-					}
-				/>
-			</div>
+			<Outlet
+				context={
+					{
+						selected,
+						statuses,
+					} satisfies SessionParticipationReportContext
+				}
+			/>
 		</div>
 	);
 }

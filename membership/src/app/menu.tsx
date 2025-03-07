@@ -17,11 +17,6 @@ type MenuItem = {
 function useMenuLinks() {
 	//const groupName = useParams().groupName || "";
 	const group = useAppSelector(selectWorkingGroup);
-	const groupName = group?.name || "";
-	console.log(groupName);
-	/*const group = useAppSelector((state) =>
-		selectTopLevelGroupByName(state, groupName)
-	);*/
 	const session = useAppSelector(selectSessionAttendeesSession);
 
 	// Only display links for which the use has permissions

@@ -5,7 +5,6 @@ import { ActionButton } from "dot11-components";
 import { useAppSelector } from "@/store/hooks";
 import { selectMembersState, Member, MembersDictionary } from "@/store/members";
 
-import { copyChartToClipboard, downloadChart } from "@/components/copyChart";
 import { MembersUpload } from "./MembersUpload";
 import { MembersSummary } from "./MembersSummary";
 import { MembersRoster } from "./MembersRoster";
@@ -61,40 +60,16 @@ export function MembersActions() {
 	const location = useLocation();
 	const { selected, entities: members } = useAppSelector(selectMembersState);
 
-	const showChart = /chart$/.test(location.pathname);
-	const toggleShowChart = () => {
-		console.log("toggle show chart");
-		navigate(showChart ? "" : "chart");
-	};
-
 	const showRoster = /roster$/.test(location.pathname);
 	const toggleShowRoster = () => {
 		console.log("toggle show roster");
 		navigate(showRoster ? "" : "roster");
 	};
 
-	const tableActionsEl = showChart ? (
-		<div />
-	) : showRoster ? (
+	const tableActionsEl = showRoster ? (
 		<RosterTableActions />
 	) : (
 		<MembersTableActions />
-	);
-
-	const copyEl = showChart ? (
-		<ActionButton
-			name="copy"
-			title="Copy chart to clipboard"
-			disabled={!showChart}
-			onClick={() => copyChartToClipboard("#chart")}
-		/>
-	) : (
-		<ActionButton
-			name="copy"
-			title="Copy selected members to clipboard"
-			disabled={showRoster || selected.length === 0}
-			onClick={() => setClipboard(selected, members)}
-		/>
 	);
 
 	return (
@@ -112,17 +87,10 @@ export function MembersActions() {
 					onClick={toggleShowRoster}
 				/>
 				<ActionButton
-					name="bi-bar-chart-line"
-					title="Chart members"
-					isActive={showChart}
-					onClick={toggleShowChart}
-				/>
-				{copyEl}
-				<ActionButton
-					name="export"
-					title="Export chart"
-					disabled={!showChart}
-					onClick={downloadChart}
+					name="copy"
+					title="Copy selected members to clipboard"
+					disabled={showRoster || selected.length === 0}
+					onClick={() => setClipboard(selected, members)}
 				/>
 				<ActionButton
 					name="refresh"
