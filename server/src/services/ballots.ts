@@ -58,16 +58,32 @@ const createViewBallotsSeries = `
 /* ballotsStage view
  *
  * A table with the same rows and columns as the ballots table but where each
- * row has ballot series information (initial_id, initialStart, ballotIds) for that ballot and its previous ballots
- * as well as a column, stage, that is 0 for an initial ballot. 1, 2, 3, etc. for a recirc, where the value is the recirc number.
+ * row has ballot series information (initial_id, initialStart, ballotIds) for that ballot and its previous ballots,
+ * a column, stage, that is 0 for an initial ballot. 1, 2, 3, etc. for a recirc, where the value is the recirc number,
+ * and a column BallotID that is a user readable ballot identifier.
  */
 const createViewBallotsStage = `
 	DROP VIEW IF EXISTS ballotsStage;
 	CREATE VIEW ballotsStage AS
+		WITH ballotsSeriesPlusStage AS (
+			SELECT
+				b.*,
+				(SELECT COUNT(*) FROM ballotsSeries s WHERE s.series_id=b.series_id GROUP BY s.series_id) - 1 AS stage
+			FROM ballotsSeries b WHERE b.series_id = b.id
+		)
 		SELECT
 			b.*,
-			(SELECT COUNT(*) FROM ballotsSeries s WHERE s.series_id=b.series_id GROUP BY s.series_id) - 1 AS stage
-		FROM ballotsSeries b WHERE b.series_id = b.id;
+			IF(b.Type=0,
+				CONCAT("CC", b.number),
+				IF(b.Type=1,
+					CONCAT("LB", b.number), 
+					IF(b.Type=2,
+						CONCAT(b.Project, "-", IF(b.stage=0, "I", CONCAT("R", b.stage))),
+						b.id
+					)
+				)
+			) as BallotID
+		FROM ballotsSeriesPlusStage b;
 `;
 
 export async function init() {
@@ -79,16 +95,7 @@ export async function init() {
 const ballotsStageFieldsSQL = `
 	b.id,
 	BIN_TO_UUID(b.groupId) as groupId,
-	IF(b.Type=0,
-		CONCAT("CC", b.number),
-		IF(b.Type=1,
-			CONCAT("LB", b.number), 
-			IF(b.Type=2,
-				CONCAT(b.Project, "-", IF(b.stage=0, "I", CONCAT("R", b.stage))),
-				b.id
-			)
-		)
-	) as BallotID,
+	b.BallotID,
 	b.Type,
 	b.number,
 	b.stage,
@@ -194,11 +201,10 @@ export function getBallotSeries(id: number): Promise<Ballot[]> {
 type BallotDB = {
 	id?: number;
 	groupId?: string | null;
-	BallotID?: string;
-	Project?: string;
 	Type?: number;
 	number?: number;
 	IsComplete?: boolean;
+	Project?: string;
 	Document?: string;
 	Topic?: string;
 	Start?: string | null;
@@ -210,11 +216,10 @@ type BallotDB = {
 function ballotEntry(changes: Partial<Ballot>) {
 	const entry: BallotDB = {
 		groupId: changes.groupId,
-		number: changes.number,
-		BallotID: changes.BallotID,
-		Project: changes.Project,
 		Type: changes.Type,
+		number: changes.number,
 		IsComplete: changes.IsComplete,
+		Project: changes.Project,
 		Document: changes.Document,
 		Topic: changes.Topic,
 		EpollNum: changes.EpollNum,
@@ -276,13 +281,6 @@ async function addBallot(
 	ballot: BallotCreate
 ) {
 	const entry = ballotEntry(ballot);
-	if (!entry.BallotID) {
-		if (entry.Type === BallotType.CC) entry.BallotID = "CC";
-		else if (entry.Type === BallotType.WG) entry.BallotID = "LB";
-		else if (entry.Type === BallotType.SA) entry.BallotID = "SA";
-		else entry.BallotID = "M";
-		entry.BallotID += entry.number || 0;
-	}
 
 	// If the group is not set, set to working group
 	if (!entry.groupId) entry.groupId = workingGroup.id;
@@ -297,9 +295,7 @@ async function addBallot(
 		id = results.insertId;
 	} catch (error) {
 		throw isPlainObject(error) && error.code == "ER_DUP_ENTRY"
-			? new TypeError(
-					"An entry already exists with BallotID=" + entry.BallotID
-				)
+			? new TypeError("An entry already exists")
 			: error;
 	}
 
