@@ -164,20 +164,26 @@ function parseEpollComment(cid: number, c: string[]): EpollComment | null {
 	const C_Line = c[8] ? c[8].trim() : "";
 	let Page = parseFloat(C_Page) + parseFloat(C_Line) / 100;
 	if (isNaN(Page)) Page = 0;
+
+	const cat = c[5].charAt(0);
+	const Category = cat === "T" || cat == "E" || cat === "G" ? cat : "T"; // First letter only (G, T or E), T if blank
+
+	const Clause = (c[7] || "").trim();
+
 	const comment: EpollComment = {
 		CommentID: cid,
 		C_Index,
 		CommenterSAPIN: Number(c[2]),
 		CommenterName: c[3],
 		Comment: c[4],
-		Category: (c[5] ? c[5].charAt(0) : "T") as EpollComment["Category"], // First letter only (G, T or E), T if blank
+		Category,
 		C_Page,
-		C_Clause: c[7] ? c[7].trim() : "",
+		C_Clause: Clause,
 		C_Line,
 		Page,
-		Clause: c[7] ? c[7] : "",
-		ProposedChange: c[9] ? c[9] : "",
-		MustSatisfy: !!(c[10] === "1"),
+		Clause,
+		ProposedChange: c[9] || "",
+		MustSatisfy: c[10] === "1",
 	};
 	return comment;
 }
@@ -220,24 +226,32 @@ function parseUserComment(
 	c: string[]
 ): EpollComment {
 	const C_Page = c[2] ? c[2].trim() : "";
-	const C_Line = c[3] ? c[3].trim() : "";
+	const C_Line = c[4] ? c[4].trim() : "";
 	let Page = parseFloat(C_Page) + parseFloat(C_Line) / 100;
 	if (isNaN(Page)) Page = 0;
+
+	const cat = c[1].charAt(0);
+	const Category = cat === "T" || cat == "E" || cat === "G" ? cat : "T"; // First letter only (G, T or E), T if blank
+
+	const Clause = (c[3] || "").trim();
+
+	const MustSatisfy = (c[6] || "").toLowerCase() === "yes";
+
 	return {
 		CommentID,
 		C_Index,
 		CommenterSAPIN: user.SAPIN,
 		CommenterName: user.Name,
-		Comment: c[0] as string,
-		Category: (c[1] ? c[1].charAt(0) : "T") as EpollComment["Category"], // First letter only (G, T or E), T if blank
+		Comment: c[0],
+		Category,
 		C_Page,
-		C_Clause: c[4] ? c[4].trim() : "",
+		C_Clause: Clause,
 		C_Line,
 		Page,
-		Clause: c[4] ? c[4] : "",
-		ProposedChange: c[5] ? c[5] : "",
-		MustSatisfy: c[6].toLowerCase() === "yes",
-	};
+		Clause,
+		ProposedChange: c[5] || "",
+		MustSatisfy,
+	} satisfies EpollComment;
 }
 
 export async function parseEpollUserComments(
