@@ -105,7 +105,6 @@ function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
 
 /**
  * Get attendances for session
- * @returns An object with the session and attendances
  */
 export async function getAttendances(
 	query?: SessionAttendanceSummaryQuery
@@ -272,7 +271,7 @@ export type MemberAttendance = SessionAttendanceSummary & {
 	Status: string;
 };
 
-/*
+/**
  * Export attendances for meeting minutes
  */
 export async function exportAttendancesForMinutes(
