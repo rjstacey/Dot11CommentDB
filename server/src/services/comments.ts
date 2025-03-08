@@ -73,7 +73,7 @@ const createViewCommentResolutionsSQL =
 		"LEFT JOIN members m ON (r.AssigneeSAPIN = m.SAPIN) " +
 		"LEFT JOIN members mc ON (c.LastModifiedBy = mc.SAPIN) " +
 		"LEFT JOIN members mr ON (r.LastModifiedBy = mr.SAPIN) " +
-		"LEFT JOIN results ON (b.id = results.ballot_id AND ((c.CommenterSAPIN <> NULL AND c.CommenterSAPIN = results.SAPIN) OR (c.CommenterSAPIN = NULL AND c.CommenterEmail = results.Email)));";
+		"LEFT JOIN results ON (b.id = results.ballot_id AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = results.SAPIN) OR (c.CommenterSAPIN IS NULL AND c.CommenterEmail = results.Email)));";
 
 export function init() {
 	return db.query(createViewCommentResolutionsSQL);
