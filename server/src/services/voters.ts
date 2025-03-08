@@ -220,11 +220,7 @@ export async function deleteVoters(ids: string[]) {
 	return result.affectedRows;
 }
 
-async function insertVoters(
-	workingGroupId: string,
-	ballot_id: number,
-	votersIn: Partial<Voter>[]
-) {
+async function insertVoters(ballot_id: number, votersIn: Partial<Voter>[]) {
 	let sql = db.format("DELETE FROM wgVoters WHERE ballot_id=?;", [ballot_id]);
 	if (votersIn.length > 0) {
 		sql +=
@@ -253,7 +249,7 @@ export async function uploadVoters(
 	file: Express.Multer.File
 ) {
 	const voters = await parseVoters(file);
-	return insertVoters(workingGroupId, ballot_id, voters);
+	return insertVoters(ballot_id, voters);
 }
 
 export async function votersFromMembersSnapshot(
@@ -270,7 +266,7 @@ export async function votersFromMembersSnapshot(
 	const voters = members.filter(
 		(m) => m.Status === "Voter" || m.Status === "ExOfficio"
 	);
-	return insertVoters(workingGroupId, ballot_id, voters);
+	return insertVoters(ballot_id, voters);
 }
 
 function populateVotersWorksheet(
