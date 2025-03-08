@@ -24,8 +24,9 @@ import { Ballot, CommentsSummary } from "@schemas/ballots.js";
 // prettier-ignore
 const createViewCommentResolutionsSQL =
 	"DROP VIEW IF EXISTS commentResolutions; " +
-	"CREATE VIEW commentResolutions AS SELECT " +
-		"b.id AS ballot_id, " +
+	"CREATE VIEW commentResolutions AS " +
+	"SELECT " +
+		"c.ballot_id AS ballot_id, " +
 		"c.id AS comment_id, " +
 		"BIN_TO_UUID(r.id) AS resolution_id, " +
 		"IF(r.id IS NOT NULL, BIN_TO_UUID(r.id), cast(c.id as CHAR)) AS id, " +
@@ -56,7 +57,7 @@ const createViewCommentResolutionsSQL =
 		'COALESCE(c.CommentGroup, "") AS CommentGroup, ' +
 		"c.Notes AS Notes, " +
 		"r.AssigneeSAPIN AS AssigneeSAPIN, " +
-		'COALESCE(m.Name, r.AssigneeName, "") AS AssigneeName, ' +
+		'COALESCE(m1.Name, r.AssigneeName, "") AS AssigneeName, ' +
 		"r.ResnStatus AS ResnStatus, " +
 		"r.Resolution AS Resolution, " +
 		'COALESCE(r.Submission, "") AS Submission, ' +
@@ -67,13 +68,13 @@ const createViewCommentResolutionsSQL =
 		"r.EditNotes AS EditNotes, " +
 		'DATE_FORMAT(IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedTime, r.LastModifiedTime), "%Y-%m-%dT%TZ") AS LastModifiedTime, ' +
 		"IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) AS LastModifiedBy, " +
-		"IF(c.LastModifiedTime > r.LastModifiedTime, mc.Name, mr.Name) AS LastModifiedName " +
-	"FROM ballotsStage b JOIN comments c ON (b.id = c.ballot_id) " +
+		"m2.Name AS LastModifiedName " +
+	"FROM comments c " +
+		"LEFT JOIN ballotsStage b ON (c.ballot_id = b.id) " +
+		"LEFT JOIN results ON (c.ballot_id = results.ballot_id AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = results.SAPIN) OR (c.CommenterSAPIN IS NULL AND c.CommenterEmail = results.Email))) " +
 		"LEFT JOIN resolutions r ON (c.id = r.comment_id) " +
-		"LEFT JOIN members m ON (r.AssigneeSAPIN = m.SAPIN) " +
-		"LEFT JOIN members mc ON (c.LastModifiedBy = mc.SAPIN) " +
-		"LEFT JOIN members mr ON (r.LastModifiedBy = mr.SAPIN) " +
-		"LEFT JOIN results ON (b.id = results.ballot_id AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = results.SAPIN) OR (c.CommenterSAPIN IS NULL AND c.CommenterEmail = results.Email)));";
+		"LEFT JOIN users m1 ON (r.AssigneeSAPIN = m1.SAPIN) " +
+		"LEFT JOIN users m2 ON (IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) = m2.SAPIN) "
 
 export function init() {
 	return db.query(createViewCommentResolutionsSQL);
