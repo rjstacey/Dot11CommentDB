@@ -39,8 +39,7 @@ function ePollToBallot(epoll: SyncedEpoll): Ballot {
 		End: epoll.end,
 		Document: epoll.document,
 		Topic: epoll.topic,
-		prev_id: 0,
-		//IsRecirc: false,
+		prev_id: null,
 		IsComplete: false,
 
 		id: 0,

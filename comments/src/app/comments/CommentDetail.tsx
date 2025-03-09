@@ -165,7 +165,7 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 	const user = useAppSelector(selectUser);
 	const { entities, loading, selected } = useAppSelector(selectCommentsState);
 	const comments = React.useMemo(
-		() => selected.map((id) => entities[id]!).filter((c) => Boolean(c)),
+		() => selected.map((id) => entities[id]!).filter(Boolean),
 		[selected, entities]
 	);
 	const groupEntities = useAppSelector(selectGroupEntities);

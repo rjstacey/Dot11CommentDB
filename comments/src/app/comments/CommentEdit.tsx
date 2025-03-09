@@ -11,6 +11,7 @@ import {
 	IconCollapse,
 	isMultiple,
 	type Multiple,
+	MULTIPLE,
 	deepMergeTagMultiple,
 	shallowDiff,
 	useDebounce,
@@ -251,6 +252,10 @@ export const CommentCategorization = ({
 	</>
 );
 
+function commentPageValue(page: typeof MULTIPLE | number | null) {
+	return isMultiple(page) ? "" : page ? page.toFixed(2) : "";
+}
+
 function CommentPage({
 	id,
 	comment,
@@ -262,13 +267,7 @@ function CommentPage({
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
-	const [value, setValue] = React.useState(
-		isMultiple(comment.Page)
-			? ""
-			: comment.Page
-				? comment.Page.toFixed(2)
-				: ""
-	);
+	const [value, setValue] = React.useState(commentPageValue(comment.Page));
 	const pattern = "^\\d*\\.?\\d{0,2}$";
 
 	const onChange: React.ChangeEventHandler<HTMLInputElement> = function (e) {
@@ -279,6 +278,11 @@ function CommentPage({
 			setComment({ Page: page || null });
 		}
 	};
+
+	React.useEffect(() => {
+		const newValue = commentPageValue(comment.Page);
+		if (newValue !== value) setValue(newValue);
+	}, [comment.Page]);
 
 	let showOriginal = false;
 	let original = "";
@@ -294,6 +298,7 @@ function CommentPage({
 		showOriginal = page !== comment.Page;
 		original = comment.C_Page + "." + comment.C_Line;
 	}
+	console.log(comment);
 
 	return (
 		<>
