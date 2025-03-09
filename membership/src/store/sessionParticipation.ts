@@ -142,7 +142,7 @@ function recentAttendanceStats(
 			const s = sessionEntities[id]!;
 			if (
 				startDate &&
-				DateTime.fromISO(s.startDate) < DateTime.fromISO(startDate)
+				DateTime.fromISO(s.endDate) < DateTime.fromISO(startDate)
 			)
 				// Only consider attendance after startDate
 				return false;

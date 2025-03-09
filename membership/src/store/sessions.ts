@@ -123,10 +123,13 @@ export const selectSessionByNumber = (state: RootState, number: number) => {
 export const selectRecentSessions = createSelector(
 	selectSessions,
 	(sessions) => {
-		const today = new Date();
-		return sessions
-			.filter((s) => new Date(s.startDate) < today)
-			.slice(0, 8);
+		let today = new Date();
+		today = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate()
+		);
+		return sessions.filter((s) => new Date(s.endDate) < today).slice(0, 8);
 	}
 );
 
