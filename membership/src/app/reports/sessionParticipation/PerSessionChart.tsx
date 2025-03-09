@@ -152,7 +152,7 @@ function Plot({
 				.attr("y", yScale(0))
 				.attr("dy", "1em")
 				.attr("text-anchor", "middle")
-				.text(col === "remoteOnly" ? "Remote-only" : "In-person");
+				.text(col === "remoteOnly" ? "Remote" : "In-person");
 		}
 
 		d3.select(ref.current!).selectAll("*").remove();

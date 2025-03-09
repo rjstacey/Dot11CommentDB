@@ -278,7 +278,7 @@ function memberExpectedStatusFromBallotParticipation(
 	// A status change won't happen if a status override is in effect or if the member is not a voter
 	if (member.StatusChangeOverride || member.Status !== "Voter") return "";
 
-	if (total >= 3 && count < 2) return "Non-Voter";
+	if (total >= 3 && count < 2) return "Observer";
 
 	return "";
 }
