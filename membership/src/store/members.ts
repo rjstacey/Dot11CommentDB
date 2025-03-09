@@ -49,7 +49,8 @@ export function isActiveMember(member: Member) {
 		member.Status === "Voter" ||
 		member.Status === "Potential Voter" ||
 		member.Status === "Aspirant" ||
-		member.Status === "ExOfficio"
+		member.Status === "ExOfficio" ||
+		member.Status === "Observer"
 	);
 }
 

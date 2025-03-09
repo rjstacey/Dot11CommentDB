@@ -3,6 +3,7 @@ import { datetimeSchema } from "./common.js";
 
 export const statusValues = [
 	"Non-Voter",
+	"Observer",
 	"Aspirant",
 	"Potential Voter",
 	"Voter",

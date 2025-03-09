@@ -7,11 +7,14 @@ import { selectMemberEntities } from "@/store/members";
 import styles from "./MembersSummary.module.css";
 
 const selectMembersSummary = createSelector(selectMemberEntities, (members) => {
-	const s = { nv: 0, a: 0, pv: 0, v: 0, eo: 0 };
+	const s = { nv: 0, o: 0, a: 0, pv: 0, v: 0, eo: 0 };
 	for (const m of Object.values(members)) {
 		switch (m!.Status) {
 			case "Non-Voter":
 				s.nv++;
+				break;
+			case "Observer":
+				s.o++;
 				break;
 			case "Aspirant":
 				s.a++;
@@ -45,6 +48,7 @@ export function MembersSummary(props: React.ComponentProps<"div">) {
 	return (
 		<div className={styles.container} {...props}>
 			<LabelValue label="Non-Voters" value={summary.nv} />
+			<LabelValue label="Observer" value={summary.o} />
 			<LabelValue label="Aspirants" value={summary.a} />
 			<LabelValue label="Potential Voters" value={summary.pv} />
 			<LabelValue label="Voters" value={summary.v} />

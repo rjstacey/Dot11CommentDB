@@ -218,7 +218,7 @@ const involvementLevelToStatus = {
 	"Potential Member": "Potential Voter",
 	"Voting Member": "Voter",
 	"Non-Voting Member": "Non-Voter",
-	Observer: "Non-Voter",
+	Observer: "Observer",
 	"Corresponding Member": "Other",
 	Member: "Other",
 	"Nearly Member": "Other",
@@ -234,6 +234,7 @@ const activeInvolvementLevel = [
 ];
 
 const statusToInvolvementLevel = {
+	Observer: "Observer",
 	Aspirant: "Aspirant Member",
 	"Potential Voter": "Potential Member",
 	Voter: "Voting Member",
@@ -461,7 +462,6 @@ export async function updateMyProjectRoster(
 		ws = ws2;
 	}
 
-	console.log(options);
 	if (options.appendNew) {
 		for (const m of members) {
 			if (!activeStatus.includes(m.Status)) continue;

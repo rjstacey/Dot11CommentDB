@@ -153,6 +153,14 @@ function recentAttendanceStats(
 	// Total plenaries considered
 	const total = plenaryCount;
 
+	// Has attended at least one session partially
+	const hasPartial = Boolean(
+		attendances.find(
+			(a) =>
+				(a.AttendancePercentage > 0 || a.DidAttend) && !a.DidNotAttend
+		)
+	);
+
 	attendances = attendances
 		.filter((a) => sessionIds.includes(a.session_id)) // only relevant sessions
 		.sort(
@@ -176,18 +184,14 @@ function recentAttendanceStats(
 		if (s.type === "p") {
 			if (attendancePct > 0 && attendancePct < 75 && !a.DidNotAttend)
 				lastPpartial = true;
-			if ((attendancePct > 75 && !a.DidNotAttend) || a.DidAttend)
+			if ((attendancePct >= 75 || a.DidAttend) && !a.DidNotAttend)
 				lastPfull = true;
 		}
 	}
 
 	// Keep properly attended sessions
 	attendances = attendances.filter(
-		(a) =>
-			(a.AttendancePercentage &&
-				a.AttendancePercentage >= 75 &&
-				!a.DidNotAttend) ||
-			a.DidAttend
+		(a) => (a.AttendancePercentage >= 75 || a.DidAttend) && !a.DidNotAttend
 	);
 
 	// One interim may be substituted for a plenary; only keep latest properly attended interim
@@ -209,6 +213,7 @@ function recentAttendanceStats(
 		lastPpartial, // last attended was a plenary
 		lastPfull,
 		lastSessionId: attendendedSessionIds[0] || 0,
+		hasPartial,
 	};
 }
 
@@ -246,7 +251,8 @@ function memberExpectedStatusFromAttendanceStats(
 	member: Member,
 	count: number,
 	lastPpartial: boolean,
-	lastPfull: boolean
+	lastPfull: boolean,
+	hasPartial: boolean
 ): ExpectedStatusType {
 	const status = member.Status;
 
@@ -255,13 +261,17 @@ function memberExpectedStatusFromAttendanceStats(
 		(status !== "Voter" &&
 			status !== "Potential Voter" &&
 			status !== "Aspirant" &&
+			status !== "Observer" &&
 			status !== "Non-Voter")
 	)
 		return "";
 
 	/* A Voter, Potential Voter or Aspirant becomes a Non-Voter after failing to attend 1 of the last 4 plenary sessions.
 	 * One interim may be substited for a plenary session. */
-	if (count === 0 && status !== "Non-Voter") return "Non-Voter";
+	if (count === 0 && !hasPartial && status !== "Non-Voter")
+		return "Non-Voter";
+
+	if (count === 0 && hasPartial && status !== "Observer") return "Observer";
 
 	/* A Non-Voter becomes an Aspirant after attending 1 plenary or interim session.
 	 * A Voter or Potential Voter becomes an Aspirant if they have only attended 1 of the last 4 plenary sessions
@@ -316,12 +326,19 @@ export const selectSessionParticipationWithMembershipAndSummary =
 						sessionEntities,
 						nonVoterDate
 					);
-					const { total, count, lastPpartial, lastPfull } = stats;
+					const {
+						total,
+						count,
+						lastPpartial,
+						lastPfull,
+						hasPartial,
+					} = stats;
 					expectedStatus = memberExpectedStatusFromAttendanceStats(
 						member,
 						count,
 						lastPpartial,
-						lastPfull
+						lastPfull,
+						hasPartial
 					);
 					summary = `${count}/${total}`;
 					lastSessionId = stats.lastSessionId;

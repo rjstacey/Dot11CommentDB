@@ -80,14 +80,6 @@ const createViewMembersSQL =
 	"FROM users u JOIN groupMembers m ON (u.SAPIN=m.SAPIN)"
 
 export async function init() {
-	const tables = await db.query<RowDataPacket[]>(
-		"SELECT TABLE_NAME FROM information_schema.TABLES " +
-			"WHERE TABLE_TYPE LIKE 'BASE%' AND TABLE_SCHEMA LIKE database() AND TABLE_NAME='members'"
-	);
-	if (tables.length > 0) {
-		// Table "members" exists as a base table
-		await db.query("ALTER TABLE members RENAME users");
-	}
 	return db.query(createViewMembersSQL);
 }
 
@@ -184,20 +176,13 @@ function selectMembersSql(query: MemberQuery) {
 /*
  * A detailed list of members
  */
-export function getMembers(
-	access: number,
-	query: MemberQuery
-): Promise<Member[]> {
+export function getMembers(query: MemberQuery): Promise<Member[]> {
 	const sql = selectMembersSql(query);
 	return db.query<(RowDataPacket & Member)[]>(sql);
 }
 
-export async function getMember(
-	access: number,
-	groupId: string,
-	SAPIN: number
-) {
-	const members: (Member | undefined)[] = await getMembers(access, {
+export async function getMember(groupId: string, SAPIN: number) {
+	const members: (Member | undefined)[] = await getMembers({
 		groupId,
 		SAPIN,
 	});
@@ -237,7 +222,7 @@ export function getUserMembers(
 		" FROM members " +
 		"WHERE " +
 		`groupId=UUID_TO_BIN(${db.escape(groupId)}) ` +
-		'AND Status IN ("Aspirant", "Potential Voter", "Voter", "ExOfficio")';
+		'AND Status IN ("Observer", "Aspirant", "Potential Voter", "Voter", "ExOfficio")';
 
 	return db.query<(RowDataPacket & UserMember)[]>(sql);
 }
@@ -256,10 +241,11 @@ export async function getMembersSnapshot(
 	groupId: string,
 	date: string
 ) {
-	let members = await getMembers(access, {
+	let members = await getMembers({
 		groupId,
 		Status: [
 			"Non-Voter",
+			"Observer",
 			"Aspirant",
 			"Potential Voter",
 			"Voter",
@@ -308,6 +294,7 @@ export async function getMembersSnapshot(
 
 const statusMap: Record<StatusType, string> = {
 	"Non-Voter": "Non-Voter",
+	Observer: "Observer",
 	Aspirant: "Aspirant",
 	"Potential Voter": "Potential Voter",
 	Voter: "Voter",
@@ -410,7 +397,7 @@ async function addMember(groupId: string, member: MemberCreate) {
 	sql += "INSERT INTO groupMembers SET " + memberSetsSql(mEntry) + ";";
 	await db.query(sql);
 
-	return getMember(AccessLevel.rw, groupId, SAPIN);
+	return getMember(groupId, SAPIN);
 }
 
 export async function addMembers(groupId: string, members: MemberCreate[]) {
@@ -467,7 +454,7 @@ export async function addMemberStatusChangeEntries(
 	if (!validStatusChangeEntries(entries))
 		throw new TypeError("Expected array of status change entries");
 
-	const member = await getMember(AccessLevel.rw, groupId, sapin);
+	const member = await getMember(groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -480,7 +467,7 @@ export async function addMemberStatusChangeEntries(
 	);
 	await db.query(sql);
 
-	return getMember(AccessLevel.rw, groupId, sapin);
+	return getMember(groupId, sapin);
 }
 
 export async function updateMemberStatusChangeEntries(
@@ -493,7 +480,7 @@ export async function updateMemberStatusChangeEntries(
 			"Expected array of shape: {id: number, changes: object}[]"
 		);
 
-	const member = await getMember(AccessLevel.rw, groupId, sapin);
+	const member = await getMember(groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -509,7 +496,7 @@ export async function updateMemberStatusChangeEntries(
 	);
 	await db.query(sql);
 
-	return getMember(AccessLevel.rw, groupId, sapin);
+	return getMember(groupId, sapin);
 }
 
 export async function deleteMemberStatusChangeEntries(
@@ -522,7 +509,7 @@ export async function deleteMemberStatusChangeEntries(
 			"Expected an array of status change entry identifiers: number[]"
 		);
 
-	const member = await getMember(AccessLevel.rw, groupId, sapin);
+	const member = await getMember(groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -536,7 +523,7 @@ export async function deleteMemberStatusChangeEntries(
 	);
 	await db.query(sql);
 
-	return getMember(AccessLevel.rw, groupId, sapin);
+	return getMember(groupId, sapin);
 }
 
 export async function updateMemberContactEmail(
@@ -544,7 +531,7 @@ export async function updateMemberContactEmail(
 	sapin: number,
 	entry: Partial<ContactEmail>
 ) {
-	const member = await getMember(AccessLevel.rw, groupId, sapin);
+	const member = await getMember(groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -557,7 +544,7 @@ export async function updateMemberContactEmail(
 	]);
 	await db.query(sql);
 
-	return (await getMember(AccessLevel.rw, groupId, sapin))!;
+	return (await getMember(groupId, sapin))!;
 }
 
 export async function addMemberContactEmail(
@@ -565,7 +552,7 @@ export async function addMemberContactEmail(
 	sapin: number,
 	entry: Omit<ContactEmail, "id" | "DateAdded"> & { DateAdded?: string }
 ) {
-	const member = await getMember(AccessLevel.rw, groupId, sapin);
+	const member = await getMember(groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -582,7 +569,7 @@ export async function addMemberContactEmail(
 	]);
 	await db.query(sql);
 
-	return (await getMember(AccessLevel.rw, groupId, sapin))!;
+	return (await getMember(groupId, sapin))!;
 }
 
 export async function deleteMemberContactEmail(
@@ -590,7 +577,7 @@ export async function deleteMemberContactEmail(
 	sapin: number,
 	entry: Pick<ContactEmail, "id">
 ) {
-	const member = await getMember(AccessLevel.rw, groupId, sapin);
+	const member = await getMember(groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -601,7 +588,7 @@ export async function deleteMemberContactEmail(
 	]);
 	await db.query(sql);
 
-	return (await getMember(AccessLevel.rw, groupId, sapin))!;
+	return (await getMember(groupId, sapin))!;
 }
 
 async function updateMemberStatus(
@@ -655,7 +642,7 @@ export async function updateMember(
 	const { Status, StatusChangeReason, ...changesRest } = changes;
 
 	/* If the member status changes, then update the status change history */
-	const member = await getMember(AccessLevel.rw, groupId, sapin);
+	const member = await getMember(groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
@@ -689,7 +676,7 @@ export async function updateMember(
 
 	if (p.length > 0) await Promise.all(p);
 
-	return (await getMember(AccessLevel.rw, groupId, sapin))!;
+	return (await getMember(groupId, sapin))!;
 }
 
 type Update<T> = {
@@ -968,7 +955,7 @@ export async function uploadMembers(
 	else if (format === "history")
 		await uploadDatabaseMemberHistory(groupId, file.buffer);
 
-	return getMembers(AccessLevel.admin, { groupId });
+	return getMembers({ groupId });
 }
 
 export async function importMyProjectRoster(
@@ -1033,7 +1020,7 @@ export async function importMyProjectRoster(
 		console.log(result);
 	}
 
-	return getMembers(AccessLevel.admin, { groupId });
+	return getMembers({ groupId });
 }
 
 export async function exportMyProjectRoster(
@@ -1041,10 +1028,11 @@ export async function exportMyProjectRoster(
 	groupId: string,
 	res: Response
 ) {
-	let members = await getMembers(AccessLevel.admin, {
+	let members = await getMembers({
 		groupId,
 		Status: [
 			"Voter",
+			"Observer",
 			"Aspirant",
 			"Potential Voter",
 			"Non-Voter",
@@ -1062,10 +1050,11 @@ export async function updateMyProjectRosterWithMemberStatus(
 	options: UpdateRosterOptions,
 	res: Response
 ) {
-	const members = await getMembers(AccessLevel.admin, {
+	const members = await getMembers({
 		groupId,
 		Status: [
 			"Voter",
+			"Observer",
 			"Aspirant",
 			"Potential Voter",
 			"Non-Voter",
@@ -1077,9 +1066,15 @@ export async function updateMyProjectRosterWithMemberStatus(
 }
 
 export async function exportMembersPublic(groupId: string, res: Response) {
-	const members = await getMembers(AccessLevel.admin, {
+	const members = await getMembers({
 		groupId,
-		Status: ["Voter", "Aspirant", "Potential Voter", "ExOfficio"],
+		Status: [
+			"Voter",
+			"Observer",
+			"Aspirant",
+			"Potential Voter",
+			"ExOfficio",
+		],
 	});
 
 	const ssData = members.map((m) => ({
@@ -1102,9 +1097,15 @@ export async function exportMembersPrivate(
 ) {
 	type ParticipationRecord = Record<string, string>;
 
-	const members = await getMembers(AccessLevel.admin, {
+	const members = await getMembers({
 		groupId,
-		Status: ["Voter", "Aspirant", "Potential Voter", "ExOfficio"],
+		Status: [
+			"Voter",
+			"Observer",
+			"Aspirant",
+			"Potential Voter",
+			"ExOfficio",
+		],
 	});
 
 	const { sessions, attendances } = await getRecentAttendances(user, groupId);
@@ -1287,7 +1288,7 @@ export async function exportVotingMembers(
 	const Status = forPlenarySession
 		? ["Voter", "ExOfficio", "Potential Voter"]
 		: ["Voter", "ExOfficio"];
-	const members = await getMembers(AccessLevel.admin, {
+	const members = await getMembers({
 		groupId: group.id,
 		Status,
 	});
