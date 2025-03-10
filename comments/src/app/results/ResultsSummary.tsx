@@ -1,6 +1,11 @@
 import * as React from "react";
 
-import { Dropdown, Button, DropdownRendererProps } from "dot11-components";
+import {
+	Dropdown,
+	Button,
+	ActionButton,
+	DropdownRendererProps,
+} from "dot11-components";
 
 import { useAppSelector } from "@/store/hooks";
 
@@ -12,6 +17,22 @@ import {
 } from "@/store/ballots";
 
 import styles from "./ResultsSummary.module.css";
+
+function copyHtmlToClipboard(html: string) {
+	const type = "text/html";
+	const blob = new Blob([html], { type });
+	const data = [new ClipboardItem({ [type]: blob })];
+	navigator.clipboard.write(data);
+}
+
+const camelToKebab = (value: string) =>
+	value.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+
+function styleObjToString(style: React.CSSProperties) {
+	return Object.entries(style)
+		.map(([key, value]) => `${camelToKebab(key)}: ${value}`)
+		.join("; ");
+}
 
 type Label = string | ((b: Ballot) => string);
 type Value = null | ((b: Ballot) => string | number);
@@ -106,7 +127,7 @@ const wgResultsRenderer: (Label | ResultRender)[] = wgHeaderRenderer
 	.concat([
 		"Result",
 		{ label: "Approve:", value: (b) => b.Results?.Approve || 0 },
-		{ label: "Disappove:", value: (b) => b.Results?.Disapprove || 0 },
+		{ label: "Disapprove:", value: (b) => b.Results?.Disapprove || 0 },
 		{ label: "Abstain:", value: (b) => b.Results?.Abstain || 0 },
 		{ label: "Total returns:", value: (b) => b.Results?.TotalReturns || 0 },
 		{ label: "Comments:", value: (b) => b.Comments?.Count || 0 },
@@ -151,7 +172,7 @@ const saResultsRenderer: (Label | ResultRender)[] = saHeaderRenderer
 	.concat([
 		"Result",
 		{ label: "Approve:", value: (b) => b.Results?.Approve || 0 },
-		{ label: "Disappove:", value: (b) => b.Results?.Disapprove || 0 },
+		{ label: "Disapprove:", value: (b) => b.Results?.Disapprove || 0 },
 		{
 			label: "Disapprove w/out comment:",
 			value: (b) => b.Results?.InvalidDisapprove || 0,
@@ -177,6 +198,60 @@ const saResultsRenderer: (Label | ResultRender)[] = saHeaderRenderer
 		},
 		{ value: overallPassStr, style: (b) => passFailStyle(overallPass(b)) },
 	]);
+
+function longSummaryHtml(ballots: Ballot[]) {
+	const renderer =
+		ballots[0].Type === BallotType.SA
+			? saResultsRenderer
+			: wgResultsRenderer;
+	const rows = renderer.map((r) => {
+		if (typeof r === "string") {
+			const style: React.CSSProperties = {
+				fontWeight: "bold",
+				padding: "0.2em 0.8em",
+			};
+			return `<td colspan="${ballots.length + 1}" style="${styleObjToString(style)}">${r}</td>`;
+		} else {
+			const cols: string[] = [];
+			const label =
+				typeof r === "object" && typeof r.label === "string"
+					? r.label
+					: "";
+			const style: React.CSSProperties = {
+				padding: "0.2em 1.2em",
+			};
+			cols.push(`<td style="${styleObjToString(style)}">${label}</td>`);
+			ballots.forEach((ballot) => {
+				let style: React.CSSProperties = {
+					padding: "0.2em 1.2em",
+					textAlign: "end",
+				};
+				let s: string | number = "";
+				if (typeof r === "object") {
+					if (r.value) s = r.value(ballot);
+					if (!r.label) style = { ...style, fontWeight: "bold" };
+					if (r.style)
+						style = {
+							...style,
+							...r.style(ballot),
+						};
+				}
+				cols.push(`<td style="${styleObjToString(style)}">${s}</td>`);
+			});
+			return cols.join("");
+		}
+	});
+	const body = rows.map((row) => `<tr>${row}</tr>`).join("");
+
+	return `
+		<style>
+			table {border-collapse: collapse;}
+			table, th, td {border: 1px solid black;}
+			td {vertical-align: top;}
+		</style>
+		<table><tbody>${body}</tbody></table>
+	`;
+}
 
 function LongSummary({ ballots }: { ballots: Ballot[] }) {
 	const renderer =
@@ -225,8 +300,15 @@ function LongSummary({ ballots }: { ballots: Ballot[] }) {
 		});
 	});
 
+	const html = longSummaryHtml(ballots);
+	console.log(html);
+
 	return (
 		<div className={styles.container}>
+			<ActionButton
+				name="copy"
+				onClick={() => copyHtmlToClipboard(html)}
+			/>
 			<div
 				className={styles.grid}
 				style={{
