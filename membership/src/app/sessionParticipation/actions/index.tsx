@@ -16,7 +16,7 @@ function SessionSummary() {
 				display: "flex",
 				flexWrap: "wrap",
 				overflow: "auto",
-				margin: "10px 0",
+				fontSize: "smaller",
 			}}
 		>
 			{sessions.map((session) => (
@@ -38,7 +38,7 @@ function SessionSummary() {
 							whiteSpace: "nowrap",
 							textOverflow: "ellipsis",
 							overflow: "hidden",
-							maxWidth: 200,
+							maxWidth: 150,
 						}}
 					>
 						{session.name}

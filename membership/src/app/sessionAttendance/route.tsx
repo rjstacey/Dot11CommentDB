@@ -3,10 +3,14 @@ import { SessionAttendance } from "./layout";
 import { SessionAttendanceTable } from "./table";
 import { SessionAttendanceChart } from "./chart";
 import { SessionRegistrationTable } from "./registration";
-import { sessionAttendanceChartLoader } from "./loader";
+import {
+	sessionAttendanceLoader,
+	sessionAttendanceChartLoader,
+} from "./loader";
 
 export const sessionAttendanceRoute: RouteObject = {
 	element: <SessionAttendance />,
+	loader: sessionAttendanceLoader,
 	children: [
 		{ index: true, element: null },
 		{
