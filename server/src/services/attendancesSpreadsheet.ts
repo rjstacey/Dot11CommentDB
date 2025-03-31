@@ -22,7 +22,7 @@ const attendanceColumns: Col[] = [
 	{
 		label: "Status",
 		width: 18,
-		set: (a) => a.Status,
+		set: (a) => (a.Status === "Observer" ? "Non-Voter" : a.Status),
 	},
 ];
 

@@ -284,9 +284,11 @@ export async function exportAttendancesForMinutes(
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 	const attendances = await getAttendances({ groupId: group.id, session_id });
+	if (attendances.length === 0)
+		throw new NotFoundError("There is no attendance for this session");
 
 	const memberEntities: Record<number, Member> = {};
-	let members = await getMembers(AccessLevel.admin, { groupId: group.id });
+	let members = await getMembers({ groupId: group.id });
 	members.forEach((m) => (memberEntities[m.SAPIN] = m));
 	members = await getMembersSnapshot(
 		AccessLevel.admin,
