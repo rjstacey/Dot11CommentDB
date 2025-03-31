@@ -70,9 +70,9 @@ const createViewCommentResolutionsSQL =
 		"IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) AS LastModifiedBy, " +
 		"m2.Name AS LastModifiedName " +
 	"FROM comments c " +
+		"LEFT JOIN resolutions r ON (c.id = r.comment_id) " +
 		"LEFT JOIN ballotsStage b ON (c.ballot_id = b.id) " +
 		"LEFT JOIN results ON (c.ballot_id = results.ballot_id AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = results.SAPIN) OR (c.CommenterSAPIN IS NULL AND c.CommenterEmail = results.Email))) " +
-		"LEFT JOIN resolutions r ON (c.id = r.comment_id) " +
 		"LEFT JOIN users m1 ON (r.AssigneeSAPIN = m1.SAPIN) " +
 		"LEFT JOIN users m2 ON (IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) = m2.SAPIN) "
 

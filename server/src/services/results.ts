@@ -8,7 +8,6 @@ import { parseEpollResults, parseEpollResultsHtml } from "./epoll.js";
 import { parseMyProjectResults } from "./myProjectSpreadsheets.js";
 import { genResultsSpreadsheet } from "./resultsSpreadsheet.js";
 import { getBallotSeries, BallotType } from "./ballots.js";
-import { AccessLevel } from "../auth/access.js";
 import { getMember } from "./members.js";
 import type { Group } from "@schemas/groups.js";
 import type { Result, ResultUpdate } from "@schemas/results.js";
@@ -359,11 +358,7 @@ async function updateResult(
 			[changes, ballot.id, sapin]
 		);
 		if (result.affectedRows === 0) {
-			const member = await getMember(
-				AccessLevel.admin,
-				workingGroupId,
-				sapin
-			);
+			const member = await getMember(workingGroupId, sapin);
 			if (!member)
 				throw new TypeError(`Invalid SAPIN=${sapin}; not a member`);
 			const sql = `

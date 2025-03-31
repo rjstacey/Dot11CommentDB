@@ -222,14 +222,22 @@ export async function updateResolutions(
 				"Need at least ballot level or comment level read-write privileges to modify resolution approval"
 			);
 	}
-
+	const t1 = new Date();
 	await Promise.all(
 		updates.map((u) => updateResolution(user, ballot_id, u.id, u.changes))
+	);
+	const t2 = new Date();
+	// Log the time taken for the updates
+	console.log(
+		`Time taken to update resolutions: ${t2.getTime() - t1.getTime()}ms`
 	);
 	const comments = await selectComments(
 		{ resolution_id: ids },
 		{ ballot_id, modifiedSince }
 	);
+	const t3 = new Date();
+	// Log the time taken for the updates
+	console.log(`Time taken to get comments: ${t3.getTime() - t2.getTime()}ms`);
 	return { comments };
 }
 
