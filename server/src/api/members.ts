@@ -63,9 +63,8 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 async function get(req: Request, res: Response, next: NextFunction) {
 	const group = req.group!;
 	const groupId = group.id;
-	const access = group.permissions.members || AccessLevel.none;
 	try {
-		const data = await getMembers(access, { groupId });
+		const data = await getMembers({ groupId });
 		res.json(data);
 	} catch (error) {
 		next(error);
