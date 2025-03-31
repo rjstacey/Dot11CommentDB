@@ -486,8 +486,8 @@ export const updateComments =
 				for (const key of Object.keys(
 					u.changes
 				) as (keyof CommentResolution)[]) {
-					// @ts-expect-error - abcd
-					changes[key] = entity[key];
+					// @ts-expect-error - 2322
+					changes[key] = c[key];
 				}
 				rollbackUpdates.push({ id, changes });
 			}

@@ -298,7 +298,6 @@ function CommentPage({
 		showOriginal = page !== comment.Page;
 		original = comment.C_Page + "." + comment.C_Line;
 	}
-	console.log(comment);
 
 	return (
 		<>
