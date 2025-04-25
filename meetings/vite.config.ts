@@ -1,20 +1,18 @@
 import {
 	defineConfig,
 	loadEnv,
-	searchForWorkspaceRoot,
 	UserConfig,
 } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
 
-const target = "http://localhost:8080";
-
 export default defineConfig(({ command, mode }) => {
 	const __dirname = process.cwd();
 	const env = { ...loadEnv(mode, __dirname, "") };
 	if (command === "build" && !env.BUILD_PATH)
 		throw Error("BUILD_PATH not set");
+	if (!env.SERVER) throw Error("SERVER not set");
 	if (!env.BASE_URL) throw Error("BASE_URL not set");
 	return {
 		base: env.BASE_URL,
@@ -60,20 +58,14 @@ export default defineConfig(({ command, mode }) => {
 			strictPort: true,
 			proxy: {
 				"^(/api|/auth|/login|/logout)": {
-					target,
+					target: env.SERVER,
 					changeOrigin: true,
 				},
 				"/socket.io": {
-					target,
+					target: env.SERVER,
 					changeOrigin: true,
 					ws: true,
 				},
-			},
-			fs: {
-				allow: [
-					searchForWorkspaceRoot(process.cwd()),
-					"../../dot11-components",
-				],
 			},
 		},
 	} satisfies UserConfig;
