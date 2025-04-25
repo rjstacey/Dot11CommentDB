@@ -1,6 +1,23 @@
+.pollModal {
+	max-width: unset;
+	box-sizing: border-box;
+}
+
+@media (width <= 600px) {
+	.pollModal {
+		width: 100%;
+		height: 100%;
+	}
+}
+
+.pollForm {
+	overflow: auto;
+}
+
 .topRow {
 	display: flex;
 	justify-content: space-between;
+	flex-wrap: wrap;
 }
 
 .topRowGroup {

@@ -1,18 +1,15 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router";
-
 import { Select } from "dot11-components";
-
 import { useAppSelector } from "@/store/hooks";
 import {
 	selectTopLevelGroup,
+	selectTopLevelGroups,
 	selectSelectedGroup,
 	selectSubgroups,
-	selectTopLevelGroups,
-	Group,
 } from "@/store/groups";
 
-import styles from "./app.module.css";
+import css from "./app.module.css";
 
 export function GroupSelector(
 	props: Omit<
@@ -23,22 +20,50 @@ export function GroupSelector(
 	const location = useLocation();
 	const navigate = useNavigate();
 	const group = useAppSelector(selectTopLevelGroup);
+
+	const options = useAppSelector(selectTopLevelGroups);
+	const values = options.filter((g) => g.id === group?.id);
+
+	function handleChange(values: typeof options) {
+		const [g] = values;
+		let pathName = "";
+		if (g) {
+			pathName = `${g.name}/WG`;
+			if (location.pathname.endsWith("/admin")) pathName += "/admin";
+		}
+		navigate(pathName);
+	}
+
+	return (
+		<Select
+			className={css["group-select"]}
+			dropdownClassName={css["group-select-dropdown"]}
+			values={values}
+			onChange={handleChange}
+			options={options}
+			valueField="id"
+			labelField="name"
+			searchable={false}
+			placeholder=""
+			dropdownWidth={150}
+			{...props}
+		/>
+	);
+}
+
+export function SubgroupSelector(
+	props: Omit<
+		React.ComponentProps<typeof Select>,
+		"values" | "onChange" | "options"
+	>
+) {
+	const location = useLocation();
+	const navigate = useNavigate();
+	const group = useAppSelector(selectTopLevelGroup);
 	const subgroup = useAppSelector(selectSelectedGroup);
 
-	const groupOptions = useAppSelector(selectTopLevelGroups);
-	const subgroupOptions = useAppSelector(selectSubgroups);
-
-	const isGroupSelection = !group;
-
-	let options: Group[];
-	let values: Group[];
-	if (isGroupSelection) {
-		options = groupOptions;
-		values = []; //options.filter((g) => g.id === group?.id);
-	} else {
-		options = subgroupOptions;
-		values = options.filter((g) => g.id === subgroup?.id);
-	}
+	const options = useAppSelector(selectSubgroups);
+	const values = options.filter((g) => g.id === subgroup?.id);
 
 	function handleChange(values: typeof options) {
 		const [g] = values;
@@ -58,18 +83,18 @@ export function GroupSelector(
 
 	return (
 		<Select
-			className={styles["working-group-select"]}
-			dropdownClassName={styles["working-group-select-dropdown"]}
+			className={css["group-select"]}
+			dropdownClassName={css["group-select-dropdown"]}
 			values={values}
 			onChange={handleChange}
 			options={options}
 			valueField="id"
 			labelField="name"
 			searchable={false}
-			clearable
+			//clearable
+			placeholder=""
+			dropdownWidth={150}
 			{...props}
 		/>
 	);
 }
-
-export default GroupSelector;

@@ -1,30 +1,34 @@
-import { useCallback } from "react";
-import { useBeforeUnload } from "react-router";
-import CreateEventDropdown from "./createEvent";
-import EventTabsList from "./eventsList";
+import { useAppSelector } from "@/store/hooks";
+import {
+	selectPollingAdminSelectedPoll,
+	selectPollAdminEvent,
+} from "@/store/pollingAdmin";
+
+import CreateEvent from "./createEvent";
+import EventTabs from "./eventTabs";
 import EventPanel from "./eventPanel";
-import PollModal from "./pollModal";
+import { PollPanel } from "./pollPanel";
 import css from "./admin.module.css";
 
 function Admin() {
-	useBeforeUnload(
-		useCallback(() => {
-			console.log("logging this before navigate!");
-		}, [])
-	);
+	const event = useAppSelector(selectPollAdminEvent);
+	const poll = useAppSelector(selectPollingAdminSelectedPoll);
+
+	let panel: JSX.Element | null = null;
+	if (event)
+		panel = poll ? (
+			<PollPanel event={event} poll={poll} />
+		) : (
+			<EventPanel event={event} />
+		);
+
 	return (
 		<div className={css.tabs}>
 			<div className={css.header}>
-				<EventTabsList />
-				<div className={css.filler} />
-				<div>
-					<CreateEventDropdown />
-				</div>
+				<EventTabs />
+				<CreateEvent />
 			</div>
-			<div className={css.body}>
-				<EventPanel />
-			</div>
-			<PollModal />
+			<div className={css.eventPanel}>{panel}</div>
 		</div>
 	);
 }

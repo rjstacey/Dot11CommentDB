@@ -4,17 +4,19 @@ import { Account, Button } from "dot11-components";
 import Toggle from "@/components/toggle";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { resetStore } from "@/store";
-import { selectSelectedGroup } from "@/store/groups";
+import { selectTopLevelGroup, selectSelectedGroup } from "@/store/groups";
 import { AccessLevel, selectUser, setUser } from "@/store/user";
+import { GroupSelector, SubgroupSelector } from "./GroupSelector";
 
 import pkg from "../../package.json";
 
-import styles from "./app.module.css";
+import css from "./app.module.css";
 
 const viewOptions = [
 	{ value: true, label: "Admin" },
 	{ value: false, label: "User" },
 ];
+
 function ToggleAdminView() {
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -38,11 +40,8 @@ function ToggleAdminView() {
 
 function Header() {
 	const dispatch = useAppDispatch();
-	const navigate = useNavigate();
 	const { groupName } = useParams();
 	const user = useAppSelector(selectUser);
-	const group = useAppSelector(selectSelectedGroup);
-	const access = group?.permissions.polling || AccessLevel.none;
 
 	const clearCache = () => {
 		dispatch(resetStore());
@@ -52,22 +51,47 @@ function Header() {
 	const title = (groupName ? groupName + " " : "") + "Polling";
 	if (document.title !== title) document.title = title;
 
-	const rootPath = "/" + (groupName || "");
+	//const rootPath = "/" + (groupName || "");
+
+	const group = useAppSelector(selectTopLevelGroup);
+	const subgroup = useAppSelector(selectSelectedGroup);
+	const access = subgroup?.permissions.polling || AccessLevel.none;
 
 	return (
-		<header className={styles.header}>
-			<h3 className="title" onClick={() => navigate(rootPath)}>
-				{title}
-			</h3>
-
-			{access >= AccessLevel.rw ? <ToggleAdminView /> : null}
-
-			<Account user={user}>
-				<div>
-					{pkg.name}: {pkg.version}
+		<header className={css.header}>
+			<div
+				style={{
+					width: "100%",
+					display: "flex",
+					justifyContent: "space-between",
+				}}
+			>
+				<h3 className={css.title}>Polling</h3>
+				<Account user={user}>
+					<div>
+						{pkg.name}: {pkg.version}
+					</div>
+					<Button onClick={clearCache}>Clear cache</Button>
+				</Account>
+			</div>
+			<div
+				style={{
+					width: "100%",
+					display: "flex",
+					justifyContent: "space-between",
+				}}
+			>
+				<div
+					style={{
+						width: "100%",
+						display: "flex",
+					}}
+				>
+					<GroupSelector />
+					{group && <SubgroupSelector />}
 				</div>
-				<Button onClick={clearCache}>Clear cache</Button>
-			</Account>
+				{access >= AccessLevel.rw ? <ToggleAdminView /> : null}
+			</div>
 		</header>
 	);
 }

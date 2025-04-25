@@ -38,11 +38,9 @@ function Polling() {
 	}, [dispatch, group]);
 
 	return (
-		<div style={{ width: "100%" }}>
-			<React.Suspense fallback={<span>Loading...</span>}>
-				<Outlet />
-			</React.Suspense>
-		</div>
+		<React.Suspense fallback={<span>Loading...</span>}>
+			<Outlet />
+		</React.Suspense>
 	);
 }
 

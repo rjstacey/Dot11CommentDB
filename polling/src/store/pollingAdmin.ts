@@ -76,6 +76,15 @@ export function defaultStrawpoll(event: Event, polls: Poll[]) {
 	} satisfies PollCreate;
 }
 
+export function isDefaultPoll(poll: Poll) {
+	return (
+		poll.body === "" &&
+		poll.recordType === PollRecordType.ANONYMOUS &&
+		poll.choice === PollChoice.SINGLE &&
+		(poll.type !== "sp" || poll.options.length === 0)
+	);
+}
+
 const eventsAdapter = createEntityAdapter<Event>();
 const sortComparer = (p1: Poll, p2: Poll) => p1.index - p2.index;
 const pollsAdapter = createEntityAdapter<Poll>({ sortComparer });

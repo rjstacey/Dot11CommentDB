@@ -1,8 +1,7 @@
 import React from "react";
-import { AppModal, Row, Button, FieldLeft, Checkbox } from "dot11-components";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { Button, FieldLeft, Checkbox } from "dot11-components";
+import { useAppDispatch } from "@/store/hooks";
 import {
-	selectPollingAdminSelectedPoll,
 	pollingAdminUpdatePoll,
 	setSelectedPollId,
 	Poll,
@@ -11,14 +10,16 @@ import {
 	PollRecordType,
 	PollChoice,
 	pollingAdminPollAction,
-	selectPollingAdminEventEntities,
 	motionPollOptions,
 	titlePrefix,
+	isDefaultPoll,
+	pollingAdminDeletePoll,
 } from "@/store/pollingAdmin";
 import Editor from "@/components/editor";
 import LabeledToggle from "@/components/toggle";
 import MemberSelector from "@/components/MemberSelector";
-import css from "./pollModal.module.css";
+
+import css from "./pollPanel.module.css";
 
 const pollVisibilityOptions: { label: string; value: boolean }[] = [
 	{ label: "Inactive", value: false },
@@ -202,7 +203,12 @@ function PollOptionEdit({
 				placeholder={"Option " + (index + 1)}
 				disabled={disabled}
 			/>
-			<button onClick={onDelete} disabled={disabled}>
+			<button
+				onClick={onDelete}
+				disabled={disabled}
+				role="button"
+				aria-label={`Delete option ${index + 1}`}
+			>
 				<i className="bi-trash" />
 			</button>
 		</label>
@@ -333,15 +339,7 @@ function PollActions({ poll }: { poll: Poll }) {
 	);
 }
 
-function PollForm({
-	event,
-	poll,
-	close,
-}: {
-	event: Event;
-	poll: Poll;
-	close: () => void;
-}) {
+export function PollForm({ event, poll }: { event: Event; poll: Poll }) {
 	const dispatch = useAppDispatch();
 	const [editPoll, setEditPoll] = React.useState(poll);
 
@@ -380,7 +378,7 @@ function PollForm({
 	}
 
 	return (
-		<>
+		<div className={css.pollForm}>
 			<div className={css.topRow}>
 				<div className={css.topRowGroup}>
 					<PollTypeSelect
@@ -406,7 +404,6 @@ function PollForm({
 							poll.state === "opened" || poll.state === "closed"
 						}
 					/>
-					<Button onClick={close}>x</Button>
 				</div>
 			</div>
 			<div className={css.pollTitleRow}>
@@ -446,8 +443,8 @@ function PollForm({
 				</div>
 			</div>
 			{poll.type === "m" && (
-				<Row>
-					<FieldLeft label="Moved:">
+				<div className={css.pollBodyRow} style={{ flexWrap: "wrap" }}>
+					<FieldLeft label="Move:">
 						<MemberSelector
 							value={poll.movedSAPIN}
 							onChange={(movedSAPIN) =>
@@ -455,7 +452,7 @@ function PollForm({
 							}
 						/>
 					</FieldLeft>
-					<FieldLeft label="Seconded:">
+					<FieldLeft label="Second:">
 						<MemberSelector
 							value={poll.secondedSAPIN}
 							onChange={(secondedSAPIN) =>
@@ -463,31 +460,27 @@ function PollForm({
 							}
 						/>
 					</FieldLeft>
-				</Row>
+				</div>
 			)}
 			<PollActions poll={poll} />
+		</div>
+	);
+}
+
+export function PollPanel({ event, poll }: { event: Event; poll: Poll }) {
+	const dispatch = useAppDispatch();
+
+	function close() {
+		if (isDefaultPoll(poll)) dispatch(pollingAdminDeletePoll(poll.id));
+		dispatch(setSelectedPollId(null));
+	}
+
+	return (
+		<>
+			<div className={css.topRow} style={{ justifyContent: "flex-end" }}>
+				<Button onClick={close}>Close x</Button>
+			</div>
+			<PollForm event={event!} poll={poll!} />
 		</>
 	);
 }
-
-function PollModal() {
-	const dispatch = useAppDispatch();
-	const poll = useAppSelector(selectPollingAdminSelectedPoll);
-	const eventEntities = useAppSelector(selectPollingAdminEventEntities);
-	const event = poll ? eventEntities[poll.eventId] : undefined;
-	const close = () => dispatch(setSelectedPollId(null));
-
-	return (
-		<AppModal
-			style={{ width: "60%" }}
-			isOpen={Boolean(poll)}
-			onRequestClose={close}
-		>
-			{poll && event && (
-				<PollForm event={event} poll={poll} close={close} />
-			)}
-		</AppModal>
-	);
-}
-
-export default PollModal;

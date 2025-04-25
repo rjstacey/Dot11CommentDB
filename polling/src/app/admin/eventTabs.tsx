@@ -31,7 +31,7 @@ function EventTab({ event }: { event: Event }) {
 	);
 }
 
-function EventTabsList() {
+function EventTabs() {
 	const events = useAppSelector(selectPollingAdminEvents);
 	return (
 		<div className={css.tabList}>
@@ -42,4 +42,4 @@ function EventTabsList() {
 	);
 }
 
-export default EventTabsList;
+export default EventTabs;

@@ -1,8 +1,10 @@
 .toggle {
 	display: flex;
 	flex-wrap: nowrap;
+	align-items: center;
 	border: 1px solid #ddd;
 	border-radius: 5px;
+	margin: 5px;
 }
 
 .toggle label {
@@ -14,4 +16,5 @@
 	background-color: #eee;
 	padding: 4px 10px;
 	font-weight: 700;
+	height: 100%;
 }

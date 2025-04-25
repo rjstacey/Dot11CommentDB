@@ -137,22 +137,24 @@ function CreateEventForm({ methods }: DropdownRendererProps) {
 	);
 }
 
-function CreateEventDropdown() {
+function CreateEvent() {
 	return (
-		<Dropdown
-			handle={false}
-			selectRenderer={({ state, methods }: DropdownRendererProps) => (
-				<Button
-					title="Export a list of voters"
-					isActive={state.isOpen}
-					onClick={state.isOpen ? methods.close : methods.open}
-				>
-					+ Event
-				</Button>
-			)}
-			dropdownRenderer={(props) => <CreateEventForm {...props} />}
-		/>
+		<div>
+			<Dropdown
+				handle={false}
+				selectRenderer={({ state, methods }: DropdownRendererProps) => (
+					<Button
+						title="Export a list of voters"
+						isActive={state.isOpen}
+						onClick={state.isOpen ? methods.close : methods.open}
+					>
+						+ Event
+					</Button>
+				)}
+				dropdownRenderer={(props) => <CreateEventForm {...props} />}
+			/>
+		</div>
 	);
 }
 
-export default CreateEventDropdown;
+export default CreateEvent;
