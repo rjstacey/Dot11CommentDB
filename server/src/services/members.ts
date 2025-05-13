@@ -1357,9 +1357,16 @@ export async function membersExport(
 	} else if (query.format === "public") {
 		memberMapper = memberToPublicEntry;
 		filename = "members-public.csv";
+	} else if (query.format === "publication") {
+		memberMapper = memberToPublicEntry;
+		filename = `${group.name}-voting-members-public.csv`;
 	} else {
 		memberMapper = memberToVotingMemberEntry;
 		filename = `${group.name}-voting-members.csv`;
+	}
+
+	if (query.date) {
+		filename = filename.replace(".csv", `-${query.date}.csv`);
 	}
 
 	const ssData = members.map(memberMapper);
