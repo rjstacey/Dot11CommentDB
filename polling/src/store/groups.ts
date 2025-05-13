@@ -211,12 +211,14 @@ export const selectSubgroups = createSelector(
 	selectSubgroupIds,
 	selectGroupEntities,
 	(ids, entities) =>
-		ids.map((id, i) => {
-			let g = entities[id]!;
-			// The first entry is the top level group. Change name to "R", "C", or "WG"
-			if (i === 0) g = { ...g, name: g.type!.toLocaleUpperCase() };
-			return g;
-		})
+		ids
+			.map((id, i) => {
+				let g = entities[id]!;
+				// The first entry is the top level group. Change name to "R", "C", or "WG"
+				if (i === 0) g = { ...g, name: g.type!.toLocaleUpperCase() };
+				return g;
+			})
+			.filter((g) => g.status)
 );
 
 /** Select subgroup by name. */

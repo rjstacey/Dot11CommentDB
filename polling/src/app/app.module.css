@@ -66,16 +66,6 @@
 	padding-right: 5px;
 }
 
-.group-select-dropdown {
-	font-size: 16px;
-	border-radius: 5px;
-	max-height: 300px;
-	overflow: auto;
-	border: 1px solid #008080;
-	width: 160px;
-	padding: 2px;
-}
-
 .title {
 	display: inline-block;
 	margin: 0;

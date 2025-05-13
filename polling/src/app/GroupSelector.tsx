@@ -34,6 +34,8 @@ export function GroupSelector(
 		navigate(pathName);
 	}
 
+	const placeholder = group ? "" : "Select group...";
+
 	return (
 		<Select
 			className={css["group-select"]}
@@ -44,7 +46,7 @@ export function GroupSelector(
 			valueField="id"
 			labelField="name"
 			searchable={false}
-			placeholder=""
+			placeholder={placeholder}
 			dropdownWidth={150}
 			{...props}
 		/>
