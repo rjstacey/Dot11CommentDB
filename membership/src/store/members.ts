@@ -19,9 +19,12 @@ import {
 	Member,
 	MemberCreate,
 	MemberUpdate,
-	statusValues,
+	memberStatusValues,
+	activeMemberStatusValues,
 	membersSchema,
 	memberSchema,
+	MemberStatus,
+	MembersExportQuery,
 } from "@schemas/members";
 
 import type { RootState, AppThunk } from ".";
@@ -40,6 +43,8 @@ export type {
 	MemberUpdate,
 	StatusType,
 	StatusExtendedType,
+	MemberStatus,
+	MembersExportQuery,
 };
 
 export type ExpectedStatusType = StatusType | "";
@@ -54,7 +59,8 @@ export function isActiveMember(member: Member) {
 	);
 }
 
-export const statusOptions = statusValues.map((v) => ({
+export { memberStatusValues, activeMemberStatusValues };
+export const statusOptions = memberStatusValues.map((v) => ({
 	value: v,
 	label: v,
 }));
@@ -510,8 +516,8 @@ export const exportMembersPrivate =
 		}
 	};
 
-export const exportVotingMembers =
-	(plenary?: boolean, dvl?: boolean): AppThunk =>
+export const exportMembers =
+	(query?: MembersExportQuery): AppThunk =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
@@ -520,10 +526,15 @@ export const exportVotingMembers =
 			);
 			return;
 		}
-		let url = `/api/${groupName}/members/voters`;
+		let url = `/api/${groupName}/members/export`;
 		const search = new URLSearchParams();
-		if (plenary) search.append("plenary", "true");
-		if (dvl) search.append("dvl", "true");
+		if (query?.status) {
+			if (Array.isArray(query.status))
+				query.status.forEach((s) => search.append("status[]", s));
+			else search.append("status", query.status);
+		}
+		if (query?.format) search.append("format", query.format);
+		if (query?.date) search.append("date", query.date);
 		if (search.size > 0) url += "?" + search.toString();
 		try {
 			await fetcher.getFile(url);

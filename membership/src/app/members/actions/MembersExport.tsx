@@ -3,57 +3,139 @@ import {
 	Button,
 	Form,
 	Row,
+	List,
+	ListItem,
 	Dropdown,
 	DropdownRendererProps,
 	Checkbox,
+	ActionIcon,
 } from "dot11-components";
 
 import { useAppDispatch } from "@/store/hooks";
-import { exportMembersPublic, exportVotingMembers } from "@/store/members";
+import {
+	exportMembers,
+	activeMemberStatusValues,
+	MembersExportQuery,
+	MemberStatus,
+} from "@/store/members";
 
-function VotingMembersExportForm({ methods }: DropdownRendererProps) {
+function MembersExportForm({ methods }: DropdownRendererProps) {
 	const dispatch = useAppDispatch();
-	const [forPlenary, setForPlenary] = React.useState(false);
-	const [forDVL, setForDVL] = React.useState(true);
+	const [statuses, setStatuses] = React.useState<MemberStatus[]>([
+		...activeMemberStatusValues,
+	]);
+	const [format, setFormat] =
+		React.useState<MembersExportQuery["format"]>("public");
+	const [date, setDate] = React.useState<string | undefined>(undefined);
+
+	function changeFormat(format: MembersExportQuery["format"]) {
+		let s: MemberStatus[];
+		if (format === "public") s = [...activeMemberStatusValues];
+		else s = ["Voter", "ExOfficio"];
+		setStatuses(s);
+		setFormat(format);
+	}
+
+	function toggleStatus(status: MemberStatus) {
+		const i = statuses.indexOf(status);
+		if (i >= 0) statuses.splice(i, 1);
+		else statuses.push(status);
+		setStatuses([...statuses]);
+	}
 
 	return (
 		<Form
 			style={{ width: 300 }}
-			submit={() => dispatch(exportVotingMembers(forPlenary, forDVL))}
+			submit={() =>
+				dispatch(exportMembers({ format, status: statuses, date }))
+			}
 			cancel={methods.close}
+			title="Export a list of members"
 		>
 			<Row>
-				{
-					'Export a list of voters (members with "Voter" or "ExOfficio" status).'
-				}
+				<List label="Purpose:">
+					<ListItem>
+						<input
+							type="radio"
+							id="publicList"
+							name="format"
+							value="public"
+							checked={format === "public"}
+							onChange={() => changeFormat("public")}
+						/>
+						<label htmlFor="publicList">Public list</label>
+					</ListItem>
+					<ListItem>
+						<input
+							type="radio"
+							id="dvl"
+							name="format"
+							value="registration"
+							checked={format === "registration"}
+							onChange={() => changeFormat("registration")}
+						/>
+						<label htmlFor="dvl">Session registration</label>
+					</ListItem>
+					<ListItem>
+						<input
+							type="radio"
+							id="dvl"
+							name="format"
+							value="dvl"
+							checked={format === "dvl"}
+							onChange={() => changeFormat("dvl")}
+						/>
+						<label htmlFor="dvl">DirectVoteLive</label>
+					</ListItem>
+					<ListItem>
+						<input
+							type="radio"
+							id="publication"
+							name="format"
+							value="publication"
+							checked={format === "publication"}
+							onChange={() => changeFormat("publication")}
+						/>
+						<label htmlFor="publication">Publication</label>
+					</ListItem>
+				</List>
 			</Row>
 			<Row>
-				<label htmlFor="forPlenary">
-					<span>{'Include "Potential Voters":'}</span>
-					<br />
-					<span>{"(Can vote at a plenary session)"}</span>
-				</label>
-				<Checkbox
-					id="forPlenary"
-					checked={forPlenary}
-					onChange={(e) => setForPlenary(e.target.checked)}
-				/>
+				<List label="Include members with status:">
+					{activeMemberStatusValues.map((s) => (
+						<ListItem key={s}>
+							<Checkbox
+								id={s}
+								checked={statuses.includes(s)}
+								onChange={() => toggleStatus(s)}
+							/>
+							<label htmlFor={s}>{s}</label>
+						</ListItem>
+					))}
+				</List>
 			</Row>
 			<Row>
-				<label htmlFor="forDVL">
-					<span>For DirectVoteLive:</span>
+				<label htmlFor="date">
+					<span>Snapshot date:</span>
 				</label>
-				<Checkbox
-					id="forDVL"
-					checked={forDVL}
-					onChange={(e) => setForDVL(e.target.checked)}
-				/>
+				<div>
+					<input
+						id="date"
+						type="date"
+						value={date || ""}
+						onChange={(e) => setDate(e.target.value)}
+					/>
+					<ActionIcon
+						name="bi-x"
+						onClick={() => setDate(undefined)}
+					/>
+				</div>
 			</Row>
 		</Form>
 	);
 }
 
-function VotingMembersExportDropdown() {
+export function MembersExport() {
 	return (
 		<Dropdown
 			handle={false}
@@ -66,39 +148,15 @@ function VotingMembersExportDropdown() {
 						fontSize: 10,
 						fontWeight: 700,
 					}}
-					title="Export a list of voters"
+					title="Export a list of members"
 					isActive={state.isOpen}
 					onClick={state.isOpen ? methods.close : methods.open}
 				>
-					<span>Voters</span>
-					<span>List</span>
+					<span>Export</span>
+					<span>Members List</span>
 				</Button>
 			)}
-			dropdownRenderer={(props) => <VotingMembersExportForm {...props} />}
+			dropdownRenderer={(props) => <MembersExportForm {...props} />}
 		/>
-	);
-}
-
-export function MembersExport() {
-	const dispatch = useAppDispatch();
-
-	return (
-		<>
-			<Button
-				style={{
-					display: "flex",
-					flexDirection: "column",
-					alignItems: "center",
-					fontSize: 10,
-					fontWeight: 700,
-				}}
-				title="Export public member list"
-				onClick={() => dispatch(exportMembersPublic())}
-			>
-				<span>Members</span>
-				<span>List</span>
-			</Button>
-			<VotingMembersExportDropdown />
-		</>
 	);
 }

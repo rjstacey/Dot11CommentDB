@@ -14,7 +14,6 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { User } from "./users.js";
 import type { Member } from "@schemas/members.js";
 import { getMembers, getMembersSnapshot } from "./members.js";
-import { AccessLevel } from "../auth/access.js";
 import { genAttendanceSpreadsheet } from "./attendancesSpreadsheet.js";
 import type {
 	SessionAttendanceSummary,
@@ -92,11 +91,11 @@ function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
 						? "BIN_TO_UUID(a.??) IN (?)"
 						: "a.??=UUID_TO_BIN(?)",
 					[key, value]
-				)
+			  )
 			: db.format(Array.isArray(value) ? "a.?? IN (?)" : "a.??=?", [
 					key,
 					value,
-				])
+			  ])
 	);
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 
@@ -110,8 +109,9 @@ export async function getAttendances(
 	query?: SessionAttendanceSummaryQuery
 ): Promise<SessionAttendanceSummary[]> {
 	const sql = getAttendancesSql(query);
-	const attendances =
-		await db.query<(RowDataPacket & SessionAttendanceSummary)[]>(sql);
+	const attendances = await db.query<
+		(RowDataPacket & SessionAttendanceSummary)[]
+	>(sql);
 	return attendances;
 }
 
@@ -290,11 +290,7 @@ export async function exportAttendancesForMinutes(
 	const memberEntities: Record<number, Member> = {};
 	let members = await getMembers({ groupId: group.id });
 	members.forEach((m) => (memberEntities[m.SAPIN] = m));
-	members = await getMembersSnapshot(
-		AccessLevel.admin,
-		group.id,
-		session.startDate
-	);
+	members = await getMembersSnapshot(group.id, session.startDate);
 	members.forEach((m) => (memberEntities[m.SAPIN] = m));
 	const memberAttendances: MemberAttendance[] = attendances.map((a) => {
 		const m = memberEntities[a.CurrentSAPIN];

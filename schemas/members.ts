@@ -1,20 +1,25 @@
-import { z } from "zod";
+import { date, z } from "zod";
 import { datetimeSchema } from "./common.js";
 
-export const statusValues = [
-	"Non-Voter",
+export const activeMemberStatusValues = [
 	"Observer",
 	"Aspirant",
 	"Potential Voter",
 	"Voter",
 	"ExOfficio",
+] as const;
+export const memberStatusValues = [
+	"Non-Voter",
+	...activeMemberStatusValues,
 	"Obsolete",
 ] as const;
-const statusSchema = z.enum(statusValues);
+
+const memberStatusSchema = z.enum(memberStatusValues);
+export type MemberStatus = z.infer<typeof memberStatusSchema>;
 
 // Historically we allowed additional values
 const statusExtendedSchema = z.enum([
-	...statusSchema.options,
+	...memberStatusSchema.options,
 	"Nearly Voter",
 	"",
 ]);
@@ -62,7 +67,7 @@ const groupMemberSchema = z.object({
 	SAPIN: z.number(),
 	groupId: z.string().uuid(),
 	Affiliation: z.string(),
-	Status: statusSchema, // Group member status
+	Status: memberStatusSchema, // Group member status
 	ObsoleteSAPINs: z.array(z.number()), // Array of SAPINs previously used by member
 	ReplacedBySAPIN: z.number().nullable(), // SAPIN that replaces this one
 	StatusChangeDate: z.nullable(datetimeSchema), // Date of last status change
@@ -136,11 +141,24 @@ export type UpdateRosterOptions = {
 	removeUnchanged?: boolean;
 };
 
+export const membersExportFormatValues = [
+	"dvl",
+	"public",
+	"registration",
+	"publication",
+] as const;
+export const membersExportQuerySchema = z.object({
+	status: memberStatusSchema.array().optional(),
+	format: z.enum(membersExportFormatValues).optional(),
+	date: z.string().optional(),
+});
+export type MembersExportQuery = z.infer<typeof membersExportQuerySchema>;
+
 /* Member info available to all */
 export const userMemberSchema = z.object({
 	SAPIN: z.number(),
 	Name: z.string(),
-	Status: statusSchema,
+	Status: memberStatusSchema,
 	Email: z.string().optional(), // Only available to users with admin rights
 });
 export const userMembersSchema = userMemberSchema.array();
@@ -148,7 +166,7 @@ export const userMembersSchema = userMemberSchema.array();
 export type StatusChangeEntry = z.infer<typeof statusChangeEntrySchema>;
 export type ContactEmail = z.infer<typeof contactEmailSchema>;
 export type ContactInfo = z.infer<typeof contactInfoSchema>;
-export type StatusType = z.infer<typeof statusSchema>;
+export type StatusType = z.infer<typeof memberStatusSchema>;
 export type StatusExtendedType = z.infer<typeof statusExtendedSchema>;
 export type UserType = z.infer<typeof userSchema>;
 export type GroupMember = z.infer<typeof groupMemberSchema>;

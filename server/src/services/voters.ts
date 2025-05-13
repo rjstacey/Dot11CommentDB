@@ -8,7 +8,6 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import db from "../utils/database.js";
 
 import { getMembersSnapshot } from "./members.js";
-import { AccessLevel } from "../auth/access.js";
 import type { User } from "./users.js";
 import type {
 	Voter,
@@ -258,11 +257,7 @@ export async function votersFromMembersSnapshot(
 	ballot_id: number,
 	date: string
 ) {
-	const members = await getMembersSnapshot(
-		AccessLevel.admin,
-		workingGroupId,
-		date
-	);
+	const members = await getMembersSnapshot(workingGroupId, date);
 	const voters = members.filter(
 		(m) => m.Status === "Voter" || m.Status === "ExOfficio"
 	);

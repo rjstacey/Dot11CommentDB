@@ -12,6 +12,7 @@ import {
 	memberUpdatesSchema,
 	memberIdsSchema,
 	UpdateRosterOptions,
+	membersExportQuerySchema,
 } from "@schemas/members.js";
 import {
 	getMembers,
@@ -33,6 +34,7 @@ import {
 	exportMembersPublic,
 	exportMembersPrivate,
 	exportVotingMembers,
+	membersExport,
 } from "../services/members.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
@@ -234,18 +236,6 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
 	}
 }
 
-async function getSnapshot(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	const access = group.permissions.members || AccessLevel.none;
-	try {
-		const { date } = req.body;
-		const data = await getMembersSnapshot(access, group.id, date);
-		res.json(data);
-	} catch (err) {
-		next(err);
-	}
-}
-
 async function postUpload(req: Request, res: Response, next: NextFunction) {
 	const { file } = req;
 	const group = req.group!;
@@ -347,9 +337,38 @@ async function getVoters(req: Request, res: Response, next: NextFunction) {
 	const access = group.permissions.members || AccessLevel.none;
 	const forPlenary = Boolean(req.query.plenary);
 	const forDVL = Boolean(req.query.dvl);
+	const date = req.query.date as string | undefined;
 	try {
 		if (access < AccessLevel.admin) throw new ForbiddenError();
-		await exportVotingMembers(group, forPlenary, forDVL, res);
+		await exportVotingMembers(group, forPlenary, forDVL, date, res);
+		res.end();
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function getSnapshot(req: Request, res: Response, next: NextFunction) {
+	const group = req.group!;
+	try {
+		const { date } = req.body;
+		const data = await getMembersSnapshot(group.id, date);
+		res.json(data);
+	} catch (err) {
+		next(err);
+	}
+}
+
+async function getExportMembers(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	const group = req.group!;
+	const access = group.permissions.members || AccessLevel.none;
+	try {
+		if (access < AccessLevel.admin) throw new ForbiddenError();
+		const query = membersExportQuerySchema.parse(req.query);
+		await membersExport(group, query, res);
 		res.end();
 	} catch (error) {
 		next(error);
@@ -362,14 +381,15 @@ const upload = Multer();
 router
 	.all("*", validatePermissions)
 	.get("/user", getUser)
-	.get("/snapshot", getSnapshot)
 	.post("/upload/:format", upload.single("File"), postUpload)
 	.post("/MyProjectRoster", upload.single("File"), postMyProjectRoster)
 	.patch("/MyProjectRoster", upload.single("file"), patchMyProjectRoster)
 	.get("/MyProjectRoster", getMyProjectRoster)
 	.get("/public", getPublic)
 	.get("/private", getPrivate)
-	.get("/voters", getVoters);
+	.get("/voters", getVoters)
+	.get("/snapshot", getSnapshot)
+	.get("/export", getExportMembers);
 
 router.route("/").get(get).post(addMany).patch(updateMany).delete(removeMany);
 

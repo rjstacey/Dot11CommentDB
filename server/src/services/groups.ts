@@ -14,17 +14,6 @@ import {
 	GroupUpdate,
 } from "@schemas/groups.js";
 
-/*const GroupTypeLabels: { [K in GroupType]: string } = {
-	r: "Root",
-	c: "Committee",
-	wg: "Working Group",
-	tg: "Task Group",
-	sg: "Study Group",
-	sc: "Standing Committee",
-	ah: "Ad-hoc Group",
-	tig: "Topic of Interest Group",
-};*/
-
 // prettier-ignore
 const selectGroupsSql =
 	'SELECT ' + 

@@ -33,7 +33,8 @@ import {
 	UpdateRosterOptions,
 	StatusType,
 	UserMember,
-	statusValues,
+	memberStatusValues,
+	MembersExportQuery,
 } from "@schemas/members.js";
 import { Group } from "@schemas/groups.js";
 import { getRecentAttendances } from "./attendances.js";
@@ -229,18 +230,14 @@ export function getUserMembers(
 
 // eslint-disable-next-line
 function isValidStatus(status: any): status is StatusType {
-	return statusValues.includes(status);
+	return memberStatusValues.includes(status);
 }
 
 /*
  * Get a snapshot of the members and their status at a specific date
  * by walking through the status change history.
  */
-export async function getMembersSnapshot(
-	access: number,
-	groupId: string,
-	date: string
-) {
+export async function getMembersSnapshot(groupId: string, date: string) {
 	let members = await getMembers({
 		groupId,
 		Status: [
@@ -1065,6 +1062,15 @@ export async function updateMyProjectRosterWithMemberStatus(
 	return updateMyProjectRoster(user, members, file.buffer, options, res);
 }
 
+function memberToPublicEntry(m: Member) {
+	return {
+		"Family Name": m.LastName,
+		"Given Name": m.FirstName,
+		MI: m.MI,
+		Affiliation: m.Affiliation,
+		Status: m.Status,
+	};
+}
 export async function exportMembersPublic(groupId: string, res: Response) {
 	const members = await getMembers({
 		groupId,
@@ -1077,13 +1083,7 @@ export async function exportMembersPublic(groupId: string, res: Response) {
 		],
 	});
 
-	const ssData = members.map((m) => ({
-		"Family Name": m.LastName,
-		"Given Name": m.FirstName,
-		MI: m.MI,
-		Affiliation: m.Affiliation,
-		Status: m.Status,
-	}));
+	const ssData = members.map(memberToPublicEntry);
 
 	const csv = await csvStringify(ssData, { header: true });
 	res.attachment("members-public.csv");
@@ -1277,27 +1277,86 @@ type MemberMapper = (
 	m: Member
 ) =>
 	| ReturnType<typeof memberToVotingMemberEntry>
-	| ReturnType<typeof memberToDVLVotingMemberEntry>;
+	| ReturnType<typeof memberToDVLVotingMemberEntry>
+	| ReturnType<typeof memberToPublicEntry>;
 
 export async function exportVotingMembers(
 	group: Group,
 	forPlenarySession: boolean,
 	forDVL: boolean,
+	date: string | undefined,
 	res: Response
 ) {
 	const Status = forPlenarySession
 		? ["Voter", "ExOfficio", "Potential Voter"]
 		: ["Voter", "ExOfficio"];
-	const members = await getMembers({
-		groupId: group.id,
-		Status,
-	});
+	let members: Member[];
+
+	if (date) {
+		members = await getMembersSnapshot(group.id, date);
+		members = members.filter((m) => Status.includes(m.Status));
+	} else {
+		members = await getMembers({
+			groupId: group.id,
+			Status,
+		});
+	}
 
 	let memberMapper: MemberMapper;
 	let filename: string;
 	if (forDVL) {
 		memberMapper = memberToDVLVotingMemberEntry;
 		filename = `${group.name}-voting-members-dvl.csv`;
+	} else {
+		memberMapper = memberToVotingMemberEntry;
+		filename = `${group.name}-voting-members.csv`;
+	}
+
+	const ssData = members.map(memberMapper);
+	const csv = await csvStringify(ssData, { header: true });
+
+	res.attachment(filename);
+	res.status(200).send(csv);
+}
+
+export async function membersExport(
+	group: Group,
+	query: MembersExportQuery,
+	res: Response
+) {
+	let members: Member[];
+	let Status: string[];
+	if (query.format === "public") {
+		Status = [
+			"Observer",
+			"Aspirant",
+			"Potential Voter",
+			"Voter",
+			"ExOfficio",
+		];
+	} else {
+		Status = ["Voter", "ExOfficio"];
+	}
+	if (query.status) Status = query.status;
+
+	if (query.date) {
+		members = await getMembersSnapshot(group.id, query.date);
+		members = members.filter((m) => Status.includes(m.Status));
+	} else {
+		members = await getMembers({
+			groupId: group.id,
+			Status,
+		});
+	}
+
+	let memberMapper: MemberMapper;
+	let filename: string;
+	if (query.format === "dvl") {
+		memberMapper = memberToDVLVotingMemberEntry;
+		filename = `${group.name}-voting-members-dvl.csv`;
+	} else if (query.format === "public") {
+		memberMapper = memberToPublicEntry;
+		filename = "members-public.csv";
 	} else {
 		memberMapper = memberToVotingMemberEntry;
 		filename = `${group.name}-voting-members.csv`;
