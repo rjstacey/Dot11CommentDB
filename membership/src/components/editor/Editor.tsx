@@ -6,7 +6,7 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
-import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
@@ -20,7 +20,7 @@ import ToolbarPlugin from "./ToolbarPlugin";
 import AutoLinkPlugin from "./AutoLinkPlugin";
 import LinkEditorPlugin from "./LinkEditorPlugin";
 import InportExportPlugin from "./ImportExportPlugin";
-import { emailStylesObj, replaceClassWithInlineStyle } from "./utils";
+import { emailStylesObj, htmlWithInlineStyle } from "./utils";
 
 import css from "./editor.module.css";
 
@@ -29,14 +29,9 @@ const theme = {
 	rtl: "rtl",
 	paragraph: "paragraph",
 	quote: "quote",
-	heading: {
-		h1: "h1",
-		h2: "h2",
-	},
+	heading: { h1: "h1", h2: "h2" },
 	list: {
-		nested: {
-			listitem: "nested-listitem",
-		},
+		nested: { listitem: "nested-listitem" },
 		ol: "ol",
 		ul: "ul",
 		listitem: "list-item",
@@ -111,8 +106,7 @@ function Editor({
 	}, []);
 
 	if (readOnly) {
-		body = replaceClassWithInlineStyle(body);
-		//console.log(body);
+		body = htmlWithInlineStyle(body);
 	}
 
 	return (

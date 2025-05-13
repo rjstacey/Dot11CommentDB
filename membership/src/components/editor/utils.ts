@@ -34,11 +34,12 @@ function recurseHtmlElements(n: Node) {
 	n.childNodes.forEach(recurseHtmlElements);
 }
 
-export function replaceClassWithInlineStyle(body: string) {
+/** Wrap as HTML document and replace classes with inline style */
+export function htmlWithInlineStyle(body: string) {
 	const parser = new DOMParser();
 	const dom = parser.parseFromString(body, "text/html");
 	dom.childNodes.forEach(recurseHtmlElements);
-	return dom.documentElement.innerHTML;
+	return dom.documentElement.outerHTML;
 }
 
 const SUPPORTED_URL_PROTOCOLS = new Set([

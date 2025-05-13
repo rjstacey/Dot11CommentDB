@@ -16,8 +16,8 @@
 		"eslint": "eslint"
 	},
 	"dependencies": {
-		"@aws-sdk/client-ses": "^3.723.0",
-		"@aws-sdk/credential-providers": "^3.723.0",
+		"@aws-sdk/client-ses": "^3.804.0",
+		"@aws-sdk/credential-providers": "^3.804.0",
 		"axios": "^1.7.9",
 		"cheerio": "^1.0.0",
 		"csv-parse": "^5.5.5",
@@ -34,7 +34,7 @@
 		"lodash.isequal": "^4.5.0",
 		"lodash.throttle": "^4.1.1",
 		"lodash.uniq": "^4.5.0",
-		"luxon": "^3.5.0",
+		"luxon": "^3.6.1",
 		"multer": "^1.4.5-lts.1",
 		"mysql2": "^3.12.0",
 		"prop-types": "^15.8.1",
@@ -43,7 +43,7 @@
 		"tzdata": "^1.0.42",
 		"uuid": "^8.3.2",
 		"webex": "^1.161.0",
-		"zod": "^3.23.8"
+		"zod": "^3.24.4"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.18.0",

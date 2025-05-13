@@ -7,7 +7,6 @@ import {
 	SendEmailCommandOutput,
 } from "@aws-sdk/client-ses";
 
-import type { User } from "./users.js";
 import type { Email } from "@schemas/email.js";
 
 const region = "us-west-2";
@@ -30,25 +29,24 @@ function sleep(ms: number) {
  * @param user The user executing the command
  * @param email The email to be sent
  */
-export async function sendEmail(user: User, email: Email) {
+export async function sendEmail(email: Email) {
 	if (!sesClient) throw new Error("eMail service has not been initialized");
 
 	const params: SendEmailCommandInput = {
 		...email,
 		Source: "noreply@802tools.org",
 	};
-	let data: SendEmailCommandOutput;
+	let output: SendEmailCommandOutput;
 	let maxRetries = 10;
 	let delay = 10; // milliseconds
 	while (true) {
 		try {
-			data = await sesClient.send(new SendEmailCommand(params));
+			output = await sesClient.send(new SendEmailCommand(params));
 			break;
 		} catch (error: unknown) {
 			if (
 				error instanceof SESServiceException &&
-				error.name === "Throttling" &&
-				error.message === "Maximum sending rate exceeded." &&
+				error.name === "ThrottlingException" &&
 				maxRetries-- > 0
 			) {
 				await sleep(delay);
@@ -58,7 +56,7 @@ export async function sendEmail(user: User, email: Email) {
 			}
 		}
 	}
-	return data;
+	return output;
 }
 
 /**
@@ -66,11 +64,14 @@ export async function sendEmail(user: User, email: Email) {
  * @param user The user executing the command
  * @param emails An array of emails to be sent
  */
-export async function sendEmails(user: User, emails: Email[]) {
+export async function sendEmails(emails: Email[]) {
 	if (!sesClient) throw new Error("eMail service has not been initialized");
 
+	const output: SendEmailCommandOutput[] = [];
 	while (emails.length > 0) {
 		const toSend = emails.splice(0, 10);
-		await Promise.all(toSend.map((email) => sendEmail(user, email)));
+		const o = await Promise.all(toSend.map(sendEmail));
+		output.concat(o);
 	}
+	return output;
 }

@@ -1,7 +1,6 @@
 import React from "react";
 import { useParams } from "react-router";
-import { Html } from "@react-email/html";
-import { render } from "@react-email/render";
+import { convert } from "html-to-text";
 import {
 	Select,
 	Row,
@@ -17,7 +16,7 @@ import {
 } from "dot11-components";
 
 import Editor from "@/components/editor/Editor";
-import { replaceClassWithInlineStyle } from "@/components/editor/utils";
+import { htmlWithInlineStyle } from "@/components/editor/utils";
 
 import { useRenderSessionAttendances } from "../sessionParticipation/renderSessionAttendances";
 import { useRenderBallotParticipation } from "../ballotParticipation/renderBallotParticipation";
@@ -41,14 +40,16 @@ import RecipientsEditor from "./RecipientsEditor";
 import SubjectEditor from "./SubjectEditor";
 import css from "./notification.module.css";
 
-const SELECTED_MEMBER = "SelectedMember";
-const SELECTED_MEMBER_KEY = `{{${SELECTED_MEMBER}}}`;
+const SELECTED_MEMBERS = "SelectedMembers";
+const SELECTED_MEMBERS_KEY = `{{${SELECTED_MEMBERS}}}`;
 
 const genEmailAddress = (m: Member | User) => `${m.Name} <${m.Email}>`;
 
 function substituteInAddressField(key: string, member: Member) {
-	if (key !== SELECTED_MEMBER)
-		throw new Error(`To field has invalid key {{${key}}}`);
+	if (key !== SELECTED_MEMBERS) {
+		console.log(`Error: To field has invalid key {{${key}}}`);
+		return "";
+	}
 	return genEmailAddress(member);
 }
 
@@ -78,7 +79,9 @@ function substitute(
 	if (key === "BallotParticipation")
 		return renderBallotParticipation(member.SAPIN);
 
-	throw new Error(`Invalid key {{${key}}}`);
+	console.log(`Error: Invalid key {{${key}}}`);
+	//throw new Error(`Invalid key {{${key}}}`);
+	return "";
 }
 
 const keyPattern = "[a-zA-Z_.]+";
@@ -97,7 +100,7 @@ function doSubstitution(
 	let keys: string[];
 
 	let to: string;
-	if (email.to === null) to = SELECTED_MEMBER_KEY;
+	if (email.to === null) to = SELECTED_MEMBERS_KEY;
 	else to = email.to;
 
 	keys = findKeys(to);
@@ -142,9 +145,8 @@ function doSubstitution(
 		);
 	}
 
-	body = replaceClassWithInlineStyle(body);
+	body = htmlWithInlineStyle(body);
 	email = { ...email, body };
-
 	return email;
 }
 
@@ -173,7 +175,8 @@ function genEmails({
 				renderBallotParticipation
 			);
 
-			const html = await render(<FormatBody body={email.body} />);
+			const html = email.body;
+			const text = convert(html);
 
 			const ToAddresses = email.to ? email.to.split(";") : [member.Email];
 			const CcAddresses = email.cc ? email.cc.split(";") : undefined;
@@ -181,25 +184,12 @@ function genEmails({
 
 			const Charset = "UTF-8";
 			const emailOut: Email = {
-				Destination: {
-					ToAddresses,
-					CcAddresses,
-					BccAddresses,
-				},
+				Destination: { ToAddresses, CcAddresses, BccAddresses },
 				Message: {
-					Subject: {
-						Charset,
-						Data: email.subject,
-					},
+					Subject: { Charset, Data: email.subject },
 					Body: {
-						Html: {
-							Charset,
-							Data: html,
-						},
-						Text: {
-							Charset,
-							Data: email.body,
-						},
+						Html: { Charset, Data: html },
+						Text: { Charset, Data: text },
 					},
 				},
 				ReplyToAddresses: [genEmailAddress(user)],
@@ -207,12 +197,6 @@ function genEmails({
 
 			return emailOut;
 		})
-	);
-}
-
-function FormatBody({ body }: { body: string }) {
-	return (
-		<Html lang="en" dir="ltr" dangerouslySetInnerHTML={{ __html: body }} />
 	);
 }
 
@@ -233,7 +217,7 @@ function SelectEmailTemplate({
 	async function createEmailTemplate({ state }: SelectRendererProps) {
 		const template: EmailTemplateCreate = {
 			name: state.search,
-			to: "{{SelectedMembers}}",
+			to: SELECTED_MEMBERS_KEY,
 			cc: null,
 			bcc: null,
 			subject: "",
@@ -305,7 +289,7 @@ function NotificationEmail() {
 	function setTemplate(emailTemplate: EmailTemplate | null) {
 		debouncedSave.flush();
 		if (emailTemplate && !emailTemplate.to) {
-			emailTemplate = { ...emailTemplate, to: SELECTED_MEMBER_KEY };
+			emailTemplate = { ...emailTemplate, to: SELECTED_MEMBERS_KEY };
 		}
 		setEdited(emailTemplate);
 		setSaved(emailTemplate);

@@ -31,10 +31,10 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 }
 
 async function sendOne(req: Request, res: Response, next: NextFunction) {
-	const { user, body } = req;
+	const { body } = req;
 	try {
 		const email = emailSchema.parse(body);
-		const response = sendEmail(user, email);
+		const response = await sendEmail(email);
 		res.json(response);
 	} catch (error) {
 		next(error);
@@ -42,10 +42,10 @@ async function sendOne(req: Request, res: Response, next: NextFunction) {
 }
 
 async function sendMany(req: Request, res: Response, next: NextFunction) {
-	const { user, body } = req;
+	const { body } = req;
 	try {
 		const emails = emailsSchema.parse(body);
-		const response = sendEmails(user, emails);
+		const response = await sendEmails(emails);
 		res.json(response);
 	} catch (error) {
 		next(error);
