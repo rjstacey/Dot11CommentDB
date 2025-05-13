@@ -11,7 +11,7 @@ export const groupTypesOrdered = [
 	"sg", // Study group
 	"sc", // Standing committee
 	"ah", // Ad-hoc group
-	"tig", // Topic interest group
+	"ti", // Topic interest group
 ] as const;
 
 export const groupTypeSchema = z.enum(groupTypesOrdered);

@@ -41,7 +41,7 @@ export const GroupTypeLabels: Record<GroupType, string> = {
 	tg: "Task Group",
 	sc: "Standing Committee",
 	ah: "Ad-hoc Group",
-	tig: "Topic Interest Group",
+	ti: "Topic Interest Group",
 } as const;
 
 export function getSubgroupTypes(parentType: GroupType): GroupType[] {
@@ -52,7 +52,7 @@ export function getSubgroupTypes(parentType: GroupType): GroupType[] {
 		return ["wg", "sc", "ah"];
 	}
 	if (parentType === "wg") {
-		return ["sg", "tg", "sc", "ah", "tig"];
+		return ["sg", "tg", "sc", "ah", "ti"];
 	}
 	if (parentType === "tg") {
 		return ["ah"];
@@ -62,7 +62,7 @@ export function getSubgroupTypes(parentType: GroupType): GroupType[] {
 
 export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(
 	([value, label]) =>
-		({ value, label }) as { value: GroupType; label: string }
+		({ value, label } as { value: GroupType; label: string })
 );
 const groupTypes = Object.keys(GroupTypeLabels);
 
