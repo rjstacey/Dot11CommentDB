@@ -1,6 +1,8 @@
+import { lazy } from "react";
 import { RouteObject } from "react-router";
-import { SessionParticipation } from "./layout";
 import { sessionParticipationLoader } from "./loader";
+
+const SessionParticipation = lazy(() => import("./layout"));
 
 export const sessionParticipationRoute: RouteObject = {
 	element: <SessionParticipation />,

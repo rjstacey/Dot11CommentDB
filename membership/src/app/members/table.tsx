@@ -75,3 +75,5 @@ export function MembersTable() {
 		</div>
 	);
 }
+
+export default MembersTable;

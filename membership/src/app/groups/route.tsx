@@ -1,6 +1,8 @@
+import { lazy } from "react";
 import { RouteObject } from "react-router";
-import Groups from "./Groups";
 import { groupsLoader } from "./loader";
+
+const Groups = lazy(() => import("./Groups"));
 
 export const groupsRoute: RouteObject = {
 	element: <Groups />,

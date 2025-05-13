@@ -1,8 +1,10 @@
+import { lazy } from "react";
 import { RouteObject } from "react-router";
-import { SessionParticipationReport } from "./layout";
 import { sessionParticipationLoader } from "../../sessionParticipation/loader";
-import { PerSessionChart } from "./PerSessionChart";
-import { CumulativeChart } from "./CumulativeChart";
+
+const SessionParticipationReport = lazy(() => import("./layout"));
+const PerSessionChart = lazy(() => import("./PerSessionChart"));
+const CumulativeChart = lazy(() => import("./CumulativeChart"));
 
 export const route: RouteObject = {
 	path: "sessionParticipation",

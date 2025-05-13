@@ -9,3 +9,5 @@ export function BallotParticipation() {
 		</>
 	);
 }
+
+export default BallotParticipation;

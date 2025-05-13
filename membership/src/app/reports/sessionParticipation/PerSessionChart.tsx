@@ -296,3 +296,5 @@ export function PerSessionChart() {
 		</div>
 	);
 }
+
+export default PerSessionChart;

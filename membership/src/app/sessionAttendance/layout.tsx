@@ -9,3 +9,5 @@ export function SessionAttendance() {
 		</>
 	);
 }
+
+export default SessionAttendance;

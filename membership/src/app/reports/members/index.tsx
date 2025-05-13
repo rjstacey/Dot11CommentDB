@@ -120,3 +120,5 @@ export function MembersChart() {
 		</div>
 	);
 }
+
+export default MembersChart;

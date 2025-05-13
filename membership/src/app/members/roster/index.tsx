@@ -78,3 +78,5 @@ export function RosterTable() {
 		</div>
 	);
 }
+
+export default RosterTable;

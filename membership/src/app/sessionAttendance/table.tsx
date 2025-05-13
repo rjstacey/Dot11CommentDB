@@ -38,3 +38,5 @@ export function SessionAttendanceTable() {
 		</div>
 	);
 }
+
+export default SessionAttendanceTable;

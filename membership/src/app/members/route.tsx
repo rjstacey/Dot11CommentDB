@@ -1,8 +1,10 @@
+import { lazy } from "react";
 import { RouteObject } from "react-router";
-import { Members } from "./layout";
 import { membersLoader } from "./loader";
-import { MembersTable } from "./table";
-import { RosterTable } from "./roster";
+
+const Members = lazy(() => import("./layout"));
+const MembersTable = lazy(() => import("./table"));
+const RosterTable = lazy(() => import("./roster"));
 
 export const membersRoute: RouteObject = {
 	element: <Members />,

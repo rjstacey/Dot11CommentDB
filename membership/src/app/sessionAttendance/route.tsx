@@ -1,12 +1,14 @@
+import { lazy } from "react";
 import { RouteObject } from "react-router";
-import { SessionAttendance } from "./layout";
-import { SessionAttendanceTable } from "./table";
-import { SessionAttendanceChart } from "./chart";
-import { SessionRegistrationTable } from "./registration";
 import {
 	sessionAttendanceLoader,
 	sessionAttendanceChartLoader,
 } from "./loader";
+
+const SessionAttendance = lazy(() => import("./layout"));
+const SessionAttendanceChart = lazy(() => import("./chart"));
+const SessionAttendanceTable = lazy(() => import("./table"));
+const SessionRegistrationTable = lazy(() => import("./registration"));
 
 export const sessionAttendanceRoute: RouteObject = {
 	element: <SessionAttendance />,

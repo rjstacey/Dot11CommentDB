@@ -9,3 +9,5 @@ export function SessionParticipation() {
 		</>
 	);
 }
+
+export default SessionParticipation;

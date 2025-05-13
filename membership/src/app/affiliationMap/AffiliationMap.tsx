@@ -1,5 +1,3 @@
-import { useNavigate } from "react-router";
-
 import {
 	ActionButton,
 	AppTable,
@@ -19,6 +17,8 @@ import {
 	affiliationMapSelectors,
 	affiliationMapActions,
 } from "@/store/affiliationMap";
+import { refresh } from "../members/loader";
+
 import AffiliationMapDetail from "./AffiliationMapDetail";
 
 const tableColumns: ColumnProperties[] = [
@@ -68,9 +68,6 @@ for (const column of tableColumns) {
 defaultTablesConfig["default"] = tableConfig;
 
 function AffiliationMapUnit() {
-	const navigate = useNavigate();
-	const refresh = () => navigate(".", { replace: true });
-
 	return (
 		<>
 			<div className="top-row justify-right">

@@ -26,3 +26,5 @@ export function SessionRegistrationTable() {
 		</div>
 	);
 }
+
+export default SessionRegistrationTable;

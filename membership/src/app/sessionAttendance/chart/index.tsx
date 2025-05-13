@@ -132,3 +132,5 @@ export function SessionAttendanceChart() {
 		</div>
 	);
 }
+
+export default SessionAttendanceChart;

@@ -260,3 +260,5 @@ export function CumulativeChart() {
 		</div>
 	);
 }
+
+export default CumulativeChart;

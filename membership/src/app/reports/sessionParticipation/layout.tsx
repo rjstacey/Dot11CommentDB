@@ -30,3 +30,5 @@ export function SessionParticipationReport() {
 		</div>
 	);
 }
+
+export default SessionParticipationReport;
