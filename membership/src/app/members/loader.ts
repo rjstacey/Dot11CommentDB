@@ -3,6 +3,7 @@ import { LoaderFunction } from "react-router";
 import { store } from "@/store";
 import { AccessLevel } from "@/store/user";
 import { loadGroups, selectTopLevelGroupByName } from "@/store/groups";
+import { loadSessions } from "@/store/sessions";
 import { loadIeeeMembers } from "@/store/ieeeMembers";
 import { loadMembers, selectMembersState } from "@/store/members";
 import { loadOfficers } from "@/store/officers";
@@ -15,6 +16,8 @@ export function refresh() {
 	const { groupName } = selectMembersState(getState());
 	if (!groupName) throw new Error("Route error: groupName not set");
 
+	dispatch(loadGroups(groupName));
+	dispatch(loadSessions(groupName, true));
 	dispatch(loadIeeeMembers(true));
 	dispatch(loadMembers(groupName, true));
 	dispatch(loadOfficers(groupName, true));

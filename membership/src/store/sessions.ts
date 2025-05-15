@@ -25,7 +25,7 @@ export const SessionTypeLabels: Record<SessionType, string> = {
 
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 	([value, label]) =>
-		({ value, label }) as { value: SessionType; label: string }
+		({ value, label } as { value: SessionType; label: string })
 );
 
 export const displaySessionType = (type: SessionType | null) =>
@@ -129,7 +129,9 @@ export const selectRecentSessions = createSelector(
 			today.getMonth(),
 			today.getDate()
 		);
-		return sessions.filter((s) => new Date(s.endDate) < today).slice(0, 8);
+		return sessions
+			.filter((s) => new Date(s.startDate) < today)
+			.slice(0, 8);
 	}
 );
 

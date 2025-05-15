@@ -1,6 +1,7 @@
 import { Checkbox, displayDateRange } from "dot11-components";
 import { useAppSelector } from "@/store/hooks";
 import { selectRecentSessions } from "@/store/sessions";
+import css from "../reports.module.css";
 
 export function SessionsSelector({
 	selected,
@@ -20,14 +21,7 @@ export function SessionsSelector({
 	}
 
 	return (
-		<div
-			style={{
-				display: "flex",
-				flexWrap: "wrap",
-				overflow: "auto",
-				margin: "10px 0",
-			}}
-		>
+		<div className={css.sessionsContainer}>
 			{sessions.map((session) => (
 				<div
 					key={session.id}

@@ -39,3 +39,11 @@
 	display: flex;
 	justify-content: flex-end;
 }
+
+.sessionsContainer {
+	display: flex;
+	flex-wrap: wrap;
+	overflow: auto;
+	margin: 10px 0;
+	font-size: smaller;
+}
