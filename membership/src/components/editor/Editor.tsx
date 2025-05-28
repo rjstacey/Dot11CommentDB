@@ -16,10 +16,12 @@ import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ParagraphNode } from "lexical";
 
 import ListMaxIndentLevelPlugin from "./ListMaxIndentLevelPlugin";
-import ToolbarPlugin from "./ToolbarPlugin";
+import { ToolbarPlugin } from "./toolbar";
 import AutoLinkPlugin from "./AutoLinkPlugin";
 import LinkEditorPlugin from "./LinkEditorPlugin";
 import InportExportPlugin from "./ImportExportPlugin";
+import SubstitutionTagPlugin from "./SubstitutionTagPlugin";
+import { SubstitutionTagNode } from "./SubstitutionTagNode";
 import { emailStylesObj, htmlWithInlineStyle } from "./utils";
 
 import css from "./editor.module.css";
@@ -75,6 +77,7 @@ const editorConfig = {
 		AutoLinkNode,
 		LinkNode,
 		ParagraphNode,
+		SubstitutionTagNode,
 	],
 };
 
@@ -140,6 +143,7 @@ function Editor({
 			<LinkPlugin />
 			<AutoLinkPlugin />
 			<ListMaxIndentLevelPlugin maxDepth={7} />
+			<SubstitutionTagPlugin />
 		</LexicalComposer>
 	);
 }
