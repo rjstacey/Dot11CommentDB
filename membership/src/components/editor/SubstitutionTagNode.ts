@@ -21,14 +21,14 @@ export type SerializedSubstitutionTagNode = Spread<
 	SerializedTextNode
 >;
 
-export const SUBSTITUTION_TAG_PATTERN = /{{([A-Za-z_-]+)}}/;
+export const SUBSTITUTION_TAG_PATTERN = "{{([A-Za-z_-]+)}}";
 
 function convertSubstitutionTagElement(
 	domNode: HTMLElement
 ): DOMConversionOutput | null {
 	const textContent = domNode.textContent;
 	if (textContent) {
-		const match = SUBSTITUTION_TAG_PATTERN.exec(textContent);
+		const match = RegExp(SUBSTITUTION_TAG_PATTERN).exec(textContent);
 		if (match) {
 			const beforeText = textContent.slice(0, match.index);
 			const afterText = textContent.slice(
@@ -67,7 +67,10 @@ export class SubstitutionTagNode extends TextNode {
 
 	getTag(): string {
 		const self = this.getLatest();
-		const match = SUBSTITUTION_TAG_PATTERN.exec(self.getTextContent());
+		const match = RegExp(SUBSTITUTION_TAG_PATTERN).exec(
+			self.getTextContent()
+		);
+		console.log("getTag", match, self.getTextContent());
 		return match ? match[1] : "";
 	}
 

@@ -23,7 +23,7 @@ function handleSubsitutionTagEdit(
 	tags: string[]
 ): void {
 	const textContent = node.getTextContent();
-	const match = SUBSTITUTION_TAG_PATTERN.exec(textContent);
+	const match = RegExp(SUBSTITUTION_TAG_PATTERN).exec(textContent);
 
 	if (match === null) {
 		node.replace($createTextNode(textContent));
@@ -84,8 +84,11 @@ function handleSubsitutionTagEdit(
 
 function handleTextEdit(node: TextNode, tags: string[]): void {
 	const textContent = node.getTextContent();
-	const match = SUBSTITUTION_TAG_PATTERN.exec(textContent);
-	if (match) {
+	let match: RegExpExecArray | null = null;
+	while (
+		(match = RegExp(SUBSTITUTION_TAG_PATTERN, "g").exec(textContent)) !==
+		null
+	) {
 		const selection = $getSelection();
 		let offset = -1;
 		if (
@@ -165,6 +168,7 @@ export default function SubstitutionTagPlugin({ tags }: { tags: string[] }) {
 										nodeKey
 									) as SubstitutionTagNode;
 									const tag = node.getTag();
+									console.log(nodeKey, tag);
 									const valid = tags.includes(tag);
 									if (node.getValid() !== valid)
 										node.setValid(valid);
