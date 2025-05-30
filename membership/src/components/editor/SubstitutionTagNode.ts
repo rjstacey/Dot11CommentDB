@@ -21,7 +21,7 @@ export type SerializedSubstitutionTagNode = Spread<
 	SerializedTextNode
 >;
 
-export const SUBSTITUTION_TAG_PATTERN = /{{[A-Za-z_-]+}}/;
+export const SUBSTITUTION_TAG_PATTERN = /{{([A-Za-z_-]+)}}/;
 
 function convertSubstitutionTagElement(
 	domNode: HTMLElement
@@ -52,28 +52,24 @@ function convertSubstitutionTagElement(
 	return null;
 }
 
-/*
-function convertSubstitutionTagElement2(
-	domNode: HTMLElement
-): DOMConversionOutput | null {
-	const textContent = domNode.textContent;
-
-	if (textContent) {
-		const node = $createSubstitutionTagNode(textContent);
-		return {
-			node,
-		};
-	}
-
-	return null;
-}*/
-
 const substitutionTagValidStyle = "background-color: rgba(24, 119, 232, 0.3)";
 const substitutionTagInvalidStyle =
 	"background-color: rgba(255, 0, 0, 0.3); text-decoration: red wavy underline";
 
 export class SubstitutionTagNode extends TextNode {
 	__valid = false;
+
+	setTag(tag: string) {
+		const self = this.getWritable();
+		self.setTextContent(`{{${tag}}}`);
+		return self;
+	}
+
+	getTag(): string {
+		const self = this.getLatest();
+		const match = SUBSTITUTION_TAG_PATTERN.exec(self.getTextContent());
+		return match ? match[1] : "";
+	}
 
 	setValid(valid: boolean) {
 		const self = this.getWritable();

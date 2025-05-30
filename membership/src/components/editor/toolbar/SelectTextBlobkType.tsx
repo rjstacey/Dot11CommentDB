@@ -134,7 +134,7 @@ export function SelectTextBlockType({ disabled }: { disabled: boolean }) {
 
 	return (
 		<Select
-			style={{ width: 200 }}
+			style={{ width: 150 }}
 			aria-label="Text Block Type Options"
 			options={blockTypeOptions}
 			values={values}

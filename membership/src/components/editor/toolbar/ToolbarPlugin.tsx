@@ -9,12 +9,13 @@ import { SelectFontFamily } from "./SelectFontFamily";
 import { SelectFontSize } from "./SelectFontSize";
 import { FormatTextButtons } from "./FormatTextButtons";
 import { SelectAlignment } from "./SelectAlignment";
+import { SelectSubstituteTag } from "./SelectSubstituteTag";
 
 import css from "../editor.module.css";
 
 const Divider = () => <div className={css.divider} />;
 
-export function ToolbarPlugin() {
+export function ToolbarPlugin({ tags }: { tags: string[] }) {
 	const [editor] = useLexicalComposerContext();
 	const [hasFocus, setHasFocus] = React.useState(false);
 	const [isEditable, setIsEditable] = React.useState(true);
@@ -58,6 +59,8 @@ export function ToolbarPlugin() {
 			<FormatTextButtons disabled={disabled} />
 			<Divider />
 			<SelectAlignment disabled={disabled} />
+			<Divider />
+			<SelectSubstituteTag tags={tags} disabled={disabled} />
 		</div>
 	);
 }

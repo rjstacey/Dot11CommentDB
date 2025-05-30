@@ -139,7 +139,7 @@ function Editor({
 					/>
 				)}
 			</div>
-			<ToolbarPlugin />
+			<ToolbarPlugin tags={tags} />
 			<div className={css.treeView}>
 				<TreeViewPlugin />
 			</div>

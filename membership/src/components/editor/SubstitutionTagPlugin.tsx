@@ -7,6 +7,7 @@ import {
 	$getSelection,
 	$isRangeSelection,
 	$getNodeByKey,
+	HISTORY_MERGE_TAG,
 } from "lexical";
 import { mergeRegister } from "@lexical/utils";
 
@@ -55,7 +56,7 @@ function handleSubsitutionTagEdit(
 			offset -= beforeText.length;
 		}
 
-		const actualTag = match[0].substring(2, match[0].length - 2);
+		const actualTag = match[1];
 		const matchingTag = tags.find(
 			(tag) => tag.toLowerCase() === actualTag.toLowerCase()
 		);
@@ -98,7 +99,7 @@ function handleTextEdit(node: TextNode, tags: string[]): void {
 		const beforeText = textContent.substring(0, match.index);
 		const afterText = textContent.substring(match.index + match[0].length);
 
-		const actualTag = match[0].substring(2, match[0].length - 2);
+		const actualTag = match[1];
 		const matchingTag = tags.find(
 			(tag) => tag.toLowerCase() === actualTag.toLowerCase()
 		);
@@ -158,17 +159,18 @@ export default function SubstitutionTagPlugin({ tags }: { tags: string[] }) {
 				(mutatedNodes) => {
 					for (const [nodeKey, mutation] of mutatedNodes) {
 						if (mutation === "created") {
-							editor.update(() => {
-								const node = $getNodeByKey(
-									nodeKey
-								) as SubstitutionTagNode;
-								const text = node.getTextContent();
-								const tag = text.substring(2, text.length - 2);
-								const valid = tags.includes(tag);
-								if (node.getValid() !== valid) {
-									node.setValid(valid);
-								}
-							});
+							editor.update(
+								() => {
+									const node = $getNodeByKey(
+										nodeKey
+									) as SubstitutionTagNode;
+									const tag = node.getTag();
+									const valid = tags.includes(tag);
+									if (node.getValid() !== valid)
+										node.setValid(valid);
+								},
+								{ tag: HISTORY_MERGE_TAG }
+							);
 						}
 					}
 				},
