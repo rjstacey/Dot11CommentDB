@@ -26,30 +26,23 @@ export const SUBSTITUTION_TAG_PATTERN = "{{([A-Za-z_-]+)}}";
 function convertSubstitutionTagElement(
 	domNode: HTMLElement
 ): DOMConversionOutput | null {
-	const textContent = domNode.textContent;
-	if (textContent) {
+	const node: LexicalNode[] = [];
+	let textContent = domNode.textContent;
+	while (textContent) {
 		const match = RegExp(SUBSTITUTION_TAG_PATTERN).exec(textContent);
 		if (match) {
 			const beforeText = textContent.slice(0, match.index);
-			const afterText = textContent.slice(
-				match.index + match[0].length,
-				textContent.length
-			);
-			const node: LexicalNode[] = [];
 			if (beforeText) node.push($createTextNode(beforeText));
 			node.push($createSubstitutionTagNode(match[0]));
-			if (afterText) node.push($createTextNode(afterText));
-			return {
-				node,
-			};
+			textContent = textContent.substring(match.index + match[0].length);
 		} else {
-			return {
-				node: $createTextNode(textContent),
-			};
+			node.push($createTextNode(textContent));
+			textContent = "";
 		}
 	}
-
-	return null;
+	return {
+		node,
+	};
 }
 
 const substitutionTagValidStyle = "background-color: rgba(24, 119, 232, 0.3)";
@@ -70,7 +63,6 @@ export class SubstitutionTagNode extends TextNode {
 		const match = RegExp(SUBSTITUTION_TAG_PATTERN).exec(
 			self.getTextContent()
 		);
-		console.log("getTag", match, self.getTextContent());
 		return match ? match[1] : "";
 	}
 

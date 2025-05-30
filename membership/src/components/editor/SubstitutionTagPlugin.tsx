@@ -167,9 +167,7 @@ export default function SubstitutionTagPlugin({ tags }: { tags: string[] }) {
 									const node = $getNodeByKey(
 										nodeKey
 									) as SubstitutionTagNode;
-									const tag = node.getTag();
-									console.log(nodeKey, tag);
-									const valid = tags.includes(tag);
+									const valid = tags.includes(node.getTag());
 									if (node.getValid() !== valid)
 										node.setValid(valid);
 								},

@@ -85,6 +85,7 @@ const editorConfig = {
 
 function TreeViewPlugin() {
 	const [editor] = useLexicalComposerContext();
+	return null;
 	return <TreeView editor={editor} />;
 }
 
