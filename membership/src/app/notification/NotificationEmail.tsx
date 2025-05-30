@@ -31,7 +31,7 @@ import {
 	EmailTemplate,
 } from "@/store/emailTemplates";
 import { sendEmails, type Email } from "@/store/emailSend";
-import { selectSelectedMembers, type Member } from "@/store/members";
+import { selectSelectedMembers, fields, type Member } from "@/store/members";
 import { selectMostRecentAttendedSession } from "@/store/sessions";
 import { type Session } from "@/store/sessions";
 import { selectUser, type User } from "@/store/user";
@@ -52,6 +52,14 @@ function substituteInAddressField(key: string, member: Member) {
 	}
 	return genEmailAddress(member);
 }
+
+const substitutionTags = Object.keys(fields).concat(
+	"SessionName",
+	"SessionNumber",
+	"SessionDate",
+	"SessionAttendance",
+	"BallotParticipation"
+);
 
 function substitute(
 	key: string,
@@ -382,6 +390,7 @@ function NotificationEmail() {
 						key={"" + isPreview + email.id}
 						body={email.body}
 						onChangeBody={(body) => changeTemplate({ body })}
+						tags={substitutionTags}
 						readOnly={isPreview}
 					/>
 				</div>

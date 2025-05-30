@@ -135,3 +135,10 @@
 	margin-right: 10px;
 	font-size: larger;
 }
+
+.treeView {
+	display: flex;
+	flex-direction: column;
+	max-height: 300px;
+	overflow: auto;
+}

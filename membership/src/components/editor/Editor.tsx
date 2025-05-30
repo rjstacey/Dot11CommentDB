@@ -7,6 +7,8 @@ import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+import { TreeView } from "@lexical/react/LexicalTreeView";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
@@ -81,6 +83,11 @@ const editorConfig = {
 	],
 };
 
+function TreeViewPlugin() {
+	const [editor] = useLexicalComposerContext();
+	return <TreeView editor={editor} />;
+}
+
 const PLACEHOLDER_TEXT = "Email body here...";
 
 function Placeholder() {
@@ -94,10 +101,12 @@ function Placeholder() {
 function Editor({
 	body,
 	onChangeBody,
+	tags,
 	readOnly,
 }: {
 	body: string;
 	onChangeBody: (value: string) => void;
+	tags: string[];
 	readOnly: boolean;
 }) {
 	React.useEffect(() => {
@@ -131,6 +140,9 @@ function Editor({
 				)}
 			</div>
 			<ToolbarPlugin />
+			<div className={css.treeView}>
+				<TreeViewPlugin />
+			</div>
 			<LinkEditorPlugin />
 			<InportExportPlugin
 				value={body}
@@ -143,7 +155,7 @@ function Editor({
 			<LinkPlugin />
 			<AutoLinkPlugin />
 			<ListMaxIndentLevelPlugin maxDepth={7} />
-			<SubstitutionTagPlugin />
+			<SubstitutionTagPlugin tags={tags} />
 		</LexicalComposer>
 	);
 }

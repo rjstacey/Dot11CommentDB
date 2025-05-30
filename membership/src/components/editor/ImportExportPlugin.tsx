@@ -59,9 +59,7 @@ function InportExportPlugin({
 				dom = parser.parseFromString(asHtml, "text/html");
 			}
 			const nodes = $generateNodesFromDOM(editor, dom);
-			$getRoot()
-				.getChildren()
-				.forEach((c) => c.remove());
+			$getRoot().clear();
 			$getRoot().append(...nodes);
 
 			recursivelyReplaceLinkWithAutoLink($getRoot());
