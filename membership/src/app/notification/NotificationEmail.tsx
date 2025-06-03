@@ -31,7 +31,12 @@ import {
 	EmailTemplate,
 } from "@/store/emailTemplates";
 import { sendEmails, type Email } from "@/store/emailSend";
-import { selectSelectedMembers, fields, type Member } from "@/store/members";
+import {
+	selectSelectedMembers,
+	fields,
+	type Member,
+	getField,
+} from "@/store/members";
 import { selectMostRecentAttendedSession } from "@/store/sessions";
 import { type Session } from "@/store/sessions";
 import { selectUser, type User } from "@/store/user";
@@ -45,20 +50,10 @@ const SELECTED_MEMBERS_KEY = `{{${SELECTED_MEMBERS}}}`;
 
 const genEmailAddress = (m: Member | User) => `${m.Name} <${m.Email}>`;
 
-function substituteInAddressField(key: string, member: Member) {
-	if (key !== SELECTED_MEMBERS) {
-		console.log(`Error: To field has invalid key {{${key}}}`);
-		return "";
-	}
-	return genEmailAddress(member);
-}
-
 const substitutionTags = Object.keys(fields).concat(
 	"SessionName",
 	"SessionNumber",
-	"SessionDate",
-	"SessionAttendance",
-	"BallotParticipation"
+	"SessionDate"
 );
 
 function substitute(
@@ -71,10 +66,12 @@ function substitute(
 	if (Object.keys(member).includes(key))
 		return "" + member[key as keyof Member] || "(Blank)";
 
-	if (key.startsWith("Session")) {
-		if (key === "SessionAttendance")
-			return renderSessionAttendances(member.SAPIN);
+	if (key === "OldStatus") return "" + (getField(member, key) || "(Blank)");
 
+	if (key === "AttendancesSummary")
+		return renderSessionAttendances(member.SAPIN);
+
+	if (key.startsWith("Session")) {
 		if (!session) return "(Blank)";
 		let s = "";
 		if (key === "SessionName") s = session.name;
@@ -84,19 +81,15 @@ function substitute(
 		return s || "(Blank)";
 	}
 
-	if (key === "BallotParticipation")
+	if (key === "BallotParticipationSummary")
 		return renderBallotParticipation(member.SAPIN);
 
 	console.log(`Error: Invalid key {{${key}}}`);
-	//throw new Error(`Invalid key {{${key}}}`);
+
 	return "";
 }
 
-const keyPattern = "[a-zA-Z_.]+";
-function findKeys(s: string) {
-	const m = s.match(new RegExp(`{{${keyPattern}}}`, "g"));
-	return m ? m.map((s) => s.replace("{{", "").replace("}}", "")) : [];
-}
+const SUBSTITUTION_TAG_PATTERN = "{{([A-Za-z_-]+)}}";
 
 function doSubstitution(
 	email: EmailTemplate,
@@ -105,53 +98,46 @@ function doSubstitution(
 	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>,
 	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
 ) {
-	let keys: string[];
-
 	let to: string;
 	if (email.to === null) to = SELECTED_MEMBERS_KEY;
 	else to = email.to;
 
-	keys = findKeys(to);
-	for (const key of keys)
-		to = to.replace(`{{${key}}}`, substituteInAddressField(key, member));
+	to = to.replace(SELECTED_MEMBERS_KEY, genEmailAddress(member));
 	email = { ...email, to };
 
 	if (email.cc) {
-		let cc = email.cc;
-		keys = findKeys(cc);
-		for (const key of keys)
-			cc = cc.replace(
-				`{{${key}}}`,
-				substituteInAddressField(key, member)
-			);
+		const cc = email.cc.replace(
+			SELECTED_MEMBERS_KEY,
+			genEmailAddress(member)
+		);
 		email = { ...email, cc };
 	}
 
 	if (email.bcc) {
-		let bcc = email.bcc;
-		keys = findKeys(bcc);
-		for (const key of keys)
-			bcc = bcc.replace(
-				`{{${key}}}`,
-				substituteInAddressField(key, member)
-			);
+		const bcc = email.bcc.replace(
+			SELECTED_MEMBERS_KEY,
+			genEmailAddress(member)
+		);
 		email = { ...email, bcc };
 	}
 
-	let body = email.body;
-	keys = findKeys(body);
-	for (const key of keys) {
-		body = body.replace(
-			`{{${key}}}`,
-			substitute(
-				key,
-				member,
-				session,
-				renderSessionAttendances,
-				renderBallotParticipation
-			)
+	let bodyRemaining = email.body;
+	let body = "";
+	const regexp = new RegExp(SUBSTITUTION_TAG_PATTERN);
+	while (bodyRemaining.length > 0) {
+		const match = regexp.exec(bodyRemaining);
+		if (match === null) break;
+		body += bodyRemaining.substring(0, match.index);
+		body += substitute(
+			match[1],
+			member,
+			session,
+			renderSessionAttendances,
+			renderBallotParticipation
 		);
+		bodyRemaining = bodyRemaining.substring(match.index + match[0].length);
 	}
+	body += bodyRemaining;
 
 	body = htmlWithInlineStyle(body);
 	email = { ...email, body };

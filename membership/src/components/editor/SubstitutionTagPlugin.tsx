@@ -83,12 +83,11 @@ function handleSubsitutionTagEdit(
 }
 
 function handleTextEdit(node: TextNode, tags: string[]): void {
-	const textContent = node.getTextContent();
-	let match: RegExpExecArray | null = null;
-	while (
-		(match = RegExp(SUBSTITUTION_TAG_PATTERN, "g").exec(textContent)) !==
-		null
-	) {
+	while (true) {
+		const textContent = node.getTextContent();
+		const match = new RegExp(SUBSTITUTION_TAG_PATTERN).exec(textContent);
+		if (match === null) break;
+
 		const selection = $getSelection();
 		let offset = -1;
 		if (
@@ -126,12 +125,12 @@ function handleTextEdit(node: TextNode, tags: string[]): void {
 		}
 		offset -= match[0].length;
 
-		if (afterText) {
-			const nextSibling = $createTextNode(afterText);
-			substitutionTagNode.insertAfter(nextSibling);
-			if (offset >= 0) {
-				nextSibling.select(offset, offset);
-			}
+		if (!afterText) break;
+
+		node = $createTextNode(afterText);
+		substitutionTagNode.insertAfter(node);
+		if (offset >= 0) {
+			node.select(offset, offset);
 		}
 	}
 }
