@@ -98,7 +98,7 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 	if (typeof err === "string") {
 		message = err;
 	} else if (err instanceof Error) {
-		message = err.name + ":" + err.message;
+		message = err.name + ": " + err.message;
 		if (err instanceof ZodError) {
 			const m = err.issues.map((e) => `${e.path[0]}: ${e.message}`);
 			message += "\n" + m.join("\n");

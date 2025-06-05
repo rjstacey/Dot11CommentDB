@@ -46,7 +46,7 @@ export async function sendEmail(email: Email) {
 		} catch (error: unknown) {
 			if (
 				error instanceof SESServiceException &&
-				error.name === "ThrottlingException" &&
+				error.name === "Throttling" &&
 				maxRetries-- > 0
 			) {
 				await sleep(delay);

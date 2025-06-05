@@ -98,10 +98,7 @@ function doSubstitution(
 	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>,
 	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
 ) {
-	let to: string;
-	if (email.to === null) to = SELECTED_MEMBERS_KEY;
-	else to = email.to;
-
+	let to = email.to || SELECTED_MEMBERS_KEY;
 	to = to.replace(SELECTED_MEMBERS_KEY, genEmailAddress(member));
 	email = { ...email, to };
 
