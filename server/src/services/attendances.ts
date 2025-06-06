@@ -364,7 +364,7 @@ async function addAttendance(
 	const changes = attendanceSummaryChanges(attendanceIn);
 
 	const { insertId } = await db.query<ResultSetHeader>(
-		"INSERT attendanceSummary SET group=UUID_TO_BIN(?), ?",
+		"INSERT attendanceSummary SET groupId=UUID_TO_BIN(?), ?",
 		[groupId, changes]
 	);
 

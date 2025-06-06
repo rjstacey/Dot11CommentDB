@@ -40,7 +40,16 @@ function useSessionAttendances(SAPIN: number) {
 
 	return React.useMemo(() => {
 		const session_ids = sessionIds as number[];
-		const attendances = membersAttendances[SAPIN] || {};
+		const attendances = { ...membersAttendances[SAPIN] };
+
+		for (const session_id of session_ids) {
+			if (!attendances[session_id]) {
+				attendances[session_id] = getNullAttendanceSummary(
+					session_id,
+					SAPIN
+				);
+			}
+		}
 
 		return {
 			session_ids,
@@ -126,7 +135,7 @@ export function MemberSessionParticipation({
 				editedAttendances[session_id]
 			) as Partial<SessionAttendanceSummary>;
 			if (Object.keys(changes).length > 0) {
-				const updated = { ...savedAttendances[session_id], changes };
+				const updated = { ...savedAttendances[session_id], ...changes };
 				if (updated.id) {
 					if (isNullAttendanceSummary(updated))
 						deletes.push(updated.id);
