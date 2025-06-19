@@ -6,7 +6,6 @@ import { getUser } from "../services/users.js";
 import { AuthError } from "../utils/index.js";
 
 const secret = process.env.NODE_ENV === "development" ? "secret" : uuidv4();
-//const secret = uuidv4();
 
 /*
  * Sign the user ID (SAPIN) and return as JWT token
@@ -57,7 +56,7 @@ export const authorize: RequestHandler = async (req, res, next) => {
 		req.user = user;
 		next();
 	} catch (error) {
-		console.log(error);
+		//console.log(error);
 		res.status(403).send(error);
 	}
 };
