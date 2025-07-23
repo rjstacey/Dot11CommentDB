@@ -34,8 +34,10 @@ function generateBreakoutAttendanceEntries(
 	attendanceCountEntities: Record<number, number>
 ): BreakoutAttendanceEntry[] {
 	const groups = Object.values(groupEntities) as Group[];
-	if (!imatMeeting) console.error("imatMeeting not found");
-	const startDate = imatMeeting!.start;
+	if (!imatMeeting) {
+		return [];
+	}
+	const startDate = imatMeeting.start;
 	const entries: BreakoutAttendanceEntry[] = [];
 
 	// Create series entities from breakouts
