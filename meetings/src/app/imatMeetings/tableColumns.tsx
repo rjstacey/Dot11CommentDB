@@ -17,6 +17,7 @@ import {
 	fields,
 	imatMeetingsSelectors,
 	imatMeetingsActions,
+	ImatMeeting,
 } from "@/store/imatMeetings";
 
 import { FlexRow } from "@/components/FlexRow";
@@ -64,19 +65,24 @@ const renderHeaderSummary = (props: HeaderCellRendererProps) => (
 	</>
 );
 
-const renderCellSummary = ({ rowData: session }: CellRendererProps) => (
+const renderCellSummary = ({
+	rowData: imatMeeting,
+}: CellRendererProps<ImatMeeting>) => (
 	<>
 		<FlexRow>
-			{session.type + ", " + displayDateRange(session.start, session.end)}
+			{imatMeeting.type +
+				", " +
+				displayDateRange(imatMeeting.start, imatMeeting.end)}
 		</FlexRow>
-		<FlexRow style={{ fontStyle: "italic" }}>{session.name}</FlexRow>
+		<FlexRow style={{ fontStyle: "italic" }}>{imatMeeting.name}</FlexRow>
 	</>
 );
 
-function renderBreakoutsLink({ rowData }: CellRendererProps) {
-	const imatMeetingId = rowData.imatMeetingId;
+function renderBreakoutsLink({
+	rowData: imatMeeting,
+}: CellRendererProps<ImatMeeting>) {
 	return (
-		<Link to={`../imatBreakouts/${imatMeetingId.toString()}`}>
+		<Link to={`../imatBreakouts/${imatMeeting.id.toString()}`}>
 			view breakouts
 		</Link>
 	);
