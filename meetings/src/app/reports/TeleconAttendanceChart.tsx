@@ -15,13 +15,10 @@ import type { ReportChartProps } from "./chart";
 const selectAttendanceSeriesInfo = createSelector(
 	selectBreakoutAttendanceEntries,
 	(entries) => {
-		const seriesEntities = entries.reduce(
-			(seriesEntities, entry, i) => {
-				seriesEntities[i] = entry;
-				return seriesEntities;
-			},
-			{} as Record<string, BreakoutAttendanceEntry>
-		);
+		const seriesEntities = entries.reduce((seriesEntities, entry, i) => {
+			seriesEntities[i] = entry;
+			return seriesEntities;
+		}, {} as Record<string, BreakoutAttendanceEntry>);
 
 		// Sort by date and time
 		const seriesIds = Object.keys(seriesEntities).sort((id1, id2) => {
@@ -43,12 +40,10 @@ function TeleconAttendanceChart({ width, height, ...props }: ReportChartProps) {
 	//const [xAxisHeight, setXAxisHeight] = React.useState(120);
 	const gx = React.useRef<SVGSVGElement>(null);
 	const xAxisHeight = 120; //useDimensions(gx).height;
-	console.log(xAxisHeight);
 
 	//const [yAxisWidth, setYAxisWidth] = React.useState(50);
 	const gy = React.useRef<SVGSVGElement>(null);
 	const yAxisWidth = 50; //useDimensions(gy).width;
-	console.log(yAxisWidth);
 
 	const margin = 10;
 	const plotWidth = width - 2 * margin - yAxisWidth;
