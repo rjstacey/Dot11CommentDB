@@ -4,6 +4,7 @@
 import PropTypes from "prop-types";
 import { DateTime } from "luxon";
 import { load as cheerioLoad } from "cheerio";
+import type { AxiosError } from "axios";
 
 import type { User } from "./users.js";
 
@@ -11,6 +12,7 @@ import {
 	csvParse,
 	AuthError,
 	NotFoundError,
+	ForbiddenError,
 	validateSpreadsheetHeader,
 } from "../utils/index.js";
 import { webexMeetingImatLocation } from "./meetings.js";
@@ -319,9 +321,18 @@ export async function getImatCommittees(user: User, group: Group) {
 	const { ieeeClient } = user;
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
-	const response = await ieeeClient.get(`/${group.name}/committees.csv`, {
-		responseType: "arraybuffer",
-	});
+	const response = await ieeeClient
+		.get(`/${group.name}/committees.csv`, {
+			responseType: "arraybuffer",
+		})
+		.catch((err: AxiosError) => {
+			if (err.response && err.response.status === 403) {
+				throw new ForbiddenError(
+					"You do not have permission to retrieve IMAT committees"
+				);
+			}
+			throw err;
+		});
 	if (response.headers["content-type"] !== "text/csv")
 		throw new AuthError("Not logged in");
 
