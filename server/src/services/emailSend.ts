@@ -17,7 +17,12 @@ export function init() {
 	if (process.env.NODE_ENV === "development")
 		credentials = fromIni({ profile: "eb-cli" });
 
-	sesClient = new SESClient({ region, credentials });
+	sesClient = new SESClient({
+		region,
+		credentials,
+		retryMode: "adaptive",
+		maxAttempts: 10,
+	});
 }
 
 function sleep(ms: number) {
@@ -67,11 +72,11 @@ export async function sendEmail(email: Email) {
 export async function sendEmails(emails: Email[]) {
 	if (!sesClient) throw new Error("eMail service has not been initialized");
 
-	const output: SendEmailCommandOutput[] = [];
+	let output: SendEmailCommandOutput[] = [];
 	while (emails.length > 0) {
 		const toSend = emails.splice(0, 10);
 		const o = await Promise.all(toSend.map(sendEmail));
-		output.concat(o);
+		output = output.concat(o);
 	}
 	return output;
 }
