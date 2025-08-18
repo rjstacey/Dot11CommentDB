@@ -16,9 +16,7 @@ export async function refresh() {
 	dispatch(loadRecentAttendanceSummaries(groupName, true));
 }
 
-export const sessionParticipationLoader: LoaderFunction = async ({
-	params,
-}) => {
+export const loader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 

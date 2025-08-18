@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router";
 
 import {
 	AppTable,
@@ -21,6 +20,7 @@ import { selectMostRecentBallotSeries } from "@/store/ballotParticipation";
 
 import { tableColumns, defaultTablesConfig } from "./notificationTableColumns";
 import { NotificationDetail } from "./detail";
+import { refresh } from "./loader";
 
 function MostRecentBallotSummary() {
 	const ballotSeries = useAppSelector(selectMostRecentBallotSeries);
@@ -86,9 +86,6 @@ function MostRecentSessionSummary() {
 }
 
 function Members() {
-	const navigate = useNavigate();
-	const refresh = () => navigate(".", { replace: true });
-
 	return (
 		<>
 			<div className="top-row">
