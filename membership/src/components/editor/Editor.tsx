@@ -7,8 +7,8 @@ import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { TreeView } from "@lexical/react/LexicalTreeView";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+//import { TreeView } from "@lexical/react/LexicalTreeView";
+//import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
@@ -84,9 +84,9 @@ const editorConfig = {
 };
 
 function TreeViewPlugin() {
-	const [editor] = useLexicalComposerContext();
-	//return null;
-	return <TreeView editor={editor} />;
+	//const [editor] = useLexicalComposerContext();
+	return null;
+	//return <TreeView editor={editor} />;
 }
 
 const PLACEHOLDER_TEXT = "Email body here...";

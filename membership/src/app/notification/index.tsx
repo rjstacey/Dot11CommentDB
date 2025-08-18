@@ -19,8 +19,8 @@ import { fields, membersSelectors, membersActions } from "@/store/members";
 import { selectMostRecentAttendedSession } from "@/store/sessions";
 import { selectMostRecentBallotSeries } from "@/store/ballotParticipation";
 
-import NotificationEmail from "./NotificationEmail";
 import { tableColumns, defaultTablesConfig } from "./notificationTableColumns";
+import { NotificationDetail } from "./detail";
 
 function MostRecentBallotSummary() {
 	const ballotSeries = useAppSelector(selectMostRecentBallotSeries);
@@ -141,7 +141,7 @@ function Members() {
 					/>
 				</Panel>
 				<Panel className="details-panel" style={{ overflow: "hidden" }}>
-					<NotificationEmail />
+					<NotificationDetail />
 				</Panel>
 			</SplitPanel>
 		</>
