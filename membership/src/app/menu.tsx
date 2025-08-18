@@ -31,7 +31,7 @@ function useMenuLinks() {
 		const groupsAccess = group.permissions.groups || AccessLevel.none;
 		if (groupsAccess >= AccessLevel.ro) {
 			menu.push({
-				link: (group.type === "r" ? "/" : `/${group.name}`) + "/groups",
+				link: `/${group.name}/groups`,
 				label: "Groups",
 			});
 		}

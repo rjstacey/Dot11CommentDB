@@ -219,11 +219,7 @@ export const selectTopLevelGroupByName = (
 	groupName: string
 ) => {
 	const groups = selectWorkingGroups(state);
-	return groups.find((g) =>
-		groupName
-			? (g.type === "c" || g.type === "wg") && g.name === groupName
-			: g.type === "r"
-	);
+	return groups.find((g) => g.name === groupName);
 };
 export const selectTopLevelGroupId = (state: RootState) =>
 	selectGroupsState(state).topLevelGroupId;

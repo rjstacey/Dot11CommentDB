@@ -8,10 +8,7 @@ getUser()
 		try {
 			fetcher.setAuth(user.Token, loginAndReturn); // Prime fetcher with autherization token
 			const rootEl = document.getElementById("root");
-			if (!rootEl)
-				throw new Error(
-					`No element with id="root" (e.g., <div id="root" />) in index.html`
-				);
+			if (!rootEl) throw new Error(`No <div id="root" /> in index.html`);
 			createRoot(rootEl).render(<App user={user} />);
 		} catch (error) {
 			console.log(error);
