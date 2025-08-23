@@ -1,4 +1,5 @@
-import { ActionButton, displayDateRange } from "dot11-components";
+import { Row, Col, Button } from "react-bootstrap";
+import { displayDateRange } from "dot11-components";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectRecentSessions } from "@/store/sessions";
@@ -10,65 +11,40 @@ import { refresh } from "../loader";
 function SessionSummary() {
 	const sessions = useAppSelector(selectRecentSessions);
 
-	return (
-		<div
+	return sessions.map((session) => (
+		<Col
+			key={session.id}
+			className="d-flex flex-column"
 			style={{
-				display: "flex",
-				flexWrap: "wrap",
-				overflow: "auto",
-				fontSize: "smaller",
+				maxWidth: 250,
 			}}
 		>
-			{sessions.map((session) => (
-				<div
-					key={session.id}
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						margin: 5,
-					}}
-				>
-					<div style={{ whiteSpace: "nowrap" }}>
-						{session.number}{" "}
-						{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
-						{displayDateRange(session.startDate, session.endDate)}
-					</div>
-					<div
-						style={{
-							whiteSpace: "nowrap",
-							textOverflow: "ellipsis",
-							overflow: "hidden",
-							maxWidth: 150,
-						}}
-					>
-						{session.name}
-					</div>
-					<div style={{ display: "flex" }}>
-						<div>{`(${session.attendees} attendees)`}</div>
-					</div>
-				</div>
-			))}
-		</div>
-	);
+			<div className="text-nowrap">
+				{session.number}{" "}
+				{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
+				{displayDateRange(session.startDate, session.endDate)}
+			</div>
+			<div className="text-truncate">{session.name}</div>
+			<div className="d-flex">{`(${session.attendees} attendees)`}</div>
+		</Col>
+	));
 }
 
 export function SessionParticipationActions() {
 	return (
-		<>
-			<div className="top-row">
-				<SessionSummary />
-			</div>
-			<div className="top-row justify-right">
-				<div className="control-group">
-					<BulkStatusUpdate isSession={true} />
-					<SessionParticipationTableActions />
-					<ActionButton
-						name="refresh"
-						title="Refresh"
-						onClick={refresh}
-					/>
-				</div>
-			</div>
-		</>
+		<Row className="w-100 align-items-center gap-2">
+			<SessionSummary />
+			<Col className="d-flex align-items-center justify-content-end gap-2">
+				<BulkStatusUpdate isSession={true} />
+				<SessionParticipationTableActions />
+				<Button
+					className="bi-arrow-repeat"
+					variant="outline-primary"
+					name="refresh"
+					title="Refresh"
+					onClick={refresh}
+				/>
+			</Col>
+		</Row>
 	);
 }

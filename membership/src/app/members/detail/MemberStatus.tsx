@@ -1,15 +1,18 @@
-import React from "react";
-import { DateTime } from "luxon";
-
+import * as React from "react";
 import {
 	Row,
-	Field,
-	Input,
-	Checkbox,
-	ActionIcon,
+	Col,
+	Button,
+	FormGroup,
+	Form,
+	FormLabel,
+	FormControl,
+	FormCheck,
 	Dropdown,
-	isMultiple,
-} from "dot11-components";
+} from "react-bootstrap";
+import { DateTime } from "luxon";
+
+import { isMultiple } from "dot11-components";
 
 import type { Member, StatusChangeEntry, StatusType } from "@/store/members";
 
@@ -40,45 +43,49 @@ function MemberStatusChangeForm({
 	const date = entry.Date?.substring(0, 10);
 
 	return (
-		<>
-			<Row>
-				<Field label="Date:">
-					<input
+		<Form className="p-3" style={{ width: "300px" }}>
+			<FormGroup as={Row} controlId="date" className="mb-2">
+				<FormLabel column>Date:</FormLabel>
+				<Col>
+					<FormControl
 						type="date"
 						value={date}
 						onChange={(e) => change({ Date: e.target.value })}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Old status:">
+				</Col>
+			</FormGroup>
+			<FormGroup as={Row} controlId="oldStatus" className="mb-2">
+				<FormLabel column>Old status:</FormLabel>
+				<Col>
 					<StatusSelector
 						value={entry.OldStatus}
 						onChange={(value) => change({ OldStatus: value })}
 						placeholder={BLANK_STR}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="New status:">
+				</Col>
+			</FormGroup>
+			<FormGroup as={Row} controlId="newStatus" className="mb-2">
+				<FormLabel column>New status:</FormLabel>
+				<Col>
 					<StatusSelector
 						value={entry.NewStatus}
 						onChange={(value) => change({ NewStatus: value })}
 						placeholder={BLANK_STR}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Reason:">
-					<Input
+				</Col>
+			</FormGroup>
+			<FormGroup as={Row} controlId="reason" className="mb-2">
+				<FormLabel column>Reason:</FormLabel>
+				<Col>
+					<FormControl
 						type="text"
 						value={entry.Reason}
 						onChange={(e) => change({ Reason: e.target.value })}
 						placeholder={BLANK_STR}
 					/>
-				</Field>
-			</Row>
-		</>
+				</Col>
+			</FormGroup>
+		</Form>
 	);
 }
 
@@ -91,29 +98,25 @@ export function MemberStatusChangeDropdown({
 	onChange: (entry: StatusChangeEntry) => void;
 	readOnly?: boolean;
 }) {
+	const [show, setShow] = React.useState(false);
 	return (
-		<Dropdown
-			handle={false}
-			selectRenderer={({ state, methods }) => (
-				<ActionIcon
-					type="edit"
-					title="Edit status change"
-					disabled={readOnly}
-					//active={state.isOpen}
-					onClick={state.isOpen ? methods.close : methods.open}
-				/>
-			)}
-			dropdownRenderer={({ props, methods }) => (
+		<Dropdown align="end" show={show} onToggle={setShow}>
+			<Dropdown.Toggle
+				variant="outline-primary"
+				className="bi-pencil"
+				title="Edit status change"
+				disabled={readOnly}
+			/>
+			<Dropdown.Menu>
 				<MemberStatusChangeForm
 					entry={entry}
 					onChange={onChange}
-					close={methods.close}
-					{...props}
+					close={() => {
+						setShow(false);
+					}}
 				/>
-			)}
-			disabled={readOnly}
-			portal={document.querySelector("#root")!}
-		/>
+			</Dropdown.Menu>
+		</Dropdown>
 	);
 }
 
@@ -130,7 +133,7 @@ const statusChangeHistoryColumns = [
 	{
 		key: "actions",
 		label: "",
-		gridTemplate: "60px",
+		gridTemplate: "80px",
 		styleCell: { justifyContent: "space-around" },
 	},
 ];
@@ -183,9 +186,15 @@ export function MemberStatus({
 
 		const columns = statusChangeHistoryColumns.map((col) => {
 			if (col.key === "actions") {
-				const label = <ActionIcon type="add" onClick={addClick} />;
+				const label = (
+					<Button
+						variant="outline-primary"
+						className="bi-plus-lg"
+						onClick={addClick}
+					/>
+				);
 				const renderCell = (entry: StatusChangeEntry) => (
-					<>
+					<div className="d-flex gap-2">
 						<MemberStatusChangeDropdown
 							entry={entry}
 							onChange={(changes: StatusChangeEntry) =>
@@ -193,12 +202,13 @@ export function MemberStatus({
 							}
 							readOnly={readOnly}
 						/>
-						<ActionIcon
-							type="delete"
+						<Button
+							variant="outline-danger"
+							className="bi-trash"
 							onClick={() => remove(entry.id)}
 							disabled={readOnly}
 						/>
-					</>
+					</div>
 				);
 
 				return { ...col, label, renderCell };
@@ -211,7 +221,8 @@ export function MemberStatus({
 	return (
 		<div>
 			<Row>
-				<Field label="Status:">
+				<FormGroup as={Col} controlId="status">
+					<FormLabel>Status:</FormLabel>
 					<StatusSelector
 						style={{
 							flexBasis: 200,
@@ -221,63 +232,47 @@ export function MemberStatus({
 						onChange={(value) => updateMember({ Status: value })}
 						readOnly={readOnly}
 					/>
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "center",
-						}}
-					>
-						<label>Override</label>
-						<Checkbox
-							style={hasChangesStyle(
-								member,
-								saved,
-								"StatusChangeOverride"
-							)}
-							checked={Boolean(member.StatusChangeOverride)}
-							indeterminate={isMultiple(
-								member.StatusChangeOverride
-							)}
-							onChange={(
-								e: React.ChangeEvent<HTMLInputElement>
-							) =>
-								updateMember({
-									StatusChangeOverride: e.target.checked,
-								})
-							}
-							disabled={readOnly}
-						/>
-					</div>
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "center",
-						}}
-					>
-						<label>Last change</label>
-						<Input
-							type="date"
-							style={hasChangesStyle(
-								member,
-								saved,
-								"StatusChangeDate"
-							)}
-							value={statusChangeDate}
-							onChange={(e) =>
-								updateMember({
-									StatusChangeDate: e.target.value,
-								})
-							}
-							placeholder={
-								isMultiple(member.StatusChangeDate)
-									? MULTIPLE_STR
-									: undefined
-							}
-						/>
-					</div>
-				</Field>
+				</FormGroup>
+				<FormGroup as={Col} controlId="statusChangeOverride">
+					<FormLabel>Override</FormLabel>
+					<FormCheck
+						style={hasChangesStyle(
+							member,
+							saved,
+							"StatusChangeOverride"
+						)}
+						checked={Boolean(member.StatusChangeOverride)}
+						//indeterminate={isMultiple(member.StatusChangeOverride)}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							updateMember({
+								StatusChangeOverride: e.target.checked,
+							})
+						}
+						disabled={readOnly}
+					/>
+				</FormGroup>
+				<FormGroup as={Col} controlId="statusChangeDate">
+					<FormLabel>Last change</FormLabel>
+					<FormControl
+						type="date"
+						style={hasChangesStyle(
+							member,
+							saved,
+							"StatusChangeDate"
+						)}
+						value={statusChangeDate}
+						onChange={(e) =>
+							updateMember({
+								StatusChangeDate: e.target.value,
+							})
+						}
+						placeholder={
+							isMultiple(member.StatusChangeDate)
+								? MULTIPLE_STR
+								: undefined
+						}
+					/>
+				</FormGroup>
 			</Row>
 			<Table
 				style={hasChangesStyle(member, saved, "StatusChangeHistory")}

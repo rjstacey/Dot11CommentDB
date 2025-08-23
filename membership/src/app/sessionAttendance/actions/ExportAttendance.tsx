@@ -1,0 +1,25 @@
+import { Button } from "react-bootstrap";
+import { useAppDispatch } from "@/store/hooks";
+import { exportAttendanceForMinutes } from "@/store/sessionAttendees";
+
+export function ExportAttendanceButton({
+	groupName,
+	sessionNumber,
+}: {
+	groupName: string | null;
+	sessionNumber: number | null;
+}) {
+	const dispatch = useAppDispatch();
+	const onClick = () =>
+		dispatch(exportAttendanceForMinutes(groupName!, sessionNumber!));
+	return (
+		<Button
+			variant="outline-primary"
+			title="Export attendance for minutes"
+			disabled={!groupName || !sessionNumber}
+			onClick={onClick}
+		>
+			Attendance for minutes
+		</Button>
+	);
+}

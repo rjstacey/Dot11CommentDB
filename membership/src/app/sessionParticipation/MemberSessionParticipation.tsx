@@ -1,13 +1,11 @@
-import React from "react";
-
+import * as React from "react";
+import { Button, FormCheck } from "react-bootstrap";
 import {
 	Col,
-	Checkbox,
 	Input,
 	displayDateRange,
 	shallowDiff,
 	useDebounce,
-	ActionButton,
 } from "dot11-components";
 
 import type { RootState } from "@/store";
@@ -203,7 +201,7 @@ export function MemberSessionParticipation({
 					`${(entry.AttendancePercentage || 0).toFixed(0)}%`;
 			if (col.key === "IsRegistered") {
 				renderCell = (entry) => (
-					<Checkbox
+					<FormCheck
 						checked={entry.IsRegistered}
 						onChange={(e) =>
 							update(entry.session_id, {
@@ -216,7 +214,7 @@ export function MemberSessionParticipation({
 			}
 			if (col.key === "InPerson") {
 				renderCell = (entry) => (
-					<Checkbox
+					<FormCheck
 						checked={entry.InPerson}
 						onChange={(e) =>
 							update(entry.session_id, {
@@ -229,7 +227,7 @@ export function MemberSessionParticipation({
 			}
 			if (col.key === "DidAttend") {
 				renderCell = (entry) => (
-					<Checkbox
+					<FormCheck
 						checked={entry.DidAttend}
 						onChange={(e) =>
 							update(entry.session_id, {
@@ -242,7 +240,7 @@ export function MemberSessionParticipation({
 			}
 			if (col.key === "DidNotAttend") {
 				renderCell = (entry) => (
-					<Checkbox
+					<FormCheck
 						checked={entry.DidNotAttend}
 						onChange={(e) =>
 							update(entry.session_id, {
@@ -289,10 +287,11 @@ export function MemberSessionParticipation({
 
 	return (
 		<Col>
-			<div className="top-row">
-				<label>{`Recent session attendance: ${count}/${total}`}</label>
-				<ActionButton
-					name="copy"
+			<div className="d-flex align-items-center justify-content-between">
+				<div>{`Recent session attendance: ${count}/${total}`}</div>
+				<Button
+					variant="outline-primary"
+					className="bi-copy"
 					title="Copy to clipboard"
 					onClick={copyToClipboard}
 				/>

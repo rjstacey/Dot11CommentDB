@@ -40,9 +40,7 @@ export function MembersTable() {
 
 	return (
 		<div className="table-container">
-			<div
-				style={{ width: "100%", display: "flex", alignItems: "center" }}
-			>
+			<div className="w-100 d-flex align-items-center">
 				<ShowFilters
 					selectors={membersSelectors}
 					actions={membersActions}

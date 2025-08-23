@@ -1,5 +1,5 @@
+import { Row, Col, Button } from "react-bootstrap";
 import {
-	ActionButton,
 	TableColumnSelector,
 	SplitPanelButton,
 	displayDateRange,
@@ -25,29 +25,34 @@ function BallotSeriesSummary() {
 	);
 	const ballotEntities = useAppSelector(selectBallotEntities);
 
-	const elements = ballotSeriesIds.map((id) => {
+	return ballotSeriesIds.map((id) => {
 		const ballotSeries = ballotSeriesEntities[id]!;
 		const ballotNamesStr = ballotSeries.ballotNames.join(", ");
+		const project = ballotEntities[id]!.Project;
 		return (
-			<div key={id} style={{ display: "flex", flexDirection: "column" }}>
-				<div>{ballotEntities[id]!.Project}</div>
-				<div>
+			<Col
+				key={id}
+				className="d-flex flex-column"
+				style={{
+					maxWidth: 300,
+				}}
+			>
+				<div>{project}</div>
+				<div className="text-nowrap">
 					{displayDateRange(ballotSeries.start, ballotSeries.end)}
 				</div>
-				<div>{ballotNamesStr}</div>
-			</div>
+				<div className="text-truncate">{ballotNamesStr}</div>
+			</Col>
 		);
 	});
-
-	return <>{elements}</>;
 }
 
 export function BallotParticipationActions() {
 	const [tableColumns] = useTableColumns();
 	return (
-		<div className="top-row">
+		<Row className="w-100 align-items-center gap-2">
 			<BallotSeriesSummary />
-			<div style={{ display: "flex" }}>
+			<Col className="d-flex align-items-center justify-content-end gap-2">
 				<BulkStatusUpdate isSession={false} />
 				<TableColumnSelector
 					selectors={ballotParticipationSelectors}
@@ -58,12 +63,14 @@ export function BallotParticipationActions() {
 					selectors={ballotParticipationSelectors}
 					actions={ballotParticipationActions}
 				/>
-				<ActionButton
+				<Button
+					variant="outline-primary"
+					className="bi-arrow-repeat"
 					name="refresh"
 					title="Refresh"
 					onClick={refresh}
 				/>
-			</div>
-		</div>
+			</Col>
+		</Row>
 	);
 }

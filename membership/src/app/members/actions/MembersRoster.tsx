@@ -1,83 +1,83 @@
-import React from "react";
-
-import {
-	Checkbox,
-	Button,
-	ActionButtonDropdown,
-	Form,
-	Field,
-	Row,
-	Col,
-	type DropdownRendererProps,
-} from "dot11-components";
+import * as React from "react";
+import { Dropdown, Form, Button, Row, Col, Spinner } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
 import { updateMyProjectRoster } from "@/store/myProjectRoster";
 
-function RosterUpdateDropdown({ methods }: DropdownRendererProps) {
+function RosterUpdateForm({ close }: { close: () => void }) {
 	const dispatch = useAppDispatch();
 	const [removeUnchanged, setRemoveUnchanged] = React.useState(true);
 	const [appendNew, setAppendNew] = React.useState(false);
 	const [file, setFile] = React.useState<File | null>(null);
-	const [errMsg, setErrMsg] = React.useState("");
 	const [busy, setBusy] = React.useState(false);
 
-	const submit = async () => {
-		if (!file) {
-			setErrMsg("Select spreadsheet file");
-			return;
-		}
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
+		if (!file) return;
 		setBusy(true);
 		await dispatch(
-			updateMyProjectRoster(file, { removeUnchanged, appendNew })
+			updateMyProjectRoster(file!, { removeUnchanged, appendNew })
 		);
 		setBusy(false);
-		methods.close();
-	};
+		close();
+	}
 
 	return (
-		<Form
-			style={{ width: 400 }}
-			title="Update MyProject roster"
-			errorText={errMsg}
-			submit={submit}
-			cancel={methods.close}
-			busy={busy}
-		>
-			<Row>
+		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
+			<p>
 				{
 					'Take the roster as exported by MyProject and update the "Involvement Level" column to reflect member status.'
 				}
-			</Row>
-			<Row>
-				<Field label="Remove rows with no change:">
-					<Checkbox
+			</p>
+			<Form.Group
+				as={Row}
+				controlId="removeUnchanged"
+				className="mb-3 align-items-center"
+			>
+				<Form.Label column sm={10}>
+					Remove rows with no change:
+				</Form.Label>
+				<Col sm={2}>
+					<Form.Check
 						checked={removeUnchanged}
 						onChange={(e) => setRemoveUnchanged(e.target.checked)}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Append members that are not present:">
-					<Checkbox
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} controlId="appendNew" className="mb-3">
+				<Form.Label column sm={10}>
+					Append new members:
+				</Form.Label>
+				<Col sm={2}>
+					<Form.Check
 						checked={appendNew}
 						onChange={(e) => setAppendNew(e.target.checked)}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Col>
-					<label htmlFor="fileInput">
-						MyProject roster spreadsheet:
-					</label>
-					<input
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} controlId="fileInput" className="mb-3">
+				<Form.Label>MyProject roster spreadsheet:</Form.Label>
+				<Col sm={12}>
+					<Form.Control
 						type="file"
-						id="fileInput"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-						onChange={(e) =>
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
 							setFile(e.target.files ? e.target.files[0] : null)
 						}
+						required
+						isInvalid={!file}
 					/>
+					<Form.Control.Feedback type="invalid">
+						Select spreadsheet file
+					</Form.Control.Feedback>
+				</Col>
+			</Form.Group>
+			<Row>
+				<Col className="d-flex justify-content-end">
+					<Button type="submit">
+						{busy && <Spinner animation="border" size="sm" />}
+						<span>Update</span>
+					</Button>
 				</Col>
 			</Row>
 		</Form>
@@ -85,24 +85,15 @@ function RosterUpdateDropdown({ methods }: DropdownRendererProps) {
 }
 
 export function MembersRoster() {
+	const [show, setShow] = React.useState(false);
 	return (
-		<ActionButtonDropdown
-			title="Update roster"
-			selectRenderer={() => (
-				<Button
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-						fontSize: 10,
-						fontWeight: 700,
-					}}
-				>
-					<span>Update</span>
-					<span>Roster</span>
-				</Button>
-			)}
-			dropdownRenderer={(props) => <RosterUpdateDropdown {...props} />}
-		/>
+		<Dropdown align="end" show={show} onToggle={() => setShow(!show)}>
+			<Dropdown.Toggle variant="success-outline">
+				Update Roster
+			</Dropdown.Toggle>
+			<Dropdown.Menu style={{ minWidth: "300px" }}>
+				<RosterUpdateForm close={() => setShow(false)} />
+			</Dropdown.Menu>
+		</Dropdown>
 	);
 }

@@ -1,4 +1,5 @@
-import React from "react";
+import * as React from "react";
+import { Ratio } from "react-bootstrap";
 import * as d3 from "d3";
 import { useOutletContext } from "react-router";
 
@@ -10,7 +11,7 @@ import {
 } from "./useSessionParticipationData";
 import type { SessionParticipationReportContext } from "./layout";
 
-import { useDimensions } from "./useDimensions";
+import { useDimensions } from "../useDimensions";
 import { XAxis } from "./XAxis";
 import { YAxis } from "./YAxis";
 
@@ -284,16 +285,14 @@ export function PerSessionChart() {
 	const { selected, statuses } =
 		useOutletContext<SessionParticipationReportContext>();
 	return (
-		<div ref={ref} style={{ flex: 1, width: "100%" }}>
-			<div style={{ overflow: "visible", width: 0, height: 0 }}>
-				<Chart
-					width={width}
-					height={height}
-					selected={selected}
-					statuses={statuses}
-				/>
-			</div>
-		</div>
+		<Ratio ref={ref} aspectRatio="16x9">
+			<Chart
+				width={width}
+				height={height}
+				selected={selected}
+				statuses={statuses}
+			/>
+		</Ratio>
 	);
 }
 

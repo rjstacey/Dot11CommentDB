@@ -1,7 +1,16 @@
-import React from "react";
+import * as React from "react";
+import {
+	Container,
+	Row,
+	Col,
+	FormCheck,
+	FormControl,
+	FormLabel,
+	FormGroup,
+	Button,
+} from "react-bootstrap";
 import { DateTime } from "luxon";
 
-import { Col, Checkbox, Input, ActionIcon } from "dot11-components";
 import {
 	Member,
 	ContactEmail,
@@ -94,9 +103,9 @@ function MemberContactEmails({
 
 			if (col.key === "Email") {
 				renderCell = (entry: ContactEmail) => (
-					<Input
-						id={col.key + entry.id}
+					<FormControl
 						type="text"
+						id={col.key + entry.id}
 						style={{ width: "100%" }}
 						value={entry.Email}
 						onChange={(e) =>
@@ -110,7 +119,7 @@ function MemberContactEmails({
 			}
 			if (col.key === "Primary") {
 				renderCell = (entry: ContactEmail) => (
-					<Checkbox
+					<FormCheck
 						id={col.key + entry.id}
 						checked={!!entry.Primary}
 						onChange={(e) =>
@@ -124,7 +133,7 @@ function MemberContactEmails({
 			}
 			if (col.key === "Broken") {
 				renderCell = (entry: ContactEmail) => (
-					<Checkbox
+					<FormCheck
 						id={col.key + entry.id}
 						checked={!!entry.Broken}
 						onChange={(e) =>
@@ -138,15 +147,19 @@ function MemberContactEmails({
 			}
 			if (col.key === "actions" && !readOnly) {
 				label = (
-					<ActionIcon
+					<Button
 						name="add"
+						variant="outline-primary"
+						className="bi-plus-lg"
 						disabled={disableAdd}
 						onClick={addContactEmail}
 					/>
 				);
 				renderCell = (entry: ContactEmail) => (
-					<ActionIcon
+					<Button
 						name="delete"
+						variant="outline-danger"
+						className="bi-trash"
 						onClick={() => deleteContactEmail(entry.id)}
 					/>
 				);
@@ -195,36 +208,42 @@ export function MemberContactInfo({
 	const savedContactInfo = saved?.ContactInfo;
 
 	const contactInfoRows = ContactInfoFields.map((f) => (
-		<div key={f.key} style={{ display: "flex", alignItems: "center" }}>
-			<label htmlFor={f.key} style={{ fontWeight: "bold", width: 100 }}>
+		<FormGroup
+			as={Row}
+			key={f.key}
+			controlId={f.key}
+			className="d-flex align-items-center mb-3"
+		>
+			<FormLabel column xs={4} style={{ fontWeight: "bold", width: 100 }}>
 				{f.label}
-			</label>
-			<Input
-				id={f.key}
-				style={hasChangesStyle(
-					editedContactInfo,
-					savedContactInfo || undefined,
-					f.key
-				)}
-				type="text"
-				size={f.size}
-				value={editedContactInfo[f.key]}
-				onChange={(e) =>
-					onChange({
-						ContactInfo: {
-							...editedContactInfo,
-							[f.key]: e.target.value,
-						},
-					})
-				}
-				disabled={readOnly}
-				autoComplete="none"
-			/>
-		</div>
+			</FormLabel>
+			<Col xs={8}>
+				<FormControl
+					type="text"
+					style={hasChangesStyle(
+						editedContactInfo,
+						savedContactInfo || undefined,
+						f.key
+					)}
+					//size={f.size}
+					value={editedContactInfo[f.key]}
+					onChange={(e) =>
+						onChange({
+							ContactInfo: {
+								...editedContactInfo,
+								[f.key]: e.target.value,
+							},
+						})
+					}
+					disabled={readOnly}
+					autoComplete="none"
+				/>
+			</Col>
+		</FormGroup>
 	));
 
 	return (
-		<Col>
+		<Container fluid>
 			<MemberContactEmails
 				member={edited}
 				saved={saved}
@@ -232,6 +251,6 @@ export function MemberContactInfo({
 				readOnly={readOnly}
 			/>
 			{contactInfoRows}
-		</Col>
+		</Container>
 	);
 }

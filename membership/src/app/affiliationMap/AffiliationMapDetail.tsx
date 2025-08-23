@@ -228,7 +228,9 @@ function GroupDetail() {
 			</div>
 			{state.action === null ? (
 				<>
-					<div className="placeholder">{state.placeholder}</div>
+					<div className="details-panel-placeholder">
+						{state.placeholder}
+					</div>
 					{selected.length === 0 && <AffiliationMapUnmatched />}
 				</>
 			) : (

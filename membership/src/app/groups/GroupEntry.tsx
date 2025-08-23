@@ -1,13 +1,6 @@
 import * as React from "react";
-import {
-	isMultiple,
-	Form,
-	Row,
-	Field,
-	Input,
-	Select,
-	Multiple,
-} from "dot11-components";
+import { Form, Row, Col, Button, Spinner } from "react-bootstrap";
+import { isMultiple, Input, Select, Multiple } from "dot11-components";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -58,7 +51,7 @@ function GroupTypeSelector({
 		? getSubgroupTypes(parentGroup.type!).map((type) => ({
 				value: type,
 				label: GroupTypeLabels[type],
-			}))
+		  }))
 		: [];
 
 	function handleChange(values: typeof options) {
@@ -119,6 +112,38 @@ function checkEntry(entry: MultipleGroupEntry): string | undefined {
 	}
 }
 
+function GroupEntrySubmit({
+	action,
+	busy,
+	submit,
+	cancel,
+}: {
+	action: EditAction;
+	busy?: boolean;
+	submit?: () => void;
+	cancel?: () => void;
+}) {
+	return (
+		<Form.Group as={Row} className="mb-3">
+			<Col xs={6} className="d-flex justify-content-center">
+				{submit && (
+					<Button type="submit">
+						{busy ? <Spinner animation="border" size="sm" /> : null}
+						{action === "add" ? "Add" : "Update"}
+					</Button>
+				)}
+			</Col>
+			<Col xs={6} className="d-flex justify-content-center">
+				{cancel && (
+					<Button variant="secondary" onClick={cancel}>
+						Cancel
+					</Button>
+				)}
+			</Col>
+		</Form.Group>
+	);
+}
+
 export function GroupEntryForm({
 	action,
 	entry,
@@ -136,6 +161,10 @@ export function GroupEntryForm({
 	cancel?: () => void;
 	readOnly?: boolean;
 }) {
+	const [validated, setValidated] = React.useState<boolean | undefined>(
+		undefined
+	);
+
 	const entities = useAppSelector(selectGroupEntities);
 
 	function change(changes: Partial<GroupEntry>) {
@@ -161,17 +190,22 @@ export function GroupEntryForm({
 		changeEntry(changes);
 	}
 
+	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		const errorText = checkEntry(entry);
+		if (errorText) {
+			setValidated(false);
+			return;
+		}
+		setValidated(true);
+		submit?.();
+	};
+
 	return (
-		<Form
-			className="main"
-			busy={busy}
-			submitLabel={action === "add" ? "Add" : "Update"}
-			submit={submit}
-			cancel={cancel}
-			errorText={checkEntry(entry)}
-		>
-			<Row>
-				<Field label="Parent group:">
+		<Form noValidate validated={validated} onSubmit={handleSubmit}>
+			<Form.Group as={Row} className="mb-3" controlId="group.parent_id">
+				<Form.Label column>Parent group:</Form.Label>
+				<Col xs={12} md={8}>
 					<GroupSelector
 						style={{ width: 200 }}
 						value={
@@ -187,11 +221,12 @@ export function GroupEntryForm({
 						}
 						readOnly={readOnly || entry.type === "r"}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Group name:">
-					<Input
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3" controlId="group.name">
+				<Form.Label column>Group Name:</Form.Label>
+				<Col xs={12} md={8}>
+					<Form.Control
 						type="text"
 						value={isMultiple(entry.name) ? "" : entry.name || ""}
 						onChange={(e) => change({ name: e.target.value })}
@@ -199,11 +234,17 @@ export function GroupEntryForm({
 							isMultiple(entry.name) ? MULTIPLE_STR : BLANK_STR
 						}
 						disabled={readOnly || entry.type === "r"}
+						required
+						isInvalid={!entry.name}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Group type:">
+					<Form.Control.Feedback type="invalid">
+						Provide a group name
+					</Form.Control.Feedback>
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3" controlId="group.type">
+				<Form.Label column>Group Type:</Form.Label>
+				<Col xs={12} md={8}>
 					<GroupTypeSelector
 						style={{ width: 200 }}
 						value={isMultiple(entry.type) ? null : entry.type}
@@ -214,10 +255,11 @@ export function GroupEntryForm({
 						}
 						readOnly={readOnly || entry.type === "r"}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Status:">
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3" controlId="group.status">
+				<Form.Label column>Status:</Form.Label>
+				<Col xs={12} md={8}>
 					<GroupStatusSelector
 						value={isMultiple(entry.status) ? 1 : entry.status || 0}
 						onChange={(status) => change({ status })}
@@ -226,20 +268,22 @@ export function GroupEntryForm({
 						}
 						readOnly={readOnly || entry.type === "r"}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Color:">
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3" controlId="group.color">
+				<Form.Label column>Color:</Form.Label>
+				<Col xs={12} md={8}>
 					<ColorPicker
 						value={isMultiple(entry.color) ? "" : entry.color || ""}
 						onChange={(value) => change({ color: value })}
 						readOnly={readOnly || entry.type === "r"}
 					/>
-				</Field>
-			</Row>
+				</Col>
+			</Form.Group>
 			{entry.type === "tg" && (
-				<Row>
-					<Field label="Project:">
+				<Form.Group as={Row} className="mb-3" controlId="group.project">
+					<Form.Label column>Project:</Form.Label>
+					<Col xs={12} md={8}>
 						<Input
 							type="text"
 							value={
@@ -257,12 +301,17 @@ export function GroupEntryForm({
 							}
 							disabled={readOnly}
 						/>
-					</Field>
-				</Row>
+					</Col>
+				</Form.Group>
 			)}
 			{entry.type && ["c", "wg", "tg"].includes(entry.type) && (
-				<Row>
-					<Field label={"IMAT committee:"}>
+				<Form.Group
+					as={Row}
+					className="mb-3"
+					controlId="group.imat_committee"
+				>
+					<Form.Label column>IMAT committee:</Form.Label>
+					<Col xs={8}>
 						<ImatCommitteeSelector
 							value={
 								isMultiple(entry.symbol)
@@ -274,8 +323,8 @@ export function GroupEntryForm({
 								entry.type === "wg"
 									? "Working Group"
 									: entry.type === "tg"
-										? "Project"
-										: undefined
+									? "Project"
+									: undefined
 							}
 							placeholder={
 								isMultiple(entry.symbol)
@@ -284,19 +333,23 @@ export function GroupEntryForm({
 							}
 							readOnly={readOnly}
 						/>
-					</Field>
-				</Row>
+					</Col>
+				</Form.Group>
 			)}
 			{!isMultiple(entry.id) && (
-				<Row>
-					<Officers
-						group={entry as GroupCreate}
-						readOnly={readOnly}
-						officers={entry.officers}
-						onChange={(officers) => change({ officers })}
-					/>
-				</Row>
+				<Officers
+					group={entry as GroupCreate}
+					readOnly={readOnly}
+					officers={entry.officers}
+					onChange={(officers) => change({ officers })}
+				/>
 			)}
+			<GroupEntrySubmit
+				action={action}
+				busy={busy}
+				submit={submit}
+				cancel={cancel}
+			/>
 		</Form>
 	);
 }

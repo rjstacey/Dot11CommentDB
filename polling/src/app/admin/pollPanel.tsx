@@ -377,6 +377,11 @@ export function PollForm({ event, poll }: { event: Event; poll: Poll }) {
 		dispatch(pollingAdminPollAction(poll.id, show ? "show" : "unshow"));
 	}
 
+	function close() {
+		if (isDefaultPoll(poll)) dispatch(pollingAdminDeletePoll(poll.id));
+		dispatch(setSelectedPollId(null));
+	}
+
 	return (
 		<div className={css.pollForm}>
 			<div className={css.topRow}>
@@ -394,6 +399,7 @@ export function PollForm({ event, poll }: { event: Event; poll: Poll }) {
 						onChange={(recordType) => changePoll({ recordType })}
 						disabled={disabled}
 					/>
+					<Button onClick={close}>Close x</Button>
 				</div>
 				<div className={css.topRowGroup}>
 					<PollShow
@@ -468,19 +474,5 @@ export function PollForm({ event, poll }: { event: Event; poll: Poll }) {
 }
 
 export function PollPanel({ event, poll }: { event: Event; poll: Poll }) {
-	const dispatch = useAppDispatch();
-
-	function close() {
-		if (isDefaultPoll(poll)) dispatch(pollingAdminDeletePoll(poll.id));
-		dispatch(setSelectedPollId(null));
-	}
-
-	return (
-		<>
-			<div className={css.topRow} style={{ justifyContent: "flex-end" }}>
-				<Button onClick={close}>Close x</Button>
-			</div>
-			<PollForm event={event!} poll={poll!} />
-		</>
-	);
+	return <PollForm event={event!} poll={poll!} />;
 }

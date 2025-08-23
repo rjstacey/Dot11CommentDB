@@ -1,12 +1,9 @@
-import React from "react";
+import * as React from "react";
+import { Button } from "react-bootstrap";
 import { shallowEqual } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
 
-import {
-	ActionButton,
-	ConfirmModal,
-	deepMergeTagMultiple,
-} from "dot11-components";
+import { ConfirmModal, deepMergeTagMultiple } from "dot11-components";
 
 import { useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";
@@ -257,34 +254,34 @@ export function MemberDetail({
 
 	return (
 		<>
-			<div className="top-row">
+			<div className="d-flex align-items-center justify-content-between">
 				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
-				<div>
-					{!readOnly && (
-						<>
-							<ActionButton
-								name="add"
-								title="Add member"
-								disabled={readOnly}
-								isActive={state.action === "add"}
-								onClick={clickAdd}
-							/>
-							<ActionButton
-								name="delete"
-								title="Delete member"
-								disabled={
-									(state.action === "view" &&
-										Boolean(state.message)) ||
-									readOnly
-								}
-								onClick={clickDelete}
-							/>
-						</>
-					)}
-				</div>
+				{!readOnly && (
+					<div className="d-flex gap-2">
+						<Button
+							variant="outline-primary"
+							className="bi-plus-lg"
+							title="Add member"
+							disabled={readOnly}
+							active={state.action === "add"}
+							onClick={clickAdd}
+						/>
+						<Button
+							variant="outline-danger"
+							className="bi-trash"
+							title="Delete member"
+							disabled={
+								(state.action === "view" &&
+									Boolean(state.message)) ||
+								readOnly
+							}
+							onClick={clickDelete}
+						/>
+					</div>
+				)}
 			</div>
 			{state.action === "view" && state.message ? (
-				<div className="placeholder">
+				<div className="details-panel-placeholder">
 					<span>{state.message}</span>
 				</div>
 			) : (

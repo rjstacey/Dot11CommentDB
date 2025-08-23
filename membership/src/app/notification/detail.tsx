@@ -1,6 +1,4 @@
-import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
-import "react-tabs/style/react-tabs.css";
-
+import { Tabs, Tab } from "react-bootstrap";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setUiProperties, selectUiProperties } from "@/store/members";
 
@@ -9,28 +7,20 @@ import ListServUpdate from "./ListServUpdate";
 
 export function NotificationDetail() {
 	const dispatch = useAppDispatch();
-	const tabIndex: number =
-		useAppSelector(selectUiProperties).notificationTabIndex || 0;
-	const setTabIndex = (tabIndex: number) => {
+	const tabIndex: string =
+		useAppSelector(selectUiProperties).notificationTabIndex || "send-email";
+	const setTabIndex = (tabIndex: string | null) => {
 		dispatch(setUiProperties({ notificationTabIndex: tabIndex }));
 	};
 
 	return (
-		<Tabs
-			style={{ width: "100%" }}
-			onSelect={setTabIndex}
-			selectedIndex={tabIndex}
-		>
-			<TabList>
-				<Tab>Send Email</Tab>
-				<Tab>ListServ Update</Tab>
-			</TabList>
-			<TabPanel>
+		<Tabs onSelect={setTabIndex} activeKey={tabIndex}>
+			<Tab eventKey="send-email" title="Send Email">
 				<NotificationEmail />
-			</TabPanel>
-			<TabPanel>
+			</Tab>
+			<Tab eventKey="listserv-update" title="ListServ Update">
 				<ListServUpdate />
-			</TabPanel>
+			</Tab>
 		</Tabs>
 	);
 }

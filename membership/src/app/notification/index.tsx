@@ -1,5 +1,5 @@
-import React from "react";
-
+import * as React from "react";
+import { Button } from "react-bootstrap";
 import {
 	AppTable,
 	TableColumnSelector,
@@ -9,7 +9,6 @@ import {
 	SplitPanel,
 	Panel,
 	ButtonGroup,
-	ActionButton,
 	displayDateRange,
 } from "dot11-components";
 
@@ -110,8 +109,9 @@ function Members() {
 							/>
 						</div>
 					</ButtonGroup>
-					<ActionButton
-						name="refresh"
+					<Button
+						variant="outline-primary"
+						className="bi-arrow-repeat"
 						title="Refresh"
 						onClick={refresh}
 					/>

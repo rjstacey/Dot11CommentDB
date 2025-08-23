@@ -1,7 +1,6 @@
 import React from "react";
-
+import { Row, Col, Button } from "react-bootstrap";
 import {
-	ActionButton,
 	AppTable,
 	SplitPanel,
 	Panel,
@@ -105,8 +104,8 @@ defaultTablesConfig["default"] = tableConfig;
 function Organization() {
 	return (
 		<>
-			<div className="top-row justify-right">
-				<div style={{ display: "flex" }}>
+			<Row className="w-100">
+				<Col className="d-flex justify-content-end">
 					<TableColumnSelector
 						selectors={groupsSelectors}
 						actions={groupsActions}
@@ -116,13 +115,14 @@ function Organization() {
 						selectors={groupsSelectors}
 						actions={groupsActions}
 					/>
-					<ActionButton
-						name="refresh"
+					<Button
+						variant="outline-primary"
+						className="bi-arrow-repeat"
 						title="Refresh"
 						onClick={refresh}
 					/>
-				</div>
-			</div>
+				</Col>
+			</Row>
 			<SplitPanel selectors={groupsSelectors} actions={groupsActions}>
 				<Panel>
 					<AppTable

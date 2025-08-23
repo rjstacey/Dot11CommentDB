@@ -1,12 +1,10 @@
 import * as React from "react";
-
+import { Button, FormCheck } from "react-bootstrap";
 import {
 	Col,
-	Checkbox,
 	displayDateRange,
 	shallowDiff,
 	useDebounce,
-	ActionButton,
 } from "dot11-components";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -149,7 +147,7 @@ function MemberBallotParticipation({
 			if (col.key === "period") renderCell = renderDateRange;
 			if (col.key === "excused") {
 				renderCell = (entry) => (
-					<Checkbox
+					<FormCheck
 						checked={entry.excused}
 						onChange={(e) =>
 							update(entry.series_id, {
@@ -191,10 +189,11 @@ function MemberBallotParticipation({
 
 	return (
 		<Col>
-			<div className="top-row">
-				<label>{`Recent ballot series participation: ${count}/${total}`}</label>
-				<ActionButton
-					name="copy"
+			<div className="d-flex align-items-center justify-content-between">
+				<div>{`Recent ballot series participation: ${count}/${total}`}</div>
+				<Button
+					variant="outline-primary"
+					className="bi-copy"
 					title="Copy to clipboard"
 					onClick={copyToClipboard}
 				/>

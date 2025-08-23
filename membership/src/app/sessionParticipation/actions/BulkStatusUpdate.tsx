@@ -1,17 +1,7 @@
-import React from "react";
+import * as React from "react";
 import type { EntityId, Dictionary } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
-
-import {
-	Form,
-	Row,
-	Field,
-	Input,
-	Checkbox,
-	Button,
-	Dropdown,
-	type DropdownRendererProps,
-} from "dot11-components";
+import { Form, Row, Col, Button, Dropdown, Spinner } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -40,21 +30,22 @@ type StatusFromParticipationType = {
 };
 
 function BulkStatusUpdateForm({
-	methods,
 	defaultReason,
 	defaultDate,
 	ids,
 	selected,
 	entities,
-}: DropdownRendererProps & {
+	close,
+}: {
 	defaultReason: string;
 	defaultDate: string;
 	ids: EntityId[];
 	selected: EntityId[];
 	entities: Dictionary<StatusFromParticipationType>;
+	close: () => void;
 }) {
 	const dispatch = useAppDispatch();
-	const [selectedOnly, setSelectedOnly] = React.useState(false);
+	const [selectedOnly, setSelectedOnly] = React.useState(true);
 	const [reason, setReason] = React.useState(defaultReason);
 	const [date, setDate] = React.useState(defaultDate);
 	const [busy, setBusy] = React.useState(false);
@@ -79,56 +70,76 @@ function BulkStatusUpdateForm({
 
 	const warning = `${updates.length} updates`;
 
-	const submit = async () => {
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
 		setBusy(true);
 		await dispatch(updateMembers(updates));
 		setBusy(false);
-		methods.close();
-	};
+		close();
+	}
 
 	return (
 		<Form
 			title="Bulk status update"
-			submit={submit}
-			cancel={methods.close}
-			busy={busy}
-			errorText={warning}
+			onSubmit={handleSubmit}
+			className="p-3"
 		>
-			<Row>Updated member status to expected status</Row>
 			<Row>
-				<Field label="Only selected entries:">
-					<Checkbox
-						size={24}
+				<p className="text-primary">
+					Updated status to expected status
+				</p>
+			</Row>
+			<Form.Group as={Row} className="mb-3 align-items-center">
+				<Form.Label column sm={8}>
+					Only selected entries:
+				</Form.Label>
+				<Col>
+					<Form.Check
 						checked={selectedOnly}
 						onChange={() => setSelectedOnly(!selectedOnly)}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Reason:">
-					<Input
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label column sm={3}>
+					Reason:
+				</Form.Label>
+				<Col>
+					<Form.Control
 						type="text"
-						size={24}
 						value={reason}
 						onChange={(e) => setReason(e.target.value)}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Date:">
-					<Input
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label column sm={3}>
+					Date:
+				</Form.Label>
+				<Col>
+					<Form.Control
 						type="date"
-						size={24}
 						value={date}
 						onChange={(e) => setDate(e.target.value)}
 					/>
-				</Field>
+				</Col>
+			</Form.Group>
+			<Row className="mb-3">
+				<p className="text-warning text-end">{warning}</p>
+			</Row>
+			<Row>
+				<Col className="d-flex justify-content-end">
+					<Button type="submit">
+						{busy && <Spinner animation="border" size="sm" />}
+						<span>Update</span>
+					</Button>
+				</Col>
 			</Row>
 		</Form>
 	);
 }
 
-function BulkStatusUpdateFormSession(props: DropdownRendererProps) {
+function BulkStatusUpdateFormSession({ close }: { close: () => void }) {
 	const recentSession = useAppSelector(selectMostRecentAttendedSession);
 	const defaultReason = `Session ${
 		recentSession.number || `id=${recentSession.id}`
@@ -145,17 +156,17 @@ function BulkStatusUpdateFormSession(props: DropdownRendererProps) {
 
 	return (
 		<BulkStatusUpdateForm
-			{...props}
 			defaultReason={defaultReason}
 			defaultDate={defaultDate}
 			ids={ids}
 			selected={selected}
 			entities={entities}
+			close={close}
 		/>
 	);
 }
 
-function BulkStatusUpdateFormBallotSeries(props: DropdownRendererProps) {
+function BulkStatusUpdateFormBallotSeries({ close }: { close: () => void }) {
 	const recentBallotSeries = useAppSelector(selectMostRecentBallotSeries);
 	const ballotEntities = useAppSelector(selectBallotEntities);
 	const ballotId =
@@ -172,51 +183,38 @@ function BulkStatusUpdateFormBallotSeries(props: DropdownRendererProps) {
 
 	return (
 		<BulkStatusUpdateForm
-			{...props}
 			defaultReason={defaultReason}
 			defaultDate={defaultDate}
 			ids={ids}
 			selected={selected}
 			entities={entities}
+			close={close}
 		/>
 	);
 }
-const label = "Bulk Status Update";
-const title = label;
-
-type BulkStatusUpdateProps = {
-	disabled?: boolean;
-	isSession: boolean;
-} & React.ComponentProps<typeof Dropdown>;
 
 export function BulkStatusUpdate({
 	disabled,
 	isSession,
-	...rest
-}: BulkStatusUpdateProps) {
-	const dropdownRenderer = isSession
-		? (props: DropdownRendererProps) => (
-				<BulkStatusUpdateFormSession {...props} />
-			)
-		: (props: DropdownRendererProps) => (
-				<BulkStatusUpdateFormBallotSeries {...props} />
-			);
-
+}: {
+	disabled?: boolean;
+	isSession: boolean;
+}) {
+	const [show, setShow] = React.useState(false);
 	return (
-		<Dropdown
-			handle={false}
-			selectRenderer={({ state, methods }) => (
-				<Button
-					title={title}
-					disabled={disabled}
-					isActive={state.isOpen}
-					onClick={state.isOpen ? methods.close : methods.open}
-				>
-					{label}
-				</Button>
-			)}
-			dropdownRenderer={dropdownRenderer}
-			{...rest}
-		/>
+		<Dropdown align="end" show={show} onToggle={() => setShow(!show)}>
+			<Dropdown.Toggle variant="success-outline" disabled={disabled}>
+				Bulk Status Update
+			</Dropdown.Toggle>
+			<Dropdown.Menu style={{ width: 400 }}>
+				{isSession ? (
+					<BulkStatusUpdateFormSession close={() => setShow(false)} />
+				) : (
+					<BulkStatusUpdateFormBallotSeries
+						close={() => setShow(false)}
+					/>
+				)}
+			</Dropdown.Menu>
+		</Dropdown>
 	);
 }

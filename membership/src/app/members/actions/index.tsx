@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router";
+import { Row, Col, Button } from "react-bootstrap";
 import type { EntityId } from "@reduxjs/toolkit";
-import { ActionButton } from "dot11-components";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectMembersState, Member, MembersDictionary } from "@/store/members";
@@ -73,31 +73,52 @@ export function MembersActions() {
 	);
 
 	return (
-		<div className="top-row">
-			<MembersSummary />
-			<div className="control-group">
-				{tableActionsEl}
-				<MembersRoster />
-				<MembersExport />
-				<MembersUpload />
-				<ActionButton
-					name="bi-r-circle"
-					title="Show roster"
-					isActive={showRoster}
-					onClick={toggleShowRoster}
-				/>
-				<ActionButton
-					name="copy"
-					title="Copy selected members to clipboard"
-					disabled={showRoster || selected.length === 0}
-					onClick={() => setClipboard(selected, members)}
-				/>
-				<ActionButton
-					name="refresh"
-					title="Refresh"
-					onClick={refresh}
-				/>
-			</div>
-		</div>
+		<Row className="w-100">
+			<Col md={12} lg={4}>
+				<MembersSummary />
+			</Col>
+			<Col md={12} lg={8}>
+				<Row>
+					<Col
+						xs={{ span: 12, order: "last" }}
+						md={{ span: "auto", order: "first" }}
+					>
+						{tableActionsEl}
+					</Col>
+					<Col>
+						<div className="d-flex">
+							<MembersRoster />
+							<MembersExport />
+							<MembersUpload />
+						</div>
+					</Col>
+					<Col className="d-flex justify-content-end align-items-center gap-2">
+						<Button
+							variant="outline-primary"
+							title="Show roster"
+							active={showRoster}
+							onClick={toggleShowRoster}
+						>
+							Show Roster
+						</Button>
+						<Button
+							className="bi-copy"
+							variant="outline-primary"
+							name="copy"
+							title="Copy selected members to clipboard"
+							disabled={showRoster || selected.length === 0}
+							onClick={() => setClipboard(selected, members)}
+						/>
+						<Button
+							className="bi-arrow-repeat"
+							variant="outline-primary"
+							name="refresh"
+							title="Refresh"
+							onClick={refresh}
+						/>
+					</Col>
+				</Row>
+			</Col>
+		</Row>
 	);
 }

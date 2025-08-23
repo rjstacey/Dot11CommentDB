@@ -301,7 +301,7 @@ function GroupDetail() {
 				</div>
 			</div>
 			{placeholder ? (
-				<div className="placeholder">{placeholder}</div>
+				<div className="details-panel-placeholder">{placeholder}</div>
 			) : (
 				<GroupEntryForm
 					action={state.action}

@@ -1,7 +1,7 @@
-import { Checkbox, displayDateRange } from "dot11-components";
+import { Row, Col, Form } from "react-bootstrap";
+import { displayDateRange } from "dot11-components";
 import { useAppSelector } from "@/store/hooks";
 import { selectRecentSessions } from "@/store/sessions";
-import css from "../reports.module.css";
 
 export function SessionsSelector({
 	selected,
@@ -21,16 +21,9 @@ export function SessionsSelector({
 	}
 
 	return (
-		<div className={css.sessionsContainer}>
+		<Row className="w-100">
 			{sessions.map((session) => (
-				<div
-					key={session.id}
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						margin: 5,
-					}}
-				>
+				<Col key={session.id} xs={2}>
 					<div style={{ whiteSpace: "nowrap" }}>
 						{session.number}{" "}
 						{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
@@ -50,13 +43,13 @@ export function SessionsSelector({
 						<div>{`(${session.attendees} attendees)`}</div>
 					</div>
 					<div style={{ display: "flex" }}>
-						<Checkbox
+						<Form.Check
 							checked={selected.includes(session.id)}
 							onChange={() => toggleSelected(session.id)}
 						/>
 					</div>
-				</div>
+				</Col>
 			))}
-		</div>
+		</Row>
 	);
 }

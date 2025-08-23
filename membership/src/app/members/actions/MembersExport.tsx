@@ -1,15 +1,5 @@
-import React from "react";
-import {
-	Button,
-	Form,
-	Row,
-	List,
-	ListItem,
-	Dropdown,
-	DropdownRendererProps,
-	Checkbox,
-	ActionIcon,
-} from "dot11-components";
+import * as React from "react";
+import { Dropdown, Form, Button, CloseButton, Row, Col } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -19,7 +9,7 @@ import {
 	MemberStatus,
 } from "@/store/members";
 
-function MembersExportForm({ methods }: DropdownRendererProps) {
+function MembersExportForm() {
 	const dispatch = useAppDispatch();
 	const [statuses, setStatuses] = React.useState<MemberStatus[]>([
 		...activeMemberStatusValues,
@@ -43,93 +33,88 @@ function MembersExportForm({ methods }: DropdownRendererProps) {
 		setStatuses([...statuses]);
 	}
 
+	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
+		e.stopPropagation();
+		dispatch(exportMembers({ format, status: statuses, date }));
+	}
+
 	return (
-		<Form
-			style={{ width: 300 }}
-			submit={() =>
-				dispatch(exportMembers({ format, status: statuses, date }))
-			}
-			cancel={methods.close}
-			title="Export a list of members"
-		>
-			<Row>
-				<List label="Purpose:">
-					<ListItem>
-						<input
-							type="radio"
-							id="publicList"
-							name="format"
-							value="public"
-							checked={format === "public"}
-							onChange={() => changeFormat("public")}
-						/>
-						<label htmlFor="publicList">Public list</label>
-					</ListItem>
-					<ListItem>
-						<input
-							type="radio"
-							id="dvl"
-							name="format"
-							value="registration"
-							checked={format === "registration"}
-							onChange={() => changeFormat("registration")}
-						/>
-						<label htmlFor="dvl">Session registration</label>
-					</ListItem>
-					<ListItem>
-						<input
-							type="radio"
-							id="dvl"
-							name="format"
-							value="dvl"
-							checked={format === "dvl"}
-							onChange={() => changeFormat("dvl")}
-						/>
-						<label htmlFor="dvl">DirectVoteLive</label>
-					</ListItem>
-					<ListItem>
-						<input
-							type="radio"
-							id="publication"
-							name="format"
-							value="publication"
-							checked={format === "publication"}
-							onChange={() => changeFormat("publication")}
-						/>
-						<label htmlFor="publication">Publication</label>
-					</ListItem>
-				</List>
-			</Row>
-			<Row>
-				<List label="Include members with status:">
+		<Form onSubmit={handleSubmit} className="p-3">
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label>Purpose:</Form.Label>
+				<Col sm={{ offset: 4, span: 8 }}>
+					<Form.Check
+						type="radio"
+						id="publicList"
+						name="format"
+						value="public"
+						checked={format === "public"}
+						onChange={() => changeFormat("public")}
+						label="Public list"
+					/>
+					<Form.Check
+						type="radio"
+						id="sessionRegistration"
+						name="format"
+						value="registration"
+						checked={format === "registration"}
+						onChange={() => changeFormat("registration")}
+						label="Session registration"
+					/>
+					<Form.Check
+						type="radio"
+						id="dvl"
+						name="format"
+						value="dvl"
+						checked={format === "dvl"}
+						onChange={() => changeFormat("dvl")}
+						label="DirectVoteLive"
+					/>
+					<Form.Check
+						type="radio"
+						id="publication"
+						name="format"
+						value="publication"
+						checked={format === "publication"}
+						onChange={() => changeFormat("publication")}
+						label="Publication"
+					/>
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label as="span">Include members with status:</Form.Label>
+				<Col sm={{ offset: 4, span: 8 }}>
 					{activeMemberStatusValues.map((s) => (
-						<ListItem key={s}>
-							<Checkbox
-								id={s}
-								checked={statuses.includes(s)}
-								onChange={() => toggleStatus(s)}
-							/>
-							<label htmlFor={s}>{s}</label>
-						</ListItem>
+						<Form.Check
+							key={s}
+							type="checkbox"
+							checked={statuses.includes(s)}
+							onChange={() => toggleStatus(s)}
+							label={s}
+							id={s}
+						/>
 					))}
-				</List>
-			</Row>
-			<Row>
-				<label htmlFor="date">
-					<span>Snapshot date:</span>
-				</label>
-				<div>
-					<input
-						id="date"
+				</Col>
+			</Form.Group>
+			<Form.Group className="mb-3" controlId="date">
+				<Form.Label>Snapshot date:</Form.Label>
+				<Col
+					sm={{ offset: 4, span: 8 }}
+					className="d-flex align-items-center"
+				>
+					<Form.Control
 						type="date"
 						value={date || ""}
 						onChange={(e) => setDate(e.target.value)}
 					/>
-					<ActionIcon
-						name="bi-x"
-						onClick={() => setDate(undefined)}
-					/>
-				</div>
+					<CloseButton onClick={() => setDate(undefined)} />
+				</Col>
+			</Form.Group>
+			<Row>
+				<Col className="d-flex justify-content-end">
+					<Button type="submit">Export</Button>
+				</Col>
 			</Row>
 		</Form>
 	);
@@ -137,26 +122,13 @@ function MembersExportForm({ methods }: DropdownRendererProps) {
 
 export function MembersExport() {
 	return (
-		<Dropdown
-			handle={false}
-			selectRenderer={({ state, methods }: DropdownRendererProps) => (
-				<Button
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-						fontSize: 10,
-						fontWeight: 700,
-					}}
-					title="Export a list of members"
-					isActive={state.isOpen}
-					onClick={state.isOpen ? methods.close : methods.open}
-				>
-					<span>Export</span>
-					<span>Members List</span>
-				</Button>
-			)}
-			dropdownRenderer={(props) => <MembersExportForm {...props} />}
-		/>
+		<Dropdown align="end">
+			<Dropdown.Toggle variant="success-outline">
+				Export Members List
+			</Dropdown.Toggle>
+			<Dropdown.Menu style={{ minWidth: "300px" }}>
+				<MembersExportForm />
+			</Dropdown.Menu>
+		</Dropdown>
 	);
 }

@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
-import { Field, Col, ActionIcon } from "dot11-components";
+import { Form, Row } from "react-bootstrap";
+import { ActionIcon } from "dot11-components";
 
 import { OfficerId, Officer } from "@/store/officers";
 
@@ -87,10 +88,12 @@ function Officers({
 	});
 
 	return (
-		<Col>
-			<Field label="Officers:" />
-			<Table columns={columns} values={officers} />
-		</Col>
+		<Form.Group as={Row} className="mb-3" controlId="group.officers">
+			<Form.Label as="legend" column>
+				Officers:
+			</Form.Label>
+			<Table columns={columns} values={officers} id="group.officers" />
+		</Form.Group>
 	);
 }
 

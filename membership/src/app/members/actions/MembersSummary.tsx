@@ -1,58 +1,47 @@
-import React from "react";
+import { Col, Table } from "react-bootstrap";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { useAppSelector } from "@/store/hooks";
-import { selectMemberEntities } from "@/store/members";
+import { selectMemberEntities, MemberStatus } from "@/store/members";
 
-import styles from "./MembersSummary.module.css";
+type MemberSummary = Partial<Record<MemberStatus, number>>;
 
 const selectMembersSummary = createSelector(selectMemberEntities, (members) => {
-	const s = { nv: 0, o: 0, a: 0, pv: 0, v: 0, eo: 0 };
-	for (const m of Object.values(members)) {
-		switch (m!.Status) {
-			case "Non-Voter":
-				s.nv++;
-				break;
-			case "Observer":
-				s.o++;
-				break;
-			case "Aspirant":
-				s.a++;
-				break;
-			case "Potential Voter":
-				s.pv++;
-				break;
-			case "Voter":
-				s.v++;
-				break;
-			case "ExOfficio":
-				s.eo++;
-				break;
-			default:
-				break;
-		}
-	}
+	const s: MemberSummary = {
+		"Non-Voter": 0,
+		Observer: 0,
+		Aspirant: 0,
+		"Potential Voter": 0,
+		Voter: 0,
+		ExOfficio: 0,
+	};
+	for (const m of Object.values(members)) if (m!.Status in s) s[m!.Status]!++;
 	return s;
 });
 
-const LabelValue = ({ label, value }: { label: string; value: number }) => (
-	<div className={styles.labelValue}>
-		<span>{label}</span>
-		<span>{value}</span>
-	</div>
-);
-
-export function MembersSummary(props: React.ComponentProps<"div">) {
+export function MembersSummary() {
 	const summary = useAppSelector(selectMembersSummary);
 
 	return (
-		<div className={styles.container} {...props}>
-			<LabelValue label="Non-Voters" value={summary.nv} />
-			<LabelValue label="Observer" value={summary.o} />
-			<LabelValue label="Aspirants" value={summary.a} />
-			<LabelValue label="Potential Voters" value={summary.pv} />
-			<LabelValue label="Voters" value={summary.v} />
-			<LabelValue label="ExOfficio" value={summary.eo} />
-		</div>
+		<Col>
+			<Table bordered responsive>
+				<thead>
+					<tr>
+						{Object.keys(summary).map((key) => (
+							<th key={key}>{key}</th>
+						))}
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						{Object.values(summary).map((key) => (
+							<td key={key} className="text-center">
+								{key}
+							</td>
+						))}
+					</tr>
+				</tbody>
+			</Table>
+		</Col>
 	);
 }

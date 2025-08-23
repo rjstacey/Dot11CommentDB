@@ -1,15 +1,17 @@
-import React from "react";
-import { DateTime } from "luxon";
-import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
-import "react-tabs/style/react-tabs.css";
-
+import * as React from "react";
 import {
-	Form,
+	Tabs,
+	Tab,
+	Table,
 	Row,
 	Col,
-	Field,
-	FieldLeft,
-	Input,
+	Form,
+	Button,
+	Spinner,
+} from "react-bootstrap";
+import { DateTime } from "luxon";
+
+import {
 	ConfirmModal,
 	isMultiple,
 	type Multiple,
@@ -73,9 +75,9 @@ function ShortMemberSummary({ sapins }: { sapins: number[] }) {
 		);
 	});
 	return (
-		<table>
+		<Table size="sm" borderless responsive>
 			<tbody>{rows}</tbody>
-		</table>
+		</Table>
 	);
 }
 
@@ -104,10 +106,26 @@ export function MemberDetailInfo({
 	basicOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
-	let tabIndex: number = useAppSelector(selectUiProperties).tabIndex || 0;
-	if (basicOnly && tabIndex > 1) tabIndex = 0;
-	const setTabIndex = (tabIndex: number) => {
-		dispatch(setUiProperties({ tabIndex }));
+	let tabKey: string = useAppSelector(selectUiProperties).tabKey;
+	if (
+		![
+			"contact-info",
+			"membership-status",
+			"ballot-participation",
+			"session-participation",
+		].includes(tabKey)
+	) {
+		tabKey = "contact-info";
+	}
+	if (
+		basicOnly &&
+		tabKey !== "contact-info" &&
+		tabKey !== "membership-status"
+	) {
+		tabKey = "contact-info";
+	}
+	const setTabKey = (tabKey: string | null) => {
+		dispatch(setUiProperties({ tabKey }));
 	};
 
 	const memberEntitiesWithParticipation = useAppSelector(
@@ -119,52 +137,44 @@ export function MemberDetailInfo({
 		memberWithParticipation?.BallotParticipationSummary || "";
 
 	return (
-		<Tabs
-			style={{ width: "100%" }}
-			onSelect={setTabIndex}
-			selectedIndex={tabIndex}
-		>
-			<TabList>
-				<Tab>Contact info</Tab>
-				<Tab>Memberhip status</Tab>
-				{!basicOnly && (
-					<Tab>{`Session participation ${sessionSumary}`}</Tab>
-				)}
-				{!basicOnly && (
-					<Tab>{`Ballot participation ${ballotSummary}`}</Tab>
-				)}
-			</TabList>
-			<TabPanel>
+		<Tabs onSelect={setTabKey} activeKey={tabKey} fill>
+			<Tab eventKey="contact-info" title="Contact Info">
 				<MemberContactInfo
 					edited={member}
 					saved={saved}
 					onChange={updateMember}
 					readOnly={readOnly}
 				/>
-			</TabPanel>
-			<TabPanel>
+			</Tab>
+			<Tab eventKey="membership-status" title="Membership Status">
 				<MemberStatus
 					member={member}
 					saved={saved}
 					updateMember={updateMember}
 					readOnly={readOnly}
 				/>
-			</TabPanel>
+			</Tab>
 			{!basicOnly && (
-				<TabPanel>
+				<Tab
+					eventKey="session-participation"
+					title={`Session participation ${sessionSumary}`}
+				>
 					<MemberSessionParticipation
 						SAPIN={sapin}
 						readOnly={readOnly}
 					/>
-				</TabPanel>
+				</Tab>
 			)}
 			{!basicOnly && (
-				<TabPanel>
+				<Tab
+					eventKey="ballot-participation"
+					title={`Ballot participation ${ballotSummary}`}
+				>
 					<MemberBallotParticipation
 						SAPIN={sapin}
 						readOnly={readOnly}
 					/>
-				</TabPanel>
+				</Tab>
 			)}
 		</Tabs>
 	);
@@ -187,23 +197,18 @@ function ExpandingInput({
 	member: MultipleMember;
 	saved?: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
-} & React.ComponentProps<typeof Input>) {
+} & React.ComponentProps<typeof Form.Control>) {
 	const value = "" + member[dataKey];
 	const savedValue: string | number | boolean | null | undefined =
 		saved?.[dataKey] || "";
 	return (
-		<div
-			style={{
-				display: "flex",
-				flexDirection: "column",
-			}}
-		>
-			<Input
+		<Col className="d-flex flex-column">
+			<Form.Control
 				{...props}
 				type="text"
 				style={{
 					...hasChangesStyle(member, saved, dataKey),
-					width: `${Math.max(value.length + 3, 22)}ch`,
+					//width: `${Math.max(value.length + 3, 22)}ch`,
 					alignSelf: "flex-end",
 				}}
 				name={dataKey}
@@ -211,12 +216,8 @@ function ExpandingInput({
 				onChange={(e) => updateMember({ [dataKey]: e.target.value })}
 				placeholder={isMultiple(value) ? MULTIPLE_STR : BLANK_STR}
 			/>
-			<span
-				style={{ fontSize: "x-small", marginTop: 3, padding: "0 5px" }}
-			>
-				{savedValue}
-			</span>
-		</div>
+			<Form.Text className="text-muted">{savedValue}</Form.Text>
+		</Col>
 	);
 }
 
@@ -247,7 +248,7 @@ export function MemberBasicInfo({
 	} else {
 		sapinsLabel = "SA PIN:";
 		sapinsEl = (
-			<Input
+			<Form.Control
 				type="text"
 				value={member.SAPIN}
 				onChange={(e) =>
@@ -262,63 +263,84 @@ export function MemberBasicInfo({
 
 	return (
 		<>
-			<Row>
-				<FieldLeft id="sapin" label={sapinsLabel}>
+			<Row className="mb-3">
+				<Form.Group
+					as={Col}
+					xs={8}
+					controlId="sapins"
+					className="d-flex"
+				>
+					<Form.Label column xs={2}>
+						{sapinsLabel}
+					</Form.Label>
 					{sapinsEl}
-				</FieldLeft>
-				<FieldLeft label="Date added:">
-					{renderDate(member.DateAdded)}
-				</FieldLeft>
+				</Form.Group>
+				<Form.Group
+					as={Col}
+					xs={4}
+					controlId="dateAdded"
+					className="d-flex align-items-center justify-content-space-between gap-2"
+				>
+					<Form.Label as="span">Date added:</Form.Label>
+					<Form.Control as="div">
+						{renderDate(member.DateAdded)}
+					</Form.Control>
+				</Form.Group>
 			</Row>
-			<Row>
-				<Field id="name" label="Name:">
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label column xs={3}>
+					Name:
+				</Form.Label>
+				<ExpandingInput
+					dataKey="Name"
+					member={member}
+					saved={saved}
+					updateMember={updateMember}
+					disabled={readOnly}
+					autoComplete="none"
+				/>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label column xs={3}>
+					Family name:
+				</Form.Label>
+				<ExpandingInput
+					dataKey="LastName"
+					member={member}
+					saved={saved}
+					updateMember={updateMember}
+					disabled={readOnly}
+					autoComplete="none"
+				/>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label column xs={4}>
+					Given name/MI:
+				</Form.Label>
+				<Col className="d-flex flex-wrap gap-2">
 					<ExpandingInput
-						dataKey="Name"
+						dataKey="FirstName"
 						member={member}
 						saved={saved}
 						updateMember={updateMember}
 						disabled={readOnly}
 						autoComplete="none"
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field id="familyname" label="Family name:">
 					<ExpandingInput
-						dataKey="LastName"
+						dataKey="MI"
 						member={member}
 						saved={saved}
 						updateMember={updateMember}
 						disabled={readOnly}
 						autoComplete="none"
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Given/MI name:">
-					<div style={{ display: "flex", flexWrap: "wrap" }}>
-						<ExpandingInput
-							dataKey="FirstName"
-							member={member}
-							saved={saved}
-							updateMember={updateMember}
-							disabled={readOnly}
-							autoComplete="none"
-						/>
-						<div style={{ padding: 5 }} />
-						<ExpandingInput
-							dataKey="MI"
-							member={member}
-							saved={saved}
-							updateMember={updateMember}
-							disabled={readOnly}
-							autoComplete="none"
-						/>
-					</div>
-				</Field>
-			</Row>
-			<Row>
-				<Field id="email" label="Email:">
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row}>
+				<Form.Label column xs={2}>
+					Email:
+				</Form.Label>
+				<Col>
 					<ExpandingInput
 						dataKey="Email"
 						member={member}
@@ -328,10 +350,13 @@ export function MemberBasicInfo({
 						pattern={emailPattern}
 						autoComplete="none"
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field id="employer" label="Employer:">
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row}>
+				<Form.Label column xs={3}>
+					Employer:
+				</Form.Label>
+				<Col>
 					<ExpandingInput
 						dataKey="Employer"
 						member={member}
@@ -340,10 +365,13 @@ export function MemberBasicInfo({
 						disabled={readOnly}
 						autoComplete="none"
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field id="affiliation" label="Affiliation:">
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row}>
+				<Form.Label column xs={3}>
+					Affiliation:
+				</Form.Label>
+				<Col>
 					<ExpandingInput
 						dataKey="Affiliation"
 						member={member}
@@ -352,11 +380,12 @@ export function MemberBasicInfo({
 						disabled={readOnly}
 						autoComplete="none"
 					/>
-				</Field>
-			</Row>
+				</Col>
+			</Form.Group>
 			{member.Status === "Obsolete" && (
-				<Row>
-					<Field label="Replaced by:">
+				<Form.Group as={Row}>
+					<Form.Label column>Replaced by:</Form.Label>
+					<Col>
 						<MemberAllSelector
 							style={{ maxWidth: 400, flex: 1 }}
 							value={
@@ -376,8 +405,8 @@ export function MemberBasicInfo({
 							}
 							readOnly={readOnly}
 						/>
-					</Field>
-				</Row>
+					</Col>
+				</Form.Group>
 			)}
 			{!hasMany && (
 				<>
@@ -396,6 +425,38 @@ export function MemberBasicInfo({
 				</>
 			)}
 		</>
+	);
+}
+
+function SubmitCancel({
+	action,
+	busy,
+	submit,
+	cancel,
+}: {
+	action: EditAction;
+	busy?: boolean;
+	submit?: () => void;
+	cancel?: () => void;
+}) {
+	return (
+		<Form.Group as={Row} className="mb-3">
+			<Col xs={6} className="d-flex justify-content-center">
+				{submit && (
+					<Button type="submit">
+						{busy && <Spinner animation="border" size="sm" />}
+						{action === "add" ? "Add" : "Update"}
+					</Button>
+				)}
+			</Col>
+			<Col xs={6} className="d-flex justify-content-center">
+				{cancel && (
+					<Button variant="secondary" onClick={cancel}>
+						Cancel
+					</Button>
+				)}
+			</Col>
+		</Form.Group>
 	);
 }
 
@@ -432,9 +493,8 @@ export function MemberEntryForm({
 	else if (!new RegExp(emailPattern).test(member.Email))
 		errMsg = "Invalid email address";
 
-	let submitForm, cancelForm, submitLabel;
+	let submitForm, cancelForm;
 	if (action === "add") {
-		submitLabel = "Add";
 		submitForm = async () => {
 			if (errMsg) {
 				ConfirmModal.show("Fix error: " + errMsg, false);
@@ -444,7 +504,6 @@ export function MemberEntryForm({
 		};
 		cancelForm = cancel;
 	} else if (action === "update") {
-		submitLabel = "Update";
 		submitForm = async () => {
 			if (errMsg) {
 				ConfirmModal.show("Fix error: " + errMsg, false);
@@ -489,22 +548,17 @@ export function MemberEntryForm({
 	}
 
 	return (
-		<Form
-			className="main"
-			submitLabel={submitLabel}
-			submit={submitForm}
-			cancel={cancelForm}
-			errorText={errMsg}
-		>
+		<Form className="p-3">
 			{action === "add" && !basicOnly && (
-				<Row>
-					<Field label="Add existing IEEE member:">
+				<Form.Group as={Row}>
+					<Form.Label column>Add existing IEEE member:</Form.Label>
+					<Col xs="auto">
 						<IeeeMemberSelector
 							value={member.SAPIN as number}
 							onChange={(sapin) => setMember(sapin)}
 						/>
-					</Field>
-				</Row>
+					</Col>
+				</Form.Group>
 			)}
 			<MemberBasicInfo
 				sapins={action === "add" ? [member.SAPIN as number] : sapins}
@@ -515,7 +569,7 @@ export function MemberEntryForm({
 				basicOnly={basicOnly}
 			/>
 			{sapins.length <= 1 && (
-				<Row>
+				<Row className="d-flex flex-column align-items-start w-100">
 					<MemberDetailInfo
 						sapin={sapins[0]}
 						member={member}
@@ -526,6 +580,15 @@ export function MemberEntryForm({
 					/>
 				</Row>
 			)}
+			<Row>
+				<Form.Text>{errMsg}</Form.Text>
+			</Row>
+			<SubmitCancel
+				action={action}
+				submit={submitForm}
+				cancel={cancelForm}
+				busy={false}
+			/>
 		</Form>
 	);
 }

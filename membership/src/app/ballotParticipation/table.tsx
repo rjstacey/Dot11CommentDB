@@ -23,7 +23,6 @@ export function BallotParticipationTable() {
 	const { selected } = useAppSelector(selectBallotParticipationState);
 
 	const [columns, defaultTablesConfig] = useTableColumns();
-	console.log(defaultTablesConfig);
 
 	return (
 		<>

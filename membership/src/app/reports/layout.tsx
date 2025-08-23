@@ -1,44 +1,41 @@
 import { NavLink, Outlet } from "react-router";
-import { ActionButton } from "dot11-components";
+import { Container, Row, Col, Nav, Button } from "react-bootstrap";
 import { copyChartToClipboard, downloadChart } from "@/components/copyChart";
-import css from "./reports.module.css";
 
 export function Reports() {
 	return (
-		<div className={css.container}>
-			<div className={css.nav}>
-				<NavLink className={css.button} to="members">
+		<Container fluid className="d-flex flex-grow-1 w-100">
+			<Nav variant="pills" className="flex-column">
+				<Nav.Link as={NavLink} to="members">
 					Members by Affiliation
-				</NavLink>
-				<NavLink
-					className={css.button}
-					to="sessionParticipation/per-session"
-				>
+				</Nav.Link>
+				<Nav.Link as={NavLink} to="sessionParticipation/per-session">
 					Per Session Participation
-				</NavLink>
-				<NavLink
-					className={css.button}
-					to="sessionParticipation/cumulative"
-				>
+				</Nav.Link>
+				<Nav.Link as={NavLink} to="sessionParticipation/cumulative">
 					Cumulative Session Participation
-				</NavLink>
-			</div>
-			<div className={css.main}>
-				<div className={css.actionRow}>
-					<ActionButton
-						name="copy"
-						title="Copy chart to clipboard"
-						onClick={() => copyChartToClipboard("#chart")}
-					/>
-					<ActionButton
-						name="export"
-						title="Export chart"
-						onClick={downloadChart}
-					/>
-				</div>
+				</Nav.Link>
+			</Nav>
+			<Container fluid className="d-flex flex-column p-3">
+				<Row>
+					<Col className="d-flex justify-content-end gap-2">
+						<Button
+							variant="outline-primary"
+							className="bi-copy"
+							title="Copy chart to clipboard"
+							onClick={() => copyChartToClipboard("#chart")}
+						/>
+						<Button
+							variant="outline-primary"
+							className="bi-cloud-download"
+							title="Export chart"
+							onClick={downloadChart}
+						/>
+					</Col>
+				</Row>
 				<Outlet />
-			</div>
-		</div>
+			</Container>
+		</Container>
 	);
 }
 

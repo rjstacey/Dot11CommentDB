@@ -1,5 +1,5 @@
 import { saveAs } from "file-saver";
-import { Button } from "dot11-components";
+import { Button, NavLink } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectSelectedMembers, Member } from "@/store/members";
@@ -27,7 +27,7 @@ export default function ListServUpdate() {
 					'Export the selected members as a text file. Each line has "[Email address] [Full name]".'
 				}
 			</p>
-			<Button onClick={() => createFile(members)}>
+			<Button variant="primary" onClick={() => createFile(members)}>
 				Export list of selected members
 			</Button>
 			<p>
@@ -35,13 +35,13 @@ export default function ListServUpdate() {
 					"Then use the link below to go to the LISTSERV Bulk Operations and perform the update."
 				}
 			</p>
-			<a
+			<NavLink
 				target="_blank"
 				rel="noopener noreferrer"
 				href="https://listserv.ieee.org/cgi-bin/wa?BULKOP1=STDS-802-11"
 			>
 				ieee.listserv.org bulk operations
-			</a>
+			</NavLink>
 		</>
 	);
 }
