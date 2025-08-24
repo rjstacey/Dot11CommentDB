@@ -1,4 +1,5 @@
-import React from "react";
+import * as React from "react";
+import { Form, Row, Col, Button, Spinner } from "react-bootstrap";
 import { useParams } from "react-router";
 import isEqual from "lodash.isequal";
 import {
@@ -6,10 +7,6 @@ import {
 	deepMergeTagMultiple,
 	deepDiff,
 	deepMerge,
-	Form,
-	Row,
-	Field,
-	Checkbox,
 	isMultiple,
 	type Multiple,
 	MULTIPLE,
@@ -96,99 +93,102 @@ function AttendanceInfo({
 }) {
 	return (
 		<>
-			<Row>
-				<Field label="Registration:">
-					<div style={{ display: "flex", alignItems: "center" }}>
-						<div
-							style={{
-								display: "flex",
-								alignItems: "center",
-								marginRight: 20,
-							}}
-						>
-							<Checkbox
-								id="isregistered"
-								checked={!!attendance.IsRegistered}
-								indeterminate={isMultiple(
-									attendance.IsRegistered
-								)}
-								onChange={(e) =>
-									updateAttendance({
-										IsRegistered: e.target.checked,
-									})
-								}
-							/>
-							<label htmlFor="isregistered">Registered</label>
-						</div>
-						<div
-							style={{
-								display: "flex",
-								alignItems: "center",
-							}}
-						>
-							<Checkbox
-								id="inperson"
-								checked={!!attendance.InPerson}
-								indeterminate={isMultiple(attendance.InPerson)}
-								onChange={(e) =>
-									updateAttendance({
-										InPerson: e.target.checked,
-									})
-								}
-							/>
-							<label htmlFor="inperson">In-person</label>
-						</div>
-					</div>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="IMAT recorded attendance:">
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label as="span" column>
+					Registration:
+				</Form.Label>
+				<Col xs={12} md={8}>
+					<Form.Check
+						id="isregistered"
+						checked={!!attendance.IsRegistered}
+						//indeterminate={isMultiple(attendance.IsRegistered)}
+						onChange={(e) =>
+							updateAttendance({
+								IsRegistered: e.target.checked,
+							})
+						}
+						label="Registered"
+					/>
+					<Form.Check
+						id="inperson"
+						checked={!!attendance.InPerson}
+						//indeterminate={isMultiple(attendance.InPerson)}
+						onChange={(e) =>
+							updateAttendance({
+								InPerson: e.target.checked,
+							})
+						}
+						label="In-person"
+					/>
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label as="span" column>
+					Attendance percentage:
+				</Form.Label>
+				<Col xs={12} md={8}>
 					{renderAttendancePercentage(
 						attendance.AttendancePercentage
 					)}
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Attendance override:">
-					<div style={{ display: "flex", alignItems: "center" }}>
-						<div
-							style={{
-								display: "flex",
-								alignItems: "center",
-								marginRight: 20,
-							}}
-						>
-							<Checkbox
-								id="didattend"
-								checked={!!attendance.DidAttend}
-								indeterminate={isMultiple(attendance.DidAttend)}
-								onChange={(e) =>
-									updateAttendance({
-										DidAttend: e.target.checked,
-									})
-								}
-							/>
-							<label htmlFor="didattend">Did attend</label>
-						</div>
-						<div style={{ display: "flex", alignItems: "center" }}>
-							<Checkbox
-								id="didnotattend"
-								checked={!!attendance.DidNotAttend}
-								indeterminate={isMultiple(
-									attendance.DidNotAttend
-								)}
-								onChange={(e) =>
-									updateAttendance({
-										DidNotAttend: e.target.checked,
-									})
-								}
-							/>
-							<label htmlFor="didnotattend">Did not attend</label>
-						</div>
-					</div>
-				</Field>
-			</Row>
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label as="span" column>
+					Attendance override:
+				</Form.Label>
+				<Col xs={12} md={8}>
+					<Form.Check
+						id="didattend"
+						checked={!!attendance.DidAttend}
+						//indeterminate={isMultiple(attendance.DidAttend)}
+						onChange={(e) =>
+							updateAttendance({
+								DidAttend: e.target.checked,
+							})
+						}
+						label="Did attend"
+					/>
+					<Form.Check
+						id="didnotattend"
+						checked={!!attendance.DidNotAttend}
+						//indeterminate={isMultiple(attendance.DidNotAttend)}
+						onChange={(e) =>
+							updateAttendance({
+								DidNotAttend: e.target.checked,
+							})
+						}
+						label="Did not attend"
+					/>
+				</Col>
+			</Form.Group>
 		</>
+	);
+}
+
+function MemberEntrySubmit({
+	action,
+	busy,
+	cancel,
+}: {
+	action: EditAction;
+	busy?: boolean;
+	cancel?: () => void;
+}) {
+	if (action !== "add" && action !== "update") return null;
+	return (
+		<Form.Group as={Row} className="mb-3">
+			<Col xs={6} className="d-flex justify-content-center">
+				<Button type="submit">
+					{busy ? <Spinner animation="border" size="sm" /> : null}
+					{action === "add" ? "Add" : "Update"}
+				</Button>
+			</Col>
+			<Col xs={6} className="d-flex justify-content-center">
+				<Button variant="secondary" onClick={cancel}>
+					Cancel
+				</Button>
+			</Col>
+		</Form.Group>
 	);
 }
 
@@ -229,27 +229,25 @@ export function MemberEntryForm({
 	else if (!new RegExp(emailPattern).test(member.Email))
 		errMsg = "Invalid email address";
 
-	let submitForm, cancelForm, submitLabel;
+	let submitForm;
 	if (action === "add") {
-		submitLabel = "Add";
-		submitForm = async () => {
+		submitForm = async (e: React.FormEvent<HTMLFormElement>) => {
+			e.preventDefault();
 			if (errMsg) {
 				ConfirmModal.show("Fix error: " + errMsg, false);
 				return;
 			}
 			add();
 		};
-		cancelForm = cancel;
 	} else if (action === "update") {
-		submitLabel = "Update";
-		submitForm = async () => {
+		submitForm = async (e: React.FormEvent<HTMLFormElement>) => {
+			e.preventDefault();
 			if (errMsg) {
 				ConfirmModal.show("Fix error: " + errMsg, false);
 				return;
 			}
 			update();
 		};
-		cancelForm = cancel;
 	}
 
 	function changeMember(changes: Partial<Member>) {
@@ -274,13 +272,7 @@ export function MemberEntryForm({
 	}
 
 	return (
-		<Form
-			className="main"
-			submitLabel={submitLabel}
-			submit={submitForm}
-			cancel={cancelForm}
-			errorText={errMsg}
-		>
+		<Form className="p-3" onSubmit={submitForm}>
 			<MemberBasicInfo
 				sapins={action === "add" ? [member.SAPIN as number] : sapins}
 				member={member}
@@ -308,6 +300,7 @@ export function MemberEntryForm({
 					/>
 				</Row>
 			)}
+			<MemberEntrySubmit action={action} busy={false} cancel={cancel} />
 		</Form>
 	);
 }

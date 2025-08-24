@@ -429,7 +429,7 @@ export function MemberBasicInfo({
 						member.ObsoleteSAPINs.length > 0 && (
 							<Row>
 								<Col>
-									<span className="label">Replaces:</span>
+									<Form.Label as="span">Replaces:</Form.Label>
 									<ShortMemberSummary
 										sapins={member.ObsoleteSAPINs}
 									/>
