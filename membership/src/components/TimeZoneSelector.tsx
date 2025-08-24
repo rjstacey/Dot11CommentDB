@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
-import { Select } from "dot11-components";
+import { Select } from "@components/select";
 
 import { loadTimeZones, selectTimeZonesState } from "@/store/timeZones";
 

@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Select } from "dot11-components";
+import { Select } from "@components/select";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectActiveMembers, selectAllMembers } from "@/store/members";

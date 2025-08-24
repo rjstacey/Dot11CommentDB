@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Select } from "dot11-components";
+import { Select } from "@components/select";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectAllMembers } from "@/store/members";
@@ -23,7 +23,9 @@ export function MemberAllSelector({
 		() =>
 			members.map((member) => ({
 				value: member.SAPIN,
-				label: `${member.SAPIN} ${member.Name || ""} (${member.Status})`,
+				label: `${member.SAPIN} ${member.Name || ""} (${
+					member.Status
+				})`,
 			})),
 		[members]
 	);

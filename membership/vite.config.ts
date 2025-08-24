@@ -47,6 +47,7 @@ export default defineConfig(({ command, mode }) => {
 			alias: {
 				"@": "/src",
 				"@schemas": path.resolve(__dirname, "../schemas"),
+				"@components": path.resolve(__dirname, "../components"),
 			},
 		},
 		server: {

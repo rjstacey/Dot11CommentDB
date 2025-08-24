@@ -1,20 +1,17 @@
 import * as React from "react";
 import { Form, Row, Col, Button, Spinner } from "react-bootstrap";
-import { isMultiple, Select, Multiple } from "dot11-components";
+import { isMultiple, Multiple } from "dot11-components";
 
 import { useAppSelector } from "@/store/hooks";
 import {
-	selectGroup,
 	getSubgroupTypes,
-	GroupTypeLabels,
-	GroupTypeOptions,
-	GroupStatusOptions,
-	GroupType,
 	GroupCreate,
 	selectGroupEntities,
 } from "@/store/groups";
 import type { Officer } from "@/store/officers";
 
+import { GroupTypeSelector } from "./GroupTypeSelector";
+import { GroupStatusSelector } from "./GroupStatusSelector";
 import Officers from "./Officers";
 import GroupSelector from "@/components/GroupSelector";
 import ImatCommitteeSelector from "./ImatCommitteeSelector";
@@ -29,78 +26,6 @@ export type EditAction = "view" | "update" | "add";
 
 const MULTIPLE_STR = "(Multiple)";
 const BLANK_STR = "(Blank)";
-
-function GroupTypeSelector({
-	value,
-	onChange,
-	parent_id,
-	...otherProps
-}: {
-	value: GroupType | null;
-	onChange: (value: GroupType | null) => void;
-	parent_id: string | null;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
->) {
-	const parentGroup = useAppSelector((state) =>
-		parent_id ? selectGroup(state, parent_id) : undefined
-	);
-
-	const options = parentGroup
-		? getSubgroupTypes(parentGroup.type!).map((type) => ({
-				value: type,
-				label: GroupTypeLabels[type],
-		  }))
-		: [];
-
-	function handleChange(values: typeof options) {
-		const newValue: GroupType | null =
-			values.length > 0 ? values[0].value : null;
-		if (newValue !== value) onChange(newValue);
-	}
-
-	const values = GroupTypeOptions.filter((o) => o.value === value);
-
-	return (
-		<Select
-			values={values}
-			onChange={handleChange}
-			options={options}
-			portal={document.querySelector("#root")}
-			{...otherProps}
-		/>
-	);
-}
-
-function GroupStatusSelector({
-	value,
-	onChange,
-	...otherProps
-}: {
-	value: number;
-	onChange: (value: number) => void;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
->) {
-	function handleChange(values: typeof GroupStatusOptions) {
-		const newValue = values.length > 0 ? values[0].value : 0;
-		if (newValue !== value) onChange(newValue);
-	}
-
-	const values = GroupStatusOptions.filter((o) => o.value === value);
-
-	return (
-		<Select
-			values={values}
-			onChange={handleChange}
-			options={GroupStatusOptions}
-			portal={document.querySelector("#root")}
-			{...otherProps}
-		/>
-	);
-}
 
 function checkEntry(entry: MultipleGroupEntry): string | undefined {
 	if (!entry.name) return "Set group name";
@@ -212,6 +137,7 @@ export function GroupEntryForm({
 				<Form.Label column>Parent group:</Form.Label>
 				<Col xs={12} md={8}>
 					<GroupSelector
+						id="group.parent_id"
 						style={{ width: 200 }}
 						value={
 							isMultiple(entry.parent_id)
@@ -252,6 +178,7 @@ export function GroupEntryForm({
 				<Form.Label column>Group Type:</Form.Label>
 				<Col xs={12} md={8}>
 					<GroupTypeSelector
+						id="group.type"
 						style={{ maxWidth: 200 }}
 						value={isMultiple(entry.type) ? null : entry.type}
 						onChange={(type) => change({ type })}
@@ -267,6 +194,7 @@ export function GroupEntryForm({
 				<Form.Label column>Status:</Form.Label>
 				<Col xs={12} md={8}>
 					<GroupStatusSelector
+						id="group.status"
 						style={{ maxWidth: 200 }}
 						value={isMultiple(entry.status) ? 1 : entry.status || 0}
 						onChange={(status) => change({ status })}

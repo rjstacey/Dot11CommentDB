@@ -1,8 +1,9 @@
 import * as React from "react";
+import { Button } from "react-bootstrap";
 import { shallowEqual } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
 
-import { ConfirmModal, ActionButton } from "dot11-components";
+import { ConfirmModal } from "dot11-components";
 
 import {
 	useAffiliationMapAdd,
@@ -211,15 +212,17 @@ function GroupDetail() {
 			<div className="top-row">
 				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
 				<div>
-					<ActionButton
-						name="add"
+					<Button
+						variant="outline-primary"
+						className="bi-plus-lg"
 						title="Add map"
 						disabled={loading || readOnly}
-						isActive={state.action === "add"}
+						active={state.action === "add"}
 						onClick={clickAdd}
 					/>
-					<ActionButton
-						name="delete"
+					<Button
+						variant="outline-danger"
+						className="bi-trash"
 						title="Delete map"
 						disabled={loading || selected.length === 0 || readOnly}
 						onClick={clickDelete}

@@ -2,7 +2,7 @@ import * as React from "react";
 import { useNavigate, useParams } from "react-router";
 import { createSelector } from "@reduxjs/toolkit";
 
-import { Select } from "dot11-components";
+import { Select } from "@components/select";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectWorkingGroups } from "@/store/groups";

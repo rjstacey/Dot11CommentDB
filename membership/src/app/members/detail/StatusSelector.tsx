@@ -1,6 +1,7 @@
-import React from "react";
+import * as React from "react";
+import { Select } from "@components/select";
 
-import { Select, isMultiple, MULTIPLE } from "dot11-components";
+import { isMultiple, MULTIPLE } from "dot11-components";
 
 import { statusOptions, StatusType } from "@/store/members";
 
