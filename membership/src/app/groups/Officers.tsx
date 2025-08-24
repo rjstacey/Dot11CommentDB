@@ -1,6 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { Form, Row } from "react-bootstrap";
-import { ActionIcon } from "dot11-components";
+import { Form, Row, Button } from "react-bootstrap";
 
 import { OfficerId, Officer } from "@/store/officers";
 
@@ -80,19 +79,29 @@ function Officers({
 			);
 		} else if (col.key === "action") {
 			col.renderCell = (entry: Officer) => (
-				<ActionIcon type="delete" onClick={() => removeOne(entry.id)} />
+				<Button
+					variant="outline-danger"
+					className="bi-trash"
+					onClick={() => removeOne(entry.id)}
+				/>
 			);
-			col.label = <ActionIcon type="add" onClick={addOne} />;
+			col.label = (
+				<Button
+					variant="outline-primary"
+					className="bi-plus-lg"
+					onClick={addOne}
+				/>
+			);
 		}
 		return col;
 	});
 
 	return (
-		<Form.Group as={Row} className="mb-3" controlId="group.officers">
-			<Form.Label as="legend" column>
+		<Form.Group as={Row} className="mb-3">
+			<Form.Label as="span" column>
 				Officers:
 			</Form.Label>
-			<Table columns={columns} values={officers} id="group.officers" />
+			<Table columns={columns} values={officers} />
 		</Form.Group>
 	);
 }

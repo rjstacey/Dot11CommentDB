@@ -1,11 +1,11 @@
-import React from "react";
+import * as React from "react";
+import { Button } from "react-bootstrap";
 import { shallowEqual } from "react-redux";
 
 import {
 	ConfirmModal,
 	deepMergeTagMultiple,
 	Multiple,
-	ActionButton,
 	setError,
 } from "dot11-components";
 
@@ -280,18 +280,20 @@ function GroupDetail() {
 
 	return (
 		<>
-			<div className="top-row">
+			<div className="d-flex align-items-center justify-content-between mb-3">
 				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
-				<div>
-					<ActionButton
-						name="add"
+				<div className="d-flex gap-2">
+					<Button
+						variant="outline-primary"
+						className="bi-plus-lg"
 						title="Add group"
 						disabled={loading || readOnly}
-						isActive={state.action === "add"}
+						active={state.action === "add"}
 						onClick={clickAdd}
 					/>
-					<ActionButton
-						name="delete"
+					<Button
+						variant="outline-danger"
+						className="bi-trash"
 						title="Delete group"
 						disabled={
 							loading || state.groups.length === 0 || readOnly

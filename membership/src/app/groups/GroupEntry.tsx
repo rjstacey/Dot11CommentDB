@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Form, Row, Col, Button, Spinner } from "react-bootstrap";
-import { isMultiple, Input, Select, Multiple } from "dot11-components";
+import { isMultiple, Select, Multiple } from "dot11-components";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -202,7 +202,12 @@ export function GroupEntryForm({
 	};
 
 	return (
-		<Form noValidate validated={validated} onSubmit={handleSubmit}>
+		<Form
+			noValidate
+			validated={validated}
+			onSubmit={handleSubmit}
+			className="p-3"
+		>
 			<Form.Group as={Row} className="mb-3" controlId="group.parent_id">
 				<Form.Label column>Parent group:</Form.Label>
 				<Col xs={12} md={8}>
@@ -228,6 +233,7 @@ export function GroupEntryForm({
 				<Col xs={12} md={8}>
 					<Form.Control
 						type="text"
+						style={{ maxWidth: 400 }}
 						value={isMultiple(entry.name) ? "" : entry.name || ""}
 						onChange={(e) => change({ name: e.target.value })}
 						placeholder={
@@ -246,7 +252,7 @@ export function GroupEntryForm({
 				<Form.Label column>Group Type:</Form.Label>
 				<Col xs={12} md={8}>
 					<GroupTypeSelector
-						style={{ width: 200 }}
+						style={{ maxWidth: 200 }}
 						value={isMultiple(entry.type) ? null : entry.type}
 						onChange={(type) => change({ type })}
 						parent_id={entry.parent_id}
@@ -261,6 +267,7 @@ export function GroupEntryForm({
 				<Form.Label column>Status:</Form.Label>
 				<Col xs={12} md={8}>
 					<GroupStatusSelector
+						style={{ maxWidth: 200 }}
 						value={isMultiple(entry.status) ? 1 : entry.status || 0}
 						onChange={(status) => change({ status })}
 						placeholder={
@@ -271,7 +278,9 @@ export function GroupEntryForm({
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3" controlId="group.color">
-				<Form.Label column>Color:</Form.Label>
+				<Form.Label as="span" column>
+					Color:
+				</Form.Label>
 				<Col xs={12} md={8}>
 					<ColorPicker
 						value={isMultiple(entry.color) ? "" : entry.color || ""}
@@ -284,8 +293,9 @@ export function GroupEntryForm({
 				<Form.Group as={Row} className="mb-3" controlId="group.project">
 					<Form.Label column>Project:</Form.Label>
 					<Col xs={12} md={8}>
-						<Input
+						<Form.Control
 							type="text"
+							style={{ maxWidth: 400 }}
 							value={
 								isMultiple(entry.project)
 									? ""
@@ -313,6 +323,7 @@ export function GroupEntryForm({
 					<Form.Label column>IMAT committee:</Form.Label>
 					<Col xs={8}>
 						<ImatCommitteeSelector
+							style={{ maxWidth: 200 }}
 							value={
 								isMultiple(entry.symbol)
 									? ""
