@@ -1,0 +1,19 @@
+{
+	"name": "@802tools/components",
+	"version": "1.0.0",
+	"description": "Components for 802tools",
+	"main": "index.js",
+	"type": "module",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"lodash.debounce": "^4.0.8",
+		"react-window": "^1.8.11"
+	},
+	"devDependencies": {
+		"@types/react-window": "^1.8.8"
+	}
+}
