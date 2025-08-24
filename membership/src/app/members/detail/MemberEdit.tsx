@@ -266,28 +266,32 @@ export function MemberBasicInfo({
 			<Row className="mb-3">
 				<Form.Group
 					as={Col}
-					xs={8}
-					controlId="sapins"
-					className="d-flex"
+					xs={5}
+					controlId="sapin"
+					className="d-flex align-items-center"
 				>
-					<Form.Label column xs={2}>
+					<Form.Label column xs={4}>
 						{sapinsLabel}
 					</Form.Label>
-					{sapinsEl}
+					<Col>{sapinsEl}</Col>
 				</Form.Group>
 				<Form.Group
 					as={Col}
-					xs={4}
+					xs={7}
 					controlId="dateAdded"
-					className="d-flex align-items-center justify-content-space-between gap-2"
+					className="d-flex align-items-center"
 				>
-					<Form.Label as="span">Date added:</Form.Label>
-					<Form.Control as="div">
-						{renderDate(member.DateAdded)}
-					</Form.Control>
+					<Form.Label as="span" column xs={5}>
+						Date added:
+					</Form.Label>
+					<Col>
+						<Form.Control as="div">
+							{renderDate(member.DateAdded)}
+						</Form.Control>
+					</Col>
 				</Form.Group>
 			</Row>
-			<Form.Group as={Row} className="mb-3">
+			<Form.Group as={Row} controlId="name" className="mb-3">
 				<Form.Label column xs={3}>
 					Name:
 				</Form.Label>
@@ -300,7 +304,7 @@ export function MemberBasicInfo({
 					autoComplete="none"
 				/>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3">
+			<Form.Group as={Row} controlId="familyName" className="mb-3">
 				<Form.Label column xs={3}>
 					Family name:
 				</Form.Label>
@@ -313,11 +317,16 @@ export function MemberBasicInfo({
 					autoComplete="none"
 				/>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3">
-				<Form.Label column xs={4}>
-					Given name/MI:
-				</Form.Label>
-				<Col className="d-flex flex-wrap gap-2">
+			<Row className="mb-3">
+				<Form.Group
+					as={Col}
+					xs={8}
+					controlId="givenName"
+					className="d-flex"
+				>
+					<Form.Label column xs={5}>
+						Given name:
+					</Form.Label>
 					<ExpandingInput
 						dataKey="FirstName"
 						member={member}
@@ -326,6 +335,11 @@ export function MemberBasicInfo({
 						disabled={readOnly}
 						autoComplete="none"
 					/>
+				</Form.Group>
+				<Form.Group as={Col} xs={4} controlId="mi" className="d-flex">
+					<Form.Label column xs={3}>
+						MI:
+					</Form.Label>
 					<ExpandingInput
 						dataKey="MI"
 						member={member}
@@ -334,9 +348,9 @@ export function MemberBasicInfo({
 						disabled={readOnly}
 						autoComplete="none"
 					/>
-				</Col>
-			</Form.Group>
-			<Form.Group as={Row}>
+				</Form.Group>
+			</Row>
+			<Form.Group as={Row} controlId="email" className="mb-3">
 				<Form.Label column xs={2}>
 					Email:
 				</Form.Label>
@@ -352,7 +366,7 @@ export function MemberBasicInfo({
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row}>
+			<Form.Group as={Row} controlId="employer" className="mb-3">
 				<Form.Label column xs={3}>
 					Employer:
 				</Form.Label>
@@ -367,7 +381,7 @@ export function MemberBasicInfo({
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row}>
+			<Form.Group as={Row} controlId="affiliation" className="mb-3">
 				<Form.Label column xs={3}>
 					Affiliation:
 				</Form.Label>

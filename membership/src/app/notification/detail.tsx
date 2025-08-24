@@ -14,13 +14,30 @@ export function NotificationDetail() {
 	};
 
 	return (
-		<Tabs onSelect={setTabIndex} activeKey={tabIndex}>
-			<Tab eventKey="send-email" title="Send Email">
-				<NotificationEmail />
-			</Tab>
-			<Tab eventKey="listserv-update" title="ListServ Update">
-				<ListServUpdate />
-			</Tab>
-		</Tabs>
+		<>
+			<style>{`
+				.tab-content {
+					display: flex;
+					flex-grow: 1;
+					overflow: hidden;
+				}
+				.tab-content>.active {
+					display: flex;
+				}
+				.tab-pane {
+					flex-direction: column;
+					flex-grow: 1;
+					overflow: hidden;
+				}
+			`}</style>
+			<Tabs onSelect={setTabIndex} activeKey={tabIndex}>
+				<Tab eventKey="send-email" title="Send Email">
+					<NotificationEmail />
+				</Tab>
+				<Tab eventKey="listserv-update" title="ListServ Update">
+					<ListServUpdate />
+				</Tab>
+			</Tabs>
+		</>
 	);
 }

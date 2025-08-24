@@ -71,3 +71,7 @@ div#root {
 .table-container.centered-rows .AppTable__headerRow {
 	align-items: center;
 }
+
+.form-label {
+	font-weight: bold;
+}

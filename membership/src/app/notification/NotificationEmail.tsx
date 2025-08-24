@@ -1,18 +1,14 @@
 import React from "react";
+import { Row, Col, Button, Spinner } from "react-bootstrap";
 import { useParams } from "react-router";
 import { convert } from "html-to-text";
 import {
 	Select,
-	Row,
-	Field,
-	Button,
 	SelectRendererProps,
 	shallowDiff,
 	displayDateRange,
-	ActionButton,
 	ConfirmModal,
 	useDebounce,
-	Spinner,
 } from "dot11-components";
 
 import Editor from "@/components/editor/Editor";
@@ -328,34 +324,41 @@ function NotificationEmail() {
 
 	return (
 		<>
-			<Row>
-				<Spinner style={{ visibility: busy ? "visible" : "hidden" }} />
-			</Row>
-			<Row>
-				<div style={{ display: "flex" }}>
-					<Field label="Template">
-						<SelectEmailTemplate
-							value={saved}
-							onChange={setTemplate}
-						/>
-						<ActionButton
-							name="delete"
-							title="Delete template"
-							onClick={deleteTemplate}
-							disabled={!edited}
-						/>
-					</Field>
-				</div>
-				<div>
-					<Button onClick={togglePreview} isActive={isPreview}>
+			<Row className="m-2">
+				<Col className="d-flex align-items-center gap-2">
+					<div>Template</div>
+					<SelectEmailTemplate value={saved} onChange={setTemplate} />
+					<Button
+						variant="outline-danger"
+						className="bi-trash"
+						title="Delete template"
+						onClick={deleteTemplate}
+						disabled={!edited}
+					/>
+				</Col>
+				<Col className="d-flex justify-content-end gap-2">
+					<Button
+						variant="outline-secondary"
+						onClick={togglePreview}
+						active={isPreview}
+						className="d-inline-flex gap-2"
+					>
 						<i className="bi-eye" />
-						<span>&nbsp;Preview</span>
+						<span>Preview</span>
 					</Button>
-					<Button onClick={onSend}>
+					<Button
+						variant="outline-secondary"
+						onClick={onSend}
+						className="d-inline-flex gap-2"
+					>
 						<i className="bi-send" />
-						<span>&nbsp;Send</span>
+						<span>Send</span>
+						<Spinner
+							size="sm"
+							style={{ visibility: busy ? "visible" : "hidden" }}
+						/>
 					</Button>
-				</div>
+				</Col>
 			</Row>
 			{email && (
 				<div className={css.emailContainer}>

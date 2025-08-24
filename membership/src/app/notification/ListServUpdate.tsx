@@ -1,5 +1,5 @@
 import { saveAs } from "file-saver";
-import { Button, NavLink } from "react-bootstrap";
+import { Container, Button, NavLink } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectSelectedMembers, Member } from "@/store/members";
@@ -16,7 +16,7 @@ export default function ListServUpdate() {
 	const members = useAppSelector(selectSelectedMembers);
 
 	return (
-		<>
+		<Container>
 			<p>
 				{
 					"Use the LISTSERV Bulk Operations feature to add new members to the reflector."
@@ -27,7 +27,11 @@ export default function ListServUpdate() {
 					'Export the selected members as a text file. Each line has "[Email address] [Full name]".'
 				}
 			</p>
-			<Button variant="primary" onClick={() => createFile(members)}>
+			<Button
+				variant="primary"
+				onClick={() => createFile(members)}
+				className="mb-3"
+			>
 				Export list of selected members
 			</Button>
 			<p>
@@ -39,9 +43,10 @@ export default function ListServUpdate() {
 				target="_blank"
 				rel="noopener noreferrer"
 				href="https://listserv.ieee.org/cgi-bin/wa?BULKOP1=STDS-802-11"
+				style={{ textDecoration: "underline" }}
 			>
-				ieee.listserv.org bulk operations
+				ieee.listserv.org - Bulk Operations
 			</NavLink>
-		</>
+		</Container>
 	);
 }
