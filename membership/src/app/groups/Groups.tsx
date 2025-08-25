@@ -11,7 +11,7 @@ import {
 	ColumnProperties,
 	TablesConfig,
 	TableConfig,
-} from "dot11-components";
+} from "@components/table";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -105,7 +105,7 @@ function Organization() {
 	return (
 		<>
 			<Row className="w-100">
-				<Col className="d-flex justify-content-end">
+				<Col className="d-flex justify-content-end gap-2">
 					<TableColumnSelector
 						selectors={groupsSelectors}
 						actions={groupsActions}

@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"target": "es2020",
+		"module": "esnext",
+		"moduleResolution": "node",
+		"strict": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"skipLibCheck": true,
+		"checkJs": true,
+		"allowJs": true,
+		"declaration": true,
+		"declarationMap": true,
+		"allowSyntheticDefaultImports": true,
+		"jsx": "react-jsx",
+		"noImplicitAny": false,
+		"noImplicitThis": false,
+		"sourceMap": true,
+		"outDir": "./dist"
+	},
+	"include": ["src/**/*"],
+	"exclude": ["src/setupTests.*", "src/**/*.test.*", "src/stories"]
+}

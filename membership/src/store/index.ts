@@ -30,7 +30,7 @@ import sessionsSlice from "./sessions";
 import emailTemlatesSlice from "./emailTemplates";
 import affliationMapSlice from "./affiliationMap";
 import myProjectRosterSlice from "./myProjectRoster";
-import { errorsSlice } from "dot11-components";
+import { errorsSlice } from "@components/store";
 
 const RESET_STORE_ACTION = "root/RESET_STORE";
 const PERSIST_VERSION = 4;

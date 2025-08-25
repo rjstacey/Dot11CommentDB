@@ -1,0 +1,333 @@
+.button {
+	display: inline-block;
+	margin: 0 5px;
+	padding: 3px;
+	box-sizing: border-box;
+	background: none #fdfdfd;
+	border: 1px solid #999;
+	border-radius: 2px;
+	color: #333;
+	text-decoration: none;
+	font-size: inherit;
+	font-family: inherit;
+	cursor: pointer;
+}
+
+.button:global(.active) {
+	cursor: inherit;
+	background: none #d8d8d8;
+	opacity: 0.5;
+}
+
+.button:disabled {
+	cursor: inherit;
+	background: none transparent;
+	opacity: 0.5;
+}
+
+.button:focus {
+	outline: none;
+}
+
+.button-group {
+	display: flex;
+	align-items: center;
+	margin: 0 5px 0 0;
+	padding: 3px 8px;
+	box-sizing: border-box;
+	background: none #fdfdfd;
+	background: linear-gradient(to bottom, #fdfdfd 0%, #f6f7f8 100%);
+	border: 1px solid #999;
+	border-radius: 2px;
+	color: #333;
+	text-decoration: none;
+	font-size: inherit;
+	font-family: inherit;
+	cursor: pointer;
+}
+
+.button-group:disabled {
+	cursor: inherit;
+	background: none transparent;
+	opacity: 0.5;
+}
+
+.input {
+	display: inline-block;
+	cursor: inherit;
+	appearance: none;
+	background-color: #fafafa;
+	border: 1px solid #ddd;
+	box-sizing: border-box;
+}
+.input:focus {
+	outline: 0;
+	box-shadow: 0 0 0 3px rgba(0, 116, 217, 0.2);
+}
+.input:focus,
+.input:not([disabled]):valid:hover {
+	border-color: #0074d9;
+}
+.input:invalid {
+	background-color: #ff000052;
+}
+.input::placeholder {
+	font-style: italic;
+}
+.input[type="text"],
+.input[type="search"],
+.input[type="date"],
+.input[type="email"],
+.input[type="number"],
+.input[type="tel"] {
+	border-radius: 3px;
+	line-height: 25px;
+	padding: 0 5px;
+}
+.input[type="checkbox"] {
+	padding: 6px;
+	width: 14px;
+	height: 14px;
+	position: relative;
+}
+.input[type="checkbox"]:checked {
+	background-color: #e9ecee;
+	border: 1px solid #adb8c0;
+}
+.input[type="checkbox"]:indeterminate {
+	background-color: #e9ecee;
+	border: 1px solid #adb8c0;
+}
+.input[type="checkbox"]:checked:after {
+	content: "\2714";
+	font-size: 10px;
+	font-weight: 700;
+	position: absolute;
+	top: -1px;
+	left: 1px;
+}
+.input[type="checkbox"]:indeterminate:after {
+	content: "";
+	position: absolute;
+	top: 1px;
+	left: 1px;
+	border: 5px solid #5f6061;
+}
+
+.textarea {
+	font-family: inherit;
+	font-size: unset;
+	background-color: #fafafa;
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	line-height: 25px;
+}
+
+.textarea:focus {
+	outline: 0;
+	box-shadow: 0 0 0 3px rgba(0, 116, 217, 0.2);
+}
+
+.testarea:focus,
+.textarea:hover:not([disabled]) {
+	border-color: #0074d9;
+}
+
+.sliderswitch {
+	position: relative;
+	display: inline-block;
+	width: 2.5em;
+	height: 1.5em;
+	background-color: #ccc;
+	border-radius: 16px;
+	transition: 0.4s;
+	appearance: none;
+	border: 1px solid #adb8c0;
+}
+
+.sliderswitch:before {
+	position: absolute;
+	content: "";
+	height: 1em;
+	width: 1em;
+	left: 0.25em;
+	top: 0.2em;
+	background-color: white;
+	transition: 0.4s;
+	border-radius: 50%;
+}
+
+.sliderswitch:checked {
+	background-color: #2196f3;
+}
+
+.sliderswitch:checked:before {
+	transform: translateX(1em);
+}
+
+.sliderswitch:focus,
+.sliderswitch:not([disabled]):hover {
+	border-color: #0074d9;
+}
+
+.sliderswitch:focus {
+	outline: 0;
+	box-shadow: 0 0 0 3px rgb(0 116 217 / 20%);
+}
+
+.input-dates {
+	display: flex;
+	align-items: center;
+	border: solid 1px #ddd;
+	background-color: #fafafa;
+	box-sizing: border-box;
+	border-radius: 3px;
+	line-height: 25px;
+	padding: 0 5px;
+}
+
+.input-dates:global(.disabled) :global(.clear),
+.input-dates:global(.disabled) :global(.calendar) {
+	visibility: hidden;
+}
+
+.input-dates:not(:global(.disabled)):hover :global(.clear.active),
+.input-dates:focus-within :global(.clear.active) {
+	visibility: visible;
+}
+
+.input-dates:focus-within {
+	outline: 0;
+	box-shadow: 0 0 0 3px rgba(0, 116, 217, 0.2);
+}
+
+.input-dates:focus-within,
+.input-dates:not(:global(.disabled)):hover {
+	border-color: #0074d9;
+}
+
+.input-dates :global(.textarea) {
+	font-family: inherit;
+	border: none;
+	resize: none;
+}
+
+.input-dates :global(.textarea.invalid) {
+	color: red;
+}
+
+.input-dates :global .textarea:focus-visible {
+	outline: none;
+	box-shadow: none;
+}
+
+.input-dates :global .textarea::placeholder {
+	font-style: italic;
+}
+
+.form {
+	display: flex;
+	flex-direction: column;
+}
+
+.row {
+	display: flex;
+	flex-direction: row;
+	margin: 5px 0;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.col {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	margin: 0 10px;
+}
+
+.col:first-of-type {
+	margin-left: 0;
+}
+
+.col:last-child {
+	margin-right: 0;
+}
+
+.field {
+	display: flex;
+	align-items: center;
+	flex: 1;
+	justify-content: space-between;
+}
+
+.field > label,
+.field > :global(.label) {
+	margin-right: 10px;
+}
+
+.field:global(.left) {
+	justify-content: left;
+	flex: unset;
+}
+
+.list {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+}
+
+.list-item {
+	display: flex;
+	align-items: center;
+	margin: 5px 0 0 10px;
+}
+
+.list-item label {
+	margin: 0 5px;
+}
+
+.form :global .top-row {
+	display: flex;
+	flex-wrap: nowrap;
+	justify-content: space-between;
+	margin: 5px 0 20px;
+}
+
+.form :global .top-row.title-only {
+	justify-content: space-around;
+}
+
+.form :global .top-row.buttons-only {
+	justify-content: flex-end;
+}
+
+.form :global .title {
+	align-self: center;
+	font-weight: bold;
+	color: #0099cc;
+}
+
+.form :global .error-message {
+	color: red;
+	font-weight: bold;
+	justify-content: center;
+}
+
+.form :global .button-row {
+	justify-content: space-around;
+}
+
+.form :global .button {
+	width: 100px;
+	padding: 8px 16px;
+	text-transform: uppercase;
+	color: white;
+	font-weight: bold;
+	background-color: #0099cc;
+	border: none;
+	border-radius: 30px;
+}
+
+.form :global .button:focus {
+	outline: none;
+}

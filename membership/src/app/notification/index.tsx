@@ -1,16 +1,13 @@
 import * as React from "react";
 import { Button } from "react-bootstrap";
+import { displayDateRange } from "@components/lib";
 import {
 	AppTable,
-	TableColumnSelector,
-	TableViewSelector,
-	SplitPanelButton,
 	ShowFilters,
 	SplitPanel,
 	Panel,
-	ButtonGroup,
-	displayDateRange,
-} from "dot11-components";
+	SplitTableButtonGroup,
+} from "@components/table";
 
 import { useAppSelector } from "@/store/hooks";
 import { fields, membersSelectors, membersActions } from "@/store/members";
@@ -90,32 +87,17 @@ function Members() {
 			<div className="top-row">
 				<MostRecentBallotSummary />
 				<MostRecentSessionSummary />
-				<div style={{ display: "flex" }}>
-					<ButtonGroup>
-						<div>Table view</div>
-						<div style={{ display: "flex" }}>
-							<TableViewSelector
-								selectors={membersSelectors}
-								actions={membersActions}
-							/>
-							<TableColumnSelector
-								selectors={membersSelectors}
-								actions={membersActions}
-								columns={tableColumns}
-							/>
-							<SplitPanelButton
-								selectors={membersSelectors}
-								actions={membersActions}
-							/>
-						</div>
-					</ButtonGroup>
-					<Button
-						variant="outline-primary"
-						className="bi-arrow-repeat"
-						title="Refresh"
-						onClick={refresh}
-					/>
-				</div>
+				<SplitTableButtonGroup
+					columns={tableColumns}
+					selectors={membersSelectors}
+					actions={membersActions}
+				/>
+				<Button
+					variant="outline-primary"
+					className="bi-arrow-repeat"
+					title="Refresh"
+					onClick={refresh}
+				/>
 			</div>
 
 			<div style={{ display: "flex", width: "100%" }}>

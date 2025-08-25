@@ -10,14 +10,14 @@ import {
 } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
+import { fetcher } from "@components/lib";
 import {
-	fetcher,
 	setError,
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
 	Fields,
-} from "dot11-components";
+} from "@components/store";
 
 import type { RootState, AppThunk } from ".";
 import {

@@ -5,7 +5,7 @@ import {
 	TablesConfig,
 	TableConfig,
 	CellRendererProps,
-} from "dot11-components";
+} from "@components/table";
 
 import {
 	sessionAttendeesSelectors,

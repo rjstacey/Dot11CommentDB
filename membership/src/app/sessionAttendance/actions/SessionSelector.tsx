@@ -1,9 +1,8 @@
 import * as React from "react";
 import { Select } from "@components/select";
+import { displayDateRange } from "@components/lib";
+
 import { useAppSelector } from "@/store/hooks";
-
-import { displayDateRange } from "dot11-components";
-
 import {
 	selectSessionsState,
 	selectRecentSessions,

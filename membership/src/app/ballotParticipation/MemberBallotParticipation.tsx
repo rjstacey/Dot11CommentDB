@@ -1,11 +1,6 @@
 import * as React from "react";
 import { Button, FormCheck } from "react-bootstrap";
-import {
-	Col,
-	displayDateRange,
-	shallowDiff,
-	useDebounce,
-} from "dot11-components";
+import { displayDateRange, shallowDiff, useDebounce } from "@components/lib";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -188,7 +183,7 @@ function MemberBallotParticipation({
 	}
 
 	return (
-		<Col>
+		<>
 			<div className="d-flex align-items-center justify-content-between">
 				<div>{`Recent ballot series participation: ${count}/${total}`}</div>
 				<Button
@@ -199,7 +194,7 @@ function MemberBallotParticipation({
 				/>
 			</div>
 			<Table columns={columns} values={values} />
-		</Col>
+		</>
 	);
 }
 

@@ -3,7 +3,9 @@ import {
 	createEntityAdapter,
 	PayloadAction,
 } from "@reduxjs/toolkit";
-import { fetcher, setError } from "dot11-components";
+import { fetcher } from "@components/lib";
+import { setError } from "@components/store";
+
 import type { AppThunk, RootState } from ".";
 import {
 	emailTemplatesSchema,

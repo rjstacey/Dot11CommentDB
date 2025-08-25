@@ -6,7 +6,7 @@ import {
 	CellRendererProps,
 	TablesConfig,
 	TableConfig,
-} from "dot11-components";
+} from "@components/table";
 import { useAppSelector } from "@/store/hooks";
 import {
 	ballotParticipationSelectors,

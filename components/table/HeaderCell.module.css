@@ -1,0 +1,64 @@
+.header {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	user-select: none;
+	width: 100%;
+	overflow: hidden;
+	box-sizing: border-box;
+	margin-right: 5px;
+}
+
+.header:global(.hasDropdown):hover {
+	color: tomato;
+}
+
+.header :global .handle {
+	position: absolute;
+	right: 0;
+	background: inherit;
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+}
+
+.header :global .label {
+	font-weight: bold;
+}
+
+.header-dropdown :global .filter-list {
+	min-height: 35px;
+	max-height: 250px;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	margin-top: 10px;
+	box-sizing: unset;
+}
+
+.header-dropdown :global .item {
+	display: flex;
+	align-items: center;
+}
+
+.header-dropdown :global .item.disabled {
+	text-decoration: line-through;
+}
+
+.header-dropdown :global .item.selected {
+	background: #0074d9;
+}
+
+.header-dropdown :global .item.selected:hover {
+	background: #ccc;
+}
+
+.header-dropdown :global .item > div {
+	margin: 5px 5px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.header-dropdown :global .item.selected > div {
+	color: #fff;
+}

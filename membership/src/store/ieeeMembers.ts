@@ -5,12 +5,12 @@ import {
 	Action,
 } from "@reduxjs/toolkit";
 
+import { fetcher } from "@components/lib";
 import {
-	fetcher,
 	setError,
 	createAppTableDataSlice,
 	FieldType,
-} from "dot11-components";
+} from "@components/store";
 
 import type { RootState, AppThunk } from ".";
 import type { ContactEmail, ContactInfo } from "./members";

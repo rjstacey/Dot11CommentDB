@@ -5,12 +5,7 @@ import {
 	useLocation,
 } from "react-router";
 import { Form, Row, Col, Spinner, Button } from "react-bootstrap";
-import {
-	TableColumnSelector,
-	ButtonGroup,
-	TableViewSelector,
-	SplitPanelButton,
-} from "dot11-components";
+import { SplitTableButtonGroup } from "@components/table";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -118,27 +113,11 @@ export function SessionAttendanceActions() {
 			</Col>
 			<Col>{loading && <Spinner animation="border" />}</Col>
 			<Col className="d-flex align-items-center gap-2">
-				<ButtonGroup
-					className="button-group"
-					style={{ visibility: showChart ? "hidden" : "visible" }}
-				>
-					<div>Table view</div>
-					<div style={{ display: "flex" }}>
-						<TableViewSelector
-							selectors={tableSelectors}
-							actions={tableActions}
-						/>
-						<TableColumnSelector
-							selectors={tableSelectors}
-							actions={tableActions}
-							columns={tableColumns}
-						/>
-						<SplitPanelButton
-							selectors={tableSelectors}
-							actions={tableActions}
-						/>
-					</div>
-				</ButtonGroup>
+				<SplitTableButtonGroup
+					selectors={tableSelectors}
+					actions={tableActions}
+					columns={tableColumns}
+				/>
 				<BulkUpdateDropdown
 					disabled={!sessionNumber || showChart || showRegistration}
 				/>

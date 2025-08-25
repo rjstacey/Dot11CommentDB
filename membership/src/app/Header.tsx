@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink, useParams } from "react-router";
 import { Navbar, Nav, Container, Dropdown } from "react-bootstrap";
 
-import { loginAndReturn } from "dot11-components";
+import { loginAndReturn } from "@components/lib";
 
 import { resetStore } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";

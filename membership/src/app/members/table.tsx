@@ -6,7 +6,7 @@ import {
 	SplitPanel,
 	Panel,
 	SplitTableButtonGroup,
-} from "dot11-components";
+} from "@components/table";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {

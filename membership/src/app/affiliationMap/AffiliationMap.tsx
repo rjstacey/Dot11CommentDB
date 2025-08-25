@@ -10,7 +10,7 @@ import {
 	ColumnProperties,
 	TablesConfig,
 	TableConfig,
-} from "dot11-components";
+} from "@components/table";
 
 import {
 	fields,
@@ -71,7 +71,7 @@ function AffiliationMapUnit() {
 	return (
 		<>
 			<Row className="w-100">
-				<Col className="d-flex justify-content-end">
+				<Col className="d-flex justify-content-end gap-2">
 					<TableColumnSelector
 						selectors={affiliationMapSelectors}
 						actions={affiliationMapActions}

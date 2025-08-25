@@ -7,7 +7,7 @@ import {
 	CellRendererProps,
 	TablesConfig,
 	TableConfig,
-} from "dot11-components";
+} from "@components/table";
 import { useAppSelector } from "@/store/hooks";
 import { selectRecentSessions } from "@/store/sessions";
 import {
@@ -38,8 +38,8 @@ const renderSessionAttendance = (
 			{attendance.DidAttend
 				? "Did attend"
 				: attendance.DidNotAttend
-					? "Did not attend"
-					: ""}
+				? "Did not attend"
+				: ""}
 		</span>
 	</div>
 );

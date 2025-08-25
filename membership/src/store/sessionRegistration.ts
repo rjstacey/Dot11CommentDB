@@ -4,14 +4,14 @@ import {
 	Action,
 	Dictionary,
 } from "@reduxjs/toolkit";
+import { fetcher } from "@components/lib";
 import {
-	fetcher,
 	setError,
 	createAppTableDataSlice,
+	Fields,
 	FieldType,
 	getAppTableDataSelectors,
-	Fields,
-} from "dot11-components";
+} from "@components/store";
 
 import type { RootState, AppThunk } from ".";
 import { upsertAttendanceSummaries } from "./attendanceSummary";

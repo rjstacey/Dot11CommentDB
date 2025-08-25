@@ -4,7 +4,7 @@ import {
 	ColumnProperties,
 	TablesConfig,
 	TableConfig,
-} from "dot11-components";
+} from "@components/table";
 
 import {
 	sessionRegistrationSelectors,

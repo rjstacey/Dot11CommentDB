@@ -7,7 +7,8 @@ import {
 } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
-import { fetcher, setError } from "dot11-components";
+import { fetcher } from "@components/lib";
+import { setError } from "@components/store";
 
 import type { RootState, AppThunk } from ".";
 

@@ -11,6 +11,9 @@
 	"license": "ISC",
 	"dependencies": {
 		"lodash.debounce": "^4.0.8",
+		"react-bootstrap": "^2.10.10",
+		"react-draggable": "^4.5.0",
+		"react-virtualized-auto-sizer": "^1.0.26",
 		"react-window": "^1.8.11"
 	},
 	"devDependencies": {

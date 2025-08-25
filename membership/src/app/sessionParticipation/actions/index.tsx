@@ -1,5 +1,5 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { displayDateRange } from "dot11-components";
+import { displayDateRange } from "@components/lib";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectRecentSessions } from "@/store/sessions";

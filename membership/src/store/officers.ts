@@ -4,7 +4,9 @@ import type { Dictionary, EntityId, PayloadAction } from "@reduxjs/toolkit";
 import { v4 as uuid } from "uuid";
 import type { RootState, AppThunk } from ".";
 
-import { fetcher, setError } from "dot11-components";
+import { fetcher } from "@components/lib";
+import { setError } from "@components/store";
+
 import { GroupType } from "./groups";
 import {
 	officersSchema,

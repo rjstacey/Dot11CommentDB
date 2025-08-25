@@ -1,9 +1,6 @@
 import { Row, Col, Button } from "react-bootstrap";
-import {
-	TableColumnSelector,
-	SplitPanelButton,
-	displayDateRange,
-} from "dot11-components";
+import { displayDateRange } from "@components/lib";
+import { TableColumnSelector, SplitPanelButton } from "@components/table";
 
 import { useAppSelector } from "@/store/hooks";
 import {

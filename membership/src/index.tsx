@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { getUser, loginAndReturn, fetcher } from "dot11-components";
+import { getUser, loginAndReturn, fetcher } from "@components/lib";
 
 import App from "./app";
 

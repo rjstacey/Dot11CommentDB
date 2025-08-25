@@ -1,4 +1,4 @@
-import { AppTable, SplitPanel, Panel, ShowFilters } from "dot11-components";
+import { AppTable, SplitPanel, Panel, ShowFilters } from "@components/table";
 
 import {
 	sessionAttendeesSelectors,

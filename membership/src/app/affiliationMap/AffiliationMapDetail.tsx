@@ -209,9 +209,9 @@ function GroupDetail() {
 
 	return (
 		<>
-			<div className="top-row">
+			<div className="d-flex align-items-center justify-content-between mb-3">
 				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
-				<div>
+				<div className="d-flex gap-2">
 					<Button
 						variant="outline-primary"
 						className="bi-plus-lg"

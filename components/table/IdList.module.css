@@ -1,0 +1,64 @@
+.main {
+	position: relative;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	border: 1px solid rgb(203 213 225);
+	border-radius: 3px;
+	background-color: #fafafa;
+	margin: 5px 0;
+}
+
+.main:hover {
+	border-color: #0074d9;
+}
+
+.main * {
+	box-sizing: content-box;
+}
+
+.main:focus-within {
+	outline: 0;
+	box-shadow: 0 0 0 3px rgba(0, 116, 217, 0.2);
+}
+
+.main :global(.input) {
+	padding: 0;
+	margin: 5px;
+	background: transparent;
+	font-family: inherit;
+	border: none;
+	resize: none;
+	line-height: normal;
+}
+
+.main :global(.input)::placeholder {
+	font-style: italic;
+	font-size: smaller;
+}
+
+.main :global(.input):focus {
+	box-shadow: none;
+}
+
+.main :global(.clear) {
+	margin-left: 5px;
+	font-size: larger;
+}
+
+.main :global(.mirror) {
+	position: absolute;
+	top: 5px;
+	left: 5px;
+	overflow: hidden;
+	z-index: +1;
+	user-select: none;
+	pointer-events: none;
+}
+
+.main :global(.mirror) mark {
+	color: red;
+	text-decoration: line-through;
+	background-color: inherit;
+}

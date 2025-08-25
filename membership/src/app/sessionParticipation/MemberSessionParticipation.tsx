@@ -1,12 +1,6 @@
 import * as React from "react";
-import { Button, FormCheck } from "react-bootstrap";
-import {
-	Col,
-	Input,
-	displayDateRange,
-	shallowDiff,
-	useDebounce,
-} from "dot11-components";
+import { Button, FormCheck, FormControl } from "react-bootstrap";
+import { displayDateRange, shallowDiff, useDebounce } from "@components/lib";
 
 import type { RootState } from "@/store";
 import { selectMemberAttendanceStats } from "@/store/sessionParticipation";
@@ -253,7 +247,7 @@ export function MemberSessionParticipation({
 			}
 			if (col.key === "Notes") {
 				renderCell = (entry) => (
-					<Input
+					<FormControl
 						type="text"
 						value={entry.Notes || ""}
 						onChange={(e) =>
@@ -286,7 +280,7 @@ export function MemberSessionParticipation({
 	}
 
 	return (
-		<Col>
+		<>
 			<div className="d-flex align-items-center justify-content-between">
 				<div>{`Recent session attendance: ${count}/${total}`}</div>
 				<Button
@@ -297,6 +291,6 @@ export function MemberSessionParticipation({
 				/>
 			</div>
 			<Table columns={columns} values={values} />
-		</Col>
+		</>
 	);
 }

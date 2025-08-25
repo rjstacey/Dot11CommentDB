@@ -3,10 +3,10 @@ import { DateTime } from "luxon";
 
 import {
 	createAppTableDataSlice,
-	FieldType,
 	Fields,
+	FieldType,
 	getAppTableDataSelectors,
-} from "dot11-components";
+} from "@components/store";
 
 import type { RootState } from ".";
 import {

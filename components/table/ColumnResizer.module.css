@@ -1,0 +1,19 @@
+.column-resizer-handle {
+	height: 100%;
+	width: 10px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	cursor: col-resize;
+	color: #0085ff;
+}
+
+.column-resizer-handle:after {
+	content: "⋮";
+}
+
+.column-resizer-handle:hover {
+	color: #0b6fcc;
+	background-color: rgba(0, 0, 0, 0.1);
+}

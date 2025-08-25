@@ -8,7 +8,8 @@ import {
 } from "@reduxjs/toolkit";
 import isEqual from "lodash.isequal";
 
-import { fetcher, setError } from "dot11-components";
+import { fetcher } from "@components/lib";
+import { setError } from "@components/store";
 
 import type { RootState, AppThunk } from ".";
 import {

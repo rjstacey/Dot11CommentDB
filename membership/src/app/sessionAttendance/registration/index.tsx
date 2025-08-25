@@ -1,4 +1,4 @@
-import { AppTable, ShowFilters } from "dot11-components";
+import { AppTable, ShowFilters } from "@components/table";
 import {
 	sessionRegistrationSelectors,
 	sessionRegistrationActions,

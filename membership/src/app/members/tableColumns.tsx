@@ -10,7 +10,7 @@ import {
 	TablesConfig,
 	CellRendererProps,
 	HeaderCellRendererProps,
-} from "dot11-components";
+} from "@components/table";
 
 import {
 	fields,

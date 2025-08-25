@@ -1,6 +1,6 @@
-import React from "react";
+import * as React from "react";
 
-import { displayDateRange } from "dot11-components";
+import { displayDateRange } from "@components/lib";
 
 import { useAppSelector } from "@/store/hooks";
 import {

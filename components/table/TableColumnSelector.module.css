@@ -1,0 +1,41 @@
+.row {
+    margin: 5px 10px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.list {
+    min-height: 10px;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	margin: 10px;
+	padding: 10px;
+	overflow: auto;
+}
+
+.item {
+    overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.item:hover {
+    background: #ccc;
+}
+
+.item:disabled {
+	text-decoration: line-through;
+}
+
+.item:global(.selected) {
+    background: #0074d9;
+}
+
+.item span {
+    margin: 5px 5px;
+}
+
+.item:global(.selected) span {
+    color: #fff;
+}

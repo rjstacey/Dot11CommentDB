@@ -6,7 +6,7 @@ import {
 	Panel,
 	TableColumnSelector,
 	SplitPanelButton,
-} from "dot11-components";
+} from "@components/table";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -68,7 +68,7 @@ export function SessionParticipationTable() {
 				<Panel>
 					<AppTable
 						columns={columns}
-						headerHeight={40}
+						headerHeight={56}
 						estimatedRowHeight={50}
 						selectors={sessionParticipationSelectors}
 						actions={sessionParticipationActions}
