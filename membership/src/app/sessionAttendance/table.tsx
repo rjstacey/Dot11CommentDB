@@ -1,4 +1,11 @@
-import { AppTable, SplitPanel, Panel, ShowFilters } from "@components/table";
+import { Row, Col } from "react-bootstrap";
+import {
+	AppTable,
+	SplitPanel,
+	Panel,
+	ShowFilters,
+	GlobalFilter,
+} from "@components/table";
 
 import {
 	sessionAttendeesSelectors,
@@ -11,12 +18,22 @@ import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
 export function SessionAttendanceTable() {
 	return (
-		<div className="table-container">
-			<ShowFilters
-				fields={fields}
-				selectors={sessionAttendeesSelectors}
-				actions={sessionAttendeesActions}
-			/>
+		<>
+			<Row className="align-items-center w-100">
+				<Col>
+					<ShowFilters
+						selectors={sessionAttendeesSelectors}
+						actions={sessionAttendeesActions}
+						fields={fields}
+					/>
+				</Col>
+				<Col xs={3} sm={2}>
+					<GlobalFilter
+						selectors={sessionAttendeesSelectors}
+						actions={sessionAttendeesActions}
+					/>
+				</Col>
+			</Row>
 			<SplitPanel
 				selectors={sessionAttendeesSelectors}
 				actions={sessionAttendeesActions}
@@ -35,7 +52,7 @@ export function SessionAttendanceTable() {
 					<MemberAttendanceDetail />
 				</Panel>
 			</SplitPanel>
-		</div>
+		</>
 	);
 }
 

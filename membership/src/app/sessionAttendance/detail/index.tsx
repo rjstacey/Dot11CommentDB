@@ -39,7 +39,7 @@ import {
 import {
 	MemberBasicInfo,
 	MemberDetailInfo,
-	emailPattern,
+	//emailPattern,
 	type MultipleMember,
 	type EditAction,
 } from "../../members/detail/MemberEdit";
@@ -221,33 +221,14 @@ export function MemberEntryForm({
 	readOnly?: boolean;
 	basicOnly?: boolean;
 }) {
-	let errMsg = "";
-	if (!member.SAPIN) errMsg = "SA PIN not set";
-	else if (!member.Name) errMsg = "Name not set";
-	else if (!member.LastName) errMsg = "Family name not set";
-	else if (!member.FirstName) errMsg = "Given name not set";
-	else if (!new RegExp(emailPattern).test(member.Email))
-		errMsg = "Invalid email address";
-
-	let submitForm;
-	if (action === "add") {
-		submitForm = async (e: React.FormEvent<HTMLFormElement>) => {
-			e.preventDefault();
-			if (errMsg) {
-				ConfirmModal.show("Fix error: " + errMsg, false);
-				return;
-			}
-			add();
-		};
-	} else if (action === "update") {
-		submitForm = async (e: React.FormEvent<HTMLFormElement>) => {
-			e.preventDefault();
-			if (errMsg) {
-				ConfirmModal.show("Fix error: " + errMsg, false);
-				return;
-			}
-			update();
-		};
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
+		if (!e.currentTarget.checkValidity()) {
+			ConfirmModal.show("Fix errors", false);
+			return;
+		}
+		if (action === "add") add();
+		else if (action === "update") update();
 	}
 
 	function changeMember(changes: Partial<Member>) {
@@ -272,7 +253,7 @@ export function MemberEntryForm({
 	}
 
 	return (
-		<Form className="p-3" onSubmit={submitForm}>
+		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
 			<MemberBasicInfo
 				sapins={action === "add" ? [member.SAPIN as number] : sapins}
 				member={member}
@@ -559,11 +540,11 @@ export function MemberAttendanceDetail() {
 
 	return (
 		<>
-			<div className="top-row">
+			<div className="d-flex align-items-center justify-content-between mb-3">
 				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
 			</div>
 			{state.action === "view" && state.message ? (
-				<div className="placeholder">
+				<div className="details-panel-placeholder">
 					<span>{state.message}</span>
 				</div>
 			) : (

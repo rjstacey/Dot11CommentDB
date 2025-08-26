@@ -7,8 +7,8 @@ import { store, persistor, resetStore } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectUser, setUser, type User } from "@/store/user";
 
-import "./index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./index.css";
 import { routes } from "./routes";
 
 const getRouter = () =>

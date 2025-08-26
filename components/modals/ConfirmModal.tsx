@@ -49,6 +49,9 @@ class ConfirmModal extends React.Component<
 	render() {
 		return (
 			<Modal show={this.state.isOpen} onHide={this.handleCancel}>
+				<Modal.Header>
+					<Modal.Title>Alert</Modal.Title>
+				</Modal.Header>
 				<Modal.Body>
 					<p>{this.state.message}</p>
 				</Modal.Body>

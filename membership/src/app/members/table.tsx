@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
 	ShowFilters,
@@ -40,17 +41,21 @@ export function MembersTable() {
 
 	return (
 		<div className="table-container">
-			<div className="w-100 d-flex align-items-center">
-				<ShowFilters
-					selectors={membersSelectors}
-					actions={membersActions}
-					fields={fields}
-				/>
-				<GlobalFilter
-					selectors={membersSelectors}
-					actions={membersActions}
-				/>
-			</div>
+			<Row className="align-items-center w-100">
+				<Col>
+					<ShowFilters
+						selectors={membersSelectors}
+						actions={membersActions}
+						fields={fields}
+					/>
+				</Col>
+				<Col xs={3} sm={2}>
+					<GlobalFilter
+						selectors={membersSelectors}
+						actions={membersActions}
+					/>
+				</Col>
+			</Row>
 
 			<SplitPanel selectors={membersSelectors} actions={membersActions}>
 				<Panel>

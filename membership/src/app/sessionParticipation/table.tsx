@@ -1,3 +1,4 @@
+import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
 	ShowFilters,
@@ -47,19 +48,21 @@ export function SessionParticipationTable() {
 
 	return (
 		<>
-			<div
-				style={{ display: "flex", width: "100%", alignItems: "center" }}
-			>
-				<ShowFilters
-					selectors={sessionParticipationSelectors}
-					actions={sessionParticipationActions}
-					fields={fields}
-				/>
-				<GlobalFilter
-					selectors={sessionParticipationSelectors}
-					actions={sessionParticipationActions}
-				/>
-			</div>
+			<Row className="align-items-center w-100">
+				<Col>
+					<ShowFilters
+						selectors={sessionParticipationSelectors}
+						actions={sessionParticipationActions}
+						fields={fields}
+					/>
+				</Col>
+				<Col xs={3} sm={2}>
+					<GlobalFilter
+						selectors={sessionParticipationSelectors}
+						actions={sessionParticipationActions}
+					/>
+				</Col>
+			</Row>
 
 			<SplitPanel
 				selectors={sessionParticipationSelectors}

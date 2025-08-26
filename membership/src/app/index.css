@@ -75,3 +75,30 @@ div#root {
 .form-label {
 	font-weight: bold;
 }
+
+.was-validated .form-control:valid {
+	border-color: var(--bs-border-color);
+	background-image: none;
+	padding-right: unset;
+}
+
+.was-validated .form-control:valid:focus {
+	box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.was-validated .form-check-input:valid {
+	border-color: var(--bs-border-color);
+}
+
+.was-validated .form-check-input:valid:checked {
+	background-color: #0d6efd;
+	border-color: #0d6efd;
+}
+
+.was-validated .form-check-input:valid:focus {
+	box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.was-validated .form-check-input:valid ~ .form-check-label {
+	color: unset;
+}

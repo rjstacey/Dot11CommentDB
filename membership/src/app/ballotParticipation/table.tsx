@@ -1,3 +1,4 @@
+import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
 	ShowFilters,
@@ -26,19 +27,21 @@ export function BallotParticipationTable() {
 
 	return (
 		<>
-			<div
-				style={{ display: "flex", width: "100%", alignItems: "center" }}
-			>
-				<ShowFilters
-					selectors={ballotParticipationSelectors}
-					actions={ballotParticipationActions}
-					fields={fields}
-				/>
-				<GlobalFilter
-					selectors={ballotParticipationSelectors}
-					actions={ballotParticipationActions}
-				/>
-			</div>
+			<Row className="align-items-center w-100">
+				<Col>
+					<ShowFilters
+						selectors={ballotParticipationSelectors}
+						actions={ballotParticipationActions}
+						fields={fields}
+					/>
+				</Col>
+				<Col xs={3} sm={2}>
+					<GlobalFilter
+						selectors={ballotParticipationSelectors}
+						actions={ballotParticipationActions}
+					/>
+				</Col>
+			</Row>
 
 			<SplitPanel
 				selectors={ballotParticipationSelectors}

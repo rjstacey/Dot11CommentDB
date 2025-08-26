@@ -181,6 +181,7 @@ function ExpandingInput({
 	member,
 	saved,
 	updateMember,
+	invalidFeedback,
 	...props
 }: {
 	dataKey: keyof Omit<
@@ -193,6 +194,7 @@ function ExpandingInput({
 	member: MultipleMember;
 	saved?: MultipleMember;
 	updateMember: (changes: Partial<Member>) => void;
+	invalidFeedback?: string;
 } & React.ComponentProps<typeof Form.Control>) {
 	const value = "" + member[dataKey];
 	const savedValue: string | number | boolean | null | undefined =
@@ -212,6 +214,11 @@ function ExpandingInput({
 				onChange={(e) => updateMember({ [dataKey]: e.target.value })}
 				placeholder={isMultiple(value) ? MULTIPLE_STR : BLANK_STR}
 			/>
+			{invalidFeedback && (
+				<Form.Control.Feedback type="invalid">
+					{invalidFeedback}
+				</Form.Control.Feedback>
+			)}
 			<Form.Text className="text-muted">{savedValue}</Form.Text>
 		</Col>
 	);
@@ -236,24 +243,41 @@ export function MemberBasicInfo({
 	basicOnly?: boolean;
 }) {
 	const hasMany = sapins.length > 1;
-	let sapinsEl: JSX.Element;
-	let sapinsLabel: string;
-	if (sapins.length > 1) {
-		sapinsLabel = "SA PINs:";
-		sapinsEl = <span>{sapins.join(", ")}</span>;
+	let sapinEl: JSX.Element;
+	if (hasMany) {
+		sapinEl = (
+			<>
+				<Form.Label as="span" column xs={4}>
+					SA PINs:
+				</Form.Label>
+				<Col>
+					<span>{sapins.join(", ")}</span>
+				</Col>
+			</>
+		);
 	} else {
-		sapinsLabel = "SA PIN:";
-		sapinsEl = (
-			<Form.Control
-				type="text"
-				value={member.SAPIN}
-				onChange={(e) =>
-					updateMember({ SAPIN: Number(e.target.value) })
-				}
-				pattern="\d+"
-				disabled={basicOnly || readOnly}
-				autoComplete="none"
-			/>
+		sapinEl = (
+			<>
+				<Form.Label column xs={4}>
+					SA PIN:
+				</Form.Label>
+				<Col>
+					<Form.Control
+						type="text"
+						value={member.SAPIN || ""}
+						onChange={(e) =>
+							updateMember({ SAPIN: Number(e.target.value) })
+						}
+						pattern="\d+"
+						disabled={basicOnly || readOnly}
+						autoComplete="none"
+						required
+					/>
+					<Form.Control.Feedback type="invalid">
+						SA PIN not set
+					</Form.Control.Feedback>
+				</Col>
+			</>
 		);
 	}
 
@@ -266,10 +290,7 @@ export function MemberBasicInfo({
 					controlId="sapin"
 					className="d-flex align-items-center"
 				>
-					<Form.Label column xs={4}>
-						{sapinsLabel}
-					</Form.Label>
-					<Col>{sapinsEl}</Col>
+					{sapinEl}
 				</Form.Group>
 				<Form.Group
 					as={Col}
@@ -311,6 +332,8 @@ export function MemberBasicInfo({
 					updateMember={updateMember}
 					disabled={readOnly}
 					autoComplete="none"
+					required
+					invalidFeedback="Family name not set"
 				/>
 			</Form.Group>
 			<Row className="mb-3">
@@ -330,6 +353,8 @@ export function MemberBasicInfo({
 						updateMember={updateMember}
 						disabled={readOnly}
 						autoComplete="none"
+						required
+						invalidFeedback="Given name not set"
 					/>
 				</Form.Group>
 				<Form.Group as={Col} xs={4} controlId="mi" className="d-flex">
@@ -359,6 +384,8 @@ export function MemberBasicInfo({
 						disabled={readOnly}
 						pattern={emailPattern}
 						autoComplete="none"
+						required
+						invalidFeedback="Invalid email address"
 					/>
 				</Col>
 			</Form.Group>
@@ -490,18 +517,10 @@ export function MemberEntryForm({
 }) {
 	const ieeeMemberEntities = useAppSelector(selectIeeeMemberEntities);
 
-	let errMsg = "";
-	if (!member.SAPIN) errMsg = "SA PIN not set";
-	else if (!member.Name) errMsg = "Name not set";
-	else if (!member.LastName) errMsg = "Family name not set";
-	else if (!member.FirstName) errMsg = "Given name not set";
-	else if (!new RegExp(emailPattern).test(member.Email))
-		errMsg = "Invalid email address";
-
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
-		if (errMsg) {
-			ConfirmModal.show("Fix error: " + errMsg, false);
+		if (!e.currentTarget.checkValidity()) {
+			ConfirmModal.show("Fix errors", false);
 			return;
 		}
 		if (action === "add") add();
@@ -542,7 +561,7 @@ export function MemberEntryForm({
 	}
 
 	return (
-		<Form onSubmit={handleSubmit} className="p-3">
+		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
 			{action === "add" && !basicOnly && (
 				<Form.Group as={Row}>
 					<Form.Label column>Add existing IEEE member:</Form.Label>
@@ -574,9 +593,6 @@ export function MemberEntryForm({
 					/>
 				</Row>
 			)}
-			<Row>
-				<Form.Text>{errMsg}</Form.Text>
-			</Row>
 			<SubmitCancel action={action} cancel={cancel} busy={false} />
 		</Form>
 	);

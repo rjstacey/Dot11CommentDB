@@ -1,36 +1,32 @@
 import * as React from "react";
 import { Form, Row, Col, Button, Spinner } from "react-bootstrap";
 import { AffiliationMap } from "@/store/affiliationMap";
+import { ConfirmModal } from "@components/modals";
 
 export type EditAction = "view" | "update" | "add";
 
 function SubmitCancel({
 	action,
 	busy,
-	submit,
 	cancel,
 }: {
 	action: EditAction;
 	busy?: boolean;
-	submit?: () => void;
 	cancel?: () => void;
 }) {
+	if (action !== "add" && action !== "update") return null;
 	return (
 		<Form.Group as={Row} className="mb-3">
 			<Col xs={6} className="d-flex justify-content-center">
-				{submit && (
-					<Button type="submit">
-						{busy && <Spinner animation="border" size="sm" />}
-						{action === "add" ? "Add" : "Update"}
-					</Button>
-				)}
+				<Button type="submit">
+					{busy && <Spinner animation="border" size="sm" />}
+					{action === "add" ? "Add" : "Update"}
+				</Button>
 			</Col>
 			<Col xs={6} className="d-flex justify-content-center">
-				{cancel && (
-					<Button variant="secondary" onClick={cancel}>
-						Cancel
-					</Button>
-				)}
+				<Button variant="secondary" onClick={cancel}>
+					Cancel
+				</Button>
 			</Col>
 		</Form.Group>
 	);
@@ -55,8 +51,10 @@ export function AffiliationMapEntryForm({
 }) {
 	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		const form = e.currentTarget;
-		if (!form.checkValidity()) return;
+		if (!e.currentTarget.checkValidity()) {
+			ConfirmModal.show("Fix errors", false);
+			return;
+		}
 		submit?.();
 	}
 
@@ -71,7 +69,6 @@ export function AffiliationMapEntryForm({
 					placeholder="(Blank)"
 					readOnly={readOnly}
 					required
-					isInvalid={!entry.match}
 				/>
 				<Form.Control.Feedback type="invalid">
 					Provide a match expression; regex or simple case insensitive
@@ -89,18 +86,12 @@ export function AffiliationMapEntryForm({
 					placeholder="(Blank)"
 					readOnly={readOnly}
 					required
-					isInvalid={!entry.shortAffiliation}
 				/>
 				<Form.Control.Feedback type="invalid">
 					Provide a short name for the affiliation
 				</Form.Control.Feedback>
 			</Form.Group>
-			<SubmitCancel
-				action={action}
-				busy={busy}
-				submit={submit}
-				cancel={cancel}
-			/>
+			<SubmitCancel action={action} busy={busy} cancel={cancel} />
 		</Form>
 	);
 }

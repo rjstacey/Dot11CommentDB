@@ -66,7 +66,7 @@ function GlobalFilter({
 			value={value}
 			ref={inputRef}
 			onChange={(e) => setGlobalFilter(e.target.value)}
-			placeholder="Search..."
+			placeholder="Search table..."
 			{...otherProps}
 		/>
 	);
