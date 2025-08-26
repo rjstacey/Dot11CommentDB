@@ -1,6 +1,5 @@
-import React from "react";
-import { Form } from "../form";
-import { AppModal } from ".";
+import * as React from "react";
+import { Modal, Button } from "react-bootstrap";
 
 let resolve: (value: unknown) => void;
 
@@ -21,6 +20,7 @@ class ConfirmModal extends React.Component<
 	constructor(props: ConfirmModalProps) {
 		super(props);
 		ConfirmModal.instance = this;
+		console.log("instantiate");
 
 		this.state = {
 			isOpen: false,
@@ -30,6 +30,7 @@ class ConfirmModal extends React.Component<
 	}
 
 	static show(message: string, hasCancel = true) {
+		console.log("show", ConfirmModal.instance);
 		ConfirmModal.instance.setState({ isOpen: true, message, hasCancel });
 
 		return new Promise((res) => {
@@ -49,22 +50,21 @@ class ConfirmModal extends React.Component<
 
 	render() {
 		return (
-			<AppModal
-				overlayStyle={{ zIndex: 20 }}
-				isOpen={this.state.isOpen}
-				onRequestClose={this.handleCancel}
-			>
-				<Form
-					submit={this.handleOk}
-					submitLabel={this.state.hasCancel ? "Yes" : "OK"}
-					cancel={
-						this.state.hasCancel ? this.handleCancel : undefined
-					}
-					cancelLabel="No"
-				>
+			<Modal show={this.state.isOpen} onHide={this.handleCancel}>
+				<Modal.Body>
 					<p>{this.state.message}</p>
-				</Form>
-			</AppModal>
+				</Modal.Body>
+				<Modal.Footer>
+					{this.state.hasCancel && (
+						<Button variant="secondary" onClick={this.handleCancel}>
+							Cancel
+						</Button>
+					)}
+					<Button variant="primary" onClick={this.handleOk}>
+						{this.state.hasCancel ? "Yes" : "OK"}
+					</Button>
+				</Modal.Footer>
+			</Modal>
 		);
 	}
 }

@@ -11,7 +11,7 @@ import {
 } from "react-bootstrap";
 import { DateTime } from "luxon";
 
-import { ConfirmModal } from "dot11-components";
+import { ConfirmModal } from "@components/modals";
 import { isMultiple, type Multiple, MULTIPLE } from "@components/lib";
 
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
@@ -441,30 +441,25 @@ export function MemberBasicInfo({
 function SubmitCancel({
 	action,
 	busy,
-	submit,
 	cancel,
 }: {
 	action: EditAction;
 	busy?: boolean;
-	submit?: () => void;
 	cancel?: () => void;
 }) {
+	if (action !== "add" && action !== "update") return null;
 	return (
 		<Form.Group as={Row} className="mb-3">
 			<Col xs={6} className="d-flex justify-content-center">
-				{submit && (
-					<Button type="submit">
-						{busy && <Spinner animation="border" size="sm" />}
-						{action === "add" ? "Add" : "Update"}
-					</Button>
-				)}
+				<Button type="submit">
+					{busy && <Spinner animation="border" size="sm" />}
+					{action === "add" ? "Add" : "Update"}
+				</Button>
 			</Col>
 			<Col xs={6} className="d-flex justify-content-center">
-				{cancel && (
-					<Button variant="secondary" onClick={cancel}>
-						Cancel
-					</Button>
-				)}
+				<Button variant="secondary" onClick={cancel}>
+					Cancel
+				</Button>
 			</Col>
 		</Form.Group>
 	);
@@ -503,26 +498,15 @@ export function MemberEntryForm({
 	else if (!new RegExp(emailPattern).test(member.Email))
 		errMsg = "Invalid email address";
 
-	let submitForm, cancelForm;
-	if (action === "add") {
-		submitForm = async () => {
-			if (errMsg) {
-				ConfirmModal.show("Fix error: " + errMsg, false);
-				return;
-			}
-			add();
-		};
-		cancelForm = cancel;
-	} else if (action === "update") {
-		submitForm = async () => {
-			if (errMsg) {
-				ConfirmModal.show("Fix error: " + errMsg, false);
-				return;
-			}
-			update();
-		};
-		cancelForm = cancel;
-	}
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		if (errMsg) {
+			ConfirmModal.show("Fix error: " + errMsg, false);
+			return;
+		}
+		if (action === "add") add();
+		else if (action === "update") update();
+	};
 
 	function changeMember(changes: Partial<Member>) {
 		const name =
@@ -558,7 +542,7 @@ export function MemberEntryForm({
 	}
 
 	return (
-		<Form className="p-3">
+		<Form onSubmit={handleSubmit} className="p-3">
 			{action === "add" && !basicOnly && (
 				<Form.Group as={Row}>
 					<Form.Label column>Add existing IEEE member:</Form.Label>
@@ -593,12 +577,7 @@ export function MemberEntryForm({
 			<Row>
 				<Form.Text>{errMsg}</Form.Text>
 			</Row>
-			<SubmitCancel
-				action={action}
-				submit={submitForm}
-				cancel={cancelForm}
-				busy={false}
-			/>
+			<SubmitCancel action={action} cancel={cancel} busy={false} />
 		</Form>
 	);
 }

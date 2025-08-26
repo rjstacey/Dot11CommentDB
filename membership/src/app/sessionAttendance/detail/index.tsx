@@ -2,7 +2,7 @@ import * as React from "react";
 import { Form, Row, Col, Button, Spinner } from "react-bootstrap";
 import { useParams } from "react-router";
 import isEqual from "lodash.isequal";
-import { ConfirmModal } from "dot11-components";
+import { ConfirmModal } from "@components/modals";
 import {
 	deepMergeTagMultiple,
 	deepDiff,

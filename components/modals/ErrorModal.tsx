@@ -1,8 +1,6 @@
-import React from "react";
+import * as React from "react";
+import { Modal, Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
-import { Button } from "../form";
-import { ActionIcon } from "../icons";
-import { AppModal } from ".";
 
 import { clearOne, clearAll, selectErrors, ErrorMsg } from "../store/error";
 
@@ -33,40 +31,38 @@ function MultipleErrorForm({ errors }: { errors: ErrorMsg[] }) {
 	const dismissActions =
 		errors.length > 1 ? (
 			<>
-				<ActionIcon
-					className={styles["nav-icon"]}
-					name="prev"
+				<Button
+					//className={styles["nav-icon"]}
+					className="bi-arrow-left-circle"
 					onClick={prev}
 				/>
 				<div className={styles["dismiss-buttons-stack"]}>
 					{dismissOneButton}
 					{dismissAllButton}
 				</div>
-				<ActionIcon
-					className={styles["nav-icon"]}
-					name="next"
-					onClick={next}
-				/>
+				<Button className="bi-arrow-right-circle" onClick={next} />
 			</>
 		) : (
 			dismissOneButton
 		);
 
 	return (
-		<div className={styles["error-form"]} title={error.summary}>
-			{errors.length > 1 && (
-				<div className={styles["error-count"]}>
-					{n + 1} of {errors.length} errors
-				</div>
-			)}
+		<>
+			<Modal.Header>
+				<Modal.Title>{error.summary}</Modal.Title>
+			</Modal.Header>
+			<Modal.Body>
+				{errors.length > 1 && (
+					<div className={styles["error-count"]}>
+						{n + 1} of {errors.length} errors
+					</div>
+				)}
 
-			<h2 className={styles["form-title"]}>{error.summary}</h2>
-
-			{error.detail &&
-				error.detail.split("\n").map((s, i) => <p key={i}>{s}</p>)}
-
-			<div className={styles["dismiss-buttons"]}>{dismissActions}</div>
-		</div>
+				{error.detail &&
+					error.detail.split("\n").map((s, i) => <p key={i}>{s}</p>)}
+			</Modal.Body>
+			<Modal.Footer>{dismissActions}</Modal.Footer>
+		</>
 	);
 }
 
@@ -75,12 +71,9 @@ function ErrorModal() {
 	const errors = useSelector(selectErrors);
 
 	return (
-		<AppModal
-			isOpen={errors.length > 0}
-			onRequestClose={() => dispatch(clearAll())}
-		>
+		<Modal show={errors.length > 0} onHide={() => dispatch(clearAll())}>
 			<MultipleErrorForm errors={errors} />
-		</AppModal>
+		</Modal>
 	);
 }
 

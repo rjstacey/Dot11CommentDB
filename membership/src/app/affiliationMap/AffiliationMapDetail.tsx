@@ -3,7 +3,7 @@ import { Button } from "react-bootstrap";
 import { shallowEqual } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
 
-import { ConfirmModal } from "dot11-components";
+import { ConfirmModal } from "@components/modals";
 
 import {
 	useAffiliationMapAdd,

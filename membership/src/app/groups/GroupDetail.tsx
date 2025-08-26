@@ -2,12 +2,9 @@ import * as React from "react";
 import { Button } from "react-bootstrap";
 import { shallowEqual } from "react-redux";
 
-import {
-	ConfirmModal,
-	deepMergeTagMultiple,
-	Multiple,
-	setError,
-} from "dot11-components";
+import { deepMergeTagMultiple, Multiple } from "@components/lib";
+import { setError } from "@components/store";
+import { ConfirmModal } from "@components/modals";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";

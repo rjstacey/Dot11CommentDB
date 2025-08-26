@@ -87,6 +87,7 @@ function ColumnSelectorDropdown({
 					`}</style>
 					{selectableColumns.map((col) => (
 						<Dropdown.Item
+							key={col.key}
 							style={{ paddingLeft: "2rem" }}
 							as={Form.Check}
 							active={col.shown}

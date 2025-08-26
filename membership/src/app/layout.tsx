@@ -1,5 +1,5 @@
 import { Outlet } from "react-router";
-import { ErrorModal, ConfirmModal } from "dot11-components";
+import { ErrorModal, ConfirmModal } from "@components/modals";
 import Header from "./Header";
 import css from "./app.module.css";
 
@@ -11,6 +11,7 @@ export function AppLayout() {
 				<Outlet />
 			</main>
 			<ErrorModal />
+			{/* @ts-expect-error */}
 			<ConfirmModal />
 		</>
 	);
