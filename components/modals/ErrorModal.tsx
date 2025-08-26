@@ -4,8 +4,6 @@ import { useDispatch, useSelector } from "react-redux";
 
 import { clearOne, clearAll, selectErrors, ErrorMsg } from "../store/error";
 
-import styles from "./index.module.css";
-
 function MultipleErrorForm({ errors }: { errors: ErrorMsg[] }) {
 	const dispatch = useDispatch();
 	const [index, setIndex] = React.useState<number>(0);
@@ -30,38 +28,47 @@ function MultipleErrorForm({ errors }: { errors: ErrorMsg[] }) {
 	);
 	const dismissActions =
 		errors.length > 1 ? (
-			<>
+			<div className="d-flex justify-content-between w-100">
 				<Button
-					//className={styles["nav-icon"]}
-					className="bi-arrow-left-circle"
+					variant="light"
+					className="bi-arrow-left-circle fs-2"
 					onClick={prev}
 				/>
-				<div className={styles["dismiss-buttons-stack"]}>
+				<div className="d-flex flex-column gap-2">
 					{dismissOneButton}
 					{dismissAllButton}
 				</div>
-				<Button className="bi-arrow-right-circle" onClick={next} />
-			</>
+				<Button
+					variant="light"
+					className="bi-arrow-right-circle fs-2"
+					onClick={next}
+				/>
+			</div>
 		) : (
-			dismissOneButton
+			<div className="d-flex justify-content-around w-100">
+				{dismissOneButton}
+			</div>
 		);
 
 	return (
 		<>
-			<Modal.Header>
+			<Modal.Header className="flex-column">
 				<Modal.Title>{error.summary}</Modal.Title>
-			</Modal.Header>
-			<Modal.Body>
 				{errors.length > 1 && (
-					<div className={styles["error-count"]}>
-						{n + 1} of {errors.length} errors
+					<div className="d-flex justify-content-end w-100 text-muted">
+						<span>
+							{n + 1} of {errors.length} errors
+						</span>
 					</div>
 				)}
-
+			</Modal.Header>
+			<Modal.Body>
 				{error.detail &&
 					error.detail.split("\n").map((s, i) => <p key={i}>{s}</p>)}
 			</Modal.Body>
-			<Modal.Footer>{dismissActions}</Modal.Footer>
+			<Modal.Footer className="justify-content-between">
+				{dismissActions}
+			</Modal.Footer>
 		</>
 	);
 }
