@@ -20,7 +20,6 @@ class ConfirmModal extends React.Component<
 	constructor(props: ConfirmModalProps) {
 		super(props);
 		ConfirmModal.instance = this;
-		console.log("instantiate");
 
 		this.state = {
 			isOpen: false,
@@ -30,7 +29,6 @@ class ConfirmModal extends React.Component<
 	}
 
 	static show(message: string, hasCancel = true) {
-		console.log("show", ConfirmModal.instance);
 		ConfirmModal.instance.setState({ isOpen: true, message, hasCancel });
 
 		return new Promise((res) => {

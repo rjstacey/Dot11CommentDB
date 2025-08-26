@@ -1,7 +1,7 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { Action, EntityId } from "@reduxjs/toolkit";
-import { VariableSizeGrid as Grid } from "react-window";
+import { VariableSizeGrid as Grid, GridOnScrollProps } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 
 import AppTableRow, { AppTableRowData } from "./AppTableRow";
@@ -355,7 +355,7 @@ function AppTableSized({
 	);
 
 	// Sync the table header scroll position with that of the table body
-	const onScroll = ({ scrollLeft, scrollTop }) => {
+	const onScroll = ({ scrollLeft, scrollTop }: GridOnScrollProps) => {
 		if (headerRef.current) headerRef.current.scrollLeft = scrollLeft;
 	};
 

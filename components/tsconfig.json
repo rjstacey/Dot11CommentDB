@@ -2,22 +2,22 @@
 	"compilerOptions": {
 		"target": "es2020",
 		"module": "esnext",
-		"moduleResolution": "node",
-		"strict": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
+		"lib": ["ES2020", "DOM", "DOM.Iterable"],
 		"skipLibCheck": true,
-		"checkJs": true,
+
+		"moduleResolution": "bundler",
+		"resolveJsonModule": true,
 		"allowJs": true,
-		"declaration": true,
-		"declarationMap": true,
+		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
+		"strict": true,
+		"forceConsistentCasingInFileNames": true,
+		"noFallthroughCasesInSwitch": true,
+		"isolatedModules": true,
+		"noEmit": true,
 		"jsx": "react-jsx",
-		"noImplicitAny": false,
-		"noImplicitThis": false,
-		"sourceMap": true,
-		"outDir": "./dist"
+
+		"baseUrl": "."
 	},
-	"include": ["src/**/*"],
 	"exclude": ["src/setupTests.*", "src/**/*.test.*", "src/stories"]
 }

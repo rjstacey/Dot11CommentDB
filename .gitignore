@@ -5,3 +5,6 @@ build/*
 *.sublime-project
 .vscode
 node_modules
+
+*storybook.log
+storybook-static

@@ -7,7 +7,7 @@ import type {
 	AppTableDataActions,
 } from "../store/appTableData";
 
-import ColumnResizer from "./ColumnResizer";
+import ColumnResizer, { DraggableEventHandler } from "./ColumnResizer";
 
 interface SplitPanelButtonProps {
 	title?: string;
@@ -77,7 +77,7 @@ export function SplitPanel({
 			...children[1].props.style,
 			flex: `${(1 - width) * 100}%`,
 		};
-		const onDrag = (event, { x, deltaX }) => {
+		const onDrag: DraggableEventHandler = (event, { x, deltaX }) => {
 			const b = (ref.current as HTMLDivElement).getBoundingClientRect(); // only called after ref established
 			setPanelWidth((x - b.x) / (b.width - 5));
 		};
