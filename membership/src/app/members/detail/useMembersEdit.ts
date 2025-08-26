@@ -1,5 +1,5 @@
 import * as React from "react";
-import { shallowDiff, deepMerge, deepDiff } from "dot11-components";
+import { shallowDiff, deepMerge, deepDiff } from "@components/lib";
 import type { AppThunk } from "@/store";
 import { useAppDispatch } from "@/store/hooks";
 import {

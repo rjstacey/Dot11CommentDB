@@ -11,12 +11,8 @@ import {
 } from "react-bootstrap";
 import { DateTime } from "luxon";
 
-import {
-	ConfirmModal,
-	isMultiple,
-	type Multiple,
-	MULTIPLE,
-} from "dot11-components";
+import { ConfirmModal } from "dot11-components";
+import { isMultiple, type Multiple, MULTIPLE } from "@components/lib";
 
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {

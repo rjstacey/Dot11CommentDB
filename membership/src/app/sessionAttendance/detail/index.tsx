@@ -2,15 +2,15 @@ import * as React from "react";
 import { Form, Row, Col, Button, Spinner } from "react-bootstrap";
 import { useParams } from "react-router";
 import isEqual from "lodash.isequal";
+import { ConfirmModal } from "dot11-components";
 import {
-	ConfirmModal,
 	deepMergeTagMultiple,
 	deepDiff,
 	deepMerge,
 	isMultiple,
 	type Multiple,
 	MULTIPLE,
-} from "dot11-components";
+} from "@components/lib";
 
 import { store } from "@/store";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";

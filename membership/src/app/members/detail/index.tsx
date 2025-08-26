@@ -3,7 +3,8 @@ import { Button } from "react-bootstrap";
 import { shallowEqual } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
 
-import { ConfirmModal, deepMergeTagMultiple } from "dot11-components";
+import { ConfirmModal } from "dot11-components";
+import { deepMergeTagMultiple } from "@components/lib";
 
 import { useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Form, Row, Col, Button, Spinner } from "react-bootstrap";
-import { isMultiple, Multiple } from "dot11-components";
+import { isMultiple, Multiple } from "@components/lib";
 
 import { useAppSelector } from "@/store/hooks";
 import {

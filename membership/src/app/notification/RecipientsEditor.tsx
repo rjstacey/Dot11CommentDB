@@ -1,9 +1,9 @@
-import React from "react";
+import * as React from "react";
 import {
 	Select,
 	SelectItemRendererProps,
 	SelectRendererProps,
-} from "dot11-components";
+} from "@components/select";
 import { useAppSelector } from "@/store/hooks";
 import { selectActiveMembers } from "@/store/members";
 import { EmailTemplate } from "@/store/emailTemplates";
@@ -51,7 +51,7 @@ function MemberEmailSelector({
 					({
 						Name: m.Name,
 						Email: m.Email.toLowerCase(),
-					}) satisfies EntryOption
+					} satisfies EntryOption)
 			),
 		[members]
 	);

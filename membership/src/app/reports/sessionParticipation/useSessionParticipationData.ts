@@ -5,7 +5,7 @@ import {
 	selectSessionParticipationWithMembershipAndSummary,
 } from "@/store/sessionParticipation";
 import { selectSessionEntities } from "@/store/sessions";
-import { displayDateRange } from "dot11-components";
+import { displayDateRange } from "@components/lib";
 
 export type AttendanceCumulative = {
 	sessionsAttended: number;
@@ -151,7 +151,9 @@ export function useAttendancePerSession({
 				.fill(undefined)
 				.map(() => Object.create(empty));
 
-			const sessionLabel = `${s.number} ${s.type === "p" ? "Plenary: " : "Interim: "} ${displayDateRange(s.startDate, s.endDate)}`;
+			const sessionLabel = `${s.number} ${
+				s.type === "p" ? "Plenary: " : "Interim: "
+			} ${displayDateRange(s.startDate, s.endDate)}`;
 			dataEntities[s.id] = {
 				sessionId: s.id,
 				sessionLabel,

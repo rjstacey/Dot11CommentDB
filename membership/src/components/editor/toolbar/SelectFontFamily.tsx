@@ -11,7 +11,7 @@ import {
 	$getSelectionStyleValueForProperty,
 } from "@lexical/selection";
 import { mergeRegister } from "@lexical/utils";
-import { Select, SelectItemRendererProps } from "dot11-components";
+import { Select, SelectItemRendererProps } from "@components/select";
 
 import css from "../editor.module.css";
 
