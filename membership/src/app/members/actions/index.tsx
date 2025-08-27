@@ -1,5 +1,5 @@
-import { useLocation, useNavigate } from "react-router";
-import { Row, Col, Button } from "react-bootstrap";
+import { useLocation } from "react-router";
+import { Col, Button } from "react-bootstrap";
 import type { EntityId } from "@reduxjs/toolkit";
 
 import { useAppSelector } from "@/store/hooks";
@@ -9,8 +9,7 @@ import { MembersUpload } from "./MembersUpload";
 import { MembersSummary } from "./MembersSummary";
 import { MembersRoster } from "./MembersRoster";
 import { MembersExport } from "./MembersExport";
-import { MembersTableActions } from "../table";
-import { RosterTableActions } from "../roster";
+
 import { refresh } from "../loader";
 
 function copyHtmlToClipboard(html: string) {
@@ -56,69 +55,36 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 }
 
 export function MembersActions() {
-	const navigate = useNavigate();
 	const location = useLocation();
+	const rosterShown = /roster$/.test(location.pathname);
 	const { selected, entities: members } = useAppSelector(selectMembersState);
 
-	const showRoster = /roster$/.test(location.pathname);
-	const toggleShowRoster = () => {
-		console.log("toggle show roster");
-		navigate(showRoster ? "" : "roster");
-	};
-
-	const tableActionsEl = showRoster ? (
-		<RosterTableActions />
-	) : (
-		<MembersTableActions />
-	);
-
 	return (
-		<Row className="d-flex align-items-center w-100">
-			<Col md={12} lg={4}>
-				<MembersSummary />
+		<>
+			<MembersSummary xs="auto" style={{ order: 1 }} />
+			<Col
+				style={{ order: 4 }}
+				className="d-flex justify-content-end align-items-center justify-self-stretch m-3 gap-2"
+			>
+				<MembersRoster />
+				<MembersExport />
+				<MembersUpload />
+				<Button
+					className="bi-copy"
+					variant="outline-primary"
+					name="copy"
+					title="Copy selected members to clipboard"
+					disabled={rosterShown || selected.length === 0}
+					onClick={() => setClipboard(selected, members)}
+				/>
+				<Button
+					className="bi-arrow-repeat"
+					variant="outline-primary"
+					name="refresh"
+					title="Refresh"
+					onClick={refresh}
+				/>
 			</Col>
-			<Col md={12} lg={8}>
-				<Row>
-					<Col
-						xs={{ span: 12, order: "last" }}
-						md={{ span: "auto", order: "first" }}
-						className="justify-content-center"
-					>
-						{tableActionsEl}
-					</Col>
-					<Col className="d-flex justify-content-center">
-						<MembersRoster />
-						<MembersExport />
-						<MembersUpload />
-					</Col>
-					<Col className="d-flex justify-content-end align-items-center gap-2">
-						<Button
-							variant="outline-primary"
-							title="Show roster"
-							active={showRoster}
-							onClick={toggleShowRoster}
-							className="text-nowrap"
-						>
-							Show Roster
-						</Button>
-						<Button
-							className="bi-copy"
-							variant="outline-primary"
-							name="copy"
-							title="Copy selected members to clipboard"
-							disabled={showRoster || selected.length === 0}
-							onClick={() => setClipboard(selected, members)}
-						/>
-						<Button
-							className="bi-arrow-repeat"
-							variant="outline-primary"
-							name="refresh"
-							title="Refresh"
-							onClick={refresh}
-						/>
-					</Col>
-				</Row>
-			</Col>
-		</Row>
+		</>
 	);
 }

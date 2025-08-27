@@ -1,5 +1,4 @@
-import { Link } from "react-router";
-import { Row, Col, Nav } from "react-bootstrap";
+import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
 	SplitPanel,
@@ -18,22 +17,12 @@ import {
 
 import { MemberAttendanceDetail } from "./detail";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
+import { SessionAttendanceSubmenu } from "./submenu";
 
 export function SessionAttendanceTable() {
 	return (
 		<>
-			<Nav
-				variant="underline"
-				className="align-items-center"
-				style={{ order: 2 }}
-			>
-				<Nav.Link as={Link} to="." active>
-					Attendance
-				</Nav.Link>
-				<Nav.Link as={Link} to="registration">
-					Registration
-				</Nav.Link>
-			</Nav>
+			<SessionAttendanceSubmenu style={{ order: 2 }} />
 			<SplitTableButtonGroup
 				style={{ order: 3 }}
 				selectors={sessionAttendeesSelectors}
@@ -41,12 +30,9 @@ export function SessionAttendanceTable() {
 				columns={tableColumns}
 			/>
 			<div
+				className="d-flex flex-column w-100 h-100"
 				style={{
 					order: 10,
-					display: "flex",
-					flexDirection: "column",
-					width: "100%",
-					height: "100%",
 				}}
 			>
 				<Row className="align-items-center w-100">

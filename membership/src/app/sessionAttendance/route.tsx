@@ -2,12 +2,12 @@ import { lazy } from "react";
 import { RouteObject } from "react-router";
 import { loader } from "./loader";
 
-const SessionAttendance = lazy(() => import("./layout"));
+const SessionAttendanceLayout = lazy(() => import("./layout"));
 const SessionAttendanceTable = lazy(() => import("./table"));
 const SessionRegistrationTable = lazy(() => import("./registration"));
 
 export const sessionAttendanceRoute: RouteObject = {
-	element: <SessionAttendance />,
+	element: <SessionAttendanceLayout />,
 	children: [
 		{ index: true, element: null },
 		{

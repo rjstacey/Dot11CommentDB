@@ -1,5 +1,3 @@
-import { Link } from "react-router";
-import { Nav } from "react-bootstrap";
 import { AppTable, ShowFilters } from "@components/table";
 import {
 	sessionRegistrationSelectors,
@@ -8,22 +6,12 @@ import {
 } from "@/store/sessionRegistration";
 import { SplitTableButtonGroup } from "@components/table";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
+import { SessionAttendanceSubmenu } from "../submenu";
 
 export function SessionRegistrationTable() {
 	return (
 		<>
-			<Nav
-				variant="underline"
-				className="align-items-center"
-				style={{ order: 2 }}
-			>
-				<Nav.Link as={Link} to="..">
-					Attendance
-				</Nav.Link>
-				<Nav.Link as={Link} to="." active>
-					Registration
-				</Nav.Link>
-			</Nav>
+			<SessionAttendanceSubmenu style={{ order: 2 }} />
 			<SplitTableButtonGroup
 				style={{ order: 3 }}
 				selectors={sessionRegistrationSelectors}

@@ -19,11 +19,11 @@ const selectMembersSummary = createSelector(selectMemberEntities, (members) => {
 	return s;
 });
 
-export function MembersSummary() {
+export function MembersSummary(props: React.ComponentProps<typeof Col>) {
 	const summary = useAppSelector(selectMembersSummary);
 
 	return (
-		<Col>
+		<Col {...props}>
 			<Table bordered responsive>
 				<thead>
 					<tr>

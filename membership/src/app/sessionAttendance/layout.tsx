@@ -4,10 +4,7 @@ import { SessionAttendanceActions } from "./actions";
 
 export function SessionAttendance() {
 	return (
-		<Container
-			fluid
-			className="d-flex flex-wrap h-100 w-100 justify-content-between"
-		>
+		<Container fluid className="d-flex flex-wrap h-100 w-100">
 			<SessionAttendanceActions />
 			<Outlet />
 		</Container>
