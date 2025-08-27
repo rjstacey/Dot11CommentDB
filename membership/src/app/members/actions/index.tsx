@@ -73,7 +73,7 @@ export function MembersActions() {
 	);
 
 	return (
-		<Row className="w-100">
+		<Row className="d-flex align-items-center w-100">
 			<Col md={12} lg={4}>
 				<MembersSummary />
 			</Col>
@@ -82,15 +82,14 @@ export function MembersActions() {
 					<Col
 						xs={{ span: 12, order: "last" }}
 						md={{ span: "auto", order: "first" }}
+						className="justify-content-center"
 					>
 						{tableActionsEl}
 					</Col>
-					<Col>
-						<div className="d-flex">
-							<MembersRoster />
-							<MembersExport />
-							<MembersUpload />
-						</div>
+					<Col className="d-flex justify-content-center">
+						<MembersRoster />
+						<MembersExport />
+						<MembersUpload />
 					</Col>
 					<Col className="d-flex justify-content-end align-items-center gap-2">
 						<Button
@@ -98,6 +97,7 @@ export function MembersActions() {
 							title="Show roster"
 							active={showRoster}
 							onClick={toggleShowRoster}
+							className="text-nowrap"
 						>
 							Show Roster
 						</Button>

@@ -1,7 +1,9 @@
-import React from "react";
+import * as React from "react";
+import { Row, Col } from "react-bootstrap";
 import { Outlet } from "react-router";
 import { SessionsSelector } from "./SessionsSelector";
 import { StatusesSelector } from "./StatusesSelector";
+import { ChartActions } from "../ChartActions";
 
 export type SessionParticipationReportContext = {
 	selected: number[];
@@ -17,8 +19,19 @@ export function SessionParticipationReport() {
 	]);
 	return (
 		<div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-			<SessionsSelector selected={selected} setSelected={setSelected} />
-			<StatusesSelector statuses={statuses} setStatuses={setStatuses} />
+			<Row>
+				<Col xs="auto">
+					<SessionsSelector
+						selected={selected}
+						setSelected={setSelected}
+					/>
+					<StatusesSelector
+						statuses={statuses}
+						setStatuses={setStatuses}
+					/>
+				</Col>
+				<ChartActions />
+			</Row>
 			<Outlet
 				context={
 					{

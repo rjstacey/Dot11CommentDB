@@ -8,6 +8,7 @@ import { selectActiveMembers, Member } from "@/store/members";
 
 import StackedBarChart from "@/components/StackedBarChart";
 import { useDimensions } from "../useDimensions";
+import { ChartActions } from "../ChartActions";
 
 const countedStatus = ["Voter", "Potential Voter", "Aspirant"] as const;
 const isCountedStatus = (s: string): s is (typeof countedStatus)[number] =>
@@ -98,22 +99,27 @@ const membersByAffiliation = createSelector(
 	}
 );
 
-export function MembersChart() {
+export function MembersReport() {
 	const { ids, entities } = useAppSelector(membersByAffiliation);
 	const { ref, width, height } = useDimensions();
 
 	return (
-		<Ratio ref={ref} aspectRatio="16x9">
-			<StackedBarChart
-				width={width}
-				height={height}
-				keys={countedStatus}
-				ids={ids}
-				entities={entities}
-				yLabel="Number of members"
-			/>
-		</Ratio>
+		<div className="d-flex flex-column flex-grow-1">
+			<div className="d-flex w-100">
+				<ChartActions />
+			</div>
+			<Ratio ref={ref} aspectRatio="16x9">
+				<StackedBarChart
+					width={width}
+					height={height}
+					keys={countedStatus}
+					ids={ids}
+					entities={entities}
+					yLabel="Number of members"
+				/>
+			</Ratio>
+		</div>
 	);
 }
 
-export default MembersChart;
+export default MembersReport;

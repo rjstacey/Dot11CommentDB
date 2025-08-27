@@ -23,7 +23,13 @@ function RosterUpdateForm({ close }: { close: () => void }) {
 	}
 
 	return (
-		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
+		<Form
+			noValidate
+			validated
+			onSubmit={handleSubmit}
+			className="p-3"
+			style={{ width: "350px" }}
+		>
 			<p>
 				{
 					'Take the roster as exported by MyProject and update the "Involvement Level" column to reflect member status.'
@@ -32,31 +38,25 @@ function RosterUpdateForm({ close }: { close: () => void }) {
 			<Form.Group
 				as={Row}
 				controlId="removeUnchanged"
-				className="mb-3 align-items-center"
+				className="ps-3 mb-3"
 			>
-				<Form.Label column sm={10}>
-					Remove rows with no change:
-				</Form.Label>
-				<Col sm={2}>
-					<Form.Check
-						checked={removeUnchanged}
-						onChange={(e) => setRemoveUnchanged(e.target.checked)}
-					/>
-				</Col>
+				<Form.Check
+					checked={removeUnchanged}
+					onChange={(e) => setRemoveUnchanged(e.target.checked)}
+					label="Remove rows with no change"
+				/>
 			</Form.Group>
-			<Form.Group as={Row} controlId="appendNew" className="mb-3">
-				<Form.Label column sm={10}>
-					Append new members:
-				</Form.Label>
-				<Col sm={2}>
-					<Form.Check
-						checked={appendNew}
-						onChange={(e) => setAppendNew(e.target.checked)}
-					/>
-				</Col>
+			<Form.Group as={Row} controlId="appendNew" className="ps-3 mb-3">
+				<Form.Check
+					checked={appendNew}
+					onChange={(e) => setAppendNew(e.target.checked)}
+					label="Append new members"
+				/>
 			</Form.Group>
 			<Form.Group as={Row} controlId="fileInput" className="mb-3">
-				<Form.Label>MyProject roster spreadsheet:</Form.Label>
+				<Form.Label className="fw-normal">
+					MyProject roster spreadsheet:
+				</Form.Label>
 				<Col sm={12}>
 					<Form.Control
 						type="file"
@@ -91,7 +91,7 @@ export function MembersRoster() {
 			<Dropdown.Toggle variant="success-outline">
 				Update Roster
 			</Dropdown.Toggle>
-			<Dropdown.Menu style={{ minWidth: "300px" }}>
+			<Dropdown.Menu>
 				<RosterUpdateForm close={() => setShow(false)} />
 			</Dropdown.Menu>
 		</Dropdown>

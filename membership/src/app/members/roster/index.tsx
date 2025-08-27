@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
 	ShowFilters,
@@ -40,17 +41,21 @@ export function RosterTable() {
 
 	return (
 		<div className="table-container">
-			<div className="w-100 d-flex align-items-center">
-				<ShowFilters
-					selectors={myProjectRosterSelectors}
-					actions={myProjectRosterActions}
-					fields={fields}
-				/>
-				<GlobalFilter
-					selectors={myProjectRosterSelectors}
-					actions={myProjectRosterActions}
-				/>
-			</div>
+			<Row className="align-items-center w-100">
+				<Col>
+					<ShowFilters
+						selectors={myProjectRosterSelectors}
+						actions={myProjectRosterActions}
+						fields={fields}
+					/>
+				</Col>
+				<Col xs={3} sm={2}>
+					<GlobalFilter
+						selectors={myProjectRosterSelectors}
+						actions={myProjectRosterActions}
+					/>
+				</Col>
+			</Row>
 
 			<SplitPanel
 				selectors={myProjectRosterSelectors}

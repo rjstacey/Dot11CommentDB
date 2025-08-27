@@ -18,8 +18,9 @@ export function ExportAttendanceButton({
 			title="Export attendance for minutes"
 			disabled={!groupName || !sessionNumber}
 			onClick={onClick}
+			className="text-nowrap"
 		>
-			Attendance for minutes
+			<i className="bi-cloud-download" /> for minutes
 		</Button>
 	);
 }

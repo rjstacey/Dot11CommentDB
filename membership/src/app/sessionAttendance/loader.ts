@@ -7,7 +7,6 @@ import {
 	loadSessionAttendees,
 	selectSessionAttendeesState,
 } from "@/store/sessionAttendees";
-import { loadAffiliationMap } from "@/store/affiliationMap";
 import {
 	loadRecentAttendanceSummaries,
 	selectAttendanceSummaryState,
@@ -25,10 +24,7 @@ export function refresh() {
 	dispatch(loadRecentAttendanceSummaries(groupName, true));
 }
 
-export const sessionAttendanceLoader: LoaderFunction = async ({
-	params,
-	request,
-}) => {
+export const loader: LoaderFunction = async ({ params, request }) => {
 	const { groupName, sessionNumber } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
@@ -59,14 +55,4 @@ export const sessionAttendanceLoader: LoaderFunction = async ({
 	dispatch(loadRecentAttendanceSummaries(groupName));
 
 	return null;
-};
-
-export const sessionAttendanceChartLoader: LoaderFunction = async ({
-	params,
-}) => {
-	const { groupName } = params;
-	if (!groupName) throw new Error("Route error: groupName not set");
-
-	const { dispatch } = store;
-	dispatch(loadAffiliationMap(groupName));
 };

@@ -43,7 +43,7 @@ function MembersExportForm() {
 		<Form onSubmit={handleSubmit} className="p-3">
 			<Form.Group as={Row} className="mb-3">
 				<Form.Label>Purpose:</Form.Label>
-				<Col sm={{ offset: 4, span: 8 }}>
+				<Col sm={{ offset: 1 }}>
 					<Form.Check
 						type="radio"
 						id="publicList"
@@ -84,7 +84,7 @@ function MembersExportForm() {
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
 				<Form.Label as="span">Include members with status:</Form.Label>
-				<Col sm={{ offset: 4, span: 8 }}>
+				<Col sm={{ offset: 1 }}>
 					{activeMemberStatusValues.map((s) => (
 						<Form.Check
 							key={s}
@@ -99,10 +99,7 @@ function MembersExportForm() {
 			</Form.Group>
 			<Form.Group className="mb-3" controlId="date">
 				<Form.Label>Snapshot date:</Form.Label>
-				<Col
-					sm={{ offset: 4, span: 8 }}
-					className="d-flex align-items-center"
-				>
+				<Col sm={{ offset: 1 }} className="d-flex align-items-center">
 					<Form.Control
 						type="date"
 						value={date || ""}

@@ -22,10 +22,10 @@ function BulkUpdateForm({ close }: { close: () => void }) {
 	);
 	const session = useAppSelector(selectSessionAttendeesSession)!;
 
+	const [selectedOnly, setSelectedOnly] = React.useState(false);
 	const [importAttendance, setImportAttendance] = React.useState(true);
 	const [importNew, setImportNew] = React.useState(true);
 	const [importUpdates, setImportUpdates] = React.useState(true);
-	const [selectedOnly, setSelectedOnly] = React.useState(false);
 	const [busy, setBusy] = React.useState(false);
 
 	const dispatch = useAppDispatch();
@@ -72,9 +72,7 @@ function BulkUpdateForm({ close }: { close: () => void }) {
 		return updates;
 	}, [list, entities, memberEntities]);
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault();
-		if (!e.currentTarget.checkValidity()) return;
+	async function handleSubmit() {
 		setBusy(true);
 		if (importAttendance)
 			await dispatch(
@@ -87,50 +85,40 @@ function BulkUpdateForm({ close }: { close: () => void }) {
 	}
 
 	return (
-		<Form onSubmit={handleSubmit} className="p-3">
+		<Form
+			onSubmit={handleSubmit}
+			className="ps-4 p-3"
+			style={{ width: 300 }}
+		>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label column sm={4}>
-					Import session attendance
-				</Form.Label>
-				<Col>
-					<Form.Check
-						checked={importAttendance}
-						onChange={() => setImportAttendance(!importAttendance)}
-					/>
-				</Col>
+				<Form.Check
+					checked={importAttendance}
+					onChange={() => setImportAttendance(!importAttendance)}
+					label="Import session attendance"
+				/>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label column sm={4}>
-					Add new members ({`${adds.length} members`})
-				</Form.Label>
-				<Col>
-					<Form.Check
-						checked={importNew}
-						onChange={() => setImportNew(!importNew)}
-					/>
-				</Col>
+				<Form.Check
+					checked={importNew}
+					onChange={() => setImportNew(!importNew)}
+					label="Add new members"
+				/>
+				<Form.Text>{`${adds.length} new members`}</Form.Text>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label column sm={4}>
-					Update member details ({`${updates.length} members`})
-				</Form.Label>
-				<Col>
-					<Form.Check
-						checked={importUpdates}
-						onChange={() => setImportUpdates(!importUpdates)}
-					/>
-				</Col>
+				<Form.Check
+					checked={importUpdates}
+					onChange={() => setImportUpdates(!importUpdates)}
+					label="Update member details"
+				/>
+				<Form.Text>{`${updates.length} members to be updated`}</Form.Text>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label column sm={4}>
-					Selected entries only
-				</Form.Label>
-				<Col>
-					<Form.Check
-						checked={selectedOnly}
-						onChange={() => setSelectedOnly(!selectedOnly)}
-					/>
-				</Col>
+				<Form.Check
+					checked={selectedOnly}
+					onChange={() => setSelectedOnly(!selectedOnly)}
+					label="Selected entries only"
+				/>
 			</Form.Group>
 			<Row>
 				<Col className="d-flex justify-content-end">
@@ -149,9 +137,9 @@ export function BulkUpdateDropdown({ disabled }: { disabled?: boolean }) {
 	return (
 		<Dropdown align="end" show={show} onToggle={() => setShow(!show)}>
 			<Dropdown.Toggle variant="success-outline" disabled={disabled}>
-				Import registration
+				Bulk Update
 			</Dropdown.Toggle>
-			<Dropdown.Menu style={{ minWidth: "400px" }}>
+			<Dropdown.Menu>
 				<BulkUpdateForm close={() => setShow(false)} />
 			</Dropdown.Menu>
 		</Dropdown>

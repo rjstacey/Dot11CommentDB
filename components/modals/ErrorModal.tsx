@@ -24,7 +24,9 @@ function MultipleErrorForm({ errors }: { errors: ErrorMsg[] }) {
 		<Button onClick={() => dispatch(clearOne(n))}>Dismiss</Button>
 	);
 	const dismissAllButton = (
-		<Button onClick={() => dispatch(clearAll())}>Dismiss All</Button>
+		<Button variant="secondary" onClick={() => dispatch(clearAll())}>
+			Dismiss All
+		</Button>
 	);
 	const dismissActions =
 		errors.length > 1 ? (

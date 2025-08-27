@@ -32,8 +32,8 @@ function ImportRegistrationForm({
 		<Form
 			noValidate
 			onSubmit={handleSubmit}
-			className="p-3"
-			style={{ minWidth: 300 }}
+			className="ps-4 p-3"
+			style={{ width: 350 }}
 		>
 			<Form.Group as={Row} className="w-100 mb-3">
 				<Form.Control
@@ -42,7 +42,6 @@ function ImportRegistrationForm({
 					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
 						setFile(e.target.files?.[0] || null)
 					}
-					required
 					isInvalid={!file}
 				/>
 				<Form.Control.Feedback type="invalid">

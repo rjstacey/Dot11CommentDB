@@ -43,7 +43,7 @@ export default function ListServUpdate() {
 				target="_blank"
 				rel="noopener noreferrer"
 				href="https://listserv.ieee.org/cgi-bin/wa?BULKOP1=STDS-802-11"
-				style={{ textDecoration: "underline" }}
+				className="text-decoration-underline"
 			>
 				ieee.listserv.org - Bulk Operations
 			</NavLink>

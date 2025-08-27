@@ -17,6 +17,8 @@ function TableViewSelector({ selectors, actions }: TableViewSelectorProps) {
 	const currentView = useSelector(selectors.selectCurrentView);
 	const allViews = useSelector(selectors.selectViews);
 
+	if (allViews.length <= 1) return null;
+
 	return (
 		<ButtonGroup>
 			{allViews.map((view) => (
