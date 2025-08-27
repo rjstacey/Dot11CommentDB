@@ -139,7 +139,9 @@ function Header() {
 				</Navbar.Brand>
 				<Navbar.Toggle aria-controls="basic-navbar-nav" />
 				<Navbar.Collapse id="basic-navbar-nav">
-					<Nav className="me-auto">{menuItems}</Nav>
+					<Nav variant="underline" className="me-auto">
+						{menuItems}
+					</Nav>
 				</Navbar.Collapse>
 			</Navbar>
 			<AccountDropdown />

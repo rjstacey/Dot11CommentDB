@@ -17,7 +17,7 @@ export function Menu() {
 	}
 
 	return (
-		<Nav variant="pills" className="flex-column">
+		<Nav variant="underline" className="flex-column">
 			<Nav.Link as={NavLink} to="members">
 				Members by Affiliation
 			</Nav.Link>

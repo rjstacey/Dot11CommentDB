@@ -64,7 +64,7 @@ export function SessionSelector({
 	);
 }
 
-export function SessionSelectorNav() {
+export function SessionSelectorNav({ style }: { style?: React.CSSProperties }) {
 	const navigate = useNavigate();
 	const params = useParams();
 	const [searchParams] = useSearchParams();
@@ -88,14 +88,18 @@ export function SessionSelectorNav() {
 	const { loading } = useAppSelector(selectSessionAttendeesState);
 
 	return (
-		<Col className="d-flex align-items-center gap-3">
+		<Col
+			xs="auto"
+			className="d-flex align-items-center gap-3"
+			style={style}
+		>
 			<Col xs="auto">
 				<SessionSelector
 					value={sessionNumber}
 					onChange={setSessionNumber}
 				/>
 			</Col>
-			<Col className="d-flex flex-column">
+			<Col xs="auto" className="d-flex flex-column">
 				<Form.Group
 					controlId="useDaily"
 					className="d-flex align-items-center gap-2"

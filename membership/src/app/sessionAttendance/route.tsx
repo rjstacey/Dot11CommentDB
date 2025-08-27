@@ -8,11 +8,11 @@ const SessionRegistrationTable = lazy(() => import("./registration"));
 
 export const sessionAttendanceRoute: RouteObject = {
 	element: <SessionAttendance />,
-	loader,
 	children: [
 		{ index: true, element: null },
 		{
 			path: ":sessionNumber",
+			loader,
 			children: [
 				{ index: true, element: <SessionAttendanceTable /> },
 				{ path: "registration", element: <SessionRegistrationTable /> },

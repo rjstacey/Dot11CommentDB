@@ -15,7 +15,7 @@ export function ExportAttendanceButton({
 	return (
 		<Button
 			variant="outline-primary"
-			title="Export attendance for minutes"
+			title="Download attendance for minutes"
 			disabled={!groupName || !sessionNumber}
 			onClick={onClick}
 			className="text-nowrap"
