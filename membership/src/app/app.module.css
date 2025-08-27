@@ -10,7 +10,6 @@
 
 .main .root {
 	flex: 1;
-	width: 100%;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -125,7 +124,7 @@
 
 .header :global(.nav-link.active),
 .header :global(.nav-link):hover {
-	color:  black;
+	color: black;
 }
 
 .header :global(.account) {

@@ -44,7 +44,6 @@ export function PathWorkingGroupSelector(
 			valueField="id"
 			labelField="name"
 			searchable={false}
-			clearable
 			{...props}
 		/>
 	);
