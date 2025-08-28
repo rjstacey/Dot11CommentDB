@@ -1,54 +1,51 @@
 import * as React from "react";
 import { Modal, Button } from "react-bootstrap";
 
-let resolve: (value: unknown) => void;
-
-type ConfirmModalProps = {};
-
-type ConfirmModalState = {
-	isOpen: boolean;
-	message: string;
-	hasCancel: boolean;
-};
-
 class ConfirmModal extends React.Component<
-	ConfirmModalProps,
-	ConfirmModalState
+	{},
+	{
+		show: boolean;
+		message: string;
+		hasCancel: boolean;
+	}
 > {
-	static instance: any;
+	static instance: ConfirmModal | undefined;
+	static resolve: (value: unknown) => void;
 
-	constructor(props: ConfirmModalProps) {
-		super(props);
+	constructor() {
+		super({});
 		ConfirmModal.instance = this;
 
 		this.state = {
-			isOpen: false,
+			show: false,
 			message: "",
 			hasCancel: true,
 		};
 	}
 
 	static show(message: string, hasCancel = true) {
-		ConfirmModal.instance.setState({ isOpen: true, message, hasCancel });
+		if (!ConfirmModal.instance)
+			return Promise.reject(new Error("ConfirmModal not mounted"));
+		ConfirmModal.instance.setState({ show: true, message, hasCancel });
 
 		return new Promise((res) => {
-			resolve = res;
+			ConfirmModal.resolve = res;
 		});
 	}
 
 	handleOk = () => {
-		this.setState({ isOpen: false });
-		resolve(true);
+		this.setState({ show: false });
+		ConfirmModal.resolve(true);
 	};
 
 	handleCancel = () => {
-		this.setState({ isOpen: false });
-		resolve(false);
+		this.setState({ show: false });
+		ConfirmModal.resolve(false);
 	};
 
 	render() {
 		return (
-			<Modal show={this.state.isOpen} onHide={this.handleCancel}>
+			<Modal show={this.state.show} onHide={this.handleCancel}>
 				<Modal.Header>
 					<Modal.Title>Alert</Modal.Title>
 				</Modal.Header>

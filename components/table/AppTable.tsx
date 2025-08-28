@@ -479,7 +479,7 @@ function AppTableSized({
  */
 export function AppTable(props: AppTableProps) {
 	return (
-		<AutoSizer disableWidth={props.fitWidth} style={{ maxWidth: "100vw" }}>
+		<AutoSizer>
 			{({ height, width }) => (
 				<AppTableSized height={height} width={width} {...props} />
 			)}

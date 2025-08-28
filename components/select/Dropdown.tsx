@@ -3,7 +3,20 @@ import { VariableSizeList as List } from "react-window";
 import type { SelectRendererProps } from ".";
 
 /* ItemWrapper measures and sets the height of the item */
-function ItemWrapper({ style, item, index, setHeight, props, state, methods }) {
+function ItemWrapper({
+	style,
+	item,
+	index,
+	setHeight,
+	props,
+	state,
+	methods,
+}: {
+	style: React.CSSProperties;
+	item: any;
+	index: number;
+	setHeight: (height: number) => void;
+} & SelectRendererProps) {
 	const ref = React.useRef<HTMLDivElement>(null);
 	React.useEffect(() => {
 		if (ref.current) {

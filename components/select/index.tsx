@@ -28,7 +28,7 @@ const Separator = (props: React.ComponentProps<"div">) => (
 const Placeholder = (props: React.ComponentProps<"div">) => (
 	<div className={styles.placeholder} {...props} />
 );
-const NoData = ({ props }) => (
+const NoData = ({ props }: SelectRendererProps) => (
 	<div className="no-data">{props.noDataLabel}</div>
 );
 
