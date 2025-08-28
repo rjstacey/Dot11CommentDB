@@ -70,7 +70,7 @@ export const renderEmployerAndAffiliation = ({
 export const tableColumns: ColumnProperties[] = [
 	{
 		key: "__ctrl__",
-		width: 48,
+		width: 60,
 		flexGrow: 0,
 		flexShrink: 0,
 		headerRenderer: (p) => (
