@@ -1,8 +1,9 @@
 import * as React from "react";
-import { Dropdown, FormCheck } from "react-bootstrap";
+import * as ReactDOM from "react-dom";
+import { Dropdown, FormCheck, Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 
-import { ActionIcon } from "../icons";
+import "../icons/icons.css";
 
 import type {
 	HeaderCellRendererProps,
@@ -19,6 +20,7 @@ const Container = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
 	<div className={styles.container} {...props} />
 );
+
 const Selector = ({
 	className,
 	...props
@@ -43,6 +45,7 @@ function ControlHeaderCell({
 	const selected = useSelector(selectors.selectSelected);
 	const expanded = useSelector(selectors.selectExpanded);
 	const shownIds = useSelector(selectors.selectSortedFilteredIds);
+	const [show, setShow] = React.useState(false);
 
 	const allSelected = React.useMemo(
 		() =>
@@ -70,7 +73,7 @@ function ControlHeaderCell({
 
 	return (
 		<Container>
-			<Selector>
+			<div className={styles.selector}>
 				<FormCheck
 					id="control-column-selector"
 					title={
@@ -88,26 +91,26 @@ function ControlHeaderCell({
 					onChange={toggleSelect}
 				/>
 				{customSelectorElement && (
-					<Dropdown
-						style={{
-							display: "flex",
-							width: "100%",
-							justifyContent: "center",
-						}}
-						//dropdownAlign="left"
-						align="start"
-						//portal={anchorEl}
-						//dropdownRenderer={() => customSelectorElement}
-					>
-						<Dropdown.Menu>{customSelectorElement}</Dropdown.Menu>
+					<Dropdown align="start" show={show} onToggle={setShow}>
+						<Dropdown.Toggle
+							variant="light"
+							className="m-1 p-1 lh-1"
+						/>
+						{ReactDOM.createPortal(
+							<Dropdown.Menu className="p-2">
+								{customSelectorElement}
+							</Dropdown.Menu>,
+							anchorEl
+						)}
 					</Dropdown>
 				)}
-			</Selector>
+			</div>
 			{showExpanded && (
-				<ActionIcon
-					className={
-						allExpanded ? "double-caret-down" : "double-caret-right"
-					}
+				<Button
+					variant="light"
+					className={`icon icon-double-caret-${
+						allExpanded ? "down" : "right"
+					} m-0 p-0`}
 					title="Expand all"
 					onClick={toggleExpand}
 				/>
@@ -153,10 +156,12 @@ function ControlCell({
 				onChange={toggleSelect}
 			/>
 			{showExpanded && (
-				<ActionIcon
-					className={isExpanded ? "caret-down" : "caret-right"}
-					title="Expand row"
-					//open={expanded.includes(rowId)}
+				<Button
+					variant="light"
+					className={`icon icon-caret-${
+						isExpanded ? "down" : "right"
+					} m-0 p-0`}
+					title="Expand all"
 					onClick={toggleExpand}
 				/>
 			)}

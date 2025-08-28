@@ -2,9 +2,6 @@ import React from "react";
 import { Button } from "react-bootstrap";
 import { Provider } from "react-redux";
 
-import { ActionIcon } from "../icons";
-import "bootstrap/dist/css/bootstrap.min.css";
-
 import store, {
 	loadData,
 	removeRow,
@@ -33,14 +30,13 @@ import {
 	CellRendererProps,
 	ColumnProperties,
 } from "../table";
-import { number } from "prop-types";
 
 const tableColumns: ColumnProperties[] = [
-	{ key: "__ctrl__", width: 48, flexGrow: 0, flexShrink: 0 },
+	{ key: "__ctrl__", width: 60, flexGrow: 0, flexShrink: 0 },
 	{
 		key: "id",
 		...dataFields.id,
-		width: 80,
+		width: 90,
 		flexGrow: 1,
 		flexShrink: 1,
 		dropdownWidth: 200,
@@ -96,7 +92,7 @@ const defaultTablesConfig = {
 	"1": {
 		fixed: false,
 		columns: {
-			__ctrl__: { unselectable: true, shown: true, width: 48 },
+			__ctrl__: { unselectable: true, shown: true, width: 60 },
 			id: { shown: true, width: 80 },
 			Name: { shown: true, width: 200 },
 			Text: { shown: true, width: 200 },
@@ -111,7 +107,7 @@ const defaultTablesConfig = {
 	"2": {
 		fixed: false,
 		columns: {
-			__ctrl__: { unselectable: true, shown: true, width: 48 },
+			__ctrl__: { unselectable: true, shown: true, width: 60 },
 			id: { shown: true, width: 80 },
 			Name: { unselectable: true, shown: false, width: 200 },
 			Text: { shown: true, width: 200 },
@@ -189,8 +185,9 @@ function tableColumnsWithControl(
 	}
 	columns[0] = { ...columns[0], headerRenderer, cellRenderer };
 	cellRenderer = ({ rowData }: { rowData: any }) => (
-		<ActionIcon
-			type="delete"
+		<Button
+			variant="outline-danger"
+			className="bi-trash"
 			onClick={(e) => {
 				e.stopPropagation();
 				dispatch(removeRow(rowData.id));
@@ -281,7 +278,7 @@ export const SplitTable = ({ expandable, numberOfRows }: ExtraArgs) => {
 					<AppTable
 						defaultTablesConfig={defaultTablesConfig}
 						columns={columns}
-						headerHeight={46}
+						headerHeight={60}
 						estimatedRowHeight={56}
 						selectors={dataSelectors}
 						actions={dataActions}
@@ -329,7 +326,7 @@ export const NoDefaultTable = ({ fixed, expandable, numberOfRows }) => {
 				<AppTable
 					fixed={fixed}
 					columns={columns}
-					headerHeight={46}
+					headerHeight={56}
 					estimatedRowHeight={56}
 					selectors={dataSelectors}
 					actions={dataActions}
@@ -382,7 +379,7 @@ export const FixedCenteredTable = ({ expandable, numberOfRows }: ExtraArgs) => {
 					fixed
 					columns={columns}
 					//defaultTablesConfig={{'fixed': {}}}
-					headerHeight={46}
+					headerHeight={56}
 					estimatedRowHeight={56}
 					selectors={dataSelectors}
 					actions={dataActions}

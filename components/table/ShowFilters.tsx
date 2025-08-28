@@ -33,13 +33,15 @@ const ActiveFilter = ({
 
 function compPrefix(comp: FilterComp): string {
 	return (
-		{
-			[CompOp.GTEQ]: "≥ ",
-			[CompOp.LTEQ]: "≤ ",
-			[CompOp.GT]: "> ",
-			[CompOp.LT]: "< ",
-			[CompOp.NOTBLANK]: "Not ",
-		}[comp.operation] || ""
+		(
+			{
+				[CompOp.GTEQ]: "≥ ",
+				[CompOp.LTEQ]: "≤ ",
+				[CompOp.GT]: "> ",
+				[CompOp.LT]: "< ",
+				[CompOp.NOTBLANK]: "Not ",
+			} as Record<string, string>
+		)[comp.operation] || ""
 	);
 }
 

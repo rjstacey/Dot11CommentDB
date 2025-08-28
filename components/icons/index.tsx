@@ -2,10 +2,6 @@ import React from "react";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import styles from "./icons.module.css";
 
-import { ActionIcon } from "./ActionIcon";
-
-export { ActionIcon };
-
 export const IconCollapse = ({
 	isCollapsed,
 	className,
@@ -284,7 +280,6 @@ export const Icon = ({
 	return null;
 };
 
-/*
 export const ActionIcon = ({
 	className,
 	disabled,
@@ -298,7 +293,6 @@ export const ActionIcon = ({
 		{...rest}
 	/>
 );
-*/
 
 export const Spinner = ({
 	className,

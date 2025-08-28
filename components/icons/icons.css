@@ -1,0 +1,31 @@
+.icon:before {
+	display: inline-block;
+	width: 1rem;
+	height: 1rem;
+	line-height: 1;
+	fill: currentColor;
+	overflow: hidden;
+	content: " ";
+}
+
+.icon-caret-right:before {
+	background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30"><path d="M 10 10 L 10 30 L 20 20 Z"/></svg>');
+	background-size: contain;
+}
+
+.icon-caret-down:before {
+	background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 5 30 30"><path d="M 10 10 L 10 30 L 20 20 Z"/></svg>');
+	background-size: contain;
+	transform: rotate(90deg);
+}
+
+.icon-double-caret-right:before {
+	background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="5 5 30 30"><path d="M 10 10 L 10 30 L 20 20 Z M 20 10 L 20 30 L 30 20 Z"/></svg>');
+	background-size: contain;
+}
+
+.icon-double-caret-down:before {
+	background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="5 5 30 30"><path d="M 10 10 L 10 30 L 20 20 Z M 20 10 L 20 30 L 30 20 Z"/></svg>');
+	background-size: contain;
+	transform: rotate(90deg);
+}

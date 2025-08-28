@@ -210,12 +210,14 @@ function FilterComponent({
 						label = "Before: ";
 					} else if (filter.type === FieldType.NUMERIC) {
 						label =
-							{
-								[CompOp.GTEQ]: "≥ ",
-								[CompOp.LTEQ]: "≤ ",
-								[CompOp.GT]: "> ",
-								[CompOp.LT]: "< ",
-							}[comp.operation] || "";
+							(
+								{
+									[CompOp.GTEQ]: "≥ ",
+									[CompOp.LTEQ]: "≤ ",
+									[CompOp.GT]: "> ",
+									[CompOp.LT]: "< ",
+								} as Record<string, string>
+							)[comp.operation] || "";
 					}
 					label += comp.value;
 					return {
