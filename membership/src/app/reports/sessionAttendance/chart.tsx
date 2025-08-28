@@ -1,5 +1,5 @@
 import { createSelector } from "@reduxjs/toolkit";
-import AutoSizer from "react-virtualized-auto-sizer";
+import { Ratio } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { AffiliationMap, selectAffiliationMaps } from "@/store/affiliationMap";
@@ -9,6 +9,7 @@ import {
 	SyncedSessionAttendee,
 } from "@/store/sessionAttendees";
 import StackedBarChart from "@/components/StackedBarChart";
+import { useDimensions } from "../useDimensions";
 
 const countedStatus = ["Voter", "Potential Voter", "Aspirant", "New"] as const;
 const isCountedStatus = (s: string): s is (typeof countedStatus)[number] =>
@@ -109,27 +110,19 @@ const attendeesByAffiliation = createSelector(
 
 export function SessionAttendanceChart() {
 	const { ids, entities } = useAppSelector(attendeesByAffiliation);
+	const { ref, width, height } = useDimensions();
 
 	return (
-		<div style={{ flex: 1, width: "100%" }}>
-			<AutoSizer>
-				{({ height, width }: { height: number; width: number }) => {
-					// Rescale to create 16:9
-					if ((16 / 9) * height > width) height = (9 * width) / 16;
-					else width = (16 * height) / 9;
-					return (
-						<StackedBarChart
-							width={width}
-							height={height}
-							keys={countedStatus}
-							ids={ids}
-							entities={entities}
-							yLabel="Number of attendees"
-						/>
-					);
-				}}
-			</AutoSizer>
-		</div>
+		<Ratio ref={ref} aspectRatio="16x9">
+			<StackedBarChart
+				width={width}
+				height={height}
+				keys={countedStatus}
+				ids={ids}
+				entities={entities}
+				yLabel="Number of attendees"
+			/>
+		</Ratio>
 	);
 }
 

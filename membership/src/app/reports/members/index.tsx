@@ -1,4 +1,3 @@
-import * as React from "react";
 import { createSelector } from "@reduxjs/toolkit";
 import { Ratio } from "react-bootstrap";
 
