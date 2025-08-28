@@ -68,7 +68,9 @@ function BulkStatusUpdateForm({
 			} satisfies MemberUpdate;
 		});
 
-	const warning = `${updates.length} updates`;
+	const warning = `${updates.length} update${
+		updates.length !== 1 ? "s" : ""
+	}`;
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();

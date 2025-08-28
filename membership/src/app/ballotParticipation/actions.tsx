@@ -1,6 +1,6 @@
 import { Row, Col, Button } from "react-bootstrap";
 import { displayDateRange } from "@components/lib";
-import { TableColumnSelector, SplitPanelButton } from "@components/table";
+import { SplitTableButtonGroup } from "@components/table";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -11,7 +11,7 @@ import {
 	selectBallotSeriesIds,
 } from "@/store/ballotParticipation";
 
-import { BulkStatusUpdate } from "../sessionParticipation/actions/BulkStatusUpdate";
+import { BulkStatusUpdate } from "../sessionParticipation/BulkStatusUpdate";
 import { useTableColumns } from "./tableColumns";
 import { refresh } from "./loader";
 
@@ -49,17 +49,13 @@ export function BallotParticipationActions() {
 	return (
 		<Row className="w-100 align-items-center gap-2">
 			<BallotSeriesSummary />
+			<SplitTableButtonGroup
+				selectors={ballotParticipationSelectors}
+				actions={ballotParticipationActions}
+				columns={tableColumns}
+			/>
 			<Col className="d-flex align-items-center justify-content-end gap-2">
 				<BulkStatusUpdate isSession={false} />
-				<TableColumnSelector
-					selectors={ballotParticipationSelectors}
-					actions={ballotParticipationActions}
-					columns={tableColumns}
-				/>
-				<SplitPanelButton
-					selectors={ballotParticipationSelectors}
-					actions={ballotParticipationActions}
-				/>
 				<Button
 					variant="outline-primary"
 					className="bi-arrow-repeat"

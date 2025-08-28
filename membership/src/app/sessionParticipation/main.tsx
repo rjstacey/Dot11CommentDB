@@ -5,8 +5,6 @@ import {
 	GlobalFilter,
 	SplitPanel,
 	Panel,
-	TableColumnSelector,
-	SplitPanelButton,
 } from "@components/table";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -20,23 +18,6 @@ import {
 
 import { MemberDetail } from "../members/detail";
 import { useTableColumns, useDefaultTablesConfig } from "./tableColumns";
-
-export function SessionParticipationTableActions() {
-	const tableColumns = useTableColumns();
-	return (
-		<>
-			<TableColumnSelector
-				selectors={sessionParticipationSelectors}
-				actions={sessionParticipationActions}
-				columns={tableColumns}
-			/>
-			<SplitPanelButton
-				selectors={sessionParticipationSelectors}
-				actions={sessionParticipationActions}
-			/>
-		</>
-	);
-}
 
 export function SessionParticipationTable() {
 	const dispatch = useAppDispatch();

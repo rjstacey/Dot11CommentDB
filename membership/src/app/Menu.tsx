@@ -1,5 +1,5 @@
 import * as React from "react";
-import { NavLink, Link, useParams } from "react-router";
+import { NavLink, useParams } from "react-router";
 import { Navbar, Nav } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -86,13 +86,12 @@ function useMenuLinks() {
 	}, [group, session]);
 }
 
+const appName = "Membership";
 export function Menu() {
 	const { groupName } = useParams();
 
-	const title = (groupName ? groupName + " " : "") + "Membership";
+	const title = (groupName ? groupName + " " : "") + appName;
 	if (document.title !== title) document.title = title;
-
-	const rootPath = "" + (groupName || "");
 
 	const menu = useMenuLinks();
 	const menuItems = menu.map((item) => (
@@ -103,9 +102,7 @@ export function Menu() {
 
 	return (
 		<Navbar expand="xl" className="justify-content-between">
-			<Navbar.Brand as={Link} to={rootPath}>
-				{title}
-			</Navbar.Brand>
+			<Navbar.Brand href="/">{title}</Navbar.Brand>
 			<Navbar.Toggle aria-controls="basic-navbar-nav" />
 			<Navbar.Collapse id="basic-navbar-nav">
 				<Nav variant="underline" className="me-auto">

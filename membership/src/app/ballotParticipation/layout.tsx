@@ -1,5 +1,5 @@
 import { BallotParticipationActions } from "./actions";
-import { BallotParticipationTable } from "./table";
+import { BallotParticipationTable } from "./main";
 
 export function BallotParticipation() {
 	return (

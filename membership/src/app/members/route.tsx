@@ -3,7 +3,7 @@ import { RouteObject } from "react-router";
 import { membersLoader } from "./loader";
 
 const MembersLayout = lazy(() => import("./layout"));
-const MembersTable = lazy(() => import("./table"));
+const MembersTable = lazy(() => import("./main"));
 const RosterTable = lazy(() => import("./roster"));
 
 export const membersRoute: RouteObject = {

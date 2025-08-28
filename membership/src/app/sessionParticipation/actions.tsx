@@ -1,12 +1,17 @@
 import { Row, Col, Button } from "react-bootstrap";
+import { SplitTableButtonGroup } from "@components/table";
 import { displayDateRange } from "@components/lib";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectRecentSessions } from "@/store/sessions";
+import {
+	sessionParticipationSelectors,
+	sessionParticipationActions,
+} from "@/store/sessionParticipation";
 
 import { BulkStatusUpdate } from "./BulkStatusUpdate";
-import { SessionParticipationTableActions } from "../table";
-import { refresh } from "../loader";
+import { useTableColumns } from "./tableColumns";
+import { refresh } from "./loader";
 
 function SessionSummary() {
 	const sessions = useAppSelector(selectRecentSessions);
@@ -31,12 +36,18 @@ function SessionSummary() {
 }
 
 export function SessionParticipationActions() {
+	const tableColumns = useTableColumns();
+
 	return (
 		<Row className="w-100 align-items-center gap-2">
 			<SessionSummary />
 			<Col className="d-flex align-items-center justify-content-end gap-2">
+				<SplitTableButtonGroup
+					selectors={sessionParticipationSelectors}
+					actions={sessionParticipationActions}
+					columns={tableColumns}
+				/>
 				<BulkStatusUpdate isSession={true} />
-				<SessionParticipationTableActions />
 				<Button
 					className="bi-arrow-repeat"
 					variant="outline-primary"

@@ -3,7 +3,7 @@ import { RouteObject } from "react-router";
 import { loader } from "./loader";
 
 const SessionAttendanceLayout = lazy(() => import("./layout"));
-const SessionAttendanceTable = lazy(() => import("./table"));
+const SessionAttendanceTable = lazy(() => import("./main"));
 const SessionRegistrationTable = lazy(() => import("./registration"));
 
 export const sessionAttendanceRoute: RouteObject = {

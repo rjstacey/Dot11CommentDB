@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
@@ -21,20 +20,6 @@ import {
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 import { MemberDetail } from "./detail";
 import { MembersSubmenu } from "./submenu";
-
-export const MembersTableActions = (
-	props: Omit<
-		React.ComponentProps<typeof SplitTableButtonGroup>,
-		"columns" | "selectors" | "actions"
-	>
-) => (
-	<SplitTableButtonGroup
-		columns={tableColumns}
-		selectors={membersSelectors}
-		actions={membersActions}
-		{...props}
-	/>
-);
 
 export function MembersTable() {
 	const dispatch = useAppDispatch();

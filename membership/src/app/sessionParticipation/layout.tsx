@@ -1,5 +1,5 @@
 import { SessionParticipationActions } from "./actions";
-import { SessionParticipationTable } from "./table";
+import { SessionParticipationTable } from "./main";
 
 export function SessionParticipation() {
 	return (
