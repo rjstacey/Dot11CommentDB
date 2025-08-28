@@ -10,7 +10,6 @@ export function AppLayout() {
 				<Outlet />
 			</main>
 			<ErrorModal />
-			{/* @ts-expect-error */}
 			<ConfirmModal />
 		</>
 	);
