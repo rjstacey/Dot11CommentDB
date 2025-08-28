@@ -12,6 +12,16 @@ div#root {
 	align-items: center;
 }
 
+.main {
+	flex: 1;
+	width: 100%;
+	margin: 0 auto;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
 .details-panel {
 	padding: 10px;
 	overflow: auto;
@@ -76,29 +86,34 @@ div#root {
 	font-weight: bold;
 }
 
-.was-validated .form-control:valid {
-	border-color: var(--bs-border-color);
-	background-image: none;
-	padding-right: unset;
-}
+.was-validated {
+	& .form-control {
+		&:valid {
+			border-color: var(--bs-border-color);
+			background-image: none;
+			padding-right: unset;
+		}
+		&:valid:focus {
+			box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+		}
+	}
 
-.was-validated .form-control:valid:focus {
-	box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
+	& .form-check-input {
+		&:valid {
+			border-color: var(--bs-border-color);
+		}
 
-.was-validated .form-check-input:valid {
-	border-color: var(--bs-border-color);
-}
+		&:valid:checked {
+			background-color: #0d6efd;
+			border-color: #0d6efd;
+		}
 
-.was-validated .form-check-input:valid:checked {
-	background-color: #0d6efd;
-	border-color: #0d6efd;
-}
+		&:valid:focus {
+			box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+		}
 
-.was-validated .form-check-input:valid:focus {
-	box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-.was-validated .form-check-input:valid ~ .form-check-label {
-	color: unset;
+		&:valid ~ .form-check-label {
+			color: unset;
+		}
+	}
 }

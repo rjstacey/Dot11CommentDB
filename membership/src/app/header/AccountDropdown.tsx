@@ -6,7 +6,7 @@ import { resetStore } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectUser, setUser } from "@/store/user";
 
-import pkg from "../../package.json";
+import pkg from "../../../package.json";
 
 export function AccountDropdown() {
 	const dispatch = useAppDispatch();

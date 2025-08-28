@@ -7,10 +7,11 @@ import { store, persistor, resetStore } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectUser, setUser, type User } from "@/store/user";
 
+import { routes } from "./routes";
+
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./index.css";
-import { routes } from "./routes";
 
 const getRouter = () =>
 	createBrowserRouter(routes, { basename: "/membership" });

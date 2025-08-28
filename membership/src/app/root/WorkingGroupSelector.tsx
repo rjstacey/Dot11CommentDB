@@ -8,7 +8,7 @@ import { useAppSelector } from "@/store/hooks";
 import { selectWorkingGroups } from "@/store/groups";
 import { AccessLevel } from "@/store/user";
 
-import styles from "./app.module.css";
+import styles from "./root.module.css";
 
 const selectOptions = createSelector(selectWorkingGroups, (groups) =>
 	groups.map((g) => {

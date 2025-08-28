@@ -1,7 +1,7 @@
 import { RouteObject, Outlet } from "react-router";
 import { AppLayout } from "./layout";
 import { AppErrorPage } from "./errorPage";
-import RootMain from "./rootMain";
+import RootMain from "./root";
 import { rootLoader, groupLoader } from "./loader";
 import { groupsRoute } from "./groups/route";
 import { membersRoute } from "./members/route";

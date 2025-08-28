@@ -1,6 +1,5 @@
 import WorkingGroupSelector from "./WorkingGroupSelector";
-
-import styles from "./app.module.css";
+import styles from "./root.module.css";
 
 function RootMain() {
 	return (
