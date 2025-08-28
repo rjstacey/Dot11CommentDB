@@ -5,6 +5,7 @@ import { AccessLevel } from "@/store/user";
 import { loadGroups, selectTopLevelGroupByName } from "@/store/groups";
 import {
 	loadSessionAttendees,
+	clearSessionAttendees,
 	selectSessionAttendeesState,
 } from "@/store/sessionAttendees";
 import {
@@ -51,6 +52,8 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 		} else {
 			throw new Error("Can't find session " + sessionNumber);
 		}
+	} else {
+		dispatch(clearSessionAttendees());
 	}
 	dispatch(loadRecentAttendanceSummaries(groupName));
 

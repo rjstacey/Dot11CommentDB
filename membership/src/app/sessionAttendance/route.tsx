@@ -9,7 +9,18 @@ const SessionRegistrationTable = lazy(() => import("./registration"));
 export const sessionAttendanceRoute: RouteObject = {
 	element: <SessionAttendanceLayout />,
 	children: [
-		{ index: true, element: null },
+		{
+			index: true,
+			loader,
+			element: (
+				<div
+					className="d-flex flex-column w-100 h-100"
+					style={{
+						order: 10,
+					}}
+				/>
+			),
+		},
 		{
 			path: ":sessionNumber",
 			loader,
