@@ -43,22 +43,30 @@ function IdList({
 
 		const inputStyles = window.getComputedStyle(textAreaEl);
 		[
-			"border",
-			"boxSizing",
-			"fontFamily",
-			"fontSize",
-			"fontWeight",
-			"letterSpacing",
-			"lineHeight",
+			"margin",
 			"padding",
-			"textDecoration",
-			"textIndent",
-			"textTransform",
-			"whiteSpace",
-			"wordSpacing",
-			"wordWrap",
+			"border",
+			"box-sizing",
+			"font-family",
+			"font-size",
+			"font-kerning",
+			"font-weight",
+			"letter-spacing",
+			"line-height",
+			"padding",
+			"text-decoration",
+			"text-indent",
+			"text-transform",
+			"white-space",
+			"word-spacing",
+			"word-wrap",
 		].forEach((property) => {
-			mirrorEl.style[property] = inputStyles[property];
+			console.log(property, inputStyles.getPropertyValue(property));
+			mirrorEl.style.setProperty(
+				property,
+				inputStyles.getPropertyValue(property),
+				inputStyles.getPropertyPriority(property)
+			);
 		});
 		mirrorEl.style.borderColor = "transparent";
 
@@ -110,13 +118,13 @@ function IdList({
 		>
 			<div
 				ref={mirrorRef}
-				className="mirror"
+				className={styles["mirror"]}
 				dangerouslySetInnerHTML={{ __html: mirrorHtml }}
 			/>
 			<TextArea
 				id="id-list"
 				ref={textAreaRef}
-				className="input"
+				className={styles["input"]}
 				value={value}
 				onChange={(e) => handleChange(e.target.value)}
 				placeholder="Enter list..."
@@ -124,7 +132,7 @@ function IdList({
 			/>
 			<i
 				style={{ visibility: value ? "visible" : "hidden" }}
-				className="action-icon bi-x"
+				className="clear bi-x"
 				onClick={() => handleChange("")}
 			/>
 		</div>
