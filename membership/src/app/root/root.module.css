@@ -7,8 +7,11 @@
 	max-height: 200px;
 }
 
+h2.intro {
+	color: #008080;
+}
+
 .working-group-select {
-	font-family: "Arial", "Helvetica", sans-serif;
 	font-weight: 400;
 	font-size: 24px;
 	color: #008080;
@@ -19,15 +22,7 @@
 	margin: 5px;
 }
 
-.working-group-select:hover {
-	cursor: pointer;
-}
-
-.working-group-select:not(:focus-within) :global(dropdown-select-clear-all) {
-	opacity: 0;
-}
-
 .working-group-select-dropdown {
-	font-size: 16px;
+	font-size: 24px;
 	border-radius: 10px;
 }

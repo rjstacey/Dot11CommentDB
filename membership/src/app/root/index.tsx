@@ -4,7 +4,7 @@ import styles from "./root.module.css";
 function RootMain() {
 	return (
 		<div className={styles.root}>
-			<div className="intro">Working group/Committee</div>
+			<h2 className={styles.intro}>Working group/Committee</h2>
 			<WorkingGroupSelector />
 		</div>
 	);
