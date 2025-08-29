@@ -1,9 +1,14 @@
 .select,
 .dropdown {
-	--border-color: #ddd;
+	--border-width: 1px;
+	--border-color: var(--bs-border-color); /*#ddd*/
+	--border-radius: var(--bs-border-radius);
 	--hover-border-color: #0074d9;
-	--background-color: #fafafa;
-	--focus-outline: 1px solid var(--hover-border-color); /* double the border thickness */
+	--background-color: var(--bs-body-bg); /*#fafafa;*/
+	--background-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+
+	--focus-outline: 0; /*1px solid var(--hover-border-color); double the border thickness */
+	--focus-box-shadow: 0 0 0 0.25rem rgb(13 110 253 / 25%);
 
 	--dropdown-background-color: #fff;
 	--dropdown-border-color: var(--border-color);
@@ -25,33 +30,40 @@
 	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
-	/*box-sizing: border-box;
-	border: 1px solid var(--border-color);
-	border-radius: 2px;
+
+	width: 100%;
+	padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+	font-size: 1rem;
+	font-weight: 400;
+	line-height: 1.5;
+
+	border: var(--border-width) solid var(--border-color);
+	border-radius: var(--border-radius);
+	transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
 	background-color: var(--background-color);
-	padding: 2px 5px;*/
+	background-image: var(--background-img);
+	background-repeat: no-repeat;
+	background-position: right 0.75rem center;
+	background-size: 16px 12px;
+
 	cursor: pointer;
-}
 
-.select:global(.read-only) {
-	cursor: inherit;
-}
+	&:global(.read-only) {
+		cursor: inherit;
+	}
 
-.select:hover:not(:global(.read-only)),
-.select:focus,
-.select:focus-within {
-	border-color: var(--hover-border-color);
-}
+	&:hover:not(:global(.read-only)),
+	&:focus,
+	&:focus-within {
+		border-color: var(--hover-border-color);
+	}
 
-.select:focus,
-.select:focus-within {
-	outline: 0;
-	box-shadow: 0 0 0 0.25rem rgb(13 110 253 / 25%);
-}
-
-.select *,
-.dropdown * {
-	box-sizing: border-box;
+	&:focus,
+	&:focus-within {
+		outline: var(--focus-outline);
+		box-shadow: var(--focus-box-shadow);
+	}
 }
 
 .select :global(.content) {
@@ -155,10 +167,10 @@
 	border-radius: 2px;
 	box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
 	z-index: 15;
-}
 
-.dropdown:focus {
-	outline: none;
+	&:focus {
+		outline: none;
+	}
 }
 
 .dropdown :global(.no-data) {

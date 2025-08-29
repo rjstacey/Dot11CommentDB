@@ -22,9 +22,6 @@ const Clear = (props: React.ComponentProps<"div">) => (
 const Separator = (props: React.ComponentProps<"div">) => (
 	<div className="separator" {...props} />
 );
-/*const DropdownHandle = (props: React.ComponentProps<typeof Icon>) => (
-	<Icon className="dropdown-select-handle" type="handle" {...props} />
-);*/
 const Placeholder = (props: React.ComponentProps<"div">) => (
 	<div className={styles.placeholder} {...props} />
 );
@@ -39,19 +36,21 @@ function defaultContentRenderer({
 }: SelectRendererProps): React.ReactNode {
 	const values = props.values;
 	if (props.multi) {
-		return values.map((item) => {
-			const key = "" + item[props.valueField] + item[props.labelField];
-			const el = props.multiSelectItemRenderer({
+		return values.map((item) =>
+			props.multiSelectItemRenderer({
 				item,
 				props,
 				state,
 				methods,
-			});
-			return { ...el, key };
-		});
+			})
+		);
 	} else if (values.length > 0) {
-		const item = values[0];
-		return props.selectItemRenderer({ item, props, state, methods });
+		return props.selectItemRenderer({
+			item: values[0],
+			props,
+			state,
+			methods,
+		});
 	}
 	return null;
 }
@@ -93,17 +92,17 @@ function defaultCreateOption({
 	};
 }
 
-export type ItemType = any; //{ [key: string]: any} | {};
+export type ItemType = Record<string, any>; //{ [key: string]: any} | {};
 
 export type SelectRendererProps = {
-	props: any;
+	props: SelectInternalProps;
 	state: SelectState;
 	methods: SelectMethods;
 };
 export type SelectItemRendererProps = { item: ItemType } & SelectRendererProps;
 
 export type SelectInputRendererProps = {
-	inputRef: React.RefObject<HTMLInputElement | null>;
+	inputRef: React.RefObject<HTMLInputElement>;
 } & SelectRendererProps;
 
 export type SelectInternalProps = SelectDefaultProps & {
@@ -155,7 +154,6 @@ type SelectDefaultProps = {
 	sortBy: null;
 	valuesEqual: (a: ItemType, b: ItemType) => boolean;
 
-	handle: boolean;
 	separator: boolean;
 	noDataLabel: string;
 	dropdownGap: number;
@@ -243,9 +241,9 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 
 	state: SelectState;
 	private methods: SelectMethods;
-	private selectRef: React.RefObject<HTMLDivElement | null>;
-	private inputRef: React.RefObject<HTMLInputElement | null>;
-	private dropdownRef: React.RefObject<HTMLDivElement | null>;
+	private selectRef: React.RefObject<HTMLDivElement>;
+	private inputRef: React.RefObject<HTMLInputElement>;
+	private dropdownRef: React.RefObject<HTMLDivElement>;
 
 	private debouncedUpdateSelectBounds: () => void;
 	private debouncedOnScroll: () => void;
@@ -631,7 +629,7 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 	render() {
 		const { props, state, methods } = this;
 
-		let cn = "form-select " + styles["select"];
+		let cn = styles["select"];
 		if (props.disabled) cn += " disabled";
 		if (props.readOnly) cn += " read-only";
 		if (props.className) cn += ` ${props.className}`;
@@ -674,15 +672,6 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 					<>
 						{props.clearable && <Clear onClick={this.clearAll} />}
 						{props.separator && <Separator />}
-						{/*props.handle && (
-							<i
-								className={
-									"bi-chevron" +
-									(state.isOpen ? "-up" : "-down")
-								}
-							/>
-						)*/}
-
 						{state.isOpen && this.renderDropdown()}
 					</>
 				)}
@@ -719,7 +708,6 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		sortBy: null,
 		valuesEqual: (a: ItemType, b: ItemType) => a === b,
 
-		handle: true,
 		separator: false,
 		noDataLabel: "No data",
 		dropdownGap: 5,

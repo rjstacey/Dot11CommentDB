@@ -53,14 +53,14 @@ function ItemWrapper({
 			>
 				{isNew
 					? props.addItemRenderer({
-							index,
+							//index,
 							item,
 							props,
 							state,
 							methods,
 					  })
 					: props.itemRenderer({
-							index,
+							//index,
 							item,
 							props,
 							state,
