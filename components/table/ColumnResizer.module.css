@@ -7,13 +7,13 @@
 	align-items: center;
 	cursor: col-resize;
 	color: #0085ff;
-}
 
-.column-resizer-handle:after {
-	content: "⋮";
-}
+	&:after {
+		content: "⋮";
+	}
 
-.column-resizer-handle:hover {
-	color: #0b6fcc;
-	background-color: rgba(0, 0, 0, 0.1);
+	&:hover {
+		color: #0b6fcc;
+		background-color: rgba(0, 0, 0, 0.1);
+	}
 }

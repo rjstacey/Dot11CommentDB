@@ -3,14 +3,10 @@
 	display: flex;
 	flex-direction: column-reverse;
 	align-items: center;
-}
 
-.table * {
-	box-sizing: border-box;
-}
-
-.table:focus {
-	outline: none;
+	& * {
+		box-sizing: border-box;
+	}
 }
 
 .table :global .header-anchor {

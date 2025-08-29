@@ -3,8 +3,6 @@ import * as ReactDOM from "react-dom";
 import { Dropdown, FormCheck, Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 
-import "../icons/icons.css";
-
 import type {
 	HeaderCellRendererProps,
 	CellRendererProps,
@@ -12,21 +10,8 @@ import type {
 	AppTableDataActions,
 } from "./AppTable";
 
+import "../icons/icons.css";
 import styles from "./ControlColumn.module.css";
-
-const Container = ({
-	className,
-	...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-	<div className={styles.container} {...props} />
-);
-
-const Selector = ({
-	className,
-	...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-	<div className={styles.selector} {...props} />
-);
 
 type ControlHeaderCellProps = HeaderCellRendererProps & {
 	customSelectorElement?: JSX.Element; //React.ReactNode;
@@ -72,7 +57,7 @@ function ControlHeaderCell({
 	if (!anchorEl) return null;
 
 	return (
-		<Container>
+		<div className={styles.container}>
 			<div className={styles.selector}>
 				<FormCheck
 					id="control-column-selector"
@@ -115,7 +100,7 @@ function ControlHeaderCell({
 					onClick={toggleExpand}
 				/>
 			)}
-		</Container>
+		</div>
 	);
 }
 
@@ -148,7 +133,7 @@ function ControlCell({
 	const isExpanded = expanded.includes(rowId);
 
 	return (
-		<Container onClick={(e) => e.stopPropagation()}>
+		<div className={styles.container} onClick={(e) => e.stopPropagation()}>
 			<FormCheck
 				id={"select-row-" + rowId}
 				title={"Select row " + rowId}
@@ -165,7 +150,7 @@ function ControlCell({
 					onClick={toggleExpand}
 				/>
 			)}
-		</Container>
+		</div>
 	);
 }
 

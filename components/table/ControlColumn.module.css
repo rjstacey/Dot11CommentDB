@@ -1,21 +1,12 @@
 .container {
-    display: flex;
+	display: flex;
 	flex-direction: column;
 	align-items: center;
 }
 
 .selector {
-    display: flex;
+	display: flex;
 	flex-direction: row;
 	border-radius: 3px;
 	align-items: center;
 }
-
-.selector:hover {
-    color: tomato;
-}
-
-.selector:hover,
-.selector:focus-within {
-		background-color: #ddd;
-	}
