@@ -14,69 +14,37 @@ import {
 	fields,
 } from "@/store/sessionAttendees";
 
-import styles from "./table.module.css";
+import { TruncatedDiff } from "./TruncatedDiff";
 
-const BLANK_STR = "(Blank)";
+const renderName = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => (
+	<TruncatedDiff
+		className="fw-bold"
+		newStr={rowData.Name}
+		oldStr={rowData.OldName}
+	/>
+);
 
-export const renderDiff = (newStr: string, oldStr: string | null) => {
-	const newStyle: React.CSSProperties = {},
-		oldStyle: React.CSSProperties = {};
+const renderEmail = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => (
+	<TruncatedDiff newStr={rowData.Email} oldStr={rowData.OldEmail} />
+);
 
-	if (!newStr) {
-		newStr = BLANK_STR;
-		newStyle.fontStyle = "italic";
-	}
-
-	if (oldStr === "") {
-		oldStr = BLANK_STR;
-		oldStyle.fontStyle = "italic";
-	}
-
-	if (oldStr !== null) {
-		return (
-			<>
-				<del style={oldStyle}>{oldStr}</del>
-				<ins style={newStyle}>{newStr}</ins>
-			</>
-		);
-	} else {
-		return <span style={newStyle}>{newStr}</span>;
-	}
+const renderEmployer = ({
+	rowData,
+}: CellRendererProps<SyncedSessionAttendee>) => {
+	// The "Employer" field is present with "daily attendance" but undefined with "attendance summary"
+	if (rowData.Employer === undefined) return "N/A";
+	return (
+		<TruncatedDiff newStr={rowData.Employer} oldStr={rowData.OldEmployer} />
+	);
 };
 
-export const renderName = ({
+const renderAffiliation = ({
 	rowData,
 }: CellRendererProps<SyncedSessionAttendee>) => (
-	<div className={styles.tableCell} style={{ fontWeight: "bold" }}>
-		{renderDiff(rowData.Name, rowData.OldName)}
-	</div>
-);
-
-export const renderEmail = ({
-	rowData,
-}: CellRendererProps<SyncedSessionAttendee>) => (
-	<div className={styles.tableCell}>
-		{renderDiff(rowData.Email, rowData.OldEmail)}
-	</div>
-);
-
-export const renderEmployer = ({
-	rowData,
-}: CellRendererProps<SyncedSessionAttendee>) => (
-	// The "Employer" field is present with "daily attendance" but undefined with "attendance summary"
-	<div className={styles.tableCell}>
-		{rowData.Employer === undefined
-			? "N/A"
-			: renderDiff(rowData.Employer, rowData.OldEmployer)}
-	</div>
-);
-
-export const renderAffiliation = ({
-	rowData,
-}: CellRendererProps<SyncedSessionAttendee>) => (
-	<div className={styles.tableCell}>
-		{renderDiff(rowData.Affiliation, rowData.OldAffiliation)}
-	</div>
+	<TruncatedDiff
+		newStr={rowData.Affiliation}
+		oldStr={rowData.OldAffiliation}
+	/>
 );
 
 export const tableColumns: ColumnProperties[] = [
