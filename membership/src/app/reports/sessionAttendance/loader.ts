@@ -1,7 +1,7 @@
 import { LoaderFunction } from "react-router";
 import { store } from "@/store";
 import { loadAffiliationMap } from "@/store/affiliationMap";
-import { loader as sessionAttendanceLoader } from "../../sessionAttendance/loader";
+import { sessionAttendanceLoader } from "../../sessionAttendance/loader";
 
 export const loader: LoaderFunction = async (args) => {
 	sessionAttendanceLoader(args);

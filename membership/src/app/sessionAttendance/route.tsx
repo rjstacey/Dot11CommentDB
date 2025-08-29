@@ -1,6 +1,6 @@
 import { lazy } from "react";
 import { RouteObject } from "react-router";
-import { loader } from "./loader";
+import { indexLoader, sessionAttendanceLoader } from "./loader";
 
 const SessionAttendanceLayout = lazy(() => import("./layout"));
 const SessionAttendanceTable = lazy(() => import("./main"));
@@ -11,7 +11,7 @@ export const sessionAttendanceRoute: RouteObject = {
 	children: [
 		{
 			index: true,
-			loader,
+			loader: indexLoader,
 			element: (
 				<div
 					className="d-flex flex-column w-100 h-100"
@@ -23,7 +23,7 @@ export const sessionAttendanceRoute: RouteObject = {
 		},
 		{
 			path: ":sessionNumber",
-			loader,
+			loader: sessionAttendanceLoader,
 			children: [
 				{ index: true, element: <SessionAttendanceTable /> },
 				{ path: "registration", element: <SessionRegistrationTable /> },

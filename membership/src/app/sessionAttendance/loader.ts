@@ -17,7 +17,7 @@ import { loadSessions, selectSessionByNumber } from "@/store/sessions";
 export function refresh() {
 	const { dispatch, getState } = store;
 	const { groupName } = selectAttendanceSummaryState(getState());
-	if (!groupName) throw new Error("Route error: groupName not set");
+	if (!groupName) throw new Error("Refresh: groupName not set");
 	const { sessionId, useDaily } = selectSessionAttendeesState(getState());
 	if (sessionId) {
 		dispatch(loadSessionAttendees(groupName, sessionId, useDaily, true));
@@ -25,9 +25,19 @@ export function refresh() {
 	dispatch(loadRecentAttendanceSummaries(groupName, true));
 }
 
-export const loader: LoaderFunction = async ({ params, request }) => {
+export const indexLoader: LoaderFunction = async () => {
+	const { dispatch } = store;
+	dispatch(clearSessionAttendees());
+	return null;
+};
+
+export const sessionAttendanceLoader: LoaderFunction = async ({
+	params,
+	request,
+}) => {
 	const { groupName, sessionNumber } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
+	if (!sessionNumber) throw new Error("Route error: sessionNumber not set");
 
 	const { dispatch, getState } = store;
 	await dispatch(loadGroups());
@@ -41,19 +51,12 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 	const useDaily =
 		searchParams.has("useDaily") &&
 		searchParams.get("useDaily") !== "false";
-	if (sessionNumber) {
-		await dispatch(loadSessions(groupName));
-		const session = selectSessionByNumber(
-			getState(),
-			Number(sessionNumber)
-		);
-		if (session) {
-			dispatch(loadSessionAttendees(groupName, session.id, useDaily));
-		} else {
-			throw new Error("Can't find session " + sessionNumber);
-		}
+	await dispatch(loadSessions(groupName));
+	const session = selectSessionByNumber(getState(), Number(sessionNumber));
+	if (session) {
+		dispatch(loadSessionAttendees(groupName, session.id, useDaily));
 	} else {
-		dispatch(clearSessionAttendees());
+		throw new Error("Can't find session " + sessionNumber);
 	}
 	dispatch(loadRecentAttendanceSummaries(groupName));
 
