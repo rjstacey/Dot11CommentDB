@@ -2,18 +2,18 @@ import * as React from "react";
 import { Modal, Button } from "react-bootstrap";
 
 class ConfirmModal extends React.Component<
-	{},
+	React.ComponentProps<typeof Modal>,
 	{
 		show: boolean;
 		message: string;
 		hasCancel: boolean;
 	}
 > {
-	static instance: ConfirmModal | undefined;
-	static resolve: (value: unknown) => void;
+	private static instance: ConfirmModal | undefined;
+	private static resolve: (value: unknown) => void;
 
-	constructor() {
-		super({});
+	constructor(props: React.ComponentProps<typeof Modal>) {
+		super(props);
 		ConfirmModal.instance = this;
 
 		this.state = {
@@ -45,7 +45,11 @@ class ConfirmModal extends React.Component<
 
 	render() {
 		return (
-			<Modal show={this.state.show} onHide={this.handleCancel}>
+			<Modal
+				show={this.state.show}
+				onHide={this.handleCancel}
+				{...this.props}
+			>
 				<Modal.Header>
 					<Modal.Title>Alert</Modal.Title>
 				</Modal.Header>
