@@ -60,7 +60,7 @@ export const FieldType = {
 	DATE: "DATE",
 } as const;
 export type FieldTypeKey = keyof typeof FieldType;
-export type FieldTypeValue = typeof FieldType[FieldTypeKey];
+export type FieldTypeValue = (typeof FieldType)[FieldTypeKey];
 
 export type Option = {
 	value: any;
@@ -130,7 +130,7 @@ export function getAppTableDataSelectors<S, T1, T2>(
 	function getField(entity: unknown, dataKey: string) {
 		if (options && options.getField)
 			return options.getField(entity as T2, dataKey);
-		return (entity as T1)[dataKey];
+		return (entity as T1)[dataKey as keyof T1];
 	}
 
 	/** Select array of filtered ids */
@@ -170,7 +170,9 @@ export function getAppTableDataSelectors<S, T1, T2>(
 	};
 }
 
-export type AppTableDataSelectors<S = any, T1 = any, T2 = any> = ReturnType<typeof getAppTableDataSelectors<S, T1, T2>>;
+export type AppTableDataSelectors<S = any, T1 = any, T2 = any> = ReturnType<
+	typeof getAppTableDataSelectors<S, T1, T2>
+>;
 
 /*
  * Create a redux slice suitible for AppTable rendering.
@@ -184,7 +186,7 @@ export type AppTableDataSelectors<S = any, T1 = any, T2 = any> = ReturnType<type
  * The ui subslice manages the table settings (fixed, column widths, column shown/hidden, etc.)
  */
 export function createAppTableDataSlice<
-	T = any,
+	T = unknown,
 	ExtraState = {},
 	Reducers extends SliceCaseReducers<
 		ExtraState & AppTableDataState<T>
@@ -193,7 +195,7 @@ export function createAppTableDataSlice<
 >({
 	name,
 	fields,
-	selectId = (entity: T) => entity["id"],
+	selectId = (entity: unknown) => (entity as { id: EntityId }).id,
 	sortComparer,
 	initialState,
 	reducers,
@@ -214,10 +216,7 @@ export function createAppTableDataSlice<
 	) => void;
 }) {
 	const dataAdapter = createEntityAdapter<T>(
-		Object.assign(
-			{ selectId },
-			sortComparer ? { sortComparer } : {}
-		)
+		Object.assign({ selectId }, sortComparer ? { sortComparer } : {})
 	);
 
 	const selectedSubslice = createSelectedSubslice(name);
@@ -321,4 +320,6 @@ export function createAppTableDataSlice<
 	return slice;
 }
 
-export type AppTableDataActions<T = any> = ReturnType<typeof createAppTableDataSlice<T>>['actions'];
+export type AppTableDataActions<T = any> = ReturnType<
+	typeof createAppTableDataSlice<T>
+>["actions"];
