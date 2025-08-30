@@ -25,15 +25,15 @@ const Separator = (props: React.ComponentProps<"div">) => (
 const Placeholder = (props: React.ComponentProps<"div">) => (
 	<div className={styles.placeholder} {...props} />
 );
-const NoData = ({ props }: SelectRendererProps) => (
-	<div className="no-data">{props.noDataLabel}</div>
+const NoData = ({ label }: { label: string }) => (
+	<div className="no-data">{label}</div>
 );
 
 function defaultContentRenderer({
 	props,
 	state,
 	methods,
-}: SelectRendererProps): React.ReactNode {
+}: SelectRendererProps<ItemType>): React.ReactNode {
 	const values = props.values;
 	if (props.multi) {
 		return values.map((item) =>
@@ -57,35 +57,27 @@ function defaultContentRenderer({
 
 const defaultAddItemRenderer = ({
 	item,
-	className,
 	props,
-	state,
-	methods,
 }: {
 	item: ItemType;
-	className?: string;
-} & SelectRendererProps): React.ReactNode => (
-	<span className={className}>{`Add "${item[props.labelField]}"`}</span>
+} & SelectRendererProps<ItemType>): React.ReactNode => (
+	<span>{`Add "${item[props.labelField]}"`}</span>
 );
 
 const defaultItemRenderer = ({
 	item,
-	className,
 	props,
-	state,
-	methods,
 }: {
 	item: ItemType;
-	className?: string;
-} & SelectRendererProps): React.ReactNode => (
-	<span className={className}>{item[props.labelField]}</span>
+} & SelectRendererProps<ItemType>): React.ReactNode => (
+	<span>{item[props.labelField]}</span>
 );
 
-function defaultCreateOption({
+async function defaultCreateOption({
 	props,
 	state,
 	methods,
-}: SelectRendererProps): ItemType {
+}: SelectRendererProps<ItemType>) {
 	return {
 		[props.valueField]: state.search,
 		[props.labelField]: state.search,
@@ -94,20 +86,25 @@ function defaultCreateOption({
 
 export type ItemType = Record<string, any>; //{ [key: string]: any} | {};
 
-export type SelectRendererProps = {
-	props: SelectInternalProps;
-	state: SelectState;
-	methods: SelectMethods;
+export type SelectRendererProps<T> = {
+	props: SelectRequiredProps<T> & SelectDefaultProps<T>;
+	state: SelectState<T>;
+	methods: SelectMethods<T>;
 };
-export type SelectItemRendererProps = { item: ItemType } & SelectRendererProps;
+export type SelectItemRendererProps<T> = {
+	item: T;
+} & SelectRendererProps<T>;
 
-export type SelectInputRendererProps = {
+export type SelectInputRendererProps<T> = {
 	inputRef: React.RefObject<HTMLInputElement>;
-} & SelectRendererProps;
+} & SelectRendererProps<T>;
 
-export type SelectInternalProps = SelectDefaultProps & {
-	values: ItemType[];
-	options: ItemType[];
+export type SelectInternalProps<T> = SelectRequiredProps<T> &
+	SelectDefaultProps<T>;
+
+type SelectRequiredProps<T> = {
+	values: T[];
+	options: T[];
 
 	id?: string;
 	style?: React.CSSProperties;
@@ -122,16 +119,18 @@ export type SelectInternalProps = SelectDefaultProps & {
 	onClick?: React.MouseEventHandler;
 	onFocus?: React.FocusEventHandler;
 	onBlur?: React.FocusEventHandler;
+
+	onChange: (values: T[]) => void;
 };
 
-type SelectDefaultProps = {
-	onChange: (values: ItemType[]) => void;
-
+type SelectDefaultProps<T> = {
+	onChange: (values: T[]) => void;
 	onRequestOpen: () => void;
 	onRequestClose: () => void;
-	createOption: typeof defaultCreateOption;
+
 	placeholder: string;
 	addPlaceholder: string;
+	handle: boolean;
 	loading: boolean;
 	multi: boolean;
 	create: boolean;
@@ -148,11 +147,11 @@ type SelectDefaultProps = {
 	keepSelectedInList: boolean;
 	autoFocus: boolean;
 
-	labelField: string;
-	valueField: string;
+	labelField: keyof T;
+	valueField: keyof T;
 	searchBy: null;
 	sortBy: null;
-	valuesEqual: (a: ItemType, b: ItemType) => boolean;
+	valuesEqual: (a: any, b: any) => boolean;
 
 	separator: boolean;
 	noDataLabel: string;
@@ -162,50 +161,55 @@ type SelectDefaultProps = {
 	dropdownAlign: "left" | "right";
 	estimatedItemHeight: number;
 
+	createOption: (props: SelectRendererProps<T>) => Promise<T | undefined>;
+
 	/* Select children */
-	contentRenderer: typeof defaultContentRenderer;
+	contentRenderer: (props: SelectRendererProps<T>) => React.ReactNode;
 
 	/* Content children */
-	selectItemRenderer: (props: SelectItemRendererProps) => React.ReactNode;
+	selectItemRenderer: (props: SelectItemRendererProps<T>) => React.ReactNode;
 	multiSelectItemRenderer: (
-		props: SelectItemRendererProps
+		props: SelectItemRendererProps<T>
 	) => React.ReactNode;
-	inputRenderer: (props: SelectInputRendererProps) => React.ReactNode;
+	inputRenderer: (props: SelectInputRendererProps<T>) => React.ReactNode;
 
 	/* Dropdown */
-	dropdownRenderer: (props: SelectRendererProps) => React.ReactNode;
+	dropdownRenderer: (props: SelectRendererProps<T>) => React.ReactNode;
 
 	/* Dropdown children */
-	addItemRenderer: typeof defaultAddItemRenderer;
-	itemRenderer: typeof defaultItemRenderer;
-	noDataRenderer: (props: SelectRendererProps) => React.ReactNode;
+	addItemRenderer: (props: SelectItemRendererProps<T>) => React.ReactNode;
+	itemRenderer: (props: SelectItemRendererProps<T>) => React.ReactNode;
+	noDataRenderer: (props: SelectRendererProps<T>) => React.ReactNode;
 };
 
-export type SelectState = {
+export type SelectState<T> = {
 	isOpen: boolean;
 	search: string;
 	selectBounds: DOMRect | null;
 	cursor: number | null;
-	searchResults: ItemType[];
+	searchResults: T[];
 };
 
-export type SelectMethods = {
+export type SelectMethods<T> = {
 	open: () => void;
 	close: () => void;
-	addItem: (item: ItemType) => void;
+	addItem: (item: T) => void;
 	addSearchItem: () => Promise<void>;
-	removeItem: (item: ItemType) => void;
+	removeItem: (item: T) => void;
 	setSearch: (search: string) => void;
 	getInputSize: () => number;
-	isSelected: (item: ItemType) => boolean;
-	isDisabled: (item: ItemType) => boolean;
-	sort: (options: ItemType[]) => ItemType[];
-	filter: (options: ItemType[]) => ItemType[];
-	searchResults: () => ItemType[];
+	isSelected: (item: T) => boolean;
+	isDisabled: (item: T) => boolean;
+	sort: (options: T[]) => T[];
+	filter: (options: T[]) => T[];
+	searchResults: () => T[];
 };
 
-class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
-	constructor(props: SelectInternalProps) {
+class SelectInternal<T extends ItemType> extends React.Component<
+	SelectInternalProps<T>,
+	SelectState<T>
+> {
+	constructor(props: SelectInternalProps<T>) {
 		super(props);
 
 		this.state = {
@@ -239,8 +243,8 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		this.debouncedOnScroll = debounce(this.onScroll);
 	}
 
-	state: SelectState;
-	private methods: SelectMethods;
+	state: SelectState<T>;
+	private methods: SelectMethods<T>;
 	private selectRef: React.RefObject<HTMLDivElement>;
 	private inputRef: React.RefObject<HTMLInputElement>;
 	private dropdownRef: React.RefObject<HTMLDivElement>;
@@ -252,7 +256,10 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		this.updateSelectBounds();
 	}
 
-	componentDidUpdate(prevProps: SelectInternalProps, prevState: SelectState) {
+	componentDidUpdate(
+		prevProps: SelectInternalProps<T>,
+		prevState: SelectState<T>
+	) {
 		const { props, state } = this;
 
 		if (
@@ -359,9 +366,9 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		if (props.onRequestClose) props.onRequestClose();
 	};
 
-	addItem = (item: ItemType) => {
+	addItem = (item: T) => {
 		const { props } = this;
-		let values: ItemType[];
+		let values: T[];
 		if (props.multi) {
 			values = [...props.values, item];
 		} else {
@@ -381,10 +388,10 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 	addSearchItem = async () => {
 		const { props, state, methods } = this;
 		const item = await props.createOption({ props, state, methods });
-		this.addItem(item);
+		if (item) this.addItem(item);
 	};
 
-	removeItem = (item: ItemType) => {
+	removeItem = (item: T) => {
 		const { props } = this;
 		const newValues = props.values.filter(
 			(valueItem) => !props.valuesEqual(valueItem, item)
@@ -421,9 +428,9 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		);
 	};
 
-	isDisabled = (item: ItemType) => item.disabled || false;
+	isDisabled = (item: T) => Boolean("disabled" in item && item.disabled);
 
-	sort = (options: ItemType[]) => {
+	sort = (options: T[]) => {
 		const { sortBy } = this.props;
 		if (!sortBy) return options;
 
@@ -436,9 +443,9 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		});
 	};
 
-	filter = (options: ItemType[]) => {
+	filter = (options: T[]) => {
 		const { search } = this.state;
-		const searchBy = this.props.searchBy || this.props.labelField;
+		const searchBy: keyof T = this.props.searchBy || this.props.labelField;
 		const safeString = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 		const regexp = new RegExp(safeString, "i");
 		return options.filter((item) =>
@@ -460,13 +467,13 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 			options = options.filter((item) => methods.isSelected(item));
 		options = methods.filter(options);
 		options = methods.sort(options);
-		if (props.create && state.search) {
+		/*if (props.create && state.search) {
 			const newItem = {
 				[props.valueField]: state.search,
 				[props.labelField]: state.search,
 			};
 			options = [newItem, ...options];
-		}
+		}*/
 		return options;
 	};
 
@@ -534,7 +541,7 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 
 		if (enter) {
 			const item = state.searchResults[state.cursor || 0];
-			if (item && !item.disabled) {
+			if (item && !this.isDisabled(item)) {
 				if (!this.isSelected(item)) this.addItem(item);
 				else this.removeItem(item);
 			}
@@ -544,7 +551,7 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		if (arrowDown || arrowUp) {
 			let { cursor } = state;
 			let wrap = 0;
-			let item: ItemType;
+			let item: T;
 			do {
 				if (cursor === null) {
 					cursor = 0;
@@ -563,7 +570,7 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 					}
 				}
 				item = state.searchResults[cursor];
-			} while (item && item.disabled && wrap < 2);
+			} while (item && this.isDisabled(item) && wrap < 2);
 			this.setState({ cursor });
 		}
 	};
@@ -630,6 +637,7 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		const { props, state, methods } = this;
 
 		let cn = styles["select"];
+		if (props.handle) cn += " handle";
 		if (props.disabled) cn += " disabled";
 		if (props.readOnly) cn += " read-only";
 		if (props.className) cn += ` ${props.className}`;
@@ -679,13 +687,14 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		);
 	}
 
-	static defaultProps: SelectDefaultProps = {
+	static defaultProps = {
 		onChange: () => undefined,
 		onRequestOpen: () => undefined,
 		onRequestClose: () => undefined,
 		createOption: defaultCreateOption,
 		placeholder: "Select...",
 		addPlaceholder: "",
+		handle: true,
 		loading: false,
 		multi: false,
 		create: false,
@@ -706,7 +715,7 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		valueField: "value",
 		searchBy: null,
 		sortBy: null,
-		valuesEqual: (a: ItemType, b: ItemType) => a === b,
+		valuesEqual: (a: any, b: any) => a === b,
 
 		separator: false,
 		noDataLabel: "No data",
@@ -730,15 +739,17 @@ class SelectInternal extends React.Component<SelectInternalProps, SelectState> {
 		/* Dropdown children */
 		addItemRenderer: defaultAddItemRenderer,
 		itemRenderer: defaultItemRenderer,
-		noDataRenderer: (props) => <NoData {...props} />,
-	};
+		noDataRenderer: ({ props }) => <NoData label={props.noDataLabel} />,
+	} satisfies SelectDefaultProps<ItemType>;
 }
 
-export type SelectProps = JSX.LibraryManagedAttributes<
-	typeof SelectInternal,
-	SelectInternalProps
+export type SelectProps<T extends ItemType> = JSX.LibraryManagedAttributes<
+	typeof SelectInternal<T>,
+	SelectInternalProps<T>
 >;
 
-export const Select = (props: SelectProps) => <SelectInternal {...props} />;
+export const Select = <T extends ItemType>(props: SelectProps<T>) => (
+	<SelectInternal<T> {...props} />
+);
 
 //export default Select;

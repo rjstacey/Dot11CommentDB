@@ -1,5 +1,5 @@
 import React from "react";
-import type { SelectItemRendererProps } from ".";
+import type { SelectItemRendererProps, ItemType } from ".";
 
 const Clear = (props: React.ComponentProps<"div">) => (
 	<div className="multi-item-clear" {...props} />
@@ -8,9 +8,8 @@ const Clear = (props: React.ComponentProps<"div">) => (
 const MultiSelectItem = ({
 	item,
 	props,
-	state,
 	methods,
-}: SelectItemRendererProps) => {
+}: SelectItemRendererProps<ItemType>) => {
 	const remove = (event: React.MouseEvent) => {
 		event.stopPropagation();
 		methods.removeItem(item);

@@ -32,7 +32,10 @@ type ExtraArgs = {
 };
 
 function WrappedSelect(
-	args: Omit<React.ComponentProps<typeof Select>, "options" | "values"> &
+	args: Omit<
+		React.ComponentProps<typeof Select<Options>>,
+		"options" | "values"
+	> &
 		ExtraArgs & { portalRef: React.RefObject<any> }
 ) {
 	const {
@@ -48,8 +51,12 @@ function WrappedSelect(
 		genOptions(numberOfItems)
 	);
 
-	function addOption({ props, state, methods }: SelectRendererProps) {
-		const newItem = {
+	async function addOption({
+		props,
+		state,
+		methods,
+	}: SelectRendererProps<Options>) {
+		const newItem: Options = {
 			value: options.length,
 			label: state.search,
 		};
@@ -91,7 +98,7 @@ export function Basic(args: ExtraArgs) {
 	);
 }
 
-const itemRenderer = ({ item, props }: SelectItemRendererProps) => {
+const itemRenderer = ({ item, props }: SelectItemRendererProps<Options>) => {
 	const style = {
 		color: "#555",
 		overflow: "hidden",
@@ -166,7 +173,6 @@ export function IconSelect(args: ExtraArgs) {
 				onChange={() => {}}
 				placeholder=""
 				searchable={false}
-				handle={false}
 				dropdownWidth={300}
 				dropdownAlign="left"
 				contentRenderer={() => <Button className="bi-import" />}
@@ -178,7 +184,6 @@ export function IconSelect(args: ExtraArgs) {
 				onChange={() => {}}
 				placeholder=""
 				searchable={false}
-				handle={false}
 				dropdownWidth={300}
 				dropdownAlign="right"
 				contentRenderer={() => <Button className="bi-import" />}

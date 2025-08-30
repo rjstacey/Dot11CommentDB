@@ -6,7 +6,7 @@ import type {
 	SelectMethods,
 } from "./index";
 
-function Item({
+function Item<T extends ItemType>({
 	style,
 	className,
 	index,
@@ -18,10 +18,10 @@ function Item({
 	style?: React.CSSProperties;
 	className?: string;
 	index: number;
-	item: ItemType;
-	props: SelectInternalProps;
-	state: SelectState;
-	methods: SelectMethods;
+	item: T;
+	props: SelectInternalProps<T>;
+	state: SelectState<T>;
+	methods: SelectMethods<T>;
 }) {
 	const isSelected = methods.isSelected(item);
 	const isDisabled = methods.isDisabled(item);

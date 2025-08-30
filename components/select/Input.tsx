@@ -1,6 +1,11 @@
-import type { SelectInputRendererProps } from ".";
+import type { SelectInputRendererProps, ItemType } from ".";
 
-function Input({ inputRef, props, state, methods }: SelectInputRendererProps) {
+function Input({
+	inputRef,
+	props,
+	state,
+	methods,
+}: SelectInputRendererProps<ItemType>) {
 	return (
 		<input
 			ref={inputRef}

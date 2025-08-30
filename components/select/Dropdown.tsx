@@ -1,9 +1,9 @@
 import * as React from "react";
 import { VariableSizeList as List } from "react-window";
-import type { SelectRendererProps } from ".";
+import type { SelectRendererProps, ItemType } from ".";
 
 /* ItemWrapper measures and sets the height of the item */
-function ItemWrapper({
+function ItemWrapper<T extends ItemType>({
 	style,
 	item,
 	index,
@@ -16,7 +16,7 @@ function ItemWrapper({
 	item: any;
 	index: number;
 	setHeight: (height: number) => void;
-} & SelectRendererProps) {
+} & SelectRendererProps<T>) {
 	const ref = React.useRef<HTMLDivElement>(null);
 	React.useEffect(() => {
 		if (ref.current) {
@@ -71,7 +71,11 @@ function ItemWrapper({
 	);
 }
 
-function Dropdown({ props, state, methods }: SelectRendererProps) {
+function Dropdown<T extends ItemType>({
+	props,
+	state,
+	methods,
+}: SelectRendererProps<T>) {
 	const listRef = React.useRef<List>(null);
 	const listInnerRef = React.useRef<HTMLDivElement>(null);
 	const heightsRef = React.useRef<number[]>([]);
