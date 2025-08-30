@@ -11,7 +11,7 @@ import {
 	$getSelectionStyleValueForProperty,
 } from "@lexical/selection";
 import { mergeRegister } from "@lexical/utils";
-import { Select, SelectItemRendererProps } from "@components/select";
+import { Select } from "@components/select";
 
 import css from "../editor.module.css";
 
@@ -40,16 +40,22 @@ const FontSizeIcon = () => (
 	</div>
 );
 
-const renderSelectedFontSizeOption = ({ item }: SelectItemRendererProps) => (
+const renderSelectedFontSizeOption = ({
+	item,
+}: {
+	item: (typeof fontSizeOptions)[number];
+}) => (
 	<>
 		<FontSizeIcon />
 		<span className="selected-font-label">{item.label}</span>
 	</>
 );
 
-const renderFontSizeOption = ({ item }: SelectItemRendererProps) => (
-	<span style={{ fontSize: item.value }}>{item.label}</span>
-);
+const renderFontSizeOption = ({
+	item,
+}: {
+	item: (typeof fontSizeOptions)[number];
+}) => <span style={{ fontSize: item.value || undefined }}>{item.label}</span>;
 
 export function SelectFontSize({ disabled }: { disabled: boolean }) {
 	const [editor] = useLexicalComposerContext();
@@ -95,6 +101,7 @@ export function SelectFontSize({ disabled }: { disabled: boolean }) {
 
 	return (
 		<Select
+			style={{ width: 115 }}
 			aria-label="Font Size Options"
 			options={fontSizeOptions}
 			values={values}

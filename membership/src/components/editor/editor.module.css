@@ -24,6 +24,7 @@
 
 .toolbar {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	background: #efefef;
 	padding: 4px;

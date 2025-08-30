@@ -21,15 +21,11 @@ export function IeeeMemberSelector({
 	value, // value is SAPIN
 	onChange,
 	readOnly,
-	...otherProps
 }: {
 	value: number;
 	onChange: (value: number) => void;
 	readOnly?: boolean;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
->) {
+}) {
 	const memberSapins = useAppSelector(selectMemberIds);
 	const options = useAppSelector(selectIeeeMembers).filter(
 		(o) => !memberSapins.includes(o.SAPIN)
@@ -51,7 +47,6 @@ export function IeeeMemberSelector({
 			selectItemRenderer={itemRenderer}
 			readOnly={readOnly}
 			portal={document.querySelector("#root")}
-			{...otherProps}
 		/>
 	);
 }

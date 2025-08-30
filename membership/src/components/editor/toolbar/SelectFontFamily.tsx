@@ -11,7 +11,7 @@ import {
 	$getSelectionStyleValueForProperty,
 } from "@lexical/selection";
 import { mergeRegister } from "@lexical/utils";
-import { Select, SelectItemRendererProps } from "@components/select";
+import { Select } from "@components/select";
 
 import css from "../editor.module.css";
 
@@ -25,16 +25,22 @@ const fontFamilyOptions: { value: string | null; label: string }[] = [
 	{ value: "Verdana", label: "Verdana" },
 ];
 
-const renderSelectedFontOption = ({ item }: SelectItemRendererProps) => (
+const renderSelectedFontOption = ({
+	item,
+}: {
+	item: (typeof fontFamilyOptions)[number];
+}) => (
 	<>
 		<i className="bi-fonts" />
 		<span className="selected-font-label">{item.label}</span>
 	</>
 );
 
-const renderFontOption = ({ item }: SelectItemRendererProps) => (
-	<span style={{ fontFamily: item.value }}>{item.label}</span>
-);
+const renderFontOption = ({
+	item,
+}: {
+	item: (typeof fontFamilyOptions)[number];
+}) => <span style={{ fontFamily: item.value || undefined }}>{item.label}</span>;
 
 export function SelectFontFamily({ disabled }: { disabled: boolean }) {
 	const [editor] = useLexicalComposerContext();
@@ -80,6 +86,7 @@ export function SelectFontFamily({ disabled }: { disabled: boolean }) {
 
 	return (
 		<Select
+			style={{ width: 180 }}
 			aria-label="Font Options"
 			options={fontFamilyOptions}
 			values={values}

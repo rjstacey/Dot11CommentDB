@@ -33,11 +33,15 @@ const alignmentOptions: {
 	{ value: "outdent", label: "Outdent", icon: "bi-text-indent-right" },
 ];
 
-const renderSelectedAlignmentOption = ({ item }: SelectItemRendererProps) => (
+const renderSelectedAlignmentOption = ({
+	item,
+}: SelectItemRendererProps<(typeof alignmentOptions)[number]>) => (
 	<i className={item.icon} />
 );
 
-const renderAlignmentOption = ({ item }: SelectItemRendererProps) =>
+const renderAlignmentOption = ({
+	item,
+}: SelectItemRendererProps<(typeof alignmentOptions)[number]>) =>
 	item.value ? (
 		<>
 			<i className={item.icon} />
@@ -96,6 +100,7 @@ export function SelectAlignment({ disabled }: { disabled: boolean }) {
 
 	return (
 		<Select
+			style={{ width: 60 }}
 			aria-label="Alignment Options"
 			options={alignmentOptions}
 			values={values}

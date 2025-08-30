@@ -17,9 +17,9 @@ function ImatCommitteeSelector({
 	value: string | null;
 	onChange: (value: string | null) => void;
 	type?: ImatCommitteeType;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"style" | "placeholder" | "readOnly"
 >) {
 	let options = useAppSelector(selectImatCommittees);
 	if (type) options = options.filter((o) => o.type === type);

@@ -10,15 +10,11 @@ function MemberSelector({
 	value, // value is SAPIN
 	onChange,
 	readOnly,
-	...otherProps
 }: {
 	value: number;
 	onChange: (value: number) => void;
 	readOnly?: boolean;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
->) {
+}) {
 	const workingGroup = useAppSelector(selectWorkingGroup);
 	const options = useAppSelector(
 		workingGroup && workingGroup.type === "r"
@@ -41,7 +37,6 @@ function MemberSelector({
 			labelField="Name"
 			readOnly={readOnly}
 			portal={document.querySelector("#root")}
-			{...otherProps}
 		/>
 	);
 }

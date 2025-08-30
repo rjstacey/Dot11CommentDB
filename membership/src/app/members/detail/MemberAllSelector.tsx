@@ -8,15 +8,13 @@ import { selectAllMembers } from "@/store/members";
 export function MemberAllSelector({
 	value,
 	onChange,
-	readOnly,
 	...otherProps
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
-	readOnly?: boolean;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options" | "clearable" | "readOnly"
+	"id" | "style" | "placeholder" | "readOnly"
 >) {
 	const members = useAppSelector(selectAllMembers);
 	const options = React.useMemo(
@@ -39,7 +37,6 @@ export function MemberAllSelector({
 			onChange={handleChange}
 			options={options}
 			clearable
-			readOnly={readOnly}
 			{...otherProps}
 		/>
 	);

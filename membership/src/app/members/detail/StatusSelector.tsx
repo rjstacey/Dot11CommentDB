@@ -15,9 +15,9 @@ function StatusSelector({
 }: {
 	value: string | typeof MULTIPLE;
 	onChange: (value: StatusType) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options" | "portal"
+	"id" | "style" | "readOnly" | "placeholder"
 >) {
 	const values = statusOptions.filter((o) => o.value === value);
 	const handleChange = (values: typeof statusOptions) =>

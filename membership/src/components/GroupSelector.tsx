@@ -19,9 +19,9 @@ export function GroupSelector({
 	value: string | null;
 	onChange: (value: string | null) => void;
 	types?: string[];
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"id" | "style" | "placeholder" | "readOnly"
 >) {
 	const groupEntities = useAppSelector(selectGroupEntities);
 	const groups = useAppSelector(selectGroups);
@@ -33,7 +33,7 @@ export function GroupSelector({
 		options = [...options, entity];
 	}
 
-	const handleChange = (values: typeof groups) =>
+	const handleChange = (values: typeof options) =>
 		onChange(values.length > 0 ? values[0].id : null);
 	const values = options.filter((group) => group.id === value);
 

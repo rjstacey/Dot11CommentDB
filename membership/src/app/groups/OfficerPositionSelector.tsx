@@ -12,10 +12,7 @@ function OfficerPositionSelector({
 	value: string;
 	onChange: (value: string) => void;
 	groupType: GroupType;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
->) {
+} & Pick<React.ComponentProps<typeof Select>, "id" | "style" | "readOnly">) {
 	const options = officerPositionsForGroupType(groupType).map((v) => ({
 		value: v,
 		label: v,

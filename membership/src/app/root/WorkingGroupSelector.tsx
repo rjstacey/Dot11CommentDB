@@ -17,12 +17,7 @@ const selectOptions = createSelector(selectWorkingGroups, (groups) =>
 	})
 );
 
-export function PathWorkingGroupSelector(
-	props: Omit<
-		React.ComponentProps<typeof Select>,
-		"values" | "onChange" | "options"
-	>
-) {
+export function PathWorkingGroupSelector() {
 	const navigate = useNavigate();
 	const { groupName } = useParams();
 
@@ -44,7 +39,6 @@ export function PathWorkingGroupSelector(
 			valueField="id"
 			labelField="name"
 			searchable={false}
-			{...props}
 		/>
 	);
 }

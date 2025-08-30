@@ -196,7 +196,9 @@ function SelectEmailTemplate({
 	const options = ids.map((id) => entities[id]!);
 	const values = value ? options.filter((o) => o.id === value.id) : [];
 
-	async function createEmailTemplate({ state }: SelectRendererProps) {
+	async function createEmailTemplate({
+		state,
+	}: SelectRendererProps<EmailTemplate>) {
 		const template: EmailTemplateCreate = {
 			name: state.search,
 			to: SELECTED_MEMBERS_KEY,

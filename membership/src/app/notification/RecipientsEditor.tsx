@@ -15,11 +15,15 @@ type EntryOption = {
 	Email: string;
 };
 
-function itemRenderer({ item: member }: SelectItemRendererProps) {
+function itemRenderer({ item: member }: SelectItemRendererProps<EntryOption>) {
 	return <span>{member.Name || member.Email}</span>;
 }
 
-function selectItemRenderer({ item, props, methods }: SelectItemRendererProps) {
+function selectItemRenderer({
+	item,
+	props,
+	methods,
+}: SelectItemRendererProps<EntryOption>) {
 	const title = item.Name ? `${item.Name} <${item.Email}>` : item.Email;
 	return (
 		<div className={css.recipientItemSelected} title={title}>
@@ -78,7 +82,7 @@ function MemberEmailSelector({
 		onChange(value);
 	}
 
-	function createOption({ state }: SelectRendererProps) {
+	async function createOption({ state }: SelectRendererProps<EntryOption>) {
 		const s = state.search;
 		const m = s.trim().match(/([A-Z0-9_\s]+)<(.*)>/i);
 		if (m) return { Name: m[1], Email: m[2] };

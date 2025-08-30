@@ -24,7 +24,7 @@ import {
 import { $createCodeNode } from "@lexical/code";
 import { $getNearestNodeOfType, mergeRegister } from "@lexical/utils";
 
-import { Select, SelectItemRendererProps } from "@components/select";
+import { Select } from "@components/select";
 
 import css from "../editor.module.css";
 
@@ -39,7 +39,11 @@ const blockTypeOptions = [
 	{ value: "code", label: "Code", icon: "bi-code" },
 ];
 
-const renderBlockTypeOption = ({ item }: SelectItemRendererProps) => (
+const renderBlockTypeOption = ({
+	item,
+}: {
+	item: (typeof blockTypeOptions)[number];
+}) => (
 	<>
 		<i className={item.icon} />
 		<span>{item.label}</span>
@@ -134,7 +138,7 @@ export function SelectTextBlockType({ disabled }: { disabled: boolean }) {
 
 	return (
 		<Select
-			style={{ width: 150 }}
+			style={{ width: 170 }}
 			aria-label="Text Block Type Options"
 			options={blockTypeOptions}
 			values={values}

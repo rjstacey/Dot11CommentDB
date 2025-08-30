@@ -17,9 +17,9 @@ export function GroupTypeSelector({
 	value: GroupType | null;
 	onChange: (value: GroupType | null) => void;
 	parent_id: string | null;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+} & Pick<
+	React.ComponentPropsWithoutRef<typeof Select>,
+	"style" | "placeholder" | "readOnly" | "id"
 >) {
 	const parentGroup = useAppSelector((state) =>
 		parent_id ? selectGroup(state, parent_id) : undefined
