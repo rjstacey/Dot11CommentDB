@@ -16,38 +16,10 @@ import {
 	myProjectRosterActions,
 } from "@/store/myProjectRoster";
 
-import styles from "../../sessionAttendance/table.module.css";
+import { TruncatedDiff } from "../../sessionAttendance/TruncatedDiff";
 
-const BLANK_STR = "(Blank)";
-
-function renderDiff(s1: string, s2: string | undefined) {
-	const s1Style: React.CSSProperties = {},
-		s2Style: React.CSSProperties = {};
-
-	if (!s1) {
-		s1 = BLANK_STR;
-		s1Style.fontStyle = "italic";
-	}
-
-	if (s2 === "") {
-		s2 = BLANK_STR;
-		s2Style.fontStyle = "italic";
-	}
-
-	if (s2 !== undefined && s1 !== s2) {
-		return (
-			<>
-				<del style={s2Style}>{s2}</del>
-				<ins style={s1Style}>{s1}</ins>
-			</>
-		);
-	}
-
-	return <span style={s1Style}>{s1}</span>;
-}
-
-function renderDiffCell(s1: string, s2: string | undefined) {
-	return <div className={styles.tableCell}>{renderDiff(s1, s2)}</div>;
+function renderDiffCell(s1: string, s2: string | null) {
+	return <TruncatedDiff newStr={s1} oldStr={s2} />;
 }
 
 export const tableColumns: ColumnProperties[] = [
