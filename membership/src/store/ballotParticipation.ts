@@ -348,7 +348,7 @@ export const selectMemberBallotParticipationCount = createSelector(
 	}
 );
 
-function getField(entity: MemberParticipation, dataKey: string) {
+function getField(entity: RecentBallotSeriesParticipation, dataKey: string) {
 	const m = /ballotSeries_(\d+)/.exec(dataKey);
 	if (m) {
 		const i = Number(m[1]);
@@ -357,7 +357,7 @@ function getField(entity: MemberParticipation, dataKey: string) {
 		if (!summary.vote) return "Did not vote";
 		return summary.vote;
 	}
-	return entity[dataKey as keyof MemberParticipation];
+	return entity[dataKey as keyof RecentBallotSeriesParticipation];
 }
 
 export const ballotParticipationSelectors = getAppTableDataSelectors(

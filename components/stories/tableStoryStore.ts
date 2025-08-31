@@ -100,7 +100,7 @@ export const dataFields: Fields = {
 
 const selectField = (data: DataEntity, dataKey: string) => {
 	if (dataKey === "Derived") return data.Status + "-es";
-	return data[dataKey];
+	return data[dataKey as keyof DataEntity];
 };
 
 const selectNamesEntities = (state: any) =>
@@ -132,7 +132,7 @@ const dataSlice = createAppTableDataSlice({
 	name: "data",
 	fields: dataFields,
 	initialState,
-	//selectId: (entity: DataEntity) => entity.id,
+	selectId: (entity: DataEntity) => entity.id,
 	reducers: {
 		setExtra(state, action: PayloadAction<boolean>) {
 			state.extra = action.payload;

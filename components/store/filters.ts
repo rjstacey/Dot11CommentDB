@@ -2,7 +2,7 @@
 //
 // Began life here https://github.com/koalyptus/TableFilter
 //
-import type { PayloadAction, EntityId } from "@reduxjs/toolkit";
+import type { PayloadAction, EntityId, Dictionary } from "@reduxjs/toolkit";
 import {
 	Fields,
 	FieldProperties,
@@ -111,10 +111,10 @@ export function getCompFunc(comp: FilterComp): CmpFunc {
  * Applies the column filters in turn to the data.
  * Returns a list of ids that meet the filter requirements.
  */
-export function filterData<T>(
+export function filterData<T extends {}>(
 	filters: Filters,
 	getField: GetEntityField<T>,
-	entities: Record<EntityId, T>,
+	entities: Dictionary<T>,
 	ids: EntityId[]
 ): EntityId[] {
 	let filteredIds = ids.slice();

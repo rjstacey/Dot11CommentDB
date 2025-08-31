@@ -79,6 +79,7 @@ const dataSet = "sessionParticipation";
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	selectId: (entity: MemberAttendances) => entity.SAPIN,
 	initialState: {},
 	reducers: {},
 });

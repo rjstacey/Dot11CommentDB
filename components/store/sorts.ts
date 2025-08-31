@@ -1,4 +1,4 @@
-import type { EntityId, PayloadAction } from "@reduxjs/toolkit";
+import type { EntityId, PayloadAction, Dictionary } from "@reduxjs/toolkit";
 import {
 	FieldType,
 	FieldTypeValue,
@@ -25,13 +25,15 @@ export const SortDirection = {
 	DESC: "DESC",
 } as const;
 export type SortDirectionKey = keyof typeof SortDirection;
-export type SortDirectionValue = typeof SortDirection[SortDirectionKey];
+export type SortDirectionValue = (typeof SortDirection)[SortDirectionKey];
 
-export const cmpNumeric = (a: string | number | null, b: string | number | null) => {
+export const cmpNumeric = (
+	a: string | number | null,
+	b: string | number | null
+) => {
 	if (a === null || b === null) {
-		if (a === null && b === null)
-			return 0;
-		return a === null? -1: 1;
+		if (a === null && b === null) return 0;
+		return a === null ? -1 : 1;
 	}
 	const A = Number(a);
 	const B = Number(b);
@@ -39,8 +41,8 @@ export const cmpNumeric = (a: string | number | null, b: string | number | null)
 };
 
 export const cmpClause = (a: string | null, b: string | null) => {
-	const A = a? a.split("."): [];
-	const B = b? b.split("."): [];
+	const A = a ? a.split(".") : [];
+	const B = b ? b.split(".") : [];
 	for (let i = 0; i < Math.min(A.length, B.length); i++) {
 		if (A[i] !== B[i]) {
 			// compare as a number if it looks like a number
@@ -65,10 +67,10 @@ export const cmpString = (a: string | null, b: string | null) => {
 };
 
 export const cmpDate = (a: string | null, b: string | null) => {
-	const date_a = a? new Date(a): new Date(0);
-	const date_b = b? new Date(b): new Date(0);
+	const date_a = a ? new Date(a) : new Date(0);
+	const date_b = b ? new Date(b) : new Date(0);
 	return date_a.valueOf() - date_b.valueOf();
-}
+};
 
 export const sortFunc = {
 	NUMERIC: cmpNumeric,
@@ -77,10 +79,10 @@ export const sortFunc = {
 	DATE: cmpDate,
 } as const;
 
-export function sortData<EntityType = {}>(
+export function sortData<EntityType extends {} = {}>(
 	sorts: Sorts,
 	getField: GetEntityField<EntityType>,
-	entities: Record<EntityId, EntityType>,
+	entities: Dictionary<EntityType>,
 	ids: EntityId[]
 ): EntityId[] {
 	let sortedIds = ids.slice();

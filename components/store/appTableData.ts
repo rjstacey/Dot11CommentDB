@@ -6,7 +6,7 @@ import type {
 	EntityAdapter,
 	IdSelector,
 	Comparer,
-	//Dictionary,
+	Dictionary,
 	Update,
 	PayloadAction,
 	SliceCaseReducers,
@@ -49,9 +49,12 @@ export * from "./ui";
 
 //export { EntityId, Dictionary };
 
-type Dictionary<T = any> = Record<EntityId, T>;
+//type Dictionary<T> = Record<EntityId, T>;
 
-export type GetEntityField<T = any> = (entity: T, dataKey: string) => any;
+export type GetEntityField<T1 extends {} = Record<string, any>> = (
+	entity: T1,
+	dataKey: string
+) => any;
 
 export const FieldType = {
 	STRING: "STRING",
@@ -94,19 +97,19 @@ export type AppTableDataState<T> = EntityState<T> &
 	SortsState &
 	UiState;
 
-export type AppTableDataSelectorOptions<S, T2> = {
+export type AppTableDataSelectorOptions<S, T1, T2 extends T1 = T1> = {
 	/** Optionally override the entities selector; allows for table join operations etc. */
 	selectEntities?: (state: S) => Dictionary<T2>;
 	/** Optionally override the ids selector; allows for pre-filtering of table entires */
 	selectIds?: (state: S) => EntityId[];
 	/** Optional function that will derive a field `dataKey` from other fields */
-	getField?: (entity: T2, dataKey: string) => any;
+	getField?: (entity: T1, dataKey: string) => T2[keyof T2];
 };
 
-export function getAppTableDataSelectors<S, T1, T2>(
+export function getAppTableDataSelectors<S, T1 extends {}, T2 extends T1>(
 	/** Selector for the slice state (required) */
 	selectState: (state: S) => AppTableDataState<T1>,
-	options?: AppTableDataSelectorOptions<S, T2>
+	options?: AppTableDataSelectorOptions<S, T1, T2>
 ) {
 	const selectFilters = (state: S) => selectState(state).filters;
 	const selectSorts = (state: S) => selectState(state).sorts;
@@ -117,41 +120,48 @@ export function getAppTableDataSelectors<S, T1, T2>(
 		selectIds = options.selectIds;
 
 	/** If `selectEntities` is not provided, then default is to return slice `entities` */
-	function selectEntities(state: S): Dictionary<T1>;
+	/*function selectEntities(state: S): Dictionary<T1>;
 	function selectEntities(state: S): Dictionary<T2>;
 	function selectEntities(state: S) {
 		if (options && options.selectEntities)
 			return options.selectEntities(state);
 		return selectState(state).entities;
-	}
+	}*/
+	let selectEntities;
+	if (options && options.selectEntities)
+		selectEntities = options.selectEntities;
+	else selectEntities = (state: S) => selectState(state).entities;
 
-	function getField(entity: T1, dataKey: string): any;
-	function getField(entity: T2, dataKey: string): any;
-	function getField(entity: unknown, dataKey: string) {
+	//function getField(entity: T1, dataKey: keyof T1): any;
+	//function getField(entity: T1, dataKey: keyof T2): any;
+	/*function getField(entity: T1, dataKey: string) {
 		if (options && options.getField)
-			return options.getField(entity as T2, dataKey);
-		return (entity as T1)[dataKey as keyof T1];
-	}
+			return options.getField(entity, dataKey);
+		return entity[dataKey as keyof T1];
+	}*/
+	let getField;
+	if (options && options.getField) getField = options.getField;
+	else
+		getField = (entity: T1, dataKey: string) => entity[dataKey as keyof T1];
 
 	/** Select array of filtered ids */
 	const selectFilteredIds: (state: S) => EntityId[] = createSelector(
 		selectFilters,
 		selectEntities,
 		selectIds,
-		(filters, entities, ids) =>
-			filterData(filters, getField!, entities, ids)
+		(filters, entities, ids) => filterData(filters, getField, entities, ids)
 	);
 
 	/** Select array of sorted ids */
 	const selectSortedIds: (state: S) => EntityId[] = createSelector(
 		[selectSorts, selectEntities, selectIds],
-		(sorts, entities, ids) => sortData(sorts, getField!, entities, ids)
+		(sorts, entities, ids) => sortData(sorts, getField, entities, ids)
 	);
 
 	/** Select array of sorted and filtered ids */
 	const selectSortedFilteredIds: (state: S) => EntityId[] = createSelector(
 		[selectSorts, selectEntities, selectFilteredIds],
-		(sorts, entities, ids) => sortData(sorts, getField!, entities, ids)
+		(sorts, entities, ids) => sortData(sorts, getField, entities, ids)
 	);
 
 	return {
@@ -170,9 +180,11 @@ export function getAppTableDataSelectors<S, T1, T2>(
 	};
 }
 
-export type AppTableDataSelectors<S = any, T1 = any, T2 = any> = ReturnType<
-	typeof getAppTableDataSelectors<S, T1, T2>
->;
+export type AppTableDataSelectors<
+	S = any,
+	T1 extends {} = any,
+	T2 extends T1 = T1
+> = ReturnType<typeof getAppTableDataSelectors<S, T1, T2>>;
 
 /*
  * Create a redux slice suitible for AppTable rendering.
@@ -186,7 +198,7 @@ export type AppTableDataSelectors<S = any, T1 = any, T2 = any> = ReturnType<
  * The ui subslice manages the table settings (fixed, column widths, column shown/hidden, etc.)
  */
 export function createAppTableDataSlice<
-	T = unknown,
+	T extends {},
 	ExtraState = {},
 	Reducers extends SliceCaseReducers<
 		ExtraState & AppTableDataState<T>
@@ -320,6 +332,6 @@ export function createAppTableDataSlice<
 	return slice;
 }
 
-export type AppTableDataActions<T = any> = ReturnType<
+export type AppTableDataActions<T extends {} = any> = ReturnType<
 	typeof createAppTableDataSlice<T>
 >["actions"];
