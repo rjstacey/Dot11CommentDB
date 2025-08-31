@@ -148,18 +148,7 @@
 	margin: 0 5px;
 }
 
-.select :global(.handle) {
-	display: flex;
-	align-content: center;
-}
-
-.select :global(.handle) svg {
-	width: 1em;
-	height: 1em;
-}
-
 .select :global(.clear):hover,
-.select :global(.handle):hover,
 .select :global(.multi-item-clear):hover {
 	color: tomato;
 }
