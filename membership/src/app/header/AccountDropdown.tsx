@@ -10,10 +10,11 @@ import pkg from "../../../package.json";
 
 export function AccountDropdown() {
 	const dispatch = useAppDispatch();
-	const user = useAppSelector(selectUser)!;
-	const clearCache = () => {
+	const user = useAppSelector(selectUser);
+	const reload = () => {
 		dispatch(resetStore());
 		dispatch(setUser(user));
+		window.location.reload();
 	};
 
 	return (
@@ -27,7 +28,9 @@ export function AccountDropdown() {
 				</Dropdown.ItemText>
 				<Dropdown.ItemText>{user.Email}</Dropdown.ItemText>
 				<Dropdown.Divider />
-				<Dropdown.Item onClick={clearCache}>Clear Cache</Dropdown.Item>
+				<Dropdown.Item onClick={reload}>
+					Clear Cache and Reload
+				</Dropdown.Item>
 				<Dropdown.Item onClick={loginAndReturn}>Sign Out</Dropdown.Item>
 			</Dropdown.Menu>
 		</Dropdown>

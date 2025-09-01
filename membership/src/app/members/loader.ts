@@ -10,6 +10,7 @@ import { loadOfficers } from "@/store/officers";
 import { loadRecentAttendanceSummaries } from "@/store/attendanceSummary";
 import { loadBallotParticipation } from "@/store/ballotParticipation";
 import { loadAffiliationMap } from "@/store/affiliationMap";
+import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -26,12 +27,14 @@ export function refresh() {
 	dispatch(loadBallotParticipation(groupName, true));
 }
 
-export const membersLoader: LoaderFunction = async ({ params }) => {
-	const { groupName } = params;
+export const membersLoader: LoaderFunction = async (args) => {
+	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
+	await rootLoader(args);
+
 	const { dispatch, getState } = store;
-	await dispatch(loadGroups());
+
 	const group = selectTopLevelGroupByName(getState(), groupName);
 	if (!group) throw new Error(`Group ${groupName} not found`);
 	const access = group.permissions.members || AccessLevel.none;

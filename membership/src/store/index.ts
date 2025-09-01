@@ -32,6 +32,8 @@ import affliationMapSlice from "./affiliationMap";
 import myProjectRosterSlice from "./myProjectRoster";
 import { errorsSlice } from "@components/store";
 
+import { createPersistReady } from "./persistReady";
+
 const RESET_STORE_ACTION = "root/RESET_STORE";
 const PERSIST_VERSION = 4;
 
@@ -143,6 +145,7 @@ export const store = configureReduxStore({
 });
 
 export const persistor = persistStore(store);
+export const persistReady = createPersistReady(persistor);
 
 export const resetStore = (): Action => ({ type: RESET_STORE_ACTION });
 

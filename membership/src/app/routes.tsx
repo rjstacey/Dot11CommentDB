@@ -1,8 +1,11 @@
 import { RouteObject, Outlet } from "react-router";
+import { Placeholder } from "react-bootstrap";
 import { AppLayout } from "./layout";
 import { AppErrorPage } from "./errorPage";
+import Fallback from "./fallback";
 import RootMain from "./root";
-import { rootLoader, groupLoader } from "./loader";
+import { rootLoader } from "./rootLoader";
+import { groupLoader } from "./groupLoader";
 import { groupsRoute } from "./groups/route";
 import { membersRoute } from "./members/route";
 import { sessionParticipationRoute } from "./sessionParticipation/route";
@@ -15,10 +18,10 @@ import { reportsRoute } from "./reports/route";
 export const routes: RouteObject[] = [
 	{
 		path: "/",
+		loader: rootLoader,
 		element: <AppLayout />,
 		errorElement: <AppErrorPage />,
-		hydrateFallbackElement: <span>Fallback</span>,
-		loader: rootLoader,
+		hydrateFallbackElement: <Fallback />,
 		children: [
 			{ index: true, element: <RootMain /> },
 			{ path: "groups", ...groupsRoute },
@@ -26,6 +29,9 @@ export const routes: RouteObject[] = [
 				path: ":groupName",
 				loader: groupLoader,
 				element: <Outlet />,
+				hydrateFallbackElement: (
+					<Placeholder className="w-100 h-100" animation="wave" />
+				),
 				children: [
 					{ path: "groups", ...groupsRoute },
 					{ path: "members", ...membersRoute },
