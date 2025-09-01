@@ -14,7 +14,7 @@ import { fields, membersSelectors, membersActions } from "@/store/members";
 import { selectMostRecentAttendedSession } from "@/store/sessions";
 import { selectMostRecentBallotSeries } from "@/store/ballotParticipation";
 
-import { tableColumns, defaultTablesConfig } from "./notificationTableColumns";
+import { tableColumns, defaultTablesConfig } from "./tableColumns";
 import { NotificationDetail } from "./detail";
 import { refresh } from "./loader";
 

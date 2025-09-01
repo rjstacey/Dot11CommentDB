@@ -1,10 +1,8 @@
-import { lazy } from "react";
 import { RouteObject } from "react-router";
 import { membersLoader } from "../members/loader";
-
-const AffiliationMap = lazy(() => import("./main"));
+import AffiliationMap from "./main";
 
 export const affiliationMapRoute: RouteObject = {
-	element: <AffiliationMap />,
+	Component: AffiliationMap,
 	loader: membersLoader,
 };

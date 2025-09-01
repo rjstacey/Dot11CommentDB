@@ -1,18 +1,16 @@
-import { lazy } from "react";
-import { RouteObject } from "react-router";
-import { membersLoader } from "../members/loader";
+import { RouteObject, Navigate } from "react-router";
 import { route as sessionParticipationRoute } from "./sessionParticipation/route";
 import { route as sessionAttendanceRoute } from "./sessionAttendance/route";
+import { route as membersRoute } from "./members/route";
 
-const Reports = lazy(() => import("./layout"));
-const MembersChart = lazy(() => import("./members"));
+import ReportsLayout from "./layout";
 
 export const reportsRoute: RouteObject = {
-	element: <Reports />,
+	Component: ReportsLayout,
 	children: [
-		{ index: true, element: null },
-		{ path: "members", loader: membersLoader, element: <MembersChart /> },
-		sessionParticipationRoute,
-		sessionAttendanceRoute,
+		{ index: true, element: <Navigate to="members" /> },
+		{ path: "members", ...membersRoute },
+		{ path: "sessionParticipation", ...sessionParticipationRoute },
+		{ path: "sessionAttendance", ...sessionAttendanceRoute },
 	],
 };

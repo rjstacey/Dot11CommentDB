@@ -7,6 +7,7 @@ import {
 import { SplitTableButtonGroup } from "@components/table";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 import { SessionAttendanceSubmenu } from "../submenu";
+import { Main } from "../main";
 
 export function SessionRegistrationTable() {
 	return (
@@ -18,15 +19,7 @@ export function SessionRegistrationTable() {
 				actions={sessionRegistrationActions}
 				columns={tableColumns}
 			/>
-			<div
-				style={{
-					order: 10,
-					width: "100%",
-					height: "100%",
-					display: "flex",
-					flexDirection: "column",
-				}}
-			>
+			<Main>
 				<ShowFilters
 					fields={fields}
 					selectors={sessionRegistrationSelectors}
@@ -40,7 +33,7 @@ export function SessionRegistrationTable() {
 					selectors={sessionRegistrationSelectors}
 					actions={sessionRegistrationActions}
 				/>
-			</div>
+			</Main>
 		</>
 	);
 }
