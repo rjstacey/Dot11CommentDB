@@ -102,7 +102,9 @@ export function Menu() {
 
 	return (
 		<Navbar expand="xl" className="justify-content-between">
-			<Navbar.Brand href="/">{title}</Navbar.Brand>
+			<Navbar.Brand as={NavLink} to="/">
+				{title}
+			</Navbar.Brand>
 			<Navbar.Toggle aria-controls="basic-navbar-nav" />
 			<Navbar.Collapse id="basic-navbar-nav">
 				<Nav variant="underline" className="me-auto">
