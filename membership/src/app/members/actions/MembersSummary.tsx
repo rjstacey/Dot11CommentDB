@@ -34,9 +34,9 @@ export function MembersSummary(props: React.ComponentProps<typeof Col>) {
 				</thead>
 				<tbody>
 					<tr>
-						{Object.values(summary).map((key) => (
+						{Object.entries(summary).map(([key, value]) => (
 							<td key={key} className="text-center">
-								{key}
+								{value}
 							</td>
 						))}
 					</tr>
