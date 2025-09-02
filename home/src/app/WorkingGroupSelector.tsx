@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router";
 
-import { Select } from "@components/select";
+import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectTopLevelGroups } from "@/store/groups";

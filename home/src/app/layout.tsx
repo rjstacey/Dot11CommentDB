@@ -1,6 +1,6 @@
 import { Outlet, Link } from "react-router";
 import { Container } from "react-bootstrap";
-import { ErrorModal, ConfirmModal } from "@components/modals";
+import { ErrorModal, ConfirmModal } from "@common";
 import Header from "./Header";
 
 function Layout() {

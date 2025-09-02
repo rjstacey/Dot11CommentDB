@@ -1,6 +1,6 @@
 import { Dropdown } from "react-bootstrap";
 
-import { clearUser } from "@components/lib";
+import { clearUser } from "@common";
 
 import { resetStore } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";

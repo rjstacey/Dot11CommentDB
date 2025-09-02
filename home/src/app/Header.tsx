@@ -3,7 +3,7 @@ import { Container, Button, Nav } from "react-bootstrap";
 import { useAppSelector } from "../store/hooks";
 import { selectUser } from "../store/user";
 import { AccountDropdown } from "./AccountDropdown";
-import { loginAndReturn } from "@components/lib";
+import { loginAndReturn } from "@common";
 
 function SignIn() {
 	return <Button onClick={loginAndReturn}>Sign In</Button>;

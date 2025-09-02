@@ -1,5 +1,5 @@
 import { RouteObject, LoaderFunction } from "react-router";
-import { getUser, fetcher, User, loginAndReturn } from "@components/lib";
+import { getUser, fetcher, User, loginAndReturn } from "@common";
 import { store, persistReady } from "@/store";
 import { loadGroups } from "@/store/groups";
 import { setUser } from "@/store/user";

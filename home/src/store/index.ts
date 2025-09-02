@@ -14,7 +14,7 @@ import {
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import { get, set, del } from "idb-keyval";
 
-import { errorsSlice, createPersistReady } from "@components/store";
+import { errorsSlice, createPersistReady } from "@common";
 
 import userSlice from "./user";
 import groupsSlice from "./groups";
