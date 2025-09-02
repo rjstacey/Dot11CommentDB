@@ -1,11 +1,10 @@
-import React from "react";
+import { Outlet } from "react-router";
+import { Container } from "react-bootstrap";
 import { useAppSelector } from "../store/hooks";
 import { selectUser } from "../store/user";
 import WorkingGroupSelector from "./WorkingGroupSelector";
 
-import styles from "./app.module.css";
-
-function Root({ children }: React.PropsWithChildren) {
+function Root() {
 	const user = useAppSelector(selectUser);
 	let mainEl: JSX.Element | undefined;
 	if (!user.SAPIN) {
@@ -20,22 +19,16 @@ function Root({ children }: React.PropsWithChildren) {
 	} else {
 		mainEl = (
 			<>
-				<p className="intro">Select a working group/committee</p>
+				<h2>Select a working group/committee</h2>
 				<WorkingGroupSelector />
 			</>
 		);
 	}
 	return (
-		<div className={styles.root}>
-			<section>
-				<p>
-					Tools used by the IEEE 802 LAN/MAN standards committee and
-					its subsidiary groups to support their mission.
-				</p>
-			</section>
-			<section>{mainEl}</section>
-			{children}
-		</div>
+		<>
+			<Container as="section">{mainEl}</Container>
+			<Outlet />
+		</>
 	);
 }
 

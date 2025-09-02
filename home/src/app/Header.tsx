@@ -1,55 +1,42 @@
-import { useParams, useNavigate } from "react-router";
-
-import { Account, clearUser, fetcher } from "dot11-components";
-
-import pkg from "../../package.json";
-
-import styles from "./app.module.css";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useParams, NavLink } from "react-router";
+import { Container, Button, Nav } from "react-bootstrap";
+import { useAppSelector } from "../store/hooks";
 import { selectUser } from "../store/user";
-import { resetStore } from "../store";
+import { AccountDropdown } from "./AccountDropdown";
+import { loginAndReturn } from "@components/lib";
+
+function SignIn() {
+	return <Button onClick={loginAndReturn}>Sign In</Button>;
+}
 
 function Header() {
-	const dispatch = useAppDispatch();
 	const { groupName } = useParams();
 	const user = useAppSelector(selectUser);
-	const navigate = useNavigate();
 
-	const title = "802 tools" + (groupName ? " for " + groupName : "");
+	const title = "802 tools";
 	if (document.title !== title) document.title = title;
 
 	const rootPath = "/" + (groupName || "");
 
-	function onSignout() {
-		dispatch(resetStore());
-		clearUser();
-		fetcher.post("/auth/logout");
-		navigate("/");
-	}
-
 	return (
-		<header className={styles.header}>
-			<h3 className="title" onClick={() => navigate(rootPath)}>
-				{title}
-			</h3>
+		<>
+			<Container
+				as="header"
+				className={"d-flex justify-content-between bg-body-tertiary"}
+			>
+				<Nav.Link as={NavLink} to={rootPath}>
+					<h2>{title}</h2>
+				</Nav.Link>
 
-			{user.SAPIN ? (
-				<Account user={user} onSignout={onSignout}>
-					<div>
-						{pkg.name}: {pkg.version}
-					</div>
-				</Account>
-			) : (
-				<div style={{ padding: 10 }}>
-					<a
-						className={styles.signin}
-						href={"/login?redirect=" + window.location.pathname}
-					>
-						Sign in
-					</a>
-				</div>
-			)}
-		</header>
+				{user.SAPIN ? <AccountDropdown /> : <SignIn />}
+			</Container>
+			<Container>
+				<p>
+					Tools used by the IEEE 802 LAN/MAN standards committee and
+					its subsidiary groups to support their mission.
+				</p>
+			</Container>
+		</>
 	);
 }
 

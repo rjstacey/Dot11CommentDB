@@ -1,19 +1,11 @@
-import * as React from "react";
 import { useNavigate, useParams } from "react-router";
 
-import { Select } from "dot11-components";
+import { Select } from "@components/select";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectTopLevelGroups } from "@/store/groups";
 
-import styles from "./app.module.css";
-
-export function WorkingGroupSelector(
-	props: Omit<
-		React.ComponentProps<typeof Select>,
-		"values" | "onChange" | "options"
-	>
-) {
+export function PathWorkingGroupSelector() {
 	const navigate = useNavigate();
 	const { groupName } = useParams();
 
@@ -27,18 +19,16 @@ export function WorkingGroupSelector(
 
 	return (
 		<Select
-			className={styles["working-group-select"]}
-			dropdownClassName={styles["working-group-select-dropdown"]}
+			className="working-group-select"
+			dropdownClassName="working-group-select-dropdown"
 			values={values}
 			onChange={handleChange}
 			options={options}
 			valueField="id"
 			labelField="name"
 			searchable={false}
-			clearable
-			{...props}
 		/>
 	);
 }
 
-export default WorkingGroupSelector;
+export default PathWorkingGroupSelector;

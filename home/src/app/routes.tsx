@@ -1,19 +1,21 @@
 import { RouteObject, LoaderFunction } from "react-router";
-import { getUser, fetcher, User, loginAndReturn } from "dot11-components";
-import { store } from "@/store";
+import { getUser, fetcher, User, loginAndReturn } from "@components/lib";
+import { store, persistReady } from "@/store";
 import { loadGroups } from "@/store/groups";
 import { setUser } from "@/store/user";
 
-import Root from "./root";
+import Main from "./main";
 import ErrorPage from "./errorPage";
 import Tools from "./tools";
-import Layout from "./layout";
+import AppLayout from "./layout";
 import Privacy from "./privacy";
 
 /*
  * Routing loader functions
  */
 const rootLoader: LoaderFunction = async () => {
+	await persistReady;
+
 	const { dispatch } = store;
 	let user: User;
 	try {
@@ -36,10 +38,10 @@ export type AppRoute = RouteObject & {
 	menuLabel?: string;
 };
 
-const routes: AppRoute[] = [
+export const routes: AppRoute[] = [
 	{
 		path: "/",
-		element: <Layout />,
+		Component: AppLayout,
 		errorElement: <ErrorPage />,
 		loader: rootLoader,
 		children: [
@@ -49,21 +51,18 @@ const routes: AppRoute[] = [
 			},
 			{
 				path: ":groupName",
+				Component: Main,
 				errorElement: <ErrorPage />,
 				children: [
 					{
 						index: true,
-						element: (
-							<Root>
-								<Tools />
-							</Root>
-						),
+						Component: Tools,
 					},
 				],
 			},
 			{
 				index: true,
-				element: <Root />,
+				Component: Main,
 			},
 		],
 	},

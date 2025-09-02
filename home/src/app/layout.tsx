@@ -1,18 +1,18 @@
 import { Outlet, Link } from "react-router";
-import { ErrorModal, ConfirmModal } from "dot11-components";
+import { Container } from "react-bootstrap";
+import { ErrorModal, ConfirmModal } from "@components/modals";
 import Header from "./Header";
-import styles from "./app.module.css";
 
 function Layout() {
 	return (
 		<>
 			<Header />
-			<main className={styles.main}>
+			<Container as="main" className="p-0">
 				<Outlet />
-			</main>
-			<footer>
+			</Container>
+			<Container as="footer" className="d-flex justify-content-center">
 				<Link to="privacy-policy">Privacy policy</Link>
-			</footer>
+			</Container>
 			<ErrorModal />
 			<ConfirmModal />
 		</>

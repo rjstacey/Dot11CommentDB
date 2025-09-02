@@ -11,7 +11,7 @@ export const isMultiple = (item: unknown): item is typeof MULTIPLE =>
 const isObject = (o: any): o is object => o && typeof o === "object";
 const isDate = (d: any): d is Date => d instanceof Date;
 const isEmpty = (o: object): o is {} => Object.keys(o).length === 0;
-
+/*
 export function recursivelyDiffObjects(l: any, r: any) {
 	if (l === r) return l;
 
@@ -46,7 +46,7 @@ export function recursivelyDiffObjects(l: any, r: any) {
 		}, deletedValues);
 	}
 }
-
+*/
 /**
  * Compare two objects and return an object that only has properties that differ
  *
@@ -54,7 +54,10 @@ export function recursivelyDiffObjects(l: any, r: any) {
  * @param modified - object with modified content
  * @returns changes - object with content from modified that differs from original
  */
-export function shallowDiff<O1 extends O2, O2 extends object>(original: O1, modified: O2): Partial<O2> {
+export function shallowDiff<O1 extends O2, O2 extends object>(
+	original: O1,
+	modified: O2
+): Partial<O2> {
 	const changes: Partial<O2> = {};
 	for (let key in modified)
 		if (modified[key] !== original[key]) changes[key] = modified[key];
