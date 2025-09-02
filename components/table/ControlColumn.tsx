@@ -113,8 +113,8 @@ const SelectHeaderCell = (props: ControlHeaderCellProps) => (
 
 type ControlCellProps = CellRendererProps & {
 	showExpanded?: boolean;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
+	selectors: AppTableDataSelectors<any, Record<string, any>>;
+	actions: AppTableDataActions<Record<string, any>>;
 };
 
 function ControlCell({
