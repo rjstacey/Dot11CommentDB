@@ -2,9 +2,9 @@ import React from "react";
 import { Row, Col, Button, Spinner } from "react-bootstrap";
 import { useParams } from "react-router";
 import { convert } from "html-to-text";
-import { Select, SelectRendererProps } from "@components/select";
-import { shallowDiff, displayDateRange, useDebounce } from "@components/lib";
-import { ConfirmModal } from "@components/modals";
+import { Select, SelectRendererProps } from "@common";
+import { shallowDiff, displayDateRange, useDebounce } from "@common";
+import { ConfirmModal } from "@common";
 
 import Editor from "@/components/editor/Editor";
 import { htmlWithInlineStyle } from "@/components/editor/utils";

@@ -1,7 +1,7 @@
 import * as React from "react";
-import { Select } from "@components/select";
+import { Select } from "@common";
 
-import { isMultiple, MULTIPLE } from "@components/lib";
+import { isMultiple, MULTIPLE } from "@common";
 
 import { statusOptions, StatusType } from "@/store/members";
 

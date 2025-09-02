@@ -9,7 +9,7 @@ import {
 	TablesConfig,
 	CellRendererProps,
 	HeaderCellRendererProps,
-} from "@components/table";
+} from "@common";
 
 import {
 	fields,

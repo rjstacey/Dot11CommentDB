@@ -4,7 +4,7 @@ import {
 	ColumnProperties,
 	TablesConfig,
 	TableConfig,
-} from "@components/table";
+} from "@common";
 
 import {
 	fields,

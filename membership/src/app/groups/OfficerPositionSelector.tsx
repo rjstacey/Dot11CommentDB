@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Select } from "@components/select";
+import { Select } from "@common";
 import { officerPositionsForGroupType } from "@/store/officers";
 import { GroupType } from "@/store/groups";
 

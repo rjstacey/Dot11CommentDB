@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { displayDateRange } from "@components/lib";
+import { displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {

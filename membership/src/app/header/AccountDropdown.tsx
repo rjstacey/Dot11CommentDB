@@ -1,6 +1,6 @@
 import { Dropdown } from "react-bootstrap";
 
-import { loginAndReturn } from "@components/lib";
+import { loginAndReturn } from "@common";
 
 import { resetStore } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";

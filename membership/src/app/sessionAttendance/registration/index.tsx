@@ -1,10 +1,10 @@
-import { AppTable, ShowFilters } from "@components/table";
+import { AppTable, ShowFilters } from "@common";
 import {
 	sessionRegistrationSelectors,
 	sessionRegistrationActions,
 	fields,
 } from "@/store/sessionRegistration";
-import { SplitTableButtonGroup } from "@components/table";
+import { SplitTableButtonGroup } from "@common";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 import { SessionAttendanceSubmenu } from "../submenu";
 import { Main } from "../main";

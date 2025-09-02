@@ -1,14 +1,14 @@
 import { createSelector, createAction } from "@reduxjs/toolkit";
 import type { Dictionary, EntityId, Action } from "@reduxjs/toolkit";
 
-import { fetcher, displayDate } from "@components/lib";
+import { fetcher, displayDate } from "@common";
 import {
 	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
-} from "@components/store";
+} from "@common";
 import {
 	StatusChangeEntry,
 	StatusType,

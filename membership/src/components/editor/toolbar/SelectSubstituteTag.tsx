@@ -8,7 +8,7 @@ import {
 } from "lexical";
 import { mergeRegister } from "@lexical/utils";
 
-import { Select } from "@components/select";
+import { Select } from "@common";
 
 import css from "../editor.module.css";
 import {

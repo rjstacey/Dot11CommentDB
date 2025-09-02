@@ -5,12 +5,8 @@ import {
 	Action,
 } from "@reduxjs/toolkit";
 
-import { fetcher } from "@components/lib";
-import {
-	setError,
-	createAppTableDataSlice,
-	FieldType,
-} from "@components/store";
+import { fetcher } from "@common";
+import { setError, createAppTableDataSlice, FieldType } from "@common";
 
 import type { RootState, AppThunk } from ".";
 import type { ContactEmail, ContactInfo } from "./members";

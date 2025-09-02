@@ -30,7 +30,7 @@ import sessionsSlice from "./sessions";
 import emailTemlatesSlice from "./emailTemplates";
 import affliationMapSlice from "./affiliationMap";
 import myProjectRosterSlice from "./myProjectRoster";
-import { errorsSlice } from "@components/store";
+import { errorsSlice } from "@common";
 
 import { createPersistReady } from "./persistReady";
 

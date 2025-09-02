@@ -1,13 +1,13 @@
 import * as React from "react";
 import { Button } from "react-bootstrap";
-import { displayDateRange } from "@components/lib";
+import { displayDateRange } from "@common";
 import {
 	AppTable,
 	ShowFilters,
 	SplitPanel,
 	Panel,
 	SplitTableButtonGroup,
-} from "@components/table";
+} from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { fields, membersSelectors, membersActions } from "@/store/members";

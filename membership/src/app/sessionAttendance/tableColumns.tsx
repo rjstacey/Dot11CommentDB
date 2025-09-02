@@ -5,7 +5,7 @@ import {
 	TablesConfig,
 	TableConfig,
 	CellRendererProps,
-} from "@components/table";
+} from "@common";
 
 import {
 	sessionAttendeesSelectors,

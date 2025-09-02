@@ -4,8 +4,8 @@ import type { Dictionary, EntityId, PayloadAction } from "@reduxjs/toolkit";
 import { v4 as uuid } from "uuid";
 import type { RootState, AppThunk } from ".";
 
-import { fetcher } from "@components/lib";
-import { setError } from "@components/store";
+import { fetcher } from "@common";
+import { setError } from "@common";
 
 import { GroupType } from "./groups";
 import {

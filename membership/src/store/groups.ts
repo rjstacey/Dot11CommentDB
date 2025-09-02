@@ -8,12 +8,12 @@ import {
 
 import { v4 as uuid } from "uuid";
 
-import { fetcher } from "@components/lib";
+import { fetcher } from "@common";
 import {
 	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-} from "@components/store";
+} from "@common";
 
 import type { RootState, AppThunk } from ".";
 import {

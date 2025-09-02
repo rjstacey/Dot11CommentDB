@@ -1,9 +1,5 @@
 import * as React from "react";
-import {
-	Select,
-	SelectItemRendererProps,
-	SelectRendererProps,
-} from "@components/select";
+import { Select, SelectItemRendererProps, SelectRendererProps } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectActiveMembers } from "@/store/members";
 import { EmailTemplate } from "@/store/emailTemplates";

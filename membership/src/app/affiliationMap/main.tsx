@@ -1,10 +1,5 @@
 import { Row, Col, Button } from "react-bootstrap";
-import {
-	AppTable,
-	SplitPanel,
-	Panel,
-	SplitTableButtonGroup,
-} from "@components/table";
+import { AppTable, SplitPanel, Panel, SplitTableButtonGroup } from "@common";
 
 import {
 	affiliationMapSelectors,

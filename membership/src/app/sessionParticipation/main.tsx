@@ -5,7 +5,7 @@ import {
 	GlobalFilter,
 	SplitPanel,
 	Panel,
-} from "@components/table";
+} from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {

@@ -6,7 +6,7 @@ import {
 	Fields,
 	FieldType,
 	getAppTableDataSelectors,
-} from "@components/store";
+} from "@common";
 
 import type { RootState } from ".";
 import {

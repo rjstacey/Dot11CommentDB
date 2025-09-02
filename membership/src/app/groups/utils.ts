@@ -1,4 +1,4 @@
-import { shallowDiff } from "@components/lib";
+import { shallowDiff } from "@common";
 import { useAppDispatch } from "@/store/hooks";
 import {
 	addGroup,

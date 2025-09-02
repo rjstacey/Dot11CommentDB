@@ -5,9 +5,9 @@ import {
 	Panel,
 	ShowFilters,
 	GlobalFilter,
-} from "@components/table";
+} from "@common";
 
-import { SplitTableButtonGroup } from "@components/table";
+import { SplitTableButtonGroup } from "@common";
 
 import {
 	sessionAttendeesSelectors,

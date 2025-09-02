@@ -4,8 +4,8 @@ import {
 	PayloadAction,
 	createSelector,
 } from "@reduxjs/toolkit";
-import { fetcher } from "@components/lib";
-import { setError } from "@components/store";
+import { fetcher } from "@common";
+import { setError } from "@common";
 
 import type { AppThunk, RootState } from ".";
 

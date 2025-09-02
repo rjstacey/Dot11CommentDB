@@ -1,5 +1,5 @@
 import * as React from "react";
-import { displayDateRange } from "@components/lib";
+import { displayDateRange } from "@common";
 import { renderTable } from "@/components/renderTable";
 import { useAppSelector } from "@/store/hooks";
 import {

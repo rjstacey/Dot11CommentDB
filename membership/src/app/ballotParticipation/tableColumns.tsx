@@ -6,7 +6,7 @@ import {
 	CellRendererProps,
 	TablesConfig,
 	TableConfig,
-} from "@components/table";
+} from "@common";
 import { useAppSelector } from "@/store/hooks";
 import {
 	ballotParticipationSelectors,

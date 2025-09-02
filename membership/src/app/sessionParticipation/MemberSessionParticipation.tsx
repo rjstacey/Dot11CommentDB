@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Button, FormCheck, FormControl } from "react-bootstrap";
-import { displayDateRange, shallowDiff, useDebounce } from "@components/lib";
+import { displayDateRange, shallowDiff, useDebounce } from "@common";
 
 import type { RootState } from "@/store";
 import { selectMemberAttendanceStats } from "@/store/sessionParticipation";

@@ -1,6 +1,6 @@
 import type { EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
-import { shallowDiff } from "@components/lib";
+import { shallowDiff } from "@common";
 
 import type { AppThunk } from "@/store";
 import { useAppDispatch } from "@/store/hooks";

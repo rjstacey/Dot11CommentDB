@@ -2,8 +2,8 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { RootState, AppThunk } from ".";
 
-import { fetcher } from "@components/lib";
-import { setError } from "@components/store";
+import { fetcher } from "@common";
+import { setError } from "@common";
 
 import { timeZonesSchema } from "@schemas/timeZones";
 

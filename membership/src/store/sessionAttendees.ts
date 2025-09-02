@@ -7,14 +7,14 @@ import {
 } from "@reduxjs/toolkit";
 import isEqual from "lodash.isequal";
 
-import { fetcher } from "@components/lib";
+import { fetcher } from "@common";
 import {
 	setError,
 	createAppTableDataSlice,
 	Fields,
 	FieldType,
 	getAppTableDataSelectors,
-} from "@components/store";
+} from "@common";
 
 import type { RootState, AppThunk } from ".";
 import type { ContactInfo } from "./members";

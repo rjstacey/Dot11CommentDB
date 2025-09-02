@@ -6,7 +6,7 @@ import {
 	SplitPanel,
 	Panel,
 	SplitTableButtonGroup,
-} from "@components/table";
+} from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {

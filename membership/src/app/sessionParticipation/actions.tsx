@@ -1,6 +1,6 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { SplitTableButtonGroup } from "@components/table";
-import { displayDateRange } from "@components/lib";
+import { SplitTableButtonGroup } from "@common";
+import { displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectRecentSessions } from "@/store/sessions";

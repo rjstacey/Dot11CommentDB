@@ -1,4 +1,4 @@
-import { Select } from "@components/select";
+import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {

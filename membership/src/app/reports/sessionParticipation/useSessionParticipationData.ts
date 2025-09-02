@@ -5,7 +5,7 @@ import {
 	selectSessionParticipationWithMembershipAndSummary,
 } from "@/store/sessionParticipation";
 import { selectSessionEntities } from "@/store/sessions";
-import { displayDateRange } from "@components/lib";
+import { displayDateRange } from "@common";
 
 export type AttendanceCumulative = {
 	sessionsAttended: number;

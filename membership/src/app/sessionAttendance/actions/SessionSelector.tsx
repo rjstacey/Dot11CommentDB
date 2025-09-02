@@ -2,8 +2,8 @@ import * as React from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 
 import { Col, Form, Spinner } from "react-bootstrap";
-import { Select } from "@components/select";
-import { displayDateRange } from "@components/lib";
+import { Select } from "@common";
+import { displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Form, Row, Col, Button, Spinner } from "react-bootstrap";
 import { AffiliationMap } from "@/store/affiliationMap";
-import { ConfirmModal } from "@components/modals";
+import { ConfirmModal } from "@common";
 
 export type EditAction = "view" | "update" | "add";
 

@@ -1,5 +1,5 @@
 import { Outlet } from "react-router";
-import { ErrorModal, ConfirmModal } from "@components/modals";
+import { ErrorModal, ConfirmModal } from "@common";
 import Header from "./header";
 
 export function AppLayout() {

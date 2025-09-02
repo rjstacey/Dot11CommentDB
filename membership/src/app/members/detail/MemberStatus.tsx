@@ -12,7 +12,7 @@ import {
 } from "react-bootstrap";
 import { DateTime } from "luxon";
 
-import { isMultiple } from "@components/lib";
+import { isMultiple } from "@common";
 
 import type { Member, StatusChangeEntry, StatusType } from "@/store/members";
 
