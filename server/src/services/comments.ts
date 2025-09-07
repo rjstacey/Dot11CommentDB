@@ -383,12 +383,11 @@ export async function importEpollComments(
 
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
 
-	const response = await user.ieeeClient.get(
-		`https://mentor.ieee.org/802.11/poll-comments.csv?p=${ballot.EpollNum}`,
-		{ responseType: "arraybuffer" }
+	const response = await user.ieeeClient.getAsBuffer(
+		`https://mentor.ieee.org/802.11/poll-comments.csv?p=${ballot.EpollNum}`
 	);
 
-	if (response.headers["content-type"] !== "text/csv")
+	if (response.headers.get("content-type") !== "text/csv")
 		throw new AuthError("Not logged in");
 
 	const file = { originalname: "poll-comments.csv", buffer: response.data };

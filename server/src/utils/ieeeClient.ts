@@ -1,61 +1,76 @@
-import axios, { AxiosRequestConfig, AxiosRequestTransformer } from "axios";
 import { CookieJar } from "tough-cookie";
-import { HttpCookieAgent, HttpsCookieAgent } from "http-cookie-agent/http";
-import { URLSearchParams } from "url";
+import { cookie } from "http-cookie-agent/undici";
+import { fetch, EnvHttpProxyAgent, RequestInit } from "undici";
+import qs from "node:querystring";
 
-const urlEncodeParams: AxiosRequestTransformer = (data) =>
-	new URLSearchParams(data).toString();
+type IeeeClientResponse<T = string> = {
+	headers: Headers;
+	data: T;
+};
 
-export function createIeeeClient() {
-	const jar = new CookieJar();
-	const config: AxiosRequestConfig = {
-		responseType: "text",
-		transformRequest: urlEncodeParams,
-		baseURL: "https://imat.ieee.org",
-		httpAgent: new HttpCookieAgent({ cookies: { jar } }),
-		httpsAgent: new HttpsCookieAgent({ cookies: { jar } }),
-	};
+export class IeeeClient {
+	private baseURL: string = "https://imat.ieee.org";
+	private dispatcher: EnvHttpProxyAgent;
 
-	//const client = axiosCreateClient(config);
-	const client = axios.create(config);
-
-	//client.cookies = {};
-	/*
-	if (process.env.NODE_ENV === 'development') {
-		client.interceptors.request.use(
-			config => {
-				//console.log(config.method, config.url)
-				//const cookies = Object.entries(client.cookies).map(([key, value]) => `${key}=${value}`).join('; ');
-				//if (cookies)
-				//	config.headers['Cookie'] = cookies;
-				//console.log('req: ', config.headers)
-				//console.log(config)
-				//if (config.data)
-				//	console.log('data=', config.data)
-				return config;
-			}
-		);
-		client.interceptors.response.use(
-			response => {
-				//console.log(config.method, config.url)
-				//console.log('jar:', jar)
-				console.log('res:', response.headers)
-				//const cookies = response.headers['set-cookie'];
-				//if (Array.isArray(cookies)) {
-				//	cookies.forEach(cookie => {
-				//		cookie = (cookie + "").split(";").shift();
-				//		const [key, value] = cookie.split('=');
-				//		if (key && value)
-				//			client.cookies[key] = value;
-				//	})
-				//}
-				//console.log(client.cookies)
-				//if (config.data)
-				//	console.log('data=', config.data)
-				return response;
-			}
-		);
+	constructor() {
+		const proxyAgent = new EnvHttpProxyAgent();
+		const cookieAgent = cookie({ jar: new CookieJar() });
+		this.dispatcher = proxyAgent.compose(cookieAgent);
 	}
-	*/
-	return client;
+
+	async fetch(method: "GET" | "POST", url: string, options?: RequestInit) {
+		options = { ...options, method, dispatcher: this.dispatcher };
+		if (url.search(/^http[s]{0,1}:/) === -1) url = this.baseURL + url;
+		const response = await fetch(url, options);
+		if (!response.ok) {
+			throw new Error(`${method} ${url}: ${response.statusText}`);
+		}
+
+		return response;
+	}
+
+	async get(
+		url: string,
+		params?: qs.ParsedUrlQueryInput,
+		options?: RequestInit
+	): Promise<IeeeClientResponse> {
+		if (params) url += "?" + qs.stringify(params);
+		const response = await this.fetch("GET", url, options);
+		const data = await response.text();
+		return {
+			headers: response.headers,
+			data,
+		};
+	}
+
+	async getAsBuffer(
+		url: string,
+		params?: qs.ParsedUrlQueryInput,
+		options?: RequestInit
+	): Promise<IeeeClientResponse<Buffer>> {
+		if (params) url += "?" + qs.stringify(params);
+		const response = await this.fetch("GET", url, options);
+		const data = Buffer.from(await response.arrayBuffer());
+		return {
+			headers: response.headers,
+			data,
+		};
+	}
+
+	async post(
+		url: string,
+		params: qs.ParsedUrlQueryInput,
+		options?: RequestInit
+	): Promise<IeeeClientResponse> {
+		options = { ...options };
+		options.body = qs.stringify(params);
+		if (!options.headers) options.headers = {};
+		options.headers["Content-Type"] = "application/x-www-form-urlencoded";
+		const response = await this.fetch("POST", url, options);
+		const data = await response.text();
+		return {
+			headers: response.headers,
+			data,
+		};
+	}
 }

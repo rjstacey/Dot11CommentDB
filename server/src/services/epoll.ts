@@ -67,10 +67,11 @@ export async function getEpolls(
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
 	async function recursivePageGet(epolls: Epoll[], n: number, page: number) {
-		//console.log('get epolls n=', n)
+		console.log("get epolls n=", n);
 
 		const url = `https://mentor.ieee.org/${groupName}/polls/closed?n=${page}`;
 		const { data } = await ieeeClient!.get(url);
+		console.log(data.slice(0, 100));
 
 		const epollsPage = parseClosedEpollsPage(data);
 		let end = n - epolls.length;

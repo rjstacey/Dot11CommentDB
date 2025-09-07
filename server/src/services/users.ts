@@ -1,12 +1,13 @@
+import { IeeeClient } from "../utils/ieeeClient.js";
 import db from "../utils/database.js";
-import type { AxiosInstance } from "axios";
+//import type { AxiosInstance } from "axios";
 
 export type User = {
 	SAPIN: number;
 	Name: string;
 	Email: string;
 	Token: string | null;
-	ieeeClient?: AxiosInstance;
+	ieeeClient?: IeeeClient;
 };
 
 export async function selectUser({

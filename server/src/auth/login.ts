@@ -1,9 +1,6 @@
 import { Router } from "express";
-import type { AxiosInstance, AxiosResponse } from "axios";
-import { createIeeeClient } from "../utils/index.js";
+import { IeeeClient } from "../utils/index.js";
 import { selectUser, getUser, setUser, delUser } from "../services/users.js";
-
-//const cheerio = require('cheerio');
 import { verify, token } from "./jwt.js";
 import { AccessLevel } from "./access.js";
 
@@ -11,26 +8,23 @@ const loginUrl = "/pub/login";
 const logoutUrl = "/pub/logout";
 
 async function login(
-	ieeeClient: AxiosInstance,
+	ieeeClient: IeeeClient,
 	username: string,
 	password: string
 ) {
-	let m: RegExpExecArray | null, response: AxiosResponse;
+	let m: RegExpExecArray | null;
 
 	// Do an initial GET on /pub/login so that we get cookies. We can do a login without this, but
 	// if we don't get the cookies associated with this GET, then the server seems to get confused
 	// and won't have the approriate state post login.
-	response = await ieeeClient.get(loginUrl);
-
+	let response = await ieeeClient.get(loginUrl);
 	if (
-		response.headers["content-type"] !== "text/html" ||
-		typeof response.data !== "string" ||
+		response.headers.get("content-type") !== "text/html" ||
 		response.data.search(/<div class="title">Sign In<\/div>/) === -1
 	) {
 		throw new Error("Unexpected login page");
 	}
 
-	//const $ = cheerio.load(response.data);
 	m = /name="v" value="(.*)"/.exec(response.data);
 	const v = m ? m[1] : "1";
 	m = /name="c" value="(.*)"/.exec(response.data);
@@ -49,11 +43,8 @@ async function login(
 	// Now post the login data. There will be a bunch of redirects, but we should get a logged in page.
 	// options.form = loginForm;
 	response = await ieeeClient.post(loginUrl, loginForm);
-	//console.log(response)
-
 	if (response.data.search(/<div class="title">Sign In<\/div>/) !== -1) {
 		m = /<div class="field_err">([^<]*)<\/div>/.exec(response.data);
-		//console.log(response.data)
 		throw new Error(m ? m[1] : "Not logged in");
 	}
 
@@ -76,7 +67,7 @@ async function login(
 	//}
 
 	// Add an interceptor that will login again if a request returns the login page
-	ieeeClient.interceptors.response.use((response) => {
+	/*ieeeClient.interceptors.response.use((response) => {
 		if (response.headers["content-type"] !== "text/html") return response;
 		const responseType = response.request.responseType;
 		let text: string;
@@ -108,12 +99,12 @@ async function login(
 			return ieeeClient.post(loginUrl, loginForm);
 		}
 		return response;
-	});
+	});*/
 
 	return { SAPIN, Name, Email: username };
 }
 
-export function logout(ieeeClient: AxiosInstance) {
+export function logout(ieeeClient: IeeeClient) {
 	return ieeeClient.get(logoutUrl);
 }
 
@@ -141,7 +132,7 @@ router
 			// credentials
 			const { username, password } = req.body;
 
-			const ieeeClient = createIeeeClient();
+			const ieeeClient = new IeeeClient();
 
 			const { SAPIN, Name, Email } = await login(
 				ieeeClient,

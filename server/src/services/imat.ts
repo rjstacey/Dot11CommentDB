@@ -181,10 +181,8 @@ export async function getImatMeetings(user: User): Promise<ImatMeeting[]> {
 	const { ieeeClient } = user;
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
-	const response = await ieeeClient.get(`/${user.Email}/meeting.csv`, {
-		responseType: "arraybuffer",
-	});
-	if (response.headers["content-type"] !== "text/csv")
+	const response = await ieeeClient.getAsBuffer(`/${user.Email}/meeting.csv`);
+	if (response.headers.get("content-type") !== "text/csv")
 		throw new AuthError("Not logged in");
 
 	const meetings = await parseMeetingsCsv(response.data);
@@ -322,9 +320,7 @@ export async function getImatCommittees(user: User, group: Group) {
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
 	const response = await ieeeClient
-		.get(`/${group.name}/committees.csv`, {
-			responseType: "arraybuffer",
-		})
+		.getAsBuffer(`/${group.name}/committees.csv`)
 		.catch((err: AxiosError) => {
 			if (err.response && err.response.status === 403) {
 				throw new ForbiddenError(
@@ -333,7 +329,7 @@ export async function getImatCommittees(user: User, group: Group) {
 			}
 			throw err;
 		});
-	if (response.headers["content-type"] !== "text/csv")
+	if (response.headers.get("content-type") !== "text/csv")
 		throw new AuthError("Not logged in");
 
 	const committees = await parseImatCommitteesCsv(response.data);
@@ -594,32 +590,18 @@ export async function getImatBreakoutsInternal(
 	const imatMeeting = await getImatMeeting(user, imatMeetingId);
 	//console.log(imatMeeting);
 
-	/*
-	response = await ieeeClient.get(`/${imatMeeting.organizerId}/breakouts.csv?p=${imatMeetingId}&xls=1`, {responseType: 'arraybuffer'});
-	if (response.headers['content-type'] !== 'text/csv')
-		throw new AuthError('Not logged in');
-	const breakouts = await parseImatBreakoutsCsv(imatMeeting, response.data);
-	*/
 	const url1 = `/${imatMeeting.organizerId}/meeting-detail?p=${imatMeetingId}`;
-	let response = await ieeeClient.get(url1);
-	const { pageBreakouts } = parseSessionDetailPage(response.data);
+	const response1 = await ieeeClient.get(url1);
+	const { pageBreakouts } = parseSessionDetailPage(response1.data);
 
-	/*response = await ieeeClient.get(`/${imatMeeting.organizerId}/timeslot.csv?p=${imatMeeting.id}&xls=1`, {responseType: 'arraybuffer'});
-	if (response.headers['content-type'] !== 'text/csv')
-		throw new AuthError('Not logged in');
-
-	const timeslots = await parseImatTimeslotCsv(response.data);*/
-
-	response = await ieeeClient.get(`/802.11/committees.csv`, {
-		responseType: "arraybuffer",
-	});
-	if (response.headers["content-type"] !== "text/csv")
+	const response2 = await ieeeClient.getAsBuffer(`/802.11/committees.csv`);
+	if (response2.headers.get("content-type") !== "text/csv")
 		throw new AuthError("Not logged in");
-	const csvCommittees = await parseImatCommitteesCsv(response.data);
+	const csvCommittees = await parseImatCommitteesCsv(response2.data);
 
 	const url2 = `/${imatMeeting.organizerId}/breakout?p=${imatMeetingId}`;
-	response = await ieeeClient.get(url2);
-	const { timeslots, pageCommittees } = parseAddMeetingPage(response.data);
+	const response3 = await ieeeClient.get(url2);
+	const { timeslots, pageCommittees } = parseAddMeetingPage(response3.data);
 
 	/* The committees in the committees.csv file do not have the same ID as that used
 	 * for the committee options in the "Add a new meeting" form. The committee options
@@ -1355,8 +1337,8 @@ export async function getImatMeetingAttendance(
 	const imatMeeting = await getImatMeeting(user, imatMeetingId);
 
 	const url = `/${imatMeeting.organizerId}/meeting-members.csv?p=${imatMeetingId}`;
-	const response = await ieeeClient.get(url);
-	if (response.headers["content-type"] !== "text/csv")
+	const response = await ieeeClient.getAsBuffer(url);
+	if (response.headers.get("content-type") !== "text/csv")
 		throw new AuthError("Not logged in");
 
 	return parseImatMeetingAttendance(response.data, imatMeeting);
@@ -1419,8 +1401,8 @@ async function getImatMeetingAttendanceSummaryByDate(
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
 	const url = `/${groupName}/attendance-summary.csv?b=${start}&d=${end}`;
-	const response = await ieeeClient.get(url);
-	if (response.headers["content-type"] !== "text/csv")
+	const response = await ieeeClient.getAsBuffer(url);
+	if (response.headers.get("content-type") !== "text/csv")
 		throw new AuthError("Not logged in");
 
 	return parseImatMeetingAttendanceSummary(response.data);
@@ -1595,8 +1577,8 @@ export async function getImatMeetingDailyAttendance(
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
 	const url = `/${group.name}/daily-attendance.csv?p=${imatMeetingId}`;
-	const response = await ieeeClient.get(url);
-	if (response.headers["content-type"] !== "text/csv")
+	const response = await ieeeClient.getAsBuffer(url);
+	if (response.headers.get("content-type") !== "text/csv")
 		throw new AuthError("Not logged in");
 
 	return parseImatMeetingDailyAttendance(response.data);
