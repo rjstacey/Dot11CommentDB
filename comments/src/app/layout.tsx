@@ -1,13 +1,12 @@
 import { Outlet } from "react-router";
-import { ErrorModal, ConfirmModal } from "dot11-components";
-import Header from "./Header";
-import styles from "./app.module.css";
+import { ErrorModal, ConfirmModal } from "@common";
+import Header from "./header";
 
-function AppLayout() {
+export function AppLayout() {
 	return (
 		<>
 			<Header />
-			<main className={styles.main}>
+			<main className="main">
 				<Outlet />
 			</main>
 			<ErrorModal />

@@ -1,5 +1,5 @@
 import type { EntityId, Dictionary } from "@reduxjs/toolkit";
-import { ActionButton } from "dot11-components";
+import { Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectCommentsState, CommentResolution } from "@/store/comments";
@@ -54,8 +54,9 @@ function CommentsCopy() {
 	const { selected, entities } = useAppSelector(selectCommentsState);
 
 	return (
-		<ActionButton
-			name="copy"
+		<Button
+			variant="outline-secondary"
+			className="bi-copy"
 			title="Copy to clipboard"
 			disabled={selected.length === 0}
 			onClick={() => setClipboard(selected, entities)}

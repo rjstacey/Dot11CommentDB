@@ -1,5 +1,6 @@
 import React from "react";
-import { Row, Input, isMultiple, Multiple, FieldLeft } from "dot11-components";
+import { Row, Col, Form } from "react-bootstrap";
+import { isMultiple, Multiple } from "@common";
 
 import { Ballot, BallotChange } from "@/store/ballots";
 
@@ -48,9 +49,10 @@ function BallotDatesEdit({
 
 	return (
 		<Row style={{ flexWrap: "wrap" }}>
-			<Row>
-				<FieldLeft label="Open Date:">
-					<Input
+			<Form.Group as={Row} controlId="Start">
+				<Form.Label column>Open Date:</Form.Label>
+				<Col>
+					<Form.Control
 						type="date"
 						name="Start"
 						value={
@@ -61,11 +63,12 @@ function BallotDatesEdit({
 						onChange={changeDate}
 						disabled={readOnly || isMultiple(ballot.id)}
 					/>
-				</FieldLeft>
-			</Row>
-			<Row>
-				<FieldLeft label="Close Date:">
-					<Input
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} controlId="End">
+				<Form.Label column>Close Date:</Form.Label>
+				<Col>
+					<Form.Control
 						type="date"
 						name="End"
 						value={
@@ -76,8 +79,8 @@ function BallotDatesEdit({
 						onChange={changeDate}
 						disabled={readOnly || isMultiple(ballot.id)}
 					/>
-				</FieldLeft>
-			</Row>
+				</Col>
+			</Form.Group>
 		</Row>
 	);
 }

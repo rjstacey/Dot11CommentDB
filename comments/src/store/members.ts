@@ -4,7 +4,7 @@ import {
 	createSelector,
 	PayloadAction,
 } from "@reduxjs/toolkit";
-import { fetcher, setError } from "dot11-components";
+import { fetcher, setError } from "@common";
 
 import type { RootState, AppThunk } from ".";
 import { UserMember, userMembersSchema } from "@schemas/members";

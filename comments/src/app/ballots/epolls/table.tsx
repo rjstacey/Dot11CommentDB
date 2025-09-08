@@ -1,11 +1,6 @@
 import React from "react";
-
-import {
-	AppTable,
-	ActionButton,
-	AppModal,
-	ColumnProperties,
-} from "dot11-components";
+import { Modal, Button } from "react-bootstrap";
+import { AppTable, ColumnProperties } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
@@ -17,7 +12,7 @@ import {
 	SyncedEpoll,
 } from "@/store/epolls";
 
-import { BallotAddForm } from "../ballots/BallotAdd";
+import { BallotAddForm } from "../BallotAdd";
 
 function ePollToBallot(epoll: SyncedEpoll): Ballot {
 	// See if the ePoll name has something like CC53 or LB245
@@ -73,8 +68,9 @@ function EpollsTable() {
 			rowData.InDatabase ? (
 				<span>Already Present</span>
 			) : (
-				<ActionButton
-					name="add"
+				<Button
+					variant="outline-secondary"
+					className="bi-plus-lg"
 					title="Add ballot"
 					onClick={() => setAddBallot(ePollToBallot(rowData))}
 					disabled={!isOnline}
@@ -98,17 +94,14 @@ function EpollsTable() {
 					actions={epollsActions}
 				/>
 			</div>
-			<AppModal
-				isOpen={addBallot !== null}
-				onRequestClose={() => setAddBallot(null)}
-			>
+			<Modal show={addBallot !== null} onHide={() => setAddBallot(null)}>
 				{addBallot && (
 					<BallotAddForm
 						defaultBallot={addBallot}
 						close={() => setAddBallot(null)}
 					/>
 				)}
-			</AppModal>
+			</Modal>
 		</>
 	);
 }

@@ -2,29 +2,10 @@ import React from "react";
 import { useAppSelector } from "@/store/hooks";
 import { VoterCreate, selectVotersBallot_id } from "@/store/voters";
 import { BallotType, selectBallot } from "@/store/ballots";
-import ProjectBallotSelector from "@/components/ProjectBallotSelector";
 
 import VotersActions from "./actions";
 import VotersTable from "./table";
 import VoterEditModal from "./VoterEdit";
-
-function InitialBallot() {
-	const id = useAppSelector(selectVotersBallot_id);
-	const b = useAppSelector((state) =>
-		id ? selectBallot(state, id) : undefined
-	);
-	const descr =
-		b?.Type === BallotType.WG
-			? `${b.BallotID} on ${b.Document}`
-			: "This is not a WG ballot";
-
-	return (
-		<div style={{ display: "flex", flexDirection: "column" }}>
-			<span>Voting poll formed with WG initial ballot</span>
-			<span>{descr}</span>
-		</div>
-	);
-}
 
 export function getDefaultVoter(ballot_id: number): VoterCreate {
 	return {
@@ -54,11 +35,7 @@ function VotersLayout() {
 
 	return (
 		<>
-			<div className="top-row">
-				<ProjectBallotSelector />
-				<InitialBallot />
-				<VotersActions setVotersState={setEditVoter} />
-			</div>
+			<VotersActions setVotersState={setEditVoter} />
 			{b?.Type === BallotType.WG ? (
 				<div className="table-container centered-rows">
 					<VotersTable setVotersState={setEditVoter} />

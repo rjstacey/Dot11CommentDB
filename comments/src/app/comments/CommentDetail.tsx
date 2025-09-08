@@ -1,9 +1,6 @@
 import * as React from "react";
-
+import { Button, Row, Col, Form } from "react-bootstrap";
 import {
-	ActionButton,
-	Row,
-	FieldLeft,
 	shallowDiff,
 	ConfirmModal,
 	deepMergeTagMultiple,
@@ -11,7 +8,7 @@ import {
 	type Multiple,
 	isMultiple,
 	MULTIPLE,
-} from "dot11-components";
+} from "@common";
 
 import CommentHistory from "./CommentHistory";
 import CommentEdit from "./CommentEdit";
@@ -270,24 +267,27 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 			{!readOnly &&
 				(commentsAccess >= AccessLevel.rw ||
 					resolutionsAccess >= AccessLevel.rw) && (
-					<ActionButton
-						name="edit"
+					<Button
+						variant="outline-primary"
+						className="bi-pencil"
 						title="Edit resolution"
 						disabled={disableButtons}
-						isActive={editComment}
+						active={editComment}
 						onClick={toggleEditComment}
 					/>
 				)}
 			{!readOnly && commentsAccess >= AccessLevel.rw && (
 				<>
-					<ActionButton
-						name="add"
+					<Button
+						variant="outline-primary"
+						className="bi-plus-lg"
 						title="Create alternate resolution"
 						disabled={disableEditButtons}
 						onClick={handleAddResolutions}
 					/>
-					<ActionButton
-						name="delete"
+					<Button
+						variant="outline-primary"
+						className="bi-trash"
 						title="Delete resolution"
 						disabled={disableEditButtons}
 						onClick={handleDeleteResolutions}
@@ -299,17 +299,26 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 
 	return (
 		<>
-			<div className="top-row justify-right">{actionElements}</div>
+			<Row>
+				<Col className="d-flex justify-content-end gap-2">
+					{actionElements}
+				</Col>
+			</Row>
 			<div className="main">
 				{placeholder ? (
 					<Placeholder>{placeholder}</Placeholder>
 				) : (
 					<>
-						<Row>
-							<FieldLeft label={cidsLabel}>{cidsStr}</FieldLeft>
-							<FieldLeft label="">
+						<Row className="align-items-center mb-3">
+							<Form.Label as="span" column xs="auto">
+								{cidsLabel}
+							</Form.Label>
+							<Col>
+								<div>{cidsStr}</div>
+							</Col>
+							<Col xs="auto">
 								{renderCommentsStatus(comments)}
-							</FieldLeft>
+							</Col>
 						</Row>
 						<CommentEdit
 							comments={comments}
@@ -328,9 +337,14 @@ function CommentDetail({ readOnly }: { readOnly?: boolean }) {
 					</>
 				)}
 				<Row style={{ justifyContent: "flex-end", opacity: 0.5 }}>
-					{`${renderAccess(commentsAccess)} / ${renderAccess(
-						resolutionsAccess
-					)}`}
+					<Col
+						className="d-flex justify-content-end"
+						style={{ opacity: 0.5 }}
+					>
+						{`${renderAccess(commentsAccess)} / ${renderAccess(
+							resolutionsAccess
+						)}`}
+					</Col>
 				</Row>
 			</div>
 		</>

@@ -1,6 +1,4 @@
-import { Link } from "react-router";
-
-import { ActionButton, Button, Spinner } from "dot11-components";
+import { Spinner, Button } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
@@ -9,6 +7,8 @@ import {
 	refreshEpolls,
 	selectEpollsState,
 } from "@/store/epolls";
+
+import { BallotsSubmenu } from "../submenu";
 
 function EpollsActions() {
 	const dispatch = useAppDispatch();
@@ -21,24 +21,23 @@ function EpollsActions() {
 				<label>Closed ePolls</label>
 			</span>
 			<Spinner style={{ visibility: loading ? "visible" : "hidden" }} />
+			<BallotsSubmenu />
 			<span>
-				<ActionButton
-					name="more"
+				<Button
+					variant="outline-secondary"
+					className="bi-chevron-double-down"
 					title="Load More"
 					onClick={() => dispatch(loadMoreEpolls())}
 					disabled={loading || !isOnline}
 				/>
-				<ActionButton
+				<Button
+					variant="outline-secondary"
+					className="bi-arrow-repeat"
 					name="refresh"
 					title="Refresh"
 					onClick={() => dispatch(refreshEpolls())}
 					disabled={loading || !isOnline}
 				/>
-				<Link to="../ballots">
-					<Button>
-						<i className="bi-x" />
-					</Button>
-				</Link>
 			</span>
 		</div>
 	);

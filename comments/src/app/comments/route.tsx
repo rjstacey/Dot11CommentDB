@@ -13,14 +13,18 @@ import { clearComments, loadComments } from "@/store/comments";
 import AppError from "../errorPage";
 import CommentsLayout from "./layout";
 import CommentsTable from "./table";
+import { rootLoader } from "../rootLoader";
 
-export const indexLoader: LoaderFunction = async () => {
+export const indexLoader: LoaderFunction = async (args) => {
+	await rootLoader(args);
 	store.dispatch(clearComments());
 	return null;
 };
 
-export const ballotIdLoader: LoaderFunction = async ({ params }) => {
-	const { groupName, ballotId } = params;
+export const ballotIdLoader: LoaderFunction = async (args) => {
+	await rootLoader(args);
+
+	const { groupName, ballotId } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	if (!ballotId) throw new Error("Route error: ballotId not set");
 

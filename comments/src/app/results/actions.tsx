@@ -1,7 +1,9 @@
-import { TableColumnSelector, ActionButton } from "dot11-components";
+import { Row, Col, Button } from "react-bootstrap";
+import { SplitTableButtonGroup } from "@common";
 
 import ResultsSummary from "./ResultsSummary";
 import ResultsExport from "./ResultsExport";
+import ProjectBallotSelector from "@/components/ProjectBallotSelector";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -13,7 +15,7 @@ import {
 import { selectBallot } from "@/store/ballots";
 import { selectIsOnline } from "@/store/offline";
 
-import { tableColumns } from "./table";
+import { tableColumns } from "./tableColumns";
 
 function ResultsActions() {
 	const dispatch = useAppDispatch();
@@ -25,21 +27,27 @@ function ResultsActions() {
 	);
 
 	return (
-		<div style={{ display: "flex" }}>
-			<ResultsSummary />
-			<ResultsExport ballot={resultsBallot} />
-			<TableColumnSelector
+		<Row className="w-100 justify-content-between align-items-center">
+			<Col xs="auto">
+				<ProjectBallotSelector />
+			</Col>
+			<SplitTableButtonGroup
 				selectors={resultsSelectors}
 				actions={resultsActions}
 				columns={tableColumns}
 			/>
-			<ActionButton
-				name="refresh"
-				title="Refresh"
-				disabled={!isOnline}
-				onClick={() => dispatch(refreshResults())}
-			/>
-		</div>
+			<Col className="d-flex justify-content-end gap-2">
+				<ResultsSummary />
+				<ResultsExport ballot={resultsBallot} />
+				<Button
+					variant="outline-secondary"
+					className="bi-arrow-repeat"
+					title="Refresh"
+					disabled={!isOnline}
+					onClick={() => dispatch(refreshResults())}
+				/>
+			</Col>
+		</Row>
 	);
 }
 

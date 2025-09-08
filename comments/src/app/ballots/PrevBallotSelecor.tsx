@@ -1,5 +1,5 @@
 import React from "react";
-import { Select } from "dot11-components";
+import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { getBallotId, selectBallotsState } from "@/store/ballots";
 
@@ -36,10 +36,7 @@ function SelectPrevBallot({
 	value: number | null;
 	onChange: (value: number | null) => void;
 	ballot_id: number;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
->) {
+} & Pick<React.ComponentProps<typeof Select>, "placeholder" | "readOnly">) {
 	const options = usePrevBallotOptions(ballot_id);
 	const values = options.filter((o) => o.id === value);
 	const handleChange = (values: typeof options) =>

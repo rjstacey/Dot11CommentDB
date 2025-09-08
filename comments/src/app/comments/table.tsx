@@ -15,7 +15,7 @@ import {
 	HeaderCellRendererProps,
 	RowGetterProps,
 	ChangeableColumnProperties,
-} from "dot11-components";
+} from "@common";
 
 import CommentDetail from "./CommentDetail";
 import { renderMBS, renderCommenter, renderCategory } from "./CommentEdit";
@@ -588,8 +588,8 @@ function CommentsTable() {
 					<AppTable
 						defaultTablesConfig={defaultTablesConfig}
 						columns={tableColumns}
-						headerHeight={62}
-						estimatedRowHeight={56}
+						headerHeight={76}
+						estimatedRowHeight={72}
 						rowGetter={commentsRowGetter}
 						selectors={commentsSelectors}
 						actions={commentsActions}

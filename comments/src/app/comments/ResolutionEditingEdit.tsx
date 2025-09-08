@@ -1,16 +1,6 @@
 import * as React from "react";
-
-import {
-	Row,
-	Col,
-	IconCollapse,
-	List,
-	ListItem,
-	Checkbox,
-	Input,
-	isMultiple,
-	Multiple,
-} from "dot11-components";
+import { Row, Col, Form, Accordion } from "react-bootstrap";
+import { isMultiple, Multiple } from "@common";
 
 import Editor from "@/components/editor";
 
@@ -77,45 +67,59 @@ function EditStatus({
 		: undefined;
 
 	return (
-		<List label="" onClick={(e) => e.stopPropagation()}>
-			<ListItem>
-				<Checkbox
-					id="implementedindraft"
-					name="EditStatus"
-					value="I"
-					indeterminate={isMultiple(resolution.EditStatus)}
-					checked={resolution.EditStatus === "I"}
-					onChange={changeEditStatus}
-					disabled={readOnly}
-				/>
-				<label htmlFor="implementedindraft">
-					Implemented in draft:
-				</label>
-				<Input
-					type="number"
-					style={{ width: 80 }}
-					pattern="^\d*(\.\d{0,2})?$"
-					step="0.1"
-					name="EditInDraft"
-					value={editInDraft || ""}
-					onChange={changeEditStatus}
-					placeholder={placeholder}
-					disabled={readOnly}
-				/>
-			</ListItem>
-			<ListItem>
-				<Checkbox
-					id="nochange"
-					name="EditStatus"
-					value="N"
-					indeterminate={isMultiple(resolution.EditStatus)}
-					checked={resolution.EditStatus === "N"}
-					onChange={changeEditStatus}
-					disabled={readOnly}
-				/>
-				<label htmlFor="nochange">No Change</label>
-			</ListItem>
-		</List>
+		<>
+			<Row>
+				<Col>
+					<Form.Check
+						id="implementedindraft"
+						name="EditStatus"
+						value="I"
+						ref={(ref) =>
+							ref &&
+							(ref.indeterminate = isMultiple(
+								resolution.EditStatus
+							))
+						}
+						checked={resolution.EditStatus === "I"}
+						onChange={changeEditStatus}
+						disabled={readOnly}
+						label="Implemented in draft"
+					/>
+				</Col>
+				<Col>
+					<Form.Control
+						type="number"
+						style={{ width: 80 }}
+						pattern="^\d*(\.\d{0,2})?$"
+						step="0.1"
+						name="EditInDraft"
+						value={editInDraft || ""}
+						onChange={changeEditStatus}
+						placeholder={placeholder}
+						disabled={readOnly}
+					/>
+				</Col>
+			</Row>
+			<Row>
+				<Col>
+					<Form.Check
+						id="nochange"
+						name="EditStatus"
+						value="N"
+						ref={(ref) =>
+							ref &&
+							(ref.indeterminate = isMultiple(
+								resolution.EditStatus
+							))
+						}
+						checked={resolution.EditStatus === "N"}
+						onChange={changeEditStatus}
+						disabled={readOnly}
+						label="No change"
+					/>
+				</Col>
+			</Row>
+		</>
 	);
 }
 
@@ -133,53 +137,52 @@ export function EditingEdit({
 	const dispatch = useAppDispatch();
 	const showEditing: boolean | undefined =
 		useAppSelector(selectCommentsState).ui.showEditing;
-	const toggleShowEditing = () =>
-		dispatch(setUiProperties({ showEditing: !showEditing }));
+	//const toggleShowEditing = () =>
+	//	dispatch(setUiProperties({ showEditing: !showEditing }));
 
 	return (
-		<Row>
-			<Col className={styles.editingField}>
-				<div
-					style={{
-						display: "flex",
-						flex: 1,
-						justifyContent: "space-between",
-					}}
-				>
-					<span className="label">Editing:</span>
-					{!forceShowEditing && (
-						<IconCollapse
-							isCollapsed={!showEditing}
-							onClick={toggleShowEditing}
-						/>
-					)}
-				</div>
-				{(showEditing || forceShowEditing) && (
-					<div className={styles.editingContainer}>
-						<EditStatus
-							resolution={resolution}
-							updateResolution={updateResolution}
-							readOnly={readOnly}
-						/>
-						<Editor
-							value={
-								isMultiple(resolution.EditNotes)
-									? ""
-									: resolution.EditNotes
-							}
-							onChange={(value) =>
-								updateResolution({ EditNotes: value })
-							}
-							placeholder={
-								isMultiple(resolution.EditNotes)
-									? MULTIPLE_STR
-									: BLANK_STR
-							}
-							readOnly={readOnly}
-						/>
-					</div>
-				)}
-			</Col>
+		<Row className="mb-3">
+			<Accordion
+				onSelect={(eventKey) =>
+					dispatch(
+						setUiProperties({ showEditing: Boolean(eventKey) })
+					)
+				}
+				className={styles.notesField}
+			>
+				<Accordion.Item eventKey="0">
+					<Accordion.Header>
+						<Form.Label>Editing Notes:</Form.Label>
+					</Accordion.Header>
+					<Accordion.Body>
+						{(showEditing || forceShowEditing) && (
+							<div className={styles.editingContainer}>
+								<EditStatus
+									resolution={resolution}
+									updateResolution={updateResolution}
+									readOnly={readOnly}
+								/>
+								<Editor
+									value={
+										isMultiple(resolution.EditNotes)
+											? ""
+											: resolution.EditNotes
+									}
+									onChange={(value) =>
+										updateResolution({ EditNotes: value })
+									}
+									placeholder={
+										isMultiple(resolution.EditNotes)
+											? MULTIPLE_STR
+											: BLANK_STR
+									}
+									readOnly={readOnly}
+								/>
+							</div>
+						)}
+					</Accordion.Body>
+				</Accordion.Item>
+			</Accordion>
 		</Row>
 	);
 }

@@ -1,11 +1,5 @@
 import * as React from "react";
-
-import {
-	Dropdown,
-	Button,
-	ActionButton,
-	DropdownRendererProps,
-} from "dot11-components";
+import { Container, DropdownButton, Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 
@@ -17,6 +11,9 @@ import {
 } from "@/store/ballots";
 
 import styles from "./ResultsSummary.module.css";
+
+const passColor = "#d3ecd3";
+const failColor = "#f3c0c0";
 
 function copyHtmlToClipboard(html: string) {
 	const type = "text/html";
@@ -51,7 +48,7 @@ const ballotDate = (d: string | null) =>
 				month: "numeric",
 				day: "numeric",
 				timeZone: "America/New_York",
-			})
+		  })
 		: "-";
 
 const ballotDuration = (b: Ballot) => {
@@ -70,7 +67,7 @@ const ballotDuration = (b: Ballot) => {
 const percentageStr = (n: number) => `${(100 * n).toFixed(1)}%`;
 
 const passFailStyle = (pass: boolean): React.CSSProperties => ({
-	backgroundColor: pass ? "#d3ecd3" : "#f3c0c0",
+	backgroundColor: pass ? passColor : failColor,
 });
 
 const approvalRate = (b: Ballot) => {
@@ -210,7 +207,9 @@ function longSummaryHtml(ballots: Ballot[]) {
 				fontWeight: "bold",
 				padding: "0.2em 0.8em",
 			};
-			return `<td colspan="${ballots.length + 1}" style="${styleObjToString(style)}">${r}</td>`;
+			return `<td colspan="${
+				ballots.length + 1
+			}" style="${styleObjToString(style)}">${r}</td>`;
 		} else {
 			const cols: string[] = [];
 			const label =
@@ -304,9 +303,10 @@ function LongSummary({ ballots }: { ballots: Ballot[] }) {
 	console.log(html);
 
 	return (
-		<div className={styles.container}>
-			<ActionButton
-				name="copy"
+		<Container className={styles.container}>
+			<Button
+				variant="outline-secondary"
+				className="bi-copy ms-auto"
 				onClick={() => copyHtmlToClipboard(html)}
 			/>
 			<div
@@ -318,50 +318,42 @@ function LongSummary({ ballots }: { ballots: Ballot[] }) {
 				{labelCol}
 				{valueCols}
 			</div>
-		</div>
+		</Container>
 	);
 }
+
+const passStyle = {
+	backgroundColor: passColor,
+	padding: "0.25rem",
+};
+
+const failStyle = {
+	backgroundColor: failColor,
+	padding: "0.25rem",
+};
 
 function resultsSummary(ballot: Ballot) {
 	const r = ballot.Results!;
 	return (
-		<span>{`${r.Approve}/${r.Disapprove}/${r.Abstain} (${approvalRateStr(
-			ballot
-		)})`}</span>
-	);
-}
-
-function SummaryButton({
-	ballot,
-	state,
-	methods,
-}: { ballot: Ballot } & DropdownRendererProps) {
-	return (
-		<Button
-			onClick={state.isOpen ? methods.close : methods.open}
-			style={{ display: "flex", ...passFailStyle(overallPass(ballot)) }}
-		>
-			{resultsSummary(ballot)}
-			<i className={"bi-chevron" + (state.isOpen ? "-up" : "-down")} />
-		</Button>
+		<span style={overallPass(ballot) ? passStyle : failStyle}>
+			{`${r.Approve}/${r.Disapprove}/${r.Abstain} (${approvalRateStr(
+				ballot
+			)})`}
+		</span>
 	);
 }
 
 function ShowResultsSummary() {
 	const ballots = useAppSelector(selectCurrentBallotSeries);
 	if (ballots.length === 0) return null;
+	const ballot = ballots[ballots.length - 1];
+
+	const title = <span>Summary: {resultsSummary(ballot)}</span>;
 
 	return (
-		<Dropdown
-			selectRenderer={(props) => (
-				<SummaryButton
-					ballot={ballots[ballots.length - 1]}
-					{...props}
-				/>
-			)}
-		>
+		<DropdownButton align="end" variant="light" title={title}>
 			<LongSummary ballots={ballots} />
-		</Dropdown>
+		</DropdownButton>
 	);
 }
 

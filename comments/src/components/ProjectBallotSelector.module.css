@@ -8,6 +8,7 @@
 .main .selector {
 	display: flex;
 	flex-wrap: nowrap;
+	align-items: center;
 }
 
 .main label {

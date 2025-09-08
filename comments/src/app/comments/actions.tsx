@@ -1,9 +1,5 @@
-import {
-	TableColumnSelector,
-	TableViewSelector,
-	ActionButton,
-	ButtonGroup,
-} from "dot11-components";
+import { Row, Col, Button } from "react-bootstrap";
+import { SplitTableButtonGroup } from "@common";
 
 import CommentsImport from "./CommentsImport";
 import CommentsExport from "./CommentsExport";
@@ -21,6 +17,7 @@ import {
 } from "@/store/comments";
 import { selectIsOnline } from "@/store/offline";
 
+import ProjectBallotSelector from "@/components/ProjectBallotSelector";
 import { tableColumns } from "./table";
 
 function CommentsActions() {
@@ -34,44 +31,20 @@ function CommentsActions() {
 		commentsBallot_id ? selectBallot(state, commentsBallot_id) : undefined
 	);
 
-	const { isSplit } = useAppSelector(
-		commentsSelectors.selectCurrentPanelConfig
-	);
-	const setIsSplit = (isSplit: boolean) =>
-		dispatch(commentsActions.setPanelIsSplit({ isSplit }));
-
 	return (
-		<div style={{ display: "flex", alignItems: "center" }}>
-			<ButtonGroup>
-				<div>Table view</div>
-				<div style={{ display: "flex", alignItems: "center" }}>
-					<TableViewSelector
-						selectors={commentsSelectors}
-						actions={commentsActions}
-					/>
-					<TableColumnSelector
-						selectors={commentsSelectors}
-						actions={commentsActions}
-						columns={tableColumns}
-					/>
-					<ActionButton
-						name="book-open"
-						title="Show detail"
-						isActive={isSplit}
-						onClick={() => setIsSplit(!isSplit)}
-					/>
-				</div>
-			</ButtonGroup>
-			{access >= AccessLevel.rw ? (
-				<ButtonGroup>
-					<div style={{ textAlign: "center" }}>Edit</div>
-					<div
-						style={{
-							display: "flex",
-							alignItems: "center",
-						}}
-					>
-						<CommentsCopy />
+		<Row className="w-100 justify-content-between align-items-center">
+			<Col>
+				<ProjectBallotSelector />
+			</Col>
+
+			<SplitTableButtonGroup
+				selectors={commentsSelectors}
+				actions={commentsActions}
+				columns={tableColumns}
+			/>
+			<Col className="d-flex justify-content-end gap-2">
+				{access >= AccessLevel.rw && (
+					<>
 						<CommentsImport
 							ballot={commentsBallot}
 							disabled={!isOnline}
@@ -80,18 +53,18 @@ function CommentsActions() {
 							ballot={commentsBallot}
 							disabled={!isOnline}
 						/>
-					</div>
-				</ButtonGroup>
-			) : (
+					</>
+				)}
 				<CommentsCopy />
-			)}
-			<ActionButton
-				name="refresh"
-				title="Refresh"
-				disabled={!isOnline}
-				onClick={() => dispatch(refreshComments())}
-			/>
-		</div>
+				<Button
+					variant="outline-secondary"
+					className="bi-arrow-repeat"
+					title="Refresh"
+					disabled={!isOnline}
+					onClick={() => dispatch(refreshComments())}
+				/>
+			</Col>
+		</Row>
 	);
 }
 

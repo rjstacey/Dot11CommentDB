@@ -1,13 +1,6 @@
 import React from "react";
-import {
-	ActionButton,
-	AppTable,
-	SelectHeaderCell,
-	SelectCell,
-	ConfirmModal,
-	ShowFilters,
-	ColumnProperties,
-} from "dot11-components";
+import { Button } from "react-bootstrap";
+import { AppTable, ConfirmModal, ShowFilters } from "@common";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { BallotType, selectBallot } from "@/store/ballots";
 import {
@@ -19,6 +12,8 @@ import {
 	Voter,
 } from "@/store/voters";
 
+import { tableColumns } from "./tableColumns";
+
 import type { VotersContext } from "./layout";
 
 const RowActions = ({
@@ -29,47 +24,18 @@ const RowActions = ({
 	onDelete: () => void;
 }) => (
 	<div style={{ display: "flex", justifyContent: "center" }}>
-		<ActionButton name="edit" title="Edit" onClick={onEdit} />
-		<ActionButton name="delete" title="Delete" onClick={onDelete} />
+		<Button
+			variant="outline-primary"
+			className="bi-pencil"
+			onClick={onEdit}
+		/>
+		<Button
+			variant="outline-primary"
+			className="bi-trash"
+			onClick={onDelete}
+		/>
 	</div>
 );
-
-type ColumnPropertiesWithWidth = ColumnProperties & { width: number };
-
-const controlColumn: ColumnPropertiesWithWidth = {
-	key: "__ctrl__",
-	width: 30,
-	flexGrow: 1,
-	flexShrink: 0,
-	headerRenderer: (p) => <SelectHeaderCell {...p} />,
-	cellRenderer: (p) => (
-		<SelectCell
-			selectors={votersSelectors}
-			actions={votersActions}
-			{...p}
-		/>
-	),
-};
-
-const actionsColumn: ColumnPropertiesWithWidth = {
-	key: "Actions",
-	label: "Actions",
-	width: 100,
-};
-
-const tableColumns: ColumnPropertiesWithWidth[] = [
-	controlColumn,
-	{ key: "SAPIN", label: "SA PIN", width: 100 },
-	{ key: "Name", label: "Name", width: 200, dropdownWidth: 250 },
-	{ key: "Email", label: "Email", width: 250, dropdownWidth: 350 },
-	{ key: "Status", label: "Status", width: 100 },
-	{
-		key: "Excused",
-		label: "Excused",
-		width: 100,
-		dataRenderer: (value) => (value ? "Yes" : ""),
-	},
-];
 
 function VotersTable({ setVotersState }: VotersContext) {
 	const dispatch = useAppDispatch();
@@ -85,16 +51,24 @@ function VotersTable({ setVotersState }: VotersContext) {
 			if (ok) dispatch(deleteVoters([voter.id]));
 		};
 
-		const columns = tableColumns.concat({
-			...actionsColumn,
-			cellRenderer: ({ rowData }: { rowData: Voter }) => (
-				<RowActions
-					onEdit={() =>
-						setVotersState({ action: "update", voter: rowData })
-					}
-					onDelete={() => onDelete(rowData)}
-				/>
-			),
+		const columns = tableColumns.map((col) => {
+			if (col.key === "Actions") {
+				return {
+					...col,
+					cellRenderer: ({ rowData }: { rowData: Voter }) => (
+						<RowActions
+							onEdit={() =>
+								setVotersState({
+									action: "update",
+									voter: rowData,
+								})
+							}
+							onDelete={() => onDelete(rowData)}
+						/>
+					),
+				};
+			}
+			return col;
 		});
 		const maxWidth = columns.reduce((acc, col) => acc + col.width, 0);
 		return [columns, maxWidth];

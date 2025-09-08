@@ -1,17 +1,8 @@
 import * as React from "react";
+import { Row, Col, Form, Button, Spinner, Dropdown } from "react-bootstrap";
+import { ConfirmModal } from "@common";
 
-import {
-	Button,
-	Form,
-	Row,
-	FieldLeft,
-	Field,
-	Input,
-	ConfirmModal,
-	ActionButtonModal,
-} from "dot11-components";
-
-import { BallotComments } from "./Ballots";
+import { BallotComments } from "./BallotComments";
 import MemberSelector from "../voters/MemberSelector";
 
 import { useAppDispatch } from "@/store/hooks";
@@ -40,7 +31,8 @@ function ChangeStartCID({
 	const [busy, setBusy] = React.useState(false);
 	console.log(ballot, startCID);
 
-	const submit = async () => {
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
 		setBusy(true);
 		await dispatch(setStartCommentId(ballot.id, Number(startCID)));
 		setBusy(false);
@@ -57,20 +49,24 @@ function ChangeStartCID({
 		<Form
 			style={{ minWidth: 300 }}
 			title="Change starting CID"
-			submit={submit}
-			errorText={errorText}
-			cancel={close}
-			busy={busy}
+			onSubmit={handleSubmit}
 		>
 			<Row style={{ marginBottom: 20 }}>
-				<Field label="Start CID:">
-					<Input
-						type="search"
-						width={6}
-						value={startCID}
-						onChange={change}
-					/>
-				</Field>
+				<Form.Label>Start CID:</Form.Label>
+				<Form.Control
+					type="search"
+					width={6}
+					value={startCID}
+					onChange={change}
+				/>
+				<Form.Control.Feedback type="invalid">
+					{errorText}
+				</Form.Control.Feedback>
+			</Row>
+			<Row>
+				<Button type="submit">
+					{busy ? <Spinner animation="border" size="sm" /> : "OK"}
+				</Button>
 			</Row>
 		</Form>
 	);
@@ -97,7 +93,8 @@ function AddMemberComments({
 		setFile(files && files.length > 0 ? files[0] : null);
 	};
 
-	const submit = async () => {
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
 		if (errorText) return;
 		setBusy(true);
 		await dispatch(uploadUserComments(ballot.id, commenterSAPIN!, file!));
@@ -113,25 +110,26 @@ function AddMemberComments({
 		<Form
 			style={{ minWidth: 300 }}
 			title="Add additional member comments"
-			submit={submit}
-			errorText={errorText}
-			cancel={close}
-			busy={busy}
+			onSubmit={handleSubmit}
 		>
 			<Row>
-				<Field label="Commenter:">
-					<MemberSelector
-						value={commenterSAPIN || 0}
-						onChange={setCommenterSAPIN}
-					/>
-				</Field>
+				<Form.Label>Commenter:</Form.Label>
+				<MemberSelector
+					value={commenterSAPIN || 0}
+					onChange={setCommenterSAPIN}
+				/>
 			</Row>
 			<Row>
-				<input
+				<Form.Control
 					type="file"
 					accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 					onChange={handleFileChange}
 				/>
+			</Row>
+			<Row>
+				<Button type="submit">
+					{busy ? <Spinner animation="border" size="sm" /> : "OK"}
+				</Button>
 			</Row>
 		</Form>
 	);
@@ -155,7 +153,8 @@ function AddPublicReviewComments({
 		setFile(files && files.length > 0 ? files[0] : null);
 	};
 
-	const submit = async () => {
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
 		if (errorText) return;
 		setBusy(true);
 		await dispatch(uploadPublicReviewComments(ballot.id, file!));
@@ -170,17 +169,22 @@ function AddPublicReviewComments({
 		<Form
 			style={{ minWidth: 300 }}
 			title="Add public review comments"
-			submit={submit}
-			errorText={errorText}
-			cancel={close}
-			busy={busy}
+			onSubmit={handleSubmit}
 		>
 			<Row>
-				<input
+				<Form.Control
 					type="file"
 					accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 					onChange={handleFileChange}
 				/>
+				<Form.Control.Feedback type="invalid">
+					{errorText}
+				</Form.Control.Feedback>
+			</Row>
+			<Row>
+				<Button type="submit">
+					{busy ? <Spinner animation="border" size="sm" /> : "OK"}
+				</Button>
 			</Row>
 		</Form>
 	);
@@ -233,9 +237,10 @@ const CommentsActions = ({
 	return (
 		<>
 			<Row>
-				<FieldLeft label="Comments:">
+				<Col>
+					<Form.Label>Comments:</Form.Label>
 					<BallotComments ballot={ballot} />
-				</FieldLeft>
+				</Col>
 			</Row>
 			{!readOnly && (
 				<Row style={{ justifyContent: "flex-start" }}>
@@ -247,14 +252,12 @@ const CommentsActions = ({
 					>
 						Delete
 					</Button>
-					<ActionButtonModal
-						label="Change starting CID"
-						disabled={
-							ballot.Comments && ballot.Comments.Count === 0
-						}
-					>
-						<ChangeStartCID ballot={ballot!} />
-					</ActionButtonModal>
+					<Dropdown>
+						<Dropdown.Toggle>Change starting CID</Dropdown.Toggle>
+						<Dropdown.Menu>
+							<ChangeStartCID ballot={ballot!} />
+						</Dropdown.Menu>
+					</Dropdown>
 					{ballot.Type !== BallotType.SA && ballot.EpollNum ? (
 						<Button onClick={handleImportComments}>
 							{(ballot.Comments?.Count ? "Reimport" : "Import") +
@@ -264,23 +267,26 @@ const CommentsActions = ({
 					<Button onClick={() => fileRef.current?.click()}>
 						Upload comments
 					</Button>
-					<ActionButtonModal
-						label="Add member comments"
-						disabled={
-							ballot.Comments && ballot.Comments.Count === 0
-						}
-					>
-						<AddMemberComments ballot={ballot} />
-					</ActionButtonModal>
+					<Dropdown>
+						<Dropdown.Toggle>Add member comments</Dropdown.Toggle>
+						<Dropdown.Menu>
+							<AddMemberComments ballot={ballot} />
+						</Dropdown.Menu>
+					</Dropdown>
 					{ballot.Type === BallotType.SA ? (
-						<ActionButtonModal
-							label="Add public review comments"
-							disabled={
-								ballot.Comments && ballot.Comments.Count === 0
-							}
-						>
-							<AddPublicReviewComments ballot={ballot} />
-						</ActionButtonModal>
+						<Dropdown>
+							<Dropdown.Toggle
+								disabled={
+									ballot.Comments &&
+									ballot.Comments.Count === 0
+								}
+							>
+								Add public review comments
+							</Dropdown.Toggle>
+							<Dropdown.Menu>
+								<AddPublicReviewComments ballot={ballot} />
+							</Dropdown.Menu>
+						</Dropdown>
 					) : null}
 					<input
 						ref={fileRef}

@@ -1,14 +1,11 @@
-import * as React from "react";
 import { useNavigate, useParams } from "react-router";
 import { createSelector } from "@reduxjs/toolkit";
 
-import { Select } from "dot11-components";
+import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectTopLevelGroups } from "@/store/groups";
 import { AccessLevel } from "@/store/user";
-
-import styles from "./app.module.css";
 
 const selectOptions = createSelector(selectTopLevelGroups, (groups) =>
 	groups.map((g) => {
@@ -17,12 +14,7 @@ const selectOptions = createSelector(selectTopLevelGroups, (groups) =>
 	})
 );
 
-export function WorkingGroupSelector(
-	props: Omit<
-		React.ComponentProps<typeof Select>,
-		"values" | "onChange" | "options"
-	>
-) {
+export function WorkingGroupSelector() {
 	const navigate = useNavigate();
 	const { groupName } = useParams();
 
@@ -36,8 +28,8 @@ export function WorkingGroupSelector(
 
 	return (
 		<Select
-			className={styles["working-group-select"]}
-			dropdownClassName={styles["working-group-select-dropdown"]}
+			className="working-group-select"
+			dropdownClassName="working-group-select-dropdown"
 			values={values}
 			onChange={handleChange}
 			options={options}
@@ -45,7 +37,6 @@ export function WorkingGroupSelector(
 			labelField="name"
 			searchable={false}
 			clearable
-			{...props}
 		/>
 	);
 }

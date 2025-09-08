@@ -1,15 +1,12 @@
 import React from "react";
+import { Row, Col, Form } from "react-bootstrap";
 import {
-	Row,
-	Col,
-	Field,
-	Input,
 	isMultiple,
 	Multiple,
 	shallowDiff,
 	deepMergeTagMultiple,
 	useDebounce,
-} from "dot11-components";
+} from "@common";
 
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -49,8 +46,9 @@ export function Column1({
 
 	return (
 		<>
-			<Row>
-				<Field label="Group:">
+			<Form.Group as={Row} controlId="Group">
+				<Form.Label column>Group:</Form.Label>
+				<Col>
 					<SelectGroup
 						value={
 							isMultiple(ballot.groupId) ? null : ballot.groupId
@@ -65,10 +63,11 @@ export function Column1({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Project:">
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} controlId="Project">
+				<Form.Label column>Project:</Form.Label>
+				<Col>
 					<SelectProject
 						value={isMultiple(ballot.Project) ? "" : ballot.Project}
 						onChange={(Project) => updateBallot({ Project })}
@@ -82,8 +81,8 @@ export function Column1({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
-			</Row>
+				</Col>
+			</Form.Group>
 			<BallotTypeEdit
 				ballot={ballot}
 				updateBallot={updateBallot}
@@ -96,9 +95,10 @@ export function Column1({
 			/>
 
 			{ballot.Type !== BallotType.SA && (
-				<Row>
-					<Field id="ePollNumber" label="ePoll number:">
-						<Input
+				<Form.Group as={Row} controlId="ePollNumber">
+					<Form.Label column>ePoll number:</Form.Label>
+					<Col>
+						<Form.Control
 							type="search"
 							name="EpollNum"
 							value={
@@ -119,12 +119,13 @@ export function Column1({
 							}
 							disabled={readOnly || isMultipleBallots}
 						/>
-					</Field>
-				</Row>
+					</Col>
+				</Form.Group>
 			)}
-			<Row>
-				<Field id="Document" label="Document:">
-					<Input
+			<Form.Group as={Row} controlId="Document">
+				<Form.Label column>Document:</Form.Label>
+				<Col>
+					<Form.Control
 						type="search"
 						name="Document"
 						value={
@@ -138,8 +139,8 @@ export function Column1({
 						onChange={change}
 						disabled={readOnly}
 					/>
-				</Field>
-			</Row>
+				</Col>
+			</Form.Group>
 		</>
 	);
 }

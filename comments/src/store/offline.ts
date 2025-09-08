@@ -5,7 +5,7 @@ import {
 	isPlainObject,
 } from "@reduxjs/toolkit";
 import { REHYDRATE } from "redux-persist";
-import { fetcher } from "dot11-components";
+import { fetcher } from "@common";
 import type { StoreType, RootState, AppThunk, AppDispatch } from ".";
 
 type OfflineState = {

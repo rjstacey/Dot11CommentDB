@@ -1,6 +1,5 @@
 import { Link } from "react-router";
-import { ActionButtonDropdown, Row, FieldLeft } from "dot11-components";
-
+import { Row, Form, Dropdown } from "react-bootstrap";
 import { VotersImportForm } from "../voters/VotersImport";
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -8,6 +7,7 @@ import {
 	selectBallotsWorkingGroup,
 	Ballot,
 } from "@/store/ballots";
+import React from "react";
 
 function VotersActions({
 	ballot,
@@ -16,35 +16,32 @@ function VotersActions({
 	ballot: Ballot;
 	readOnly?: boolean;
 }) {
+	const [show, setShow] = React.useState(false);
 	const workingGroup = useAppSelector(selectBallotsWorkingGroup)!;
 
 	return (
 		<>
 			<Row>
-				<FieldLeft label="Voters:">
-					<Link
-						to={`/${workingGroup.name}/voters/${getBallotId(
-							ballot
-						)}`}
-					>
-						{ballot.Voters}
-					</Link>
-				</FieldLeft>
+				<Form.Label>Voters:</Form.Label>
+				<Link
+					to={`/${workingGroup.name}/voters/${getBallotId(ballot)}`}
+				>
+					{ballot.Voters}
+				</Link>
 			</Row>
 			{!readOnly && (
 				<Row style={{ justifyContent: "flex-start" }}>
-					<ActionButtonDropdown
-						label={ballot.Voters ? "Reimport" : "Import"}
-						title="Import voters"
-						portal={document.querySelector("#root")!}
-						dropdownPosition="top"
-						dropdownRenderer={({ methods }) => (
+					<Dropdown show={show} onSelect={() => setShow(!show)}>
+						<Dropdown.Toggle>
+							{ballot.Voters ? "Reimport" : "Import"}
+						</Dropdown.Toggle>
+						<Dropdown.Menu>
 							<VotersImportForm
 								ballot={ballot}
-								close={methods.close}
+								close={() => setShow(false)}
 							/>
-						)}
-					/>
+						</Dropdown.Menu>
+					</Dropdown>
 				</Row>
 			)}
 		</>

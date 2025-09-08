@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Select } from "dot11-components";
+import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectGroups, Group, selectGroupEntities } from "@/store/groups";
 
@@ -30,10 +30,7 @@ function SelectGroup({
 }: {
 	value: string | null;
 	onChange: (value: string | null) => void;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"values" | "options" | "onChange"
->) {
+} & Pick<React.ComponentProps<typeof Select>, "placeholder" | "readOnly">) {
 	const entities = useAppSelector(selectGroupEntities);
 	const options = useAppSelector(selectGroups);
 	const values = options.filter((o) => value === o.id);

@@ -1,13 +1,18 @@
 import * as React from "react";
-
-import { Dropdown, DropdownRendererProps } from "dot11-components";
+import { Dropdown } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectOfflineStatus, selectOfflineOutbox } from "@/store/offline";
 
 import styles from "./OnlineIndicator.module.css";
 
-function Selector({ state, methods }: DropdownRendererProps) {
+function Selector({
+	show,
+	setShow,
+}: {
+	show: boolean;
+	setShow: (show: boolean) => void;
+}) {
 	const status = useAppSelector(selectOfflineStatus);
 	let color = "#ff4e4e";
 	if (status === "online") color = "#bbff4e";
@@ -15,8 +20,7 @@ function Selector({ state, methods }: DropdownRendererProps) {
 	const background = `radial-gradient(circle at 5px 5px, ${color}, #000000b0)`;
 
 	let onClick: React.MouseEventHandler | undefined;
-	if (status !== "online")
-		onClick = state.isOpen ? methods.close : methods.open;
+	if (status !== "online") onClick = () => setShow(!show);
 
 	return (
 		<div className={styles.container} onClick={onClick}>
@@ -39,13 +43,15 @@ function Outbox() {
 	return <div>{entries}</div>;
 }
 
-function SyncIndicator({ className }: { className: string }) {
+function SyncIndicator() {
+	const [show, setShow] = React.useState(false);
 	return (
-		<Dropdown
-			className={className}
-			selectRenderer={(props) => <Selector {...props} />}
-			dropdownRenderer={() => <Outbox />}
-		/>
+		<Dropdown show={show}>
+			<Dropdown.Toggle as={Selector} show={show} setShow={setShow} />
+			<Dropdown.Menu>
+				<Outbox />
+			</Dropdown.Menu>
+		</Dropdown>
 	);
 }
 

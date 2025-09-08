@@ -1,7 +1,7 @@
 import * as React from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
-import { Select, SelectRendererProps } from "dot11-components";
+import { Select, SelectRendererProps } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -25,6 +25,8 @@ const selectFieldValues = createSelector(
 	}
 );
 
+type Option = { label: string; value: string };
+
 function CommentGroupSelector({
 	value,
 	onChange,
@@ -32,14 +34,14 @@ function CommentGroupSelector({
 }: {
 	value: string;
 	onChange: (value: string) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const existingOptions = useAppSelector(selectFieldValues);
 	const [options, setOptions] = React.useState(existingOptions);
 
-	function createOption({ state }: SelectRendererProps) {
+	async function createOption({ state }: SelectRendererProps<Option>) {
 		const option = { label: state.search, value: state.search };
 		setOptions(existingOptions.concat(option));
 		return option;

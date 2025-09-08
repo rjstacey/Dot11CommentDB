@@ -75,7 +75,6 @@
 }
 
 .selectCol {
-	flex: 0 0 200px;
 	display: flex;
 	flex-direction: column;
 	padding: 0 20px;

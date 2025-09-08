@@ -1,7 +1,7 @@
 import * as React from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
-import { Select, SelectRendererProps, strComp } from "dot11-components";
+import { Select, SelectRendererProps, strComp } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -72,15 +72,15 @@ function AssigneeSelector({
 	value: Assignee;
 	onChange: (value: Assignee) => void;
 	readOnly?: boolean;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const { loading } = useAppSelector(selectMembersState);
 	const existingOptions = useAppSelector(selectAssigneeOptions);
 	const [options, setOptions] = React.useState(existingOptions);
 
-	function createOption({ state }: SelectRendererProps) {
+	async function createOption({ state }: SelectRendererProps<Assignee>) {
 		const value = { SAPIN: 0, Name: state.search };
 		setOptions((options: typeof existingOptions) => {
 			if (

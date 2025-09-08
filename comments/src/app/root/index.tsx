@@ -1,11 +1,10 @@
 import WorkingGroupSelector from "./WorkingGroupSelector";
-
-import styles from "./app.module.css";
+import "./root.css";
 
 function RootMain() {
 	return (
-		<div className={styles.root}>
-			<div className="intro">Working group/Committee</div>
+		<div className="root">
+			<h2 className="intro">Working group/Committee</h2>
 			<WorkingGroupSelector />
 		</div>
 	);

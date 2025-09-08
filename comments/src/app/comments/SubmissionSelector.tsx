@@ -1,11 +1,7 @@
 import * as React from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
-import {
-	Select,
-	SelectItemRendererProps,
-	SelectRendererProps,
-} from "dot11-components";
+import { Select, SelectItemRendererProps, SelectRendererProps } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -42,7 +38,9 @@ export const renderSubmission = (submission: string) => {
 	return submission;
 };
 
-const selectItemRenderer = ({ item }: SelectItemRendererProps) =>
+type Option = { label: string; value: string };
+
+const selectItemRenderer = ({ item }: SelectItemRendererProps<Option>) =>
 	renderSubmission(item.label);
 
 const field = "Submission";
@@ -68,15 +66,15 @@ function SubmissionSelector({
 	value: string;
 	onChange: (value: string) => void;
 	readOnly?: boolean;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"placeholder" | "readOnly" | "disabled" | "id" | "style"
 >) {
 	const { loading } = useAppSelector(selectCommentsState);
 	const existingOptions = useAppSelector(selectFieldValues);
 	const [options, setOptions] = React.useState(existingOptions);
 
-	function createOption({ state }: SelectRendererProps) {
+	async function createOption({ state }: SelectRendererProps<Option>) {
 		const option = { label: state.search, value: state.search };
 		setOptions((options) => options.concat(option));
 		return option;

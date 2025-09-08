@@ -1,5 +1,5 @@
 import React from "react";
-import { Select } from "dot11-components";
+import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectMembersState, selectMembers } from "@/store/members";
@@ -12,10 +12,7 @@ function MemberSelector({
 }: {
 	value: number;
 	onChange: (value: number) => void;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
->) {
+} & Pick<React.ComponentProps<typeof Select>, "readOnly" | "style" | "id">) {
 	const { loading } = useAppSelector(selectMembersState);
 	const members = useAppSelector(selectMembers);
 	const options = React.useMemo(

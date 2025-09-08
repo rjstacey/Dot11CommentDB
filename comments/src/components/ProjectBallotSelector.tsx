@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router";
 
-import { Select } from "dot11-components";
+import { Select } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -31,10 +31,9 @@ function ProjectSelect({
 	onChange: (value: GroupProject) => void;
 	loading: boolean;
 	readOnly?: boolean;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"options" | "values" | "onChange"
->) {
+	style?: React.CSSProperties;
+	id?: string;
+}) {
 	const options = useAppSelector(selectGroupProjectOptions);
 	const values = options.filter(
 		(o) => value.groupId === o.groupId && value.project === o.project
@@ -65,10 +64,10 @@ function BallotSelect({
 	value: number | null;
 	onChange: (value: number | null) => void;
 	loading: boolean;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"options" | "values" | "onChange"
->) {
+	readOnly?: boolean;
+	style?: React.CSSProperties;
+	id?: string;
+}) {
 	const ballots = useAppSelector(selectBallotOptions);
 	const options = React.useMemo(
 		() =>
@@ -136,9 +135,10 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 	return (
 		<div className={styles.main}>
 			<div className={styles.selector}>
-				<label>Project:</label>
+				<label htmlFor="project-select">Project:</label>
 				<ProjectSelect
-					style={{ minWidth: 150, width: 250, marginRight: 20 }}
+					id="project-select"
+					style={{ minWidth: 150, marginRight: 20 }}
 					value={groupProject}
 					onChange={handleProjectChange}
 					loading={loading && !valid}
@@ -146,9 +146,10 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 				/>
 			</div>
 			<div className={styles.selector}>
-				<label>Ballot:</label>
+				<label htmlFor="ballot-select">Ballot:</label>
 				<BallotSelect
-					style={{ minWidth: 250, width: 300 }}
+					id="ballot-select"
+					style={{ minWidth: 250 }}
 					value={ballot_id}
 					onChange={handleBallotChange}
 					loading={loading && !valid}

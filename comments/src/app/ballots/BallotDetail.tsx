@@ -1,7 +1,7 @@
 import React from "react";
 import { Dictionary, EntityId } from "@reduxjs/toolkit";
-
-import { ActionButton, Row, Spinner, ConfirmModal } from "dot11-components";
+import { Row, Button, Spinner } from "react-bootstrap";
+import { ConfirmModal } from "@common";
 
 import VotersActions from "./VotersActions";
 import ResultsActions from "./ResultsActions";
@@ -220,22 +220,25 @@ function BallotDetail({
 
 	const actionButtons = readOnly ? null : (
 		<>
-			<ActionButton
-				name="edit"
+			<Button
+				variant="outline-primary"
+				className="bi-pencil"
 				title="Edit ballot"
 				disabled={loading || !isOnline}
-				isActive={edit}
+				active={edit}
 				onClick={() => setEdit(!edit)}
 			/>
-			<ActionButton
-				name="add"
+			<Button
+				variant="outline-primary"
+				className="bi-plus"
 				title="Add ballot"
 				disabled={!isOnline}
-				isActive={action === "add"}
+				active={action === "add"}
 				onClick={addClick}
 			/>
-			<ActionButton
-				name="delete"
+			<Button
+				variant="outline-primary"
+				className="bi-trash"
 				title="Delete ballot"
 				disabled={selectedBallots.length === 0 || loading || !isOnline}
 				onClick={deleteClick}

@@ -1,7 +1,8 @@
 import * as React from "react";
-import { Button, Row, FieldLeft, ConfirmModal } from "dot11-components";
+import { Button, Row, Form } from "react-bootstrap";
+import { ConfirmModal } from "@common";
 
-import { BallotResults } from "./Ballots";
+import { BallotResults } from "./BallotResults";
 import { useAppDispatch } from "@/store/hooks";
 import { importResults, uploadResults, deleteResults } from "@/store/results";
 import { getBallotId, Ballot } from "@/store/ballots";
@@ -53,9 +54,8 @@ function ResultsActions({
 	return (
 		<>
 			<Row>
-				<FieldLeft label="Results:">
-					<BallotResults ballot={ballot} />
-				</FieldLeft>
+				<Form.Label>Results:</Form.Label>
+				<BallotResults ballot={ballot} />
 			</Row>
 			{!readOnly && (
 				<Row style={{ justifyContent: "flex-start" }}>

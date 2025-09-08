@@ -1,163 +1,10 @@
 import React from "react";
 
-import { ActionButton, Button } from "dot11-components";
-
-import { useAppSelector } from "@/store/hooks";
-import {
-	getCommentStatus,
-	commentStatusOrder,
-	CommentResolution,
-	getField,
-	selectCommentIds,
-	selectSyncedCommentEntities,
-} from "@/store/comments";
+import { Nav, NavLink } from "react-bootstrap";
+import { Counts, Report, reports, useReportData } from "./reportData";
+import ReportsActions from "./actions";
 
 import styles from "./reports.module.css";
-
-type Counts = { [Label: string]: string | number };
-
-function statusComp(status1: string, status2: string) {
-	let n1 = (commentStatusOrder as readonly string[]).indexOf(status1);
-	if (n1 < 0) n1 = commentStatusOrder.length;
-	let n2 = (commentStatusOrder as readonly string[]).indexOf(status2);
-	if (n2 < 0) n2 = commentStatusOrder.length;
-	return n1 - n2;
-}
-
-function countsByCategory(comments: CommentResolution[]): Counts {
-	return {
-		Total: comments.length,
-		E: comments.filter((c) => c.Category === "E").length,
-		T: comments.filter((c) => c.Category === "T").length,
-		G: comments.filter((c) => c.Category === "G").length,
-	};
-}
-
-function countsByStatus(
-	statusSet: string[],
-	comments: CommentResolution[]
-): Counts {
-	const entry: Counts = { Total: comments.length };
-	for (const status of statusSet)
-		entry[status || "(Blank)"] = comments.filter(
-			(c) => getField(c, "Status") === status
-		).length;
-	return entry;
-}
-
-function commentsByCommenter(comments: CommentResolution[]) {
-	const commentersSet = [
-		...new Set(comments.map((c) => c.CommenterName)),
-	].sort();
-	const data: Counts[] = [];
-	for (const name of commentersSet) {
-		data.push({
-			Commenter: name || "(Blank)",
-			...countsByCategory(
-				comments.filter((c) => c.CommenterName === name)
-			),
-		});
-	}
-	return data;
-}
-
-function commentsByAssignee(comments: CommentResolution[]) {
-	const assigneeSet = [
-		...new Set(comments.map((c) => c.AssigneeName)),
-	].sort();
-	const statusSet = [
-		...new Set(comments.map((c) => getField(c, "Status") as string)),
-	].sort(statusComp);
-	const data: Counts[] = [];
-	for (const name of assigneeSet) {
-		const assigneeComments = comments.filter(
-			(c) => c.AssigneeName === name
-		);
-		const entry: Counts = {
-			Assignee: name || "(Blank)",
-			...countsByStatus(statusSet, assigneeComments),
-		};
-		data.push(entry);
-	}
-	return data;
-}
-
-function commentsByAssigneeAndCommentGroup(comments: CommentResolution[]) {
-	const assigneeSet = [
-		...new Set(comments.map((c) => c.AssigneeName)),
-	].sort();
-	const statusSet = [
-		...new Set(comments.map((c) => getField(c, "Status") as string)),
-	].sort(statusComp);
-	const data: Counts[] = [];
-	for (const name of assigneeSet) {
-		const assigneeComments = comments.filter(
-			(c) => c.AssigneeName === name
-		);
-		const entry: Counts = {
-			Assignee: name || "(Blank)",
-			"Comment Group": "",
-			...countsByStatus(statusSet, assigneeComments),
-		};
-		data.push(entry);
-		const commentGroupsSet = [
-			...new Set(assigneeComments.map((c) => c.CommentGroup)),
-		].sort();
-		for (const group of commentGroupsSet) {
-			const entry = {
-				Assignee: "",
-				"Comment Group": group || "(Blank)",
-				...countsByStatus(
-					statusSet,
-					assigneeComments.filter((c) => c.CommentGroup === group)
-				),
-			};
-			data.push(entry);
-		}
-	}
-	return data;
-}
-
-function commentsByAdHocAndCommentGroup(comments: CommentResolution[]) {
-	const adhocSet = [...new Set(comments.map((c) => c.AdHoc))].sort();
-	const statusSet = [
-		...new Set(comments.map((c) => getField(c, "Status") as string)),
-	].sort(statusComp);
-	const data: Counts[] = [];
-	for (const name of adhocSet) {
-		const adhocComments = comments.filter((c) => c.AdHoc === name);
-		const entry: Counts = {
-			"Ad-Hoc": name || "(Blank)",
-			"Comment Group": "",
-			...countsByStatus(statusSet, adhocComments),
-		};
-		data.push(entry);
-		const commentGroupsSet = [
-			...new Set(adhocComments.map((c) => c.CommentGroup)),
-		].sort();
-		for (const group of commentGroupsSet) {
-			const entry = {
-				Assignee: "",
-				"Comment Group": group || "(Blank)",
-				...countsByStatus(
-					statusSet,
-					adhocComments.filter((c) => c.CommentGroup === group)
-				),
-			};
-			data.push(entry);
-		}
-	}
-	return data;
-}
-
-const commentsReport = {
-	"Comments by Commenter": commentsByCommenter,
-	"Comments by Assignee": commentsByAssignee,
-	"Comments by Assignee and Comment Group": commentsByAssigneeAndCommentGroup,
-	"Comments by Ad-Hoc and Comment Group": commentsByAdHocAndCommentGroup,
-} as const;
-
-type Report = keyof typeof commentsReport;
 
 function renderTable(data: Counts[]) {
 	if (data.length === 0) return <span>Empty</span>;
@@ -231,20 +78,7 @@ function renderTableToClipboard(data: Counts[]) {
 function Reports() {
 	const [report, setReport] = React.useState<Report | null>(null);
 
-	const ids = useAppSelector(selectCommentIds);
-	const entities = useAppSelector(selectSyncedCommentEntities);
-
-	const data: Counts[] = React.useMemo(() => {
-		const comments = ids.map((id) => {
-			const c = entities[id]!;
-			return {
-				...c,
-				Status: getCommentStatus(c),
-			};
-		});
-		const generateReport = report ? commentsReport[report] : undefined;
-		return generateReport ? generateReport(comments) : [];
-	}, [ids, entities, report]);
+	const data = useReportData(report);
 
 	const ReportButton = ({
 		report: thisReport,
@@ -253,34 +87,29 @@ function Reports() {
 		report: Report;
 		label: string;
 	}) => (
-		<Button
+		<NavLink
 			onClick={() => setReport(thisReport)}
-			isActive={thisReport === report}
+			active={thisReport === report}
 		>
 			{label}
-		</Button>
+		</NavLink>
 	);
 
 	return (
 		<>
+			<ReportsActions onCopy={() => renderTableToClipboard(data)} />
 			<div className={styles.body}>
-				<div className={styles.selectCol}>
-					<label>Select a report:</label>
-					{Object.keys(commentsReport).map((report) => (
+				<Nav variant="underline" className="flex-column me-3">
+					<h3>Select a report:</h3>
+					{reports.map((report) => (
 						<ReportButton
 							key={report}
 							report={report as Report}
 							label={report}
 						/>
 					))}
-				</div>
+				</Nav>
 				<div className={styles.mainCol}>{renderTable(data)}</div>
-				<div className={styles.actionsCol}>
-					<ActionButton
-						name="copy"
-						onClick={() => renderTableToClipboard(data)}
-					/>
-				</div>
 			</div>
 		</>
 	);

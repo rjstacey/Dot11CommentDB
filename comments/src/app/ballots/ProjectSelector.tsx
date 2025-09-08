@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Select, SelectRendererProps } from "dot11-components";
+import { Select, SelectRendererProps } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectGroupProjectOptions, GroupProjectOption } from "@/store/ballots";
 
@@ -14,10 +14,7 @@ function SelectProject({
 	onChange: (value: string) => void;
 	groupId: string | null;
 	readOnly?: boolean;
-} & Omit<
-	React.ComponentProps<typeof Select>,
-	"values" | "options" | "onChange"
->) {
+} & Pick<React.ComponentProps<typeof Select>, "placeholder" | "readOnly">) {
 	const existingOptions = useAppSelector(selectGroupProjectOptions);
 	const [options, setOptions] = React.useState<GroupProjectOption[]>([]);
 
@@ -30,8 +27,10 @@ function SelectProject({
 	const handleChange = (values: typeof options) =>
 		onChange((values.length > 0 && values[0].project) || "");
 
-	function createOption({ state }: SelectRendererProps): GroupProjectOption {
-		const option = {
+	async function createOption({
+		state,
+	}: SelectRendererProps<GroupProjectOption>) {
+		const option: GroupProjectOption = {
 			groupId: groupId,
 			project: state.search,
 			label: state.search,

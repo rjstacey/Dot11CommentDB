@@ -1,5 +1,5 @@
 import React from "react";
-import { Form } from "dot11-components";
+import { Row, Col, Button, Spinner, Form } from "react-bootstrap";
 
 import { EditBallot } from "./BallotEdit";
 
@@ -10,6 +10,33 @@ import {
 	setCurrentGroupProject,
 	Ballot,
 } from "@/store/ballots";
+
+function SubmitCancel({
+	action,
+	busy,
+	cancel,
+}: {
+	action: "add" | "update";
+	busy?: boolean;
+	cancel?: () => void;
+}) {
+	if (action !== "add" && action !== "update") return null;
+	return (
+		<Form.Group as={Row} className="mb-3">
+			<Col xs={6} className="d-flex justify-content-center">
+				<Button type="submit">
+					{busy && <Spinner animation="border" size="sm" />}
+					{action === "add" ? "Add" : "Update"}
+				</Button>
+			</Col>
+			<Col xs={6} className="d-flex justify-content-center">
+				<Button variant="secondary" onClick={cancel}>
+					Cancel
+				</Button>
+			</Col>
+		</Form.Group>
+	);
+}
 
 export function BallotAddForm({
 	defaultBallot,
@@ -28,7 +55,8 @@ export function BallotAddForm({
 	else if (!ballot.number) errorMsg = "Ballot number not set";
 	else if (!ballot.Project) errorMsg = "Project not set";
 
-	const submit = async () => {
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
 		if (!errorMsg) {
 			setBusy(true);
 			const b = await dispatch(addBallot(ballot));
@@ -47,13 +75,7 @@ export function BallotAddForm({
 	};
 
 	return (
-		<Form
-			submit={submit}
-			submitLabel="Add"
-			cancel={close}
-			errorText={errorMsg}
-			busy={busy}
-		>
+		<Form onSubmit={handleSubmit}>
 			<EditBallot
 				ballot={ballot}
 				updateBallot={(changes) =>
@@ -61,6 +83,7 @@ export function BallotAddForm({
 				}
 				readOnly={false}
 			/>
+			<SubmitCancel action="add" busy={busy} cancel={close} />
 		</Form>
 	);
 }

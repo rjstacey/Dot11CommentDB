@@ -1,15 +1,12 @@
 import React from "react";
 import {
-	Form,
 	Row,
-	List,
-	ListItem,
-	Checkbox,
-	Field,
-	Input,
-	ActionButtonDropdown,
-	DropdownRendererProps,
-} from "dot11-components";
+	Col,
+	Form,
+	DropdownButton,
+	Button,
+	Spinner,
+} from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -57,7 +54,7 @@ export function VotersImportForm({
 
 	const errorText = getErrorText(state);
 
-	async function submit() {
+	async function handleSubmit() {
 		if (errorText || !ballot) return;
 		setBusy(true);
 		await dispatch(
@@ -74,78 +71,85 @@ export function VotersImportForm({
 	}
 
 	return (
-		<Form
-			style={{ width: 300 }}
-			title="Create voter pool"
-			errorText={errorText}
-			submit={submit}
-			cancel={close}
-			busy={busy}
-		>
+		<Form style={{ width: 400 }} onSubmit={handleSubmit} className="p-3">
+			<Row className="mb-3">
+				<Col>Create voter pool from...</Col>
+			</Row>
+			<Row className="d-flex align-items-center mb-3">
+				<Col xs={6}>
+					<Form.Check
+						id="source-members"
+						checked={state.source === "members"}
+						onChange={() => changeState({ source: "members" })}
+						label="Members snapshot:"
+					/>
+				</Col>
+				<Col xs={6}>
+					<Form.Control
+						type="date"
+						value={state.date}
+						onChange={(e) => changeState({ date: e.target.value })}
+					/>
+				</Col>
+			</Row>
+			<Row className="d-flex align-items-center mb-3">
+				<Col xs="auto">
+					<Form.Check
+						id="source-upload"
+						checked={state.source === "upload"}
+						onChange={() => changeState({ source: "upload" })}
+						label="Upload"
+					/>
+				</Col>
+				<Col>
+					<Form.Control
+						id="source-upload-file"
+						type="file"
+						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+						ref={fileRef}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							changeState({
+								file: e.target.files ? e.target.files[0] : null,
+							})
+						}
+						isInvalid={state.source === "upload" && !state.file}
+					/>
+					<Form.Control.Feedback type="invalid">
+						Select spreadsheet file
+					</Form.Control.Feedback>
+				</Col>
+			</Row>
 			<Row>
-				<List label="">
-					<ListItem>
-						<Checkbox
-							checked={state.source === "members"}
-							onChange={() => changeState({ source: "members" })}
-						/>
-						<Field label="Member snapshot:">
-							<Input
-								type="date"
-								value={state.date}
-								onChange={(e) =>
-									changeState({ date: e.target.value })
-								}
-							/>
-						</Field>
-					</ListItem>
-					<ListItem>
-						<Checkbox
-							checked={state.source === "upload"}
-							onChange={() => {
-								changeState({ source: "upload" });
-								fileRef.current?.click();
-							}}
-						/>
-						<label htmlFor="fromFile">
-							{"Upload from " +
-								(state.file ? state.file.name : "file")}
-						</label>
-						<input
-							id="fromFile"
-							type="file"
-							hidden
-							accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-							ref={fileRef}
-							onChange={(e) =>
-								changeState({
-									file: e.target.files
-										? e.target.files[0]
-										: null,
-								})
-							}
-						/>
-					</ListItem>
-				</List>
+				<Col className="d-flex justify-content-end">
+					<Button
+						type="submit"
+						disabled={state.source === "upload" && !state.file}
+					>
+						{busy && <Spinner size="sm" className="me-2" />}
+						Create
+					</Button>
+				</Col>
 			</Row>
 		</Form>
 	);
 }
 
 function VotersImportButton({ ballot_id }: { ballot_id?: number | null }) {
+	const [show, setShow] = React.useState(false);
 	const ballot = useAppSelector((state) =>
 		ballot_id ? selectBallot(state, ballot_id) : undefined
 	);
 
 	return (
-		<ActionButtonDropdown
-			name="import"
-			title="Import voters"
+		<DropdownButton
+			variant="light"
+			show={show}
+			onToggle={() => setShow(!show)}
+			title="New voters pool"
 			disabled={!ballot}
-			dropdownRenderer={({ methods }: DropdownRendererProps) => (
-				<VotersImportForm ballot={ballot} close={methods.close} />
-			)}
-		/>
+		>
+			<VotersImportForm ballot={ballot} close={() => setShow(false)} />
+		</DropdownButton>
 	);
 }
 

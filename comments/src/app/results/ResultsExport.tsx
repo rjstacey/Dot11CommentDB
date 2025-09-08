@@ -1,13 +1,12 @@
 import * as React from "react";
-
 import {
+	DropdownButton,
+	Button,
 	Form,
 	Row,
-	List,
-	ListItem,
-	ActionButtonDropdown,
-	DropdownRendererProps,
-} from "dot11-components";
+	Col,
+	Spinner,
+} from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
 import { exportResults } from "@/store/results";
@@ -15,10 +14,10 @@ import { getBallotId, Ballot } from "@/store/ballots";
 
 function ResultsExportForm({
 	ballot,
-	methods,
+	close,
 }: {
 	ballot: Ballot;
-	methods: DropdownRendererProps["methods"];
+	close: () => void;
 }) {
 	const [forProject, setForProject] = React.useState(false);
 	const [busy, setBusy] = React.useState(false);
@@ -26,62 +25,69 @@ function ResultsExportForm({
 
 	const dispatch = useAppDispatch();
 
-	async function submit() {
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
 		setBusy(true);
 		await dispatch(exportResults(ballot.id, forProject));
 		setBusy(false);
-		methods.close();
+		close();
 	}
 
 	return (
 		<Form
 			style={{ width: 300 }}
 			title="Export results for:"
-			submit={submit}
-			cancel={methods.close}
-			busy={busy}
+			onSubmit={handleSubmit}
+			className="p-3"
 		>
 			<Row>
-				<List>
-					<ListItem>
-						<input
-							id="thisBallot"
-							type="radio"
-							title={ballotId}
-							checked={!forProject}
-							onChange={() => setForProject(!forProject)}
-						/>
-						<label htmlFor="thisBallot">
-							This ballot {ballotId}
-						</label>
-					</ListItem>
-					<ListItem>
-						<input
-							id="forProject"
-							type="radio"
-							title={ballot.Project}
-							checked={forProject}
-							onChange={() => setForProject(!forProject)}
-						/>
-						<label htmlFor="forProject">
-							This project {ballot.Project}
-						</label>
-					</ListItem>
-				</List>
+				<p>Export results for:</p>
+			</Row>
+			<Row>
+				<Col>
+					<Form.Check
+						id="for-ballot"
+						type="radio"
+						title={ballotId}
+						checked={!forProject}
+						onChange={() => setForProject(!forProject)}
+						label={"This ballot " + ballotId}
+					/>
+					<Form.Check
+						id="for-ballot-series"
+						type="radio"
+						title={ballot.Project}
+						checked={forProject}
+						onChange={() => setForProject(!forProject)}
+						label={"This project " + ballot.Project}
+					/>
+				</Col>
+			</Row>
+			<Row>
+				<Col className="d-flex justify-content-end">
+					<Button type="submit">
+						{busy && <Spinner size="sm" className="me-2" />}
+						Upload
+					</Button>
+				</Col>
 			</Row>
 		</Form>
 	);
 }
 
-const ResultsExport = ({ ballot }: { ballot?: Ballot }) => (
-	<ActionButtonDropdown
-		name="export"
-		title="Export"
-		disabled={!ballot}
-		dropdownRenderer={(props) => (
-			<ResultsExportForm ballot={ballot!} {...props} />
-		)}
-	/>
-);
+function ResultsExport({ ballot }: { ballot?: Ballot }) {
+	const [show, setShow] = React.useState(false);
+	return (
+		<DropdownButton
+			variant="light"
+			title="Export"
+			show={show}
+			onToggle={() => setShow(!show)}
+			disabled={!ballot}
+		>
+			<ResultsExportForm ballot={ballot!} close={() => setShow(false)} />
+		</DropdownButton>
+	);
+}
 
 export default ResultsExport;

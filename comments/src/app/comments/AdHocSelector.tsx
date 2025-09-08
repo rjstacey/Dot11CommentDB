@@ -1,7 +1,7 @@
 import * as React from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
-import { Select, SelectRendererProps } from "dot11-components";
+import { Select, SelectRendererProps } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -73,14 +73,14 @@ function AdHocSelector({
 }: {
 	value: AdHoc;
 	onChange: (value: AdHoc) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const existingOptions = useAppSelector(selectAdHocOptions);
 	const [options, setOptions] = React.useState(existingOptions);
 
-	function createOption({ state }: SelectRendererProps) {
+	async function createOption({ state }: SelectRendererProps<AdHoc>) {
 		const option = {
 			GroupId: null,
 			Name: state.search,

@@ -1,17 +1,6 @@
 import * as React from "react";
-
-import {
-	Row,
-	Col,
-	List,
-	ListItem,
-	Field,
-	Checkbox,
-	Input,
-	isMultiple,
-	MULTIPLE,
-	Multiple,
-} from "dot11-components";
+import { Row, Col, Form } from "react-bootstrap";
+import { isMultiple, MULTIPLE, Multiple } from "@common";
 
 import AssigneeSelector from "./AssigneeSelector";
 import SubmissionSelector from "./SubmissionSelector";
@@ -41,34 +30,39 @@ export function ResolutionAssignee({
 	readOnly?: boolean;
 }) {
 	return (
-		<Field label="Assignee:">
-			<AssigneeSelector
-				style={{ flexBasis: 200, flexGrow: 1 }}
-				value={
-					isMultiple(resolution.AssigneeSAPIN) ||
-					isMultiple(resolution.AssigneeName)
-						? { SAPIN: 0, Name: "" }
-						: {
-								SAPIN: resolution.AssigneeSAPIN || 0,
-								Name: resolution.AssigneeName || "",
-							}
-				}
-				onChange={({ SAPIN, Name }) =>
-					updateResolution({
-						AssigneeSAPIN: SAPIN,
-						AssigneeName: Name,
-					})
-				}
-				placeholder={
-					isMultiple(
-						resolution.AssigneeSAPIN || resolution.AssigneeName
-					)
-						? MULTIPLE_STR
-						: BLANK_STR
-				}
-				readOnly={readOnly}
-			/>
-		</Field>
+		<Form.Group as={Row} className="mb-3">
+			<Form.Label column xs="auto" htmlFor="resolution-assignee">
+				Assignee:
+			</Form.Label>
+			<Col>
+				<AssigneeSelector
+					id="resolution-assignee"
+					value={
+						isMultiple(resolution.AssigneeSAPIN) ||
+						isMultiple(resolution.AssigneeName)
+							? { SAPIN: 0, Name: "" }
+							: {
+									SAPIN: resolution.AssigneeSAPIN || 0,
+									Name: resolution.AssigneeName || "",
+							  }
+					}
+					onChange={({ SAPIN, Name }) =>
+						updateResolution({
+							AssigneeSAPIN: SAPIN,
+							AssigneeName: Name,
+						})
+					}
+					placeholder={
+						isMultiple(
+							resolution.AssigneeSAPIN || resolution.AssigneeName
+						)
+							? MULTIPLE_STR
+							: BLANK_STR
+					}
+					readOnly={readOnly}
+				/>
+			</Col>
+		</Form.Group>
 	);
 }
 
@@ -82,33 +76,38 @@ export function ResolutionSubmission({
 	readOnly?: boolean;
 }) {
 	return (
-		<Field label="Submission:">
-			<SubmissionSelector
-				style={{ flexBasis: 200 }}
-				value={
-					isMultiple(resolution.Submission)
-						? ""
-						: resolution.Submission || ""
-				}
-				onChange={(value) => updateResolution({ Submission: value })}
-				placeholder={
-					isMultiple(resolution.Submission) ? MULTIPLE_STR : BLANK_STR
-				}
-				readOnly={readOnly}
-			/>
-		</Field>
+		<Form.Group as={Row}>
+			<Form.Label column xs="auto" htmlFor="resolution-submission">
+				Submission:
+			</Form.Label>
+			<Col>
+				<SubmissionSelector
+					id="resolution-submission"
+					value={
+						isMultiple(resolution.Submission)
+							? ""
+							: resolution.Submission || ""
+					}
+					onChange={(value) =>
+						updateResolution({ Submission: value })
+					}
+					placeholder={
+						isMultiple(resolution.Submission)
+							? MULTIPLE_STR
+							: BLANK_STR
+					}
+					readOnly={readOnly}
+				/>
+			</Col>
+		</Form.Group>
 	);
 }
 
 export function ResolutionApproval({
-	style,
-	className,
 	resolution,
 	updateResolution = () => {},
 	readOnly,
 }: {
-	className?: string;
-	style?: React.CSSProperties;
 	resolution: Multiple<ResolutionEditable>;
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
@@ -129,13 +128,18 @@ export function ResolutionApproval({
 		: BLANK_STR;
 
 	return (
-		<Col style={style} className={className}>
-			<List label="">
-				<ListItem>
-					<Checkbox
-						id="ReadyForMotion"
+		<>
+			<Form.Group as={Row}>
+				<Col>
+					<Form.Check
+						id="resolution-ReadyForMotion"
 						name="ReadyForMotion"
-						indeterminate={isMultiple(resolution.ReadyForMotion)}
+						ref={(ref) =>
+							ref &&
+							(ref.indeterminate = isMultiple(
+								resolution.ReadyForMotion
+							))
+						}
 						checked={!!resolution.ReadyForMotion}
 						onChange={(e) =>
 							updateResolution({
@@ -143,31 +147,40 @@ export function ResolutionApproval({
 							})
 						}
 						disabled={readOnly}
+						label="Ready for motion"
 					/>
-					<label htmlFor="ReadyForMotion">Ready for motion</label>
-				</ListItem>
-				<ListItem>
-					<Checkbox
-						id="Approved"
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="align-items-center">
+				<Col xs="auto">
+					<Form.Check
+						id="resolution-ApprovedByMotion"
 						name="Approved"
-						indeterminate={isMultiple(resolution.ApprovedByMotion)}
+						ref={(ref) =>
+							ref &&
+							(ref.indeterminate = isMultiple(
+								resolution.ApprovedByMotion
+							))
+						}
 						checked={!!resolution.ApprovedByMotion}
 						onChange={changeApproved}
 						disabled={readOnly}
+						label="Approved by motion"
 					/>
-					<label htmlFor="Approved">Approved by motion: </label>
-					<Input
+				</Col>
+				<Col>
+					<Form.Control
 						type="search"
-						size={value.length || placeholder.length}
+						//size={value.length || placeholder.length}
 						name="ApprovedByMotion"
 						value={value}
 						onChange={changeApproved}
 						placeholder={placeholder}
 						disabled={readOnly}
 					/>
-				</ListItem>
-			</List>
-		</Col>
+				</Col>
+			</Form.Group>
+		</>
 	);
 }
 
@@ -187,49 +200,43 @@ function ResnStatus({
 	const backgroundColor =
 		(!isMultiple(value) && value && resnColor[value]) || "#fafafa";
 	return (
-		<div
+		<Form.Group
 			style={{ backgroundColor }}
 			className={
 				styles.resolutionStatus + (className ? ` ${className}` : "")
 			}
 		>
-			<div>
-				<Checkbox
-					id="accepted-checkbox"
-					name="ResnStatus"
-					value="A"
-					checked={value === "A"}
-					indeterminate={isMultiple(value)}
-					onChange={handleChange}
-					disabled={readOnly}
-				/>
-				<label htmlFor="accepted-checkbox">ACCEPTED</label>
-			</div>
-			<div>
-				<Checkbox
-					id="revised-checkbox"
-					name="ResnStatus"
-					value="V"
-					checked={value === "V"}
-					indeterminate={isMultiple(value)}
-					onChange={handleChange}
-					disabled={readOnly}
-				/>
-				<label htmlFor="revised-checkbox">REVISED</label>
-			</div>
-			<div>
-				<Checkbox
-					id="rejected-checkbox"
-					name="ResnStatus"
-					value="J"
-					checked={value === "J"}
-					indeterminate={isMultiple(value)}
-					onChange={handleChange}
-					disabled={readOnly}
-				/>
-				<label htmlFor="rejected-checkbox">REJECTED</label>
-			</div>
-		</div>
+			<Form.Check
+				id="accepted-checkbox"
+				name="ResnStatus"
+				value="A"
+				checked={value === "A"}
+				ref={(ref) => ref && (ref.indeterminate = isMultiple(value))}
+				onChange={handleChange}
+				disabled={readOnly}
+				label="ACCEPTED"
+			/>
+			<Form.Check
+				id="revised-checkbox"
+				name="ResnStatus"
+				value="V"
+				checked={value === "V"}
+				ref={(ref) => ref && (ref.indeterminate = isMultiple(value))}
+				onChange={handleChange}
+				disabled={readOnly}
+				label="REVISED"
+			/>
+			<Form.Check
+				id="rejected-checkbox"
+				name="ResnStatus"
+				value="J"
+				checked={value === "J"}
+				ref={(ref) => ref && (ref.indeterminate = isMultiple(value))}
+				onChange={handleChange}
+				disabled={readOnly}
+				label="REJECTED"
+			/>
+		</Form.Group>
 	);
 }
 
@@ -305,30 +312,28 @@ export function ResolutionEdit({
 }) {
 	return (
 		<>
-			<Row>
+			<Row className="mb-3">
 				<Col>
-					<Row>
-						<ResolutionAssignee
-							resolution={resolution}
-							updateResolution={updateResolution}
-							readOnly={readOnly}
-						/>
-					</Row>
-					<Row>
-						<ResolutionSubmission
-							resolution={resolution}
-							updateResolution={updateResolution}
-							readOnly={readOnly}
-						/>
-					</Row>
+					<ResolutionAssignee
+						resolution={resolution}
+						updateResolution={updateResolution}
+						readOnly={readOnly}
+					/>
+					<ResolutionSubmission
+						resolution={resolution}
+						updateResolution={updateResolution}
+						readOnly={readOnly}
+					/>
 				</Col>
-				<ResolutionApproval
-					resolution={resolution}
-					updateResolution={updateResolution}
-					readOnly={readOnly || commentsAccess < AccessLevel.rw}
-				/>
+				<Col>
+					<ResolutionApproval
+						resolution={resolution}
+						updateResolution={updateResolution}
+						readOnly={readOnly || commentsAccess < AccessLevel.rw}
+					/>
+				</Col>
 			</Row>
-			<Row>
+			<Row className="mb-3">
 				<ResolutionAndStatus
 					resolution={resolution}
 					updateResolution={updateResolution}

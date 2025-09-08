@@ -4,6 +4,7 @@ import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
 
 const target = "http://localhost:8080";
+//const target = "https://test.802tools.org";
 
 export default defineConfig(({ command, mode }) => {
 	const __dirname = process.cwd();
@@ -26,7 +27,7 @@ export default defineConfig(({ command, mode }) => {
 				manifest: {
 					name: "802 tools | Comment Resolution",
 					short_name: "802|CR",
-					description: "Manaage comment resolution",
+					description: "Manage comment resolution",
 					theme_color: "#ffffff",
 					icons: [
 						{
@@ -47,6 +48,7 @@ export default defineConfig(({ command, mode }) => {
 			alias: {
 				"@": "/src",
 				"@schemas": path.resolve(__dirname, "../schemas"),
+				"@common": path.resolve(__dirname, "../common/src"),
 			},
 		},
 		server: {

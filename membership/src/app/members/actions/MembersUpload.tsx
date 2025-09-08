@@ -25,7 +25,7 @@ function MembersUploadForm({ close }: { close: () => void }) {
 	return (
 		<Form noValidate onSubmit={handleSubmit} className="p-3">
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label>Import:</Form.Label>
+				<Form.Label as="span">Import:</Form.Label>
 				<Col sm={12}>
 					<Form.Check
 						type="radio"
@@ -70,8 +70,8 @@ function MembersUploadForm({ close }: { close: () => void }) {
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} controlId="fileInput" className="mb-3">
-				<Form.Label>Spreadsheet:</Form.Label>
-				<Col sm={12}>
+				<Form.Label column>Spreadsheet:</Form.Label>
+				<Col sm={6}>
 					<Form.Control
 						type="file"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -86,14 +86,14 @@ function MembersUploadForm({ close }: { close: () => void }) {
 					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
-			<Row>
+			<Form.Group as={Row} controlId="submit" className="mb-3">
 				<Col className="d-flex justify-content-end">
 					<Button type="submit">
 						{busy && <Spinner animation="border" size="sm" />}
 						<span>Upload</span>
 					</Button>
 				</Col>
-			</Row>
+			</Form.Group>
 		</Form>
 	);
 }

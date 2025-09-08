@@ -1,13 +1,15 @@
-import { LoaderFunction, RouteObject } from "react-router";
+import { LoaderFunction } from "react-router";
 
 import { store } from "@/store";
 import { selectIsOnline } from "@/store/offline";
 import { loadEpolls } from "@/store/epolls";
 
-import EpollsLayout from "./layout";
+import { rootLoader } from "../../rootLoader";
 
-const epollsLoader: LoaderFunction = async ({ params }) => {
-	const { groupName } = params;
+export const loader: LoaderFunction = async (args) => {
+	await rootLoader(args);
+
+	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;
@@ -16,10 +18,3 @@ const epollsLoader: LoaderFunction = async ({ params }) => {
 	}
 	return null;
 };
-
-const route: RouteObject = {
-	element: <EpollsLayout />,
-	loader: epollsLoader,
-};
-
-export default route;

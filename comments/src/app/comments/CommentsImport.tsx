@@ -1,17 +1,13 @@
 import * as React from "react";
-
 import {
-	Form,
 	Row,
 	Col,
-	List,
-	ListItem,
-	Field,
-	Checkbox,
-	ActionButtonDropdown,
-	ConfirmModal,
-	DropdownRendererProps,
-} from "dot11-components";
+	Form,
+	DropdownButton,
+	Spinner,
+	Button,
+} from "react-bootstrap";
+import { ConfirmModal } from "@common";
 
 import { useAppDispatch } from "@/store/hooks";
 import { uploadResolutions } from "@/store/comments";
@@ -55,6 +51,47 @@ const importFieldOptions: {
 	},
 ];
 
+function ImportFieldsList({
+	fields,
+	setFields,
+	disableCID,
+}: {
+	fields: FieldToUpdate[];
+	setFields: (fields: FieldToUpdate[]) => void;
+	disableCID: boolean;
+}) {
+	const change: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+		const newFields = fields.slice();
+		if (e.target.checked) {
+			newFields.push(e.target.value as FieldToUpdate);
+		} else {
+			const i = newFields.indexOf(e.target.value as FieldToUpdate);
+			if (i >= 0) newFields.splice(i, 1);
+		}
+		setFields(newFields);
+	};
+
+	return (
+		<>
+			<Form.Label as="span">Fields to import:</Form.Label>
+			{importFieldOptions.map((a) => (
+				<Form.Check
+					key={a.value}
+					id={"import-field-" + a.value}
+					title={a.description}
+					checked={fields.includes(a.value)}
+					onChange={change}
+					disabled={a.value === "cid" && disableCID}
+					label={a.label}
+				/>
+			))}
+			<Form.Text>
+				Selected fields are overwritten. Unselected fields are retained.
+			</Form.Text>
+		</>
+	);
+}
+
 const matchAlgoOptions: {
 	value: MatchAlgo;
 	label: string;
@@ -75,6 +112,32 @@ const matchAlgoOptions: {
 			"Line, Comment and Proposed Change. Fields that might have issues are only matched if needed.",
 	},
 ];
+
+function MatchAlgoList({
+	algo,
+	setAlgo,
+}: {
+	algo: MatchAlgo;
+	setAlgo: (algo: MatchAlgo) => void;
+}) {
+	return (
+		<>
+			<Form.Label as="span">Match algorithm:</Form.Label>
+			{matchAlgoOptions.map((a) => (
+				<Form.Check
+					key={a.value}
+					type="radio"
+					id={"match-algo-" + a.value}
+					title={a.description}
+					value={a.value}
+					checked={algo === a.value}
+					onChange={() => setAlgo(a.value)}
+					label={a.label}
+				/>
+			))}
+		</>
+	);
+}
 
 const matchUpdateOptions: {
 	value: MatchUpdate;
@@ -100,114 +163,50 @@ const matchUpdateOptions: {
 	},
 ];
 
-const ImportFieldsList = ({
-	fields,
-	setFields,
-	disableCID,
-}: {
-	fields: FieldToUpdate[];
-	setFields: (fields: FieldToUpdate[]) => void;
-	disableCID: boolean;
-}) => {
-	const changeImportFields: React.ChangeEventHandler<HTMLInputElement> = (
-		e
-	) => {
-		const newFields = fields.slice();
-		if (e.target.checked) {
-			newFields.push(e.target.value as FieldToUpdate);
-		} else {
-			const i = newFields.indexOf(e.target.value as FieldToUpdate);
-			if (i >= 0) newFields.splice(i, 1);
-		}
-		setFields(newFields);
-	};
-	return (
-		<List label="Import fields (selected fields will be overwritten):">
-			{importFieldOptions.map((a) => (
-				<ListItem key={a.value}>
-					<Checkbox
-						value={a.value}
-						title={a.description}
-						checked={fields.includes(a.value)}
-						onChange={changeImportFields}
-						disabled={a.value === "cid" && disableCID}
-					/>
-					<label>{a.label}</label>
-				</ListItem>
-			))}
-		</List>
-	);
-};
-
-const MatchAlgoList = ({
-	algo,
-	setAlgo,
-}: {
-	algo: MatchAlgo;
-	setAlgo: (algo: MatchAlgo) => void;
-}) => (
-	<List label="Match algorithm:">
-		{matchAlgoOptions.map((a) => (
-			<ListItem key={a.value}>
-				<input
-					type="radio"
-					title={a.description}
-					value={a.value}
-					checked={algo === a.value}
-					onChange={(e) => setAlgo(e.target.value as MatchAlgo)}
-				/>
-				<label>{a.label}</label>
-			</ListItem>
-		))}
-	</List>
-);
-
-const UpdateList = ({
+function MatchUpdateList({
 	matchUpdate,
 	setMatchUpdate,
 }: {
 	matchUpdate: MatchUpdate;
 	setMatchUpdate: (matchUpdate: MatchUpdate) => void;
-}) => (
-	<List label="Update scope:">
-		{matchUpdateOptions.map((a) => (
-			<ListItem key={a.value}>
-				<input
+}) {
+	return (
+		<>
+			<Form.Label as="span">Update scope:</Form.Label>
+			{matchUpdateOptions.map((a) => (
+				<Form.Check
+					key={a.value}
 					type="radio"
+					id={"match-update-" + a.value}
 					title={a.description}
 					value={a.value}
 					checked={matchUpdate === a.value}
-					onChange={(e) =>
-						setMatchUpdate(e.target.value as MatchUpdate)
-					}
+					onChange={() => setMatchUpdate(a.value)}
+					label={a.label}
 				/>
-				<label>{a.label}</label>
-			</ListItem>
-		))}
-	</List>
-);
+			))}
+		</>
+	);
+}
 
 function CommentsImportDropdown({
 	ballot,
-	methods,
+	close,
 }: {
 	ballot: Ballot;
-} & DropdownRendererProps) {
+	close: () => void;
+}) {
 	const dispatch = useAppDispatch();
-	const fileRef = React.useRef<HTMLInputElement>(null);
 	const [fields, setFields] = React.useState<FieldToUpdate[]>([]);
 	const [algo, setAlgo] = React.useState<MatchAlgo>("cid");
 	const [matchUpdate, setMatchUpdate] = React.useState<MatchUpdate>("all");
+	const [file, setFile] = React.useState<File | null>(null);
 	const [sheetName, setSheetName] = React.useState("All Comments");
-	const [errMsg, setErrMsg] = React.useState("");
 	const [busy, setBusy] = React.useState(false);
 
-	async function submit() {
-		const file = fileRef.current?.files![0];
-		if (!file) {
-			setErrMsg("Select spreadsheet file");
-			return;
-		}
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
+		if (!file) return;
 		setBusy(true);
 		const result = await dispatch(
 			uploadResolutions(
@@ -219,7 +218,8 @@ function CommentsImportDropdown({
 				file
 			)
 		);
-		methods.close();
+		setBusy(false);
+		close();
 		if (result) {
 			const { matched, unmatched, added, remaining, updated } = result;
 			let msg = "";
@@ -229,8 +229,8 @@ function CommentsImportDropdown({
 						updated === 0
 							? "No comments were updated (no changes identified)."
 							: matched.length === updated
-								? "All comments updated."
-								: `${updated} comments were updated.`;
+							? "All comments updated."
+							: `${updated} comments were updated.`;
 				} else {
 					msg =
 						(unmatched.length === 1
@@ -243,8 +243,8 @@ function CommentsImportDropdown({
 					updated === 0
 						? "No comments were updated."
 						: updated === 1
-							? "1 comment was updated."
-							: `${updated} comments were updated.`;
+						? "1 comment was updated."
+						: `${updated} comments were updated.`;
 			} else {
 				msg =
 					added.length === 0
@@ -252,7 +252,7 @@ function CommentsImportDropdown({
 						: (added.length === 1
 								? `1 comment was added:\n`
 								: `${added.length} comments were added:\n`) +
-							added.join(", ");
+						  added.join(", ");
 			}
 			if (remaining.length > 0) {
 				msg +=
@@ -272,18 +272,17 @@ function CommentsImportDropdown({
 		setAlgo(algo);
 	};
 
+	const title = (
+		<span>
+			Import fields for <em>{getBallotId(ballot)}</em> from Excel
+			spreadsheet
+		</span>
+	);
+
 	return (
-		<Form
-			style={{ width: 600 }}
-			title={`Import fields for ${getBallotId(
-				ballot
-			)} from Excel spreadsheet`}
-			errorText={errMsg}
-			submit={submit}
-			cancel={methods.close}
-			busy={busy}
-		>
-			<Row>
+		<Form style={{ width: 600 }} onSubmit={handleSubmit} className="p-3">
+			<Row className="mb-3">{title}</Row>
+			<Row className="mb-3">
 				<Col>
 					<ImportFieldsList
 						fields={fields}
@@ -292,41 +291,54 @@ function CommentsImportDropdown({
 					/>
 				</Col>
 				<Col>
-					<Row>
+					<Row className="mb-3">
 						<MatchAlgoList algo={algo} setAlgo={handleSetAlgo} />
 					</Row>
 					<Row>
-						<UpdateList
+						<MatchUpdateList
 							matchUpdate={matchUpdate}
 							setMatchUpdate={setMatchUpdate}
 						/>
 					</Row>
 				</Col>
 			</Row>
-			<Row>
-				<Field
-					label="Spreadsheet file:"
-					style={{ justifyContent: "left" }}
-				>
-					<input
+			<Form.Group as={Row} controlId="spreadsheet-file" className="mb-3">
+				<Form.Label column xs={4}>
+					Spreadsheet file:
+				</Form.Label>
+				<Col>
+					<Form.Control
 						type="file"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-						ref={fileRef}
-						onClick={() => setErrMsg("")}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							setFile(e.target.files ? e.target.files[0] : null)
+						}
+						isInvalid={!file}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field
-					label="Worksheet name:"
-					style={{ justifyContent: "left" }}
-				>
-					<input
+					<Form.Control.Feedback type="invalid">
+						Select spreadsheet file
+					</Form.Control.Feedback>
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} controlId="worksheet-name" className="mb-3">
+				<Form.Label column xs={4}>
+					Worksheet name:
+				</Form.Label>
+				<Col>
+					<Form.Control
 						type="text"
 						value={sheetName}
 						onChange={(e) => setSheetName(e.target.value)}
 					/>
-				</Field>
+				</Col>
+			</Form.Group>
+			<Row>
+				<Col className="d-flex justify-content-end">
+					<Button type="submit" disabled={!file}>
+						{busy && <Spinner size="sm" className="me-2" />}
+						Upload
+					</Button>
+				</Col>
 			</Row>
 		</Form>
 	);
@@ -339,15 +351,20 @@ function CommentsImport({
 	ballot?: Ballot;
 	disabled?: boolean;
 }) {
+	const [show, setShow] = React.useState(false);
 	return (
-		<ActionButtonDropdown
-			name="import"
-			title="Upload resolutions"
+		<DropdownButton
+			variant="light"
+			show={show}
+			onToggle={() => setShow(!show)}
 			disabled={!ballot || disabled}
-			dropdownRenderer={(props) => (
-				<CommentsImportDropdown ballot={ballot!} {...props} />
-			)}
-		/>
+			title="Upload resolutions"
+		>
+			<CommentsImportDropdown
+				ballot={ballot!}
+				close={() => setShow(false)}
+			/>
+		</DropdownButton>
 	);
 }
 

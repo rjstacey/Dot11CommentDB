@@ -8,7 +8,7 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
-} from "dot11-components";
+} from "@common";
 
 import type { RootState, AppThunk } from ".";
 import { AccessLevel } from "./user";
@@ -102,13 +102,10 @@ const editStatusOptions = [
 	{ value: "N", label: "No change" },
 ];
 
-const mustSatisfyLabels = mustSatisfyOptions.reduce(
-	(obj, o) => {
-		obj[o.value] = o.label;
-		return obj;
-	},
-	{} as Record<number, string>
-);
+const mustSatisfyLabels = mustSatisfyOptions.reduce((obj, o) => {
+	obj[o.value] = o.label;
+	return obj;
+}, {} as Record<number, string>);
 
 function getCID(b: Ballot | undefined, c: CommentResolution) {
 	let CID: string;

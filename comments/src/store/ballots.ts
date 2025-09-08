@@ -8,7 +8,7 @@ import {
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
-} from "dot11-components";
+} from "@common";
 
 import type { RootState, AppThunk } from ".";
 import { AccessLevel } from "./user";

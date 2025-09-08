@@ -1,13 +1,12 @@
 import * as React from "react";
-
 import {
+	DropdownButton,
 	Form,
 	Row,
-	List,
-	ListItem,
-	ActionButtonDropdown,
-	DropdownRendererProps,
-} from "dot11-components";
+	Col,
+	Button,
+	Spinner,
+} from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -17,28 +16,121 @@ import {
 } from "@/store/comments";
 import { getBallotId, Ballot } from "@/store/ballots";
 
+const spreadsheetFormatOptions: {
+	value: CommentsExportFormat;
+	label: string;
+	description: string;
+}[] = [
+	{
+		value: "modern",
+		label: "Modern spreadsheet",
+		description: "Modern format",
+	},
+	{
+		value: "legacy",
+		label: "Legacy spreadsheet",
+		description: "Legacy format; compatible APS Comments Access Database.",
+	},
+	{
+		value: "myproject",
+		label: "All resolved comments for MyProject upload",
+		description:
+			"Export appoved resolutions for MyProject upload. Modifies an existing MyProject comment spreadsheet.",
+	},
+];
+
+function SpreadsheetFormatSelect({
+	value,
+	setValue,
+}: {
+	value: CommentsExportFormat;
+	setValue: (value: CommentsExportFormat) => void;
+}) {
+	return (
+		<>
+			<Form.Label as="span">Spreadsheet format:</Form.Label>
+			{spreadsheetFormatOptions.map((a) => (
+				<Form.Check
+					key={a.value}
+					type="radio"
+					id={"spreadsheet-format-" + a.value}
+					title={a.description}
+					value={a.value}
+					checked={value === a.value}
+					onChange={() => setValue(a.value)}
+					label={a.label}
+				/>
+			))}
+		</>
+	);
+}
+
+const spreadsheetStyleOptions: {
+	value: CommentsExportStyle;
+	label: string;
+	description: string;
+}[] = [
+	{ value: "AllComments", label: "All comments", description: "Match CID" },
+	{
+		value: "TabPerAdHoc",
+		label: "All comments plus one sheet per ad-hoc",
+		description:
+			"Export all comments plus a sheet for each ad-hoc. Optionally updates existing spreadsheet.",
+	},
+	{
+		value: "TabPerCommentGroup",
+		label: "All comments plus one sheet per comment group",
+		description: "All comments plus one sheet per comment group",
+	},
+];
+
+function SpreadsheetStyleSelect({
+	value,
+	setValue,
+}: {
+	value: CommentsExportStyle;
+	setValue: (value: CommentsExportStyle) => void;
+}) {
+	return (
+		<>
+			<Form.Label as="span">Spreadsheet style:</Form.Label>
+			{spreadsheetStyleOptions.map((a) => (
+				<Form.Check
+					key={a.value}
+					type="radio"
+					id={"spreadsheet-style-" + a.value}
+					title={a.description}
+					value={a.value}
+					checked={value === a.value}
+					onChange={() => setValue(a.value)}
+					label={a.label}
+				/>
+			))}
+		</>
+	);
+}
 function CommentsExportDropdown({
 	ballot,
-	methods,
+	close,
 }: {
 	ballot: Ballot;
-} & DropdownRendererProps) {
+	close: () => void;
+}) {
 	const dispatch = useAppDispatch();
 
 	const [format, setFormat] = React.useState<CommentsExportFormat>("modern");
 	const [style, setStyle] =
 		React.useState<CommentsExportStyle>("AllComments");
-	const [file, setFile] = React.useState<File | undefined>();
+	const [file, setFile] = React.useState<File | null>(null);
 	const [appendSheets, setAppendSheets] = React.useState<boolean>(false);
 	const [busy, setBusy] = React.useState(false);
 
-	const title =
-		"Export comments for " + getBallotId(ballot) + " to Excel spreadsheet";
 	let errorText: string | undefined;
 	if (format === "myproject" && !file)
 		errorText = "Select MyProject comment spreadsheet file";
 
-	async function submit() {
+	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
 		if (errorText) return;
 
 		setBusy(true);
@@ -47,138 +139,80 @@ function CommentsExportDropdown({
 				ballot.id,
 				format,
 				style,
-				file,
+				file || undefined,
 				appendSheets
 			)
 		);
 		setBusy(false);
-		methods.close();
+		close();
 	}
 
+	const title = (
+		<span>
+			Export comments for {getBallotId(ballot)} to Excel spreadsheet
+		</span>
+	);
+
 	return (
-		<Form
-			style={{ width: 450 }}
-			title={title}
-			errorText={errorText}
-			submit={submit}
-			cancel={methods.close}
-			busy={busy}
-		>
-			<Row>
-				<List label="Spreadsheet format:">
-					<ListItem>
-						<input
-							type="radio"
-							id="modern"
-							title={"Modern format"}
-							checked={format === "modern"}
-							onChange={() => setFormat("modern")}
-						/>
-						<label htmlFor="modern">Modern spreadsheet</label>
-					</ListItem>
-					<ListItem>
-						<input
-							type="radio"
-							id="legacy"
-							title={
-								"Legacy format; compatible APS Comments Access Database."
-							}
-							checked={format === "legacy"}
-							onChange={() => setFormat("legacy")}
-						/>
-						<label htmlFor="legacy">Legacy spreadsheet</label>
-					</ListItem>
-					<ListItem>
-						<input
-							type="radio"
-							id="myproject"
-							title="Export appoved resolutions for MyProject upload. Modifies an existing MyProject comment spreadsheet."
-							checked={format === "myproject"}
-							onChange={() => setFormat("myproject")}
-						/>
-						<label htmlFor="myproject">
-							All resolved comments for MyProject upload
-						</label>
-					</ListItem>
-				</List>
+		<Form style={{ width: 450 }} onSubmit={handleSubmit} className="p-3">
+			<Row className="mb-3">{title}</Row>
+			<Row className="mb-3">
+				<Col>
+					<SpreadsheetFormatSelect
+						value={format}
+						setValue={setFormat}
+					/>
+				</Col>
 			</Row>
-			<Row>
-				<List label="Spreadsheet style:">
-					<ListItem>
-						<input
-							type="radio"
-							id="AllComments"
-							title="Export all comments. Optionally updates existing spreadsheet."
-							checked={style === "AllComments"}
-							onChange={() => setStyle("AllComments")}
-						/>
-						<label htmlFor={"AllComments"}>All comments</label>
-					</ListItem>
-					<ListItem>
-						<input
-							type="radio"
-							id="TabPerAdHoc"
-							title="Export all comments plus a sheet for each ad-hoc. Optionally updates existing spreadsheet."
-							checked={style === "TabPerAdHoc"}
-							onChange={() => setStyle("TabPerAdHoc")}
-						/>
-						<label htmlFor="TabPerAdHoc">
-							All comments plus one sheet per ad-hoc
-						</label>
-					</ListItem>
-					<ListItem>
-						<input
-							type="radio"
-							id="TabPerCommentGroup"
-							title="Export all comments plus a sheet for each comment group. Optionally updates existing spreadsheet."
-							checked={style === "TabPerCommentGroup"}
-							onChange={() => setStyle("TabPerCommentGroup")}
-						/>
-						<label htmlFor="TabPerCommentGroup">
-							All comments plus one sheet per comment group
-						</label>
-					</ListItem>
-				</List>
+			<Row className="mb-3">
+				<Col>
+					<SpreadsheetStyleSelect value={style} setValue={setStyle} />
+				</Col>
 			</Row>
-			<Row>
-				<input
-					type="file"
-					id="fileInput"
-					accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-					onChange={(e) => {
-						setFile(e.target.files?.[0]);
-					}}
-				/>
-			</Row>
+			<Form.Group as={Row} controlId="spreadsheet-file" className="mb-3">
+				<Form.Label>Spreadsheet file (to modify):</Form.Label>
+				<Col>
+					<Form.Control
+						type="file"
+						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+							setFile(e.target.files ? e.target.files[0] : null)
+						}
+						isInvalid={format === "myproject" ? !file : undefined}
+					/>
+					<Form.Control.Feedback type="invalid">
+						Select spreadsheet file
+					</Form.Control.Feedback>
+				</Col>
+			</Form.Group>
 			{file && format === "modern" && (
-				<Row>
-					<List>
-						<ListItem>
-							<input
-								type="radio"
-								id="sheetAction"
-								title='Delete sheets (except for the "Title" and "Revision History" sheets).'
-								checked={!appendSheets}
-								onChange={() => setAppendSheets(false)}
-							/>
-							<label htmlFor="sheets">
-								Replace sheets (except Title and Revision
-								History)
-							</label>
-						</ListItem>
-						<ListItem>
-							<input
-								type="radio"
-								id="sheetAction"
-								title="Replace existing sheets with same name or append as new sheets."
-								checked={Boolean(appendSheets)}
-								onChange={() => setAppendSheets(true)}
-							/>
-							<label htmlFor="sheets">Append sheets</label>
-						</ListItem>
-					</List>
-				</Row>
+				<Form.Group as={Row}>
+					<Form.Check
+						type="radio"
+						id="append-sheets-false"
+						title='Delete sheets (except for the "Title" and "Revision History" sheets).'
+						checked={!appendSheets}
+						onChange={() => setAppendSheets(false)}
+						label="Replace sheets (except Title and Revision History"
+					/>
+					<Form.Check
+						type="radio"
+						id="append-sheets-true"
+						title="Replace existing sheets with same name or append as new sheets."
+						checked={Boolean(appendSheets)}
+						onChange={() => setAppendSheets(true)}
+						label="Append as new sheets"
+					/>
+				</Form.Group>
 			)}
+			<Row>
+				<Col className="d-flex justify-content-end">
+					<Button type="submit">
+						{busy && <Spinner size="sm" className="me-2" />}
+						OK
+					</Button>
+				</Col>
+			</Row>
 		</Form>
 	);
 }
@@ -190,15 +224,20 @@ function CommentsExport({
 	ballot?: Ballot;
 	disabled?: boolean;
 }) {
+	const [show, setShow] = React.useState(false);
 	return (
-		<ActionButtonDropdown
-			name="export"
+		<DropdownButton
+			variant="light"
+			show={show}
+			onToggle={() => setShow(!show)}
+			disabled={disabled}
 			title="Export to file"
-			disabled={!ballot || disabled}
-			dropdownRenderer={(props) => (
-				<CommentsExportDropdown ballot={ballot!} {...props} />
-			)}
-		/>
+		>
+			<CommentsExportDropdown
+				ballot={ballot!}
+				close={() => setShow(false)}
+			/>
+		</DropdownButton>
 	);
 }
 

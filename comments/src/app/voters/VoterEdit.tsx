@@ -1,13 +1,6 @@
 import React from "react";
-import {
-	Form,
-	Row,
-	Field,
-	Select,
-	shallowDiff,
-	AppModal,
-	Checkbox,
-} from "dot11-components";
+import { Row, Col, Form, Button, Spinner, Modal } from "react-bootstrap";
+import { Select, shallowDiff } from "@common";
 
 import MemberSelector from "./MemberSelector";
 
@@ -18,6 +11,33 @@ const statusOptions = [
 	{ value: "Voter", label: "Voter" },
 	{ value: "ExOfficio", label: "ExOfficio" },
 ];
+
+function SubmitCancel({
+	action,
+	busy,
+	cancel,
+}: {
+	action: "add" | "update" | null;
+	busy?: boolean;
+	cancel?: () => void;
+}) {
+	if (action !== "add" && action !== "update") return null;
+	return (
+		<Form.Group as={Row} className="mb-3">
+			<Col xs={6} className="d-flex justify-content-center">
+				<Button type="submit">
+					{busy && <Spinner size="sm" className="me-2" />}
+					{action === "add" ? "Add" : "Update"}
+				</Button>
+			</Col>
+			<Col xs={6} className="d-flex justify-content-center">
+				<Button variant="secondary" onClick={cancel}>
+					Cancel
+				</Button>
+			</Col>
+		</Form.Group>
+	);
+}
 
 function VoterEditForm({
 	voter,
@@ -30,7 +50,6 @@ function VoterEditForm({
 }) {
 	const dispatch = useAppDispatch();
 	const [state, setState] = React.useState(voter);
-	const [errMsg, setErrMsg] = React.useState("");
 
 	React.useEffect(() => setState(voter), [voter]);
 
@@ -43,18 +62,15 @@ function VoterEditForm({
 		changeState({ Status: value });
 	};
 
-	async function submit() {
-		if (!state.SAPIN) {
-			setErrMsg(`Select member`);
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
+		if (action === "add") {
+			await dispatch(addVoter(state));
 		} else {
-			if (action === "add") {
-				await dispatch(addVoter(state));
-			} else {
-				const changes = shallowDiff(voter, state);
-				await dispatch(updateVoter(voter.id!, changes));
-			}
-			close();
+			const changes = shallowDiff(voter, state);
+			await dispatch(updateVoter(voter.id!, changes));
 		}
+		close();
 	}
 
 	const title = action === "add" ? "Add voter" : "Update voter";
@@ -63,44 +79,68 @@ function VoterEditForm({
 		<Form
 			style={{ width: 500 }}
 			title={title}
-			submit={submit}
-			cancel={close}
-			errorText={errMsg}
+			onSubmit={handleSubmit}
+			className="p-3"
 		>
-			<Row>
-				<Field label="Member:">
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label column xs={2} htmlFor="voter-member-selector">
+					Member:
+				</Form.Label>
+				<Col>
 					<MemberSelector
-						style={{ maxWidth: 400, flex: 1 }}
+						id="voter-member-selector"
+						style={{ maxWidth: 400 }}
 						value={state.SAPIN}
 						onChange={(value) =>
 							setState({ ...state, SAPIN: value })
 						}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Status:">
+					<Form.Control
+						type="text"
+						hidden
+						required
+						isInvalid={!state.SAPIN}
+					/>
+					<Form.Control.Feedback type="invalid">
+						Select member
+					</Form.Control.Feedback>
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} controlId="voter-status" className="mb-3">
+				<Form.Label column xs={2}>
+					Status:
+				</Form.Label>
+				<Col>
 					<Select
-						style={{ width: 120 }}
+						style={{ width: 200 }}
 						values={[
-							statusOptions.find((v) => v.value === state.Status),
+							statusOptions.find(
+								(v) => v.value === state.Status
+							)!,
 						]}
 						options={statusOptions}
 						onChange={changeStatus}
-						portal={document.querySelector("#root")}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field id="excused" label="Excused:">
-					<Checkbox
+				</Col>
+			</Form.Group>
+			<Form.Group
+				as={Row}
+				controlId="voter-excused"
+				className="align-items-center mb-3"
+			>
+				<Form.Label column xs={2}>
+					Excused:
+				</Form.Label>
+				<Col>
+					<Form.Check
 						checked={state.Excused}
 						onChange={() =>
 							changeState({ Excused: !state.Excused })
 						}
 					/>
-				</Field>
-			</Row>
+				</Col>
+			</Form.Group>
+			<SubmitCancel action={action} busy={false} cancel={close} />
 		</Form>
 	);
 }
@@ -117,14 +157,11 @@ function VoterEditModal({
 	action: "add" | "update" | null;
 }) {
 	return (
-		<AppModal
-			isOpen={isOpen}
-			onRequestClose={close}
-			style={{ overflow: "unset" }}
-		>
+		<Modal show={isOpen} onHide={close}>
 			<VoterEditForm voter={voter} action={action} close={close} />
-		</AppModal>
+		</Modal>
 	);
+	return null;
 }
 
 export default VoterEditModal;

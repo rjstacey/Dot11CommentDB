@@ -1,4 +1,4 @@
-import { ActionButtonModal, Row, Col, FieldLeft } from "dot11-components";
+import { Button, Modal, Row, Col } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectCommentsState } from "@/store/comments";
@@ -24,6 +24,7 @@ import {
 import { EditingEdit } from "./ResolutionEditingEdit";
 
 import styles from "./CommentHistory.module.css";
+import React from "react";
 
 const BLANK_STR = "(Blank)";
 
@@ -32,10 +33,10 @@ function renderEntryHeader(leadIn: string, h: CommentHistoryEvent) {
 		h.Action === "add"
 			? "added"
 			: h.Action === "update"
-				? "updated"
-				: h.Action === "delete"
-					? "deleted"
-					: "error";
+			? "updated"
+			: h.Action === "delete"
+			? "deleted"
+			: "error";
 	return (
 		<div className="header">
 			<span>
@@ -54,7 +55,9 @@ function CommentAdd(entry: CommentHistoryEntry) {
 			{renderEntryHeader("Comment", entry)}
 			<div className="body">
 				<Row>
-					<FieldLeft label="CID:">{comment.CommentID}</FieldLeft>
+					<Col>
+						<span>CID: {comment.CommentID}</span>
+					</Col>
 				</Row>
 				<CommentBasics
 					comment={comment}
@@ -75,9 +78,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 	if ("CommentID" in changes)
 		body.push(
 			<Row key="cid">
-				<FieldLeft label="CID:">
-					{changes.CommentID || BLANK_STR}
-				</FieldLeft>
+				<span>CID: {changes.CommentID || BLANK_STR}</span>
 			</Row>
 		);
 
@@ -85,13 +86,11 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 		body.push(
 			<Row key="pageclause">
 				<Col>
-					{"Page" in changes && (
-						<FieldLeft label="Page:">{changes.Page}</FieldLeft>
-					)}
+					{"Page" in changes && <span>Page: {changes.Page}</span>}
 				</Col>
 				<Col>
 					{"Clause" in changes && (
-						<FieldLeft label="Page:">{changes.Clause}</FieldLeft>
+						<span>Clause: {changes.Clause}</span>
 					)}
 				</Col>
 			</Row>
@@ -235,13 +234,15 @@ function ChangeEntry(entry: CommentHistoryEntry) {
 }
 
 function CommentHistoryDisplay() {
+	const [show, setShow] = React.useState(false);
 	const dispatch = useAppDispatch();
 	const { selected, entities } = useAppSelector(selectCommentsState);
 	const { loading, commentsHistory } = useAppSelector(
 		selectCommentsHistoryState
 	);
 
-	const onOpen = () => {
+	const open = () => {
+		setShow(true);
 		if (selected.length) {
 			const id = selected[0];
 			const c = entities[id];
@@ -264,14 +265,23 @@ function CommentHistoryDisplay() {
 	);
 
 	return (
-		<ActionButtonModal
-			name="history"
-			title="Comment history"
-			disabled={selected.length === 0}
-			onRequestOpen={onOpen}
-		>
-			<Elements />
-		</ActionButtonModal>
+		<>
+			<Button
+				variant="outline-primary"
+				className="bi-clock-history"
+				onClick={open}
+				disabled={selected.length === 0}
+			/>
+			<Modal
+				show={show}
+				name="history"
+				title="Comment history"
+				disabled={selected.length === 0}
+				onHide={() => setShow(false)}
+			>
+				<Elements />
+			</Modal>
+		</>
 	);
 }
 

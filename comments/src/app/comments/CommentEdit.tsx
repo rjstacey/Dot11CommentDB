@@ -1,21 +1,13 @@
 import * as React from "react";
-
+import { Row, Col, Form, Accordion } from "react-bootstrap";
 import {
-	Row,
-	Col,
-	List,
-	Field,
-	FieldLeft,
-	Input,
-	Icon,
-	IconCollapse,
 	isMultiple,
 	type Multiple,
 	MULTIPLE,
 	deepMergeTagMultiple,
 	shallowDiff,
 	useDebounce,
-} from "dot11-components";
+} from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -73,16 +65,15 @@ export function renderCommenter(comment: Multiple<CommentEditable>) {
 	}
 	let vote: JSX.Element | null = null;
 	if (comment.Vote === "Approve") {
-		vote = <Icon type="vote-yes" />;
+		vote = <i className="icon icon-vote-yes ms-2" />;
 	} else if (comment.Vote === "Disapprove") {
-		vote = <Icon type="vote-no" />;
+		vote = <i className="icon icon-vote-no ms-2" />;
 	}
 	return (
-		<span>
+		<>
 			{commenter}
-			<>&nbsp;</>
 			{vote}
-		</span>
+		</>
 	);
 }
 
@@ -118,28 +109,36 @@ export const CommentAdHoc = ({
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
-	<Field label="Ad-hoc:">
-		<AdHocSelector
-			style={{ flexBasis: 150 }}
-			value={
-				isMultiple(comment.AdHoc) || isMultiple(comment.AdHocGroupId)
-					? { GroupId: null, Name: "" }
-					: { GroupId: comment.AdHocGroupId, Name: comment.AdHoc }
-			}
-			onChange={(value) =>
-				updateComment({
-					AdHocGroupId: value.GroupId,
-					AdHoc: value.Name,
-				})
-			}
-			placeholder={
-				isMultiple(comment.AdHoc) || isMultiple(comment.AdHocGroupId)
-					? MULTIPLE_STR
-					: BLANK_STR
-			}
-			readOnly={readOnly}
-		/>
-	</Field>
+	<Form.Group as={Row} className="mb-3">
+		<Form.Label htmlFor="ad-hoc" column xs="auto">
+			Ad-hoc:
+		</Form.Label>
+		<Col>
+			<AdHocSelector
+				id="ad-hoc"
+				style={{ flexBasis: 150 }}
+				value={
+					isMultiple(comment.AdHoc) ||
+					isMultiple(comment.AdHocGroupId)
+						? { GroupId: null, Name: "" }
+						: { GroupId: comment.AdHocGroupId, Name: comment.AdHoc }
+				}
+				onChange={(value) =>
+					updateComment({
+						AdHocGroupId: value.GroupId,
+						AdHoc: value.Name,
+					})
+				}
+				placeholder={
+					isMultiple(comment.AdHoc) ||
+					isMultiple(comment.AdHocGroupId)
+						? MULTIPLE_STR
+						: BLANK_STR
+				}
+				readOnly={readOnly}
+			/>
+		</Col>
+	</Form.Group>
 );
 
 export const CommentGroup = ({
@@ -151,21 +150,27 @@ export const CommentGroup = ({
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
-	<Field label="Comment group:">
-		<CommentGroupSelector
-			style={{ flexBasis: 300 }}
-			value={
-				isMultiple(comment.CommentGroup)
-					? ""
-					: comment.CommentGroup || ""
-			}
-			onChange={(value) => updateComment({ CommentGroup: value })}
-			placeholder={
-				isMultiple(comment.CommentGroup) ? MULTIPLE_STR : BLANK_STR
-			}
-			readOnly={readOnly}
-		/>
-	</Field>
+	<Form.Group as={Row} className="mb-3">
+		<Form.Label htmlFor="comment-group" column xs="auto">
+			Comment group:
+		</Form.Label>
+		<Col>
+			<CommentGroupSelector
+				id="comment-group"
+				style={{ flexBasis: 300 }}
+				value={
+					isMultiple(comment.CommentGroup)
+						? ""
+						: comment.CommentGroup || ""
+				}
+				onChange={(value) => updateComment({ CommentGroup: value })}
+				placeholder={
+					isMultiple(comment.CommentGroup) ? MULTIPLE_STR : BLANK_STR
+				}
+				readOnly={readOnly}
+			/>
+		</Col>
+	</Form.Group>
 );
 
 export function CommentNotes({
@@ -182,36 +187,41 @@ export function CommentNotes({
 	const dispatch = useAppDispatch();
 	const showNotes: boolean | undefined =
 		useAppSelector(selectCommentsState).ui.showNotes;
-	const toggleShowNotes = () =>
-		dispatch(setUiProperties({ showNotes: !showNotes }));
+	//const toggleShowNotes = () =>
+	//	dispatch(setUiProperties({ showNotes: !showNotes }));
+	const key = "comment-ad-hoc-notes";
 
 	return (
-		<Col className={styles.notesField}>
-			<div
-				style={{
-					display: "flex",
-					flex: 1,
-					justifyContent: "space-between",
-				}}
+		<Col>
+			<Accordion
+				defaultActiveKey={showNotes ? key : undefined}
+				activeKey={showNotes || forceShowNotes ? key : undefined}
+				onSelect={(eventKey) =>
+					dispatch(setUiProperties({ showNotes: Boolean(eventKey) }))
+				}
+				flush
+				className={styles.notesField}
 			>
-				<span className="label">Notes:</span>
-				{!forceShowNotes && (
-					<IconCollapse
-						isCollapsed={!showNotes}
-						onClick={toggleShowNotes}
-					/>
-				)}
-			</div>
-			{(showNotes || forceShowNotes) && (
-				<Editor
-					value={isMultiple(comment.Notes) ? "" : comment.Notes}
-					onChange={(value) => updateComment({ Notes: value })}
-					placeholder={
-						isMultiple(comment.Notes) ? MULTIPLE_STR : BLANK_STR
-					}
-					readOnly={readOnly}
-				/>
-			)}
+				<Accordion.Item eventKey={key}>
+					<Accordion.Header>Ad-hoc Notes:</Accordion.Header>
+					<Accordion.Body>
+						<Editor
+							value={
+								isMultiple(comment.Notes) ? "" : comment.Notes
+							}
+							onChange={(value) =>
+								updateComment({ Notes: value })
+							}
+							placeholder={
+								isMultiple(comment.Notes)
+									? MULTIPLE_STR
+									: BLANK_STR
+							}
+							readOnly={readOnly}
+						/>
+					</Accordion.Body>
+				</Accordion.Item>
+			</Accordion>
 		</Col>
 	);
 }
@@ -226,15 +236,15 @@ export const CommentCategorization = ({
 	readOnly?: boolean;
 }) => (
 	<>
-		<Row>
-			<Col>
+		<Row className="mb-3">
+			<Col xs={12} md={5}>
 				<CommentAdHoc
 					comment={comment}
 					updateComment={updateComment}
 					readOnly={readOnly}
 				/>
 			</Col>
-			<Col>
+			<Col xs={12} md={7}>
 				<CommentGroup
 					comment={comment}
 					updateComment={updateComment}
@@ -242,7 +252,7 @@ export const CommentCategorization = ({
 				/>
 			</Col>
 		</Row>
-		<Row>
+		<Row className="mb-3">
 			<CommentNotes
 				comment={comment}
 				updateComment={updateComment}
@@ -257,12 +267,10 @@ function commentPageValue(page: typeof MULTIPLE | number | null) {
 }
 
 function CommentPage({
-	id,
 	comment,
 	setComment,
 	readOnly,
 }: {
-	id?: string;
 	comment: Multiple<CommentEditable>;
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
@@ -300,42 +308,42 @@ function CommentPage({
 	}
 
 	return (
-		<>
-			<Input
-				id={id}
-				type="text"
-				size={10}
-				value={value}
-				onChange={onChange}
-				pattern={pattern}
-				placeholder={isMultiple(comment.Page) ? MULTIPLE_STR : ""}
-				disabled={readOnly}
-			/>
-			{showOriginal && (
-				<div
+		<Form.Group as={Row} controlId="comment-page-line">
+			<Form.Label column xs="auto">
+				Page/Line:
+			</Form.Label>
+			<Col>
+				<Form.Control
+					type="text"
+					value={value}
+					onChange={onChange}
+					pattern={pattern}
+					placeholder={isMultiple(comment.Page) ? MULTIPLE_STR : ""}
+					disabled={readOnly}
+				/>
+			</Col>
+			<Col xs="auto">
+				<Form.Text
 					style={{
 						display: "flex",
 						flexDirection: "column",
-						alignItems: "center",
 						fontSize: "x-small",
-						marginLeft: 5,
+						visibility: showOriginal ? "visible" : "hidden",
 					}}
 				>
 					<span>originally</span>
 					<span>{original}</span>
-				</div>
-			)}
-		</>
+				</Form.Text>
+			</Col>
+		</Form.Group>
 	);
 }
 
 function CommentClause({
-	id,
 	comment,
 	setComment,
 	readOnly,
 }: {
-	id?: string;
 	comment: Multiple<CommentEditable>;
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
@@ -344,31 +352,35 @@ function CommentClause({
 	const hasChanged = comment.Clause !== comment.C_Clause;
 
 	return (
-		<>
-			<Input
-				id={id}
-				type="text"
-				size={10}
-				value={isMultiple(comment.Clause) ? "" : comment.Clause || ""}
-				onChange={(e) => setComment({ Clause: e.target.value })}
-				placeholder={isMultiple(comment.Clause) ? MULTIPLE_STR : ""}
-				disabled={readOnly}
-			/>
-			{hasChanged && (
-				<div
+		<Form.Group as={Row} controlId="comment-clause">
+			<Form.Label column xs="auto">
+				Clause:
+			</Form.Label>
+			<Col xs={7}>
+				<Form.Control
+					type="text"
+					value={
+						isMultiple(comment.Clause) ? "" : comment.Clause || ""
+					}
+					onChange={(e) => setComment({ Clause: e.target.value })}
+					placeholder={isMultiple(comment.Clause) ? MULTIPLE_STR : ""}
+					disabled={readOnly}
+				/>
+			</Col>
+			<Col xs="auto">
+				<Form.Text
 					style={{
 						display: "flex",
 						flexDirection: "column",
-						alignItems: "center",
 						fontSize: "x-small",
-						marginLeft: 5,
+						visibility: hasChanged ? "visible" : "hidden",
 					}}
 				>
 					<span>originally</span>
 					<span>{comment.C_Clause}</span>
-				</div>
-			)}
-		</>
+				</Form.Text>
+			</Col>
+		</Form.Group>
 	);
 }
 
@@ -383,47 +395,44 @@ export function CommentBasics({
 }) {
 	return (
 		<>
-			<Row>
-				<FieldLeft label="Commenter:">
-					{renderCommenter(comment)}
-				</FieldLeft>
+			<Row className="mb-3">
+				<Col>
+					<Form.Label as="span">Commenter: </Form.Label>
+					<span>{renderCommenter(comment)}</span>
+				</Col>
 			</Row>
-			<Row>
-				<FieldLeft label="Category:" style={{ alignItems: "baseline" }}>
+			<Row className="mb-3">
+				<Col>
+					<Form.Label as="span">Category: </Form.Label>
 					{renderCategory(comment)}
 					<>&nbsp;&nbsp;</>
 					{renderMBS(comment)}
-				</FieldLeft>
-			</Row>
-			<Row>
-				<Col>
-					<FieldLeft id="page-line" label="Page/Line:">
-						<CommentPage
-							//key={comment.id}
-							comment={comment}
-							setComment={updateComment}
-							readOnly={readOnly}
-						/>
-					</FieldLeft>
-				</Col>
-				<Col>
-					<FieldLeft id="clause" label="Clause:">
-						<CommentClause
-							comment={comment}
-							setComment={updateComment}
-							readOnly={readOnly}
-						/>
-					</FieldLeft>
 				</Col>
 			</Row>
-			<Row>
-				<List label="Comment:">{renderTextBlock(comment.Comment)}</List>
+			<Row className="mb-3">
+				<Col xs={12} xl={6}>
+					<CommentPage
+						comment={comment}
+						setComment={updateComment}
+						readOnly={readOnly}
+					/>
+				</Col>
+				<Col xs={12} xl={6}>
+					<CommentClause
+						comment={comment}
+						setComment={updateComment}
+						readOnly={readOnly}
+					/>
+				</Col>
 			</Row>
-			<Row>
-				<List label="Proposed Change:">
-					{renderTextBlock(comment.ProposedChange)}
-				</List>
-			</Row>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label as="span">Comment:</Form.Label>
+				<div>{renderTextBlock(comment.Comment)}</div>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label as="span">Proposed Change:</Form.Label>
+				<div>{renderTextBlock(comment.ProposedChange)}</div>
+			</Form.Group>
 		</>
 	);
 }

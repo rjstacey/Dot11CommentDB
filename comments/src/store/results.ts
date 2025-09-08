@@ -7,7 +7,7 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
-} from "dot11-components";
+} from "@common";
 
 import type { RootState, AppThunk } from ".";
 import { AccessLevel } from "./user";
@@ -107,8 +107,8 @@ export const selectResultsEntities = (state: RootState) =>
 export const selectResultsBallot_id = (state: RootState) =>
 	selectResultsState(state).ballot_id;
 
-export type ResultExtended = Omit<Result, "lastSAPIN"> & {
-	lastSAPIN: number | null;
+export type ResultExtended = Result & {
+	//lastSAPIN: number | undefined;
 	BallotName: string | null;
 };
 
@@ -128,8 +128,8 @@ const selectResultExtendedEntities = createSelector(
 			}
 			const lastSAPIN =
 				(entity!.lastSAPIN === entity!.SAPIN
-					? null
-					: entity!.lastSAPIN) || null;
+					? undefined
+					: entity!.lastSAPIN) || undefined;
 			newEntities[entity!.id] = {
 				...entity!,
 				lastSAPIN,
