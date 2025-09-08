@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Nav, NavLink } from "react-bootstrap";
+import { Nav, NavLink, Container } from "react-bootstrap";
 import { Counts, Report, reports, useReportData } from "./reportData";
 import ReportsActions from "./actions";
 
@@ -98,19 +98,21 @@ function Reports() {
 	return (
 		<>
 			<ReportsActions onCopy={() => renderTableToClipboard(data)} />
-			<div className={styles.body}>
+			<Container fluid className="d-flex flex-grow overflow-hidden">
 				<Nav variant="underline" className="flex-column me-3">
 					<h3>Select a report:</h3>
 					{reports.map((report) => (
 						<ReportButton
 							key={report}
-							report={report as Report}
+							report={report}
 							label={report}
 						/>
 					))}
 				</Nav>
-				<div className={styles.mainCol}>{renderTable(data)}</div>
-			</div>
+				<Container className="d-flex flex-grow overflow-auto">
+					{renderTable(data)}
+				</Container>
+			</Container>
 		</>
 	);
 }

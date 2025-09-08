@@ -1,4 +1,4 @@
-import { Spinner, Button } from "react-bootstrap";
+import { Spinner, Button, Row, Col } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
@@ -16,13 +16,10 @@ function EpollsActions() {
 	const isOnline = useAppSelector(selectIsOnline);
 
 	return (
-		<div className="top-row">
-			<span>
-				<label>Closed ePolls</label>
-			</span>
-			<Spinner style={{ visibility: loading ? "visible" : "hidden" }} />
+		<Row className="w-100 d-flex justify-content-end align-items-center m-2">
 			<BallotsSubmenu />
-			<span>
+			<Spinner style={{ visibility: loading ? "visible" : "hidden" }} />
+			<Col xs="auto" className="d-flex justify-content-end gap-2">
 				<Button
 					variant="outline-secondary"
 					className="bi-chevron-double-down"
@@ -38,8 +35,8 @@ function EpollsActions() {
 					onClick={() => dispatch(refreshEpolls())}
 					disabled={loading || !isOnline}
 				/>
-			</span>
-		</div>
+			</Col>
+		</Row>
 	);
 }
 

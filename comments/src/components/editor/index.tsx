@@ -119,6 +119,7 @@ const editorConfig = {
 };
 
 function Editor({
+	id,
 	className,
 	style,
 	value,
@@ -126,6 +127,7 @@ function Editor({
 	readOnly,
 	placeholder = "Enter text here...",
 }: {
+	id?: string;
 	className?: string;
 	style?: React.CSSProperties;
 	value: string | null;
@@ -138,6 +140,7 @@ function Editor({
 	return (
 		<LexicalComposer initialConfig={editorConfig}>
 			<RichTextPlugin
+				id={id}
 				className={className}
 				style={style}
 				placeholder={placeholder}

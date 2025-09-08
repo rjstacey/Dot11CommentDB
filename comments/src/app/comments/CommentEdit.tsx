@@ -187,8 +187,6 @@ export function CommentNotes({
 	const dispatch = useAppDispatch();
 	const showNotes: boolean | undefined =
 		useAppSelector(selectCommentsState).ui.showNotes;
-	//const toggleShowNotes = () =>
-	//	dispatch(setUiProperties({ showNotes: !showNotes }));
 	const key = "comment-ad-hoc-notes";
 
 	return (
@@ -203,9 +201,14 @@ export function CommentNotes({
 				className={styles.notesField}
 			>
 				<Accordion.Item eventKey={key}>
-					<Accordion.Header>Ad-hoc Notes:</Accordion.Header>
+					<Accordion.Header>
+						<Form.Label htmlFor="comment-notes">
+							Ad-hoc Notes:
+						</Form.Label>
+					</Accordion.Header>
 					<Accordion.Body>
 						<Editor
+							id="comment-notes"
 							value={
 								isMultiple(comment.Notes) ? "" : comment.Notes
 							}
@@ -319,7 +322,7 @@ function CommentPage({
 					onChange={onChange}
 					pattern={pattern}
 					placeholder={isMultiple(comment.Page) ? MULTIPLE_STR : ""}
-					disabled={readOnly}
+					readOnly={readOnly}
 				/>
 			</Col>
 			<Col xs="auto">
@@ -364,7 +367,7 @@ function CommentClause({
 					}
 					onChange={(e) => setComment({ Clause: e.target.value })}
 					placeholder={isMultiple(comment.Clause) ? MULTIPLE_STR : ""}
-					disabled={readOnly}
+					readOnly={readOnly}
 				/>
 			</Col>
 			<Col xs="auto">

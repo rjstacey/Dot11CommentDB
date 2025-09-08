@@ -82,8 +82,8 @@ function EditStatus({
 						}
 						checked={resolution.EditStatus === "I"}
 						onChange={changeEditStatus}
-						disabled={readOnly}
 						label="Implemented in draft"
+						readOnly={readOnly}
 					/>
 				</Col>
 				<Col>
@@ -96,7 +96,7 @@ function EditStatus({
 						value={editInDraft || ""}
 						onChange={changeEditStatus}
 						placeholder={placeholder}
-						disabled={readOnly}
+						readOnly={readOnly}
 					/>
 				</Col>
 			</Row>
@@ -114,8 +114,8 @@ function EditStatus({
 						}
 						checked={resolution.EditStatus === "N"}
 						onChange={changeEditStatus}
-						disabled={readOnly}
 						label="No change"
+						readOnly={readOnly}
 					/>
 				</Col>
 			</Row>

@@ -146,7 +146,7 @@ export function ResolutionApproval({
 								ReadyForMotion: e.target.checked,
 							})
 						}
-						disabled={readOnly}
+						readOnly={readOnly}
 						label="Ready for motion"
 					/>
 				</Col>
@@ -164,19 +164,18 @@ export function ResolutionApproval({
 						}
 						checked={!!resolution.ApprovedByMotion}
 						onChange={changeApproved}
-						disabled={readOnly}
+						readOnly={readOnly}
 						label="Approved by motion"
 					/>
 				</Col>
 				<Col>
 					<Form.Control
 						type="search"
-						//size={value.length || placeholder.length}
 						name="ApprovedByMotion"
 						value={value}
 						onChange={changeApproved}
 						placeholder={placeholder}
-						disabled={readOnly}
+						readOnly={readOnly}
 					/>
 				</Col>
 			</Form.Group>
@@ -213,7 +212,7 @@ function ResnStatus({
 				checked={value === "A"}
 				ref={(ref) => ref && (ref.indeterminate = isMultiple(value))}
 				onChange={handleChange}
-				disabled={readOnly}
+				readOnly={readOnly}
 				label="ACCEPTED"
 			/>
 			<Form.Check
@@ -223,7 +222,7 @@ function ResnStatus({
 				checked={value === "V"}
 				ref={(ref) => ref && (ref.indeterminate = isMultiple(value))}
 				onChange={handleChange}
-				disabled={readOnly}
+				readOnly={readOnly}
 				label="REVISED"
 			/>
 			<Form.Check
@@ -233,7 +232,7 @@ function ResnStatus({
 				checked={value === "J"}
 				ref={(ref) => ref && (ref.indeterminate = isMultiple(value))}
 				onChange={handleChange}
-				disabled={readOnly}
+				readOnly={readOnly}
 				label="REJECTED"
 			/>
 		</Form.Group>

@@ -274,8 +274,7 @@ function CommentsImportDropdown({
 
 	const title = (
 		<span>
-			Import fields for <em>{getBallotId(ballot)}</em> from Excel
-			spreadsheet
+			Import fields for {getBallotId(ballot)} from Excel spreadsheet
 		</span>
 	);
 
@@ -316,7 +315,7 @@ function CommentsImportDropdown({
 						isInvalid={!file}
 					/>
 					<Form.Control.Feedback type="invalid">
-						Select spreadsheet file
+						Select a spreadsheet file
 					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>

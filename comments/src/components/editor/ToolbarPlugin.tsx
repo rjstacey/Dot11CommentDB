@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Dropdown, DropdownButton, Button } from "react-bootstrap";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	CAN_REDO_COMMAND,
@@ -46,8 +47,6 @@ import {
 	$isQuoteNode,
 } from "@lexical/rich-text";
 import { $createCodeNode, $isCodeNode } from "@lexical/code";
-
-import { Dropdown, DropdownRendererProps } from "dot11-components";
 
 import styles from "./editor.module.css";
 
@@ -241,18 +240,13 @@ function BlockStyleButtons({
 		<div className="button-group">
 			{buttons}
 			{moreButtons.length > 0 && (
-				<Dropdown
-					selectRenderer={() => (
-						<button disabled={disabled}>
-							<i className="bi-three-dots-vertical" />
-						</button>
-					)}
-					dropdownRenderer={() => (
-						<div className="button-group">{moreButtons}</div>
-					)}
+				<DropdownButton
+					title={<i className="bi-three-dots-vertical" />}
+					align="end"
 					disabled={disabled}
-					dropdownAlign="right"
-				/>
+				>
+					<div className="button-group">{moreButtons}</div>
+				</DropdownButton>
 			)}
 		</div>
 	);
@@ -348,30 +342,28 @@ function InlineStyleButtons({
 
 	let buttons = inlineFormatOptions
 		.map((o) => (
-			<button
+			<Button
 				key={o.value}
-				className={formats.includes(o.value) ? "active" : ""}
 				disabled={disabled}
 				onClick={() => {
 					editor.dispatchCommand(FORMAT_TEXT_COMMAND, o.value);
 				}}
-				aria-label={o.label}
 				title={o.label}
+				active={formats.includes(o.value)}
 			>
 				<i className={o.icon} />
-			</button>
+			</Button>
 		))
 		.concat(
-			<button
+			<Button
 				key="link"
-				className={isLink ? "active" : ""}
 				disabled={disabled}
 				onClick={insertLink}
-				aria-label="Insert Link"
 				title={(isLink ? "Remove" : "Insert") + " link"}
+				active={isLink}
 			>
 				<i className="bi-link" />
-			</button>
+			</Button>
 		);
 	let moreButtons: JSX.Element[] = [];
 
@@ -386,18 +378,14 @@ function InlineStyleButtons({
 		<div className="button-group">
 			{buttons}
 			{moreButtons.length > 0 && (
-				<Dropdown
-					selectRenderer={() => (
-						<button disabled={disabled}>
-							<i className="bi-three-dots-vertical" />
-						</button>
-					)}
-					dropdownRenderer={() => (
-						<div className="button-group">{moreButtons}</div>
-					)}
+				<DropdownButton
+					title=""
+					align={size === "small" ? "start" : "end"}
 					disabled={disabled}
-					dropdownAlign={size === "small" ? "left" : "right"}
-				/>
+					className="bi-three-dots-vertical"
+				>
+					<div className="button-group">{moreButtons}</div>
+				</DropdownButton>
 			)}
 		</div>
 	);
@@ -435,44 +423,26 @@ function SelectAlignment({
 		else editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value);
 	}
 
-	const selectRenderer: (
-		props: DropdownRendererProps
-	) => JSX.Element = () => (
-		<button disabled={disabled}>
-			<i className="bi-text-left" />
-			<i className="bi-chevron-down" style={{ fontSize: "0.5em" }} />
-		</button>
-	);
-
-	const dropdownRenderer: (
-		props: DropdownRendererProps
-	) => JSX.Element = () => (
-		<>
+	return (
+		<DropdownButton
+			title={<i className="bi-text-left" />}
+			align="end"
+			disabled={disabled}
+		>
 			{alignmentOptions.map((o, i) =>
 				o.value ? (
-					<button
+					<Dropdown.Item
 						key={i}
 						className={value === o.value ? "active" : undefined}
 						onClick={() => onChange(o.value!)}
 					>
 						<i className={o.icon} />
-					</button>
+					</Dropdown.Item>
 				) : (
-					<div key={i} className={styles.divider} />
+					<Dropdown.Divider key={i} className={styles.divider} />
 				)
 			)}
-		</>
-	);
-
-	return (
-		<Dropdown
-			style={{ flexDirection: "row" }}
-			selectRenderer={selectRenderer}
-			dropdownRenderer={dropdownRenderer}
-			dropdownAlign="right"
-			dropdownClassName="dropdown-container"
-			disabled={disabled}
-		/>
+		</DropdownButton>
 	);
 }
 
@@ -511,7 +481,7 @@ function UndoRedo({
 
 	return (
 		<div className="button-group">
-			<button
+			<Button
 				disabled={!canUndo || disabled}
 				onClick={() => {
 					editor.dispatchCommand(UNDO_COMMAND, undefined);
@@ -520,8 +490,8 @@ function UndoRedo({
 				title="Undo (Ctrl-z)"
 			>
 				<i className="bi-arrow-counterclockwise" />
-			</button>
-			<button
+			</Button>
+			<Button
 				disabled={!canRedo || disabled}
 				onClick={() => {
 					editor.dispatchCommand(REDO_COMMAND, undefined);
@@ -530,7 +500,7 @@ function UndoRedo({
 				title="Redo (Ctrl-r)"
 			>
 				<i className="bi-arrow-clockwise" />
-			</button>
+			</Button>
 		</div>
 	);
 }

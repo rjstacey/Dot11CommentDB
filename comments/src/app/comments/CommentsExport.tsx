@@ -170,7 +170,7 @@ function CommentsExportDropdown({
 				</Col>
 			</Row>
 			<Form.Group as={Row} controlId="spreadsheet-file" className="mb-3">
-				<Form.Label>Spreadsheet file (to modify):</Form.Label>
+				<Form.Label>Spreadsheet file:</Form.Label>
 				<Col>
 					<Form.Control
 						type="file"
@@ -181,8 +181,13 @@ function CommentsExportDropdown({
 						isInvalid={format === "myproject" ? !file : undefined}
 					/>
 					<Form.Control.Feedback type="invalid">
-						Select spreadsheet file
+						Select a spreadsheet file to update
 					</Form.Control.Feedback>
+					{format !== "myproject" && (
+						<Form.Text>
+							Optionally select a spreadsheet file to update
+						</Form.Text>
+					)}
 				</Col>
 			</Form.Group>
 			{file && format === "modern" && (
@@ -209,7 +214,7 @@ function CommentsExportDropdown({
 				<Col className="d-flex justify-content-end">
 					<Button type="submit">
 						{busy && <Spinner size="sm" className="me-2" />}
-						OK
+						Export
 					</Button>
 				</Col>
 			</Row>

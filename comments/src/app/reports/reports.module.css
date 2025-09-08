@@ -64,38 +64,3 @@
 .table tr:nth-of-type(even) td {
 	background: #fafafa;
 }
-
-.body {
-	flex: 1;
-	width: 100%;
-	max-width: 1400px;
-	display: flex;
-	flex-direction: row;
-	overflow: hidden;
-}
-
-.selectCol {
-	display: flex;
-	flex-direction: column;
-	padding: 0 20px;
-}
-
-.selectCol label {
-	font-weight: 700;
-}
-
-.selectCol :not(label) {
-	margin: 10px 0;
-}
-
-.mainCol {
-	max-height: 100%;
-	overflow: auto;
-}
-
-.actionsCol {
-	flex: 0 0 fit-content;
-	display: flex;
-	flex-direction: column;
-	padding: 0 20px;
-}
