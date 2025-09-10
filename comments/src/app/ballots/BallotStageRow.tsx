@@ -48,7 +48,7 @@ export function BallotStageRow({
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const prevBallot = useAppSelector((state) =>
+	const prevBallot = useAppSelector((state: RootState) =>
 		selectPrevBallot(state, ballot)
 	);
 

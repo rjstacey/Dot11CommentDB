@@ -54,7 +54,8 @@ function ImportResults({
 
 	return (
 		<Button variant="light" onClick={handleImportResults}>
-			{(ballot.Results ? "Reimport" : "Import") + " from ePoll"}
+			{(ballot.Results?.TotalReturns ? "Reimport" : "Import") +
+				" from ePoll"}
 		</Button>
 	);
 }
@@ -67,27 +68,32 @@ function UploadResults({
 	setBusy: (busy: boolean) => void;
 }) {
 	const dispatch = useAppDispatch();
-	const fileRef = React.useRef<HTMLInputElement>(null);
+	const inputRef = React.useRef<HTMLInputElement>(null);
 	const [inputValue, setInputValue] = React.useState("");
 
 	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		setInputValue(e.target.value);
-		const { files } = e.target;
-		if (files && files.length > 0) {
-			setBusy(true);
-			await dispatch(uploadResults(ballot.id, files[0]));
-			setBusy(false);
-			setInputValue("");
+		const file = e.target.files?.[0];
+		if (!file) return;
+		if (ballot.Results?.TotalReturns) {
+			const ok = await ConfirmModal.show(
+				"Are you sure you want to replace the existing results?"
+			);
+			if (!ok) return;
 		}
+		setBusy(true);
+		await dispatch(uploadResults(ballot.id, file));
+		setBusy(false);
+		setInputValue("");
 	};
 
 	return (
 		<>
-			<Button variant="light" onClick={() => fileRef.current?.click()}>
+			<Button variant="light" onClick={() => inputRef.current?.click()}>
 				Upload results
 			</Button>
 			<input
-				ref={fileRef}
+				ref={inputRef}
 				type="file"
 				style={{ display: "none" }}
 				accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

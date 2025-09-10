@@ -14,7 +14,6 @@ import {
 	Ballot,
 	BallotChange,
 	BallotUpdate,
-	BallotType,
 } from "@/store/ballots";
 
 import { BallotEdit } from "./BallotEdit";
@@ -54,7 +53,6 @@ export function BallotEditForm({
 
 	const triggerSave = useDebounce(() => {
 		const changes = shallowDiff(saved!, edited!) as BallotChange;
-		console.log(changes);
 		let updates: BallotUpdate[] = [];
 		if (Object.keys(changes).length > 0) {
 			updates = ballots.map((b) => ({ id: b.id, changes }));
@@ -88,9 +86,11 @@ export function BallotEditForm({
 
 	const actions = ballot ? (
 		<>
-			{ballot.Type === BallotType.WG && (
-				<VotersActions ballot={ballot} readOnly={readOnly} />
-			)}
+			<VotersActions
+				ballot={ballot}
+				setBusy={setBusy}
+				readOnly={readOnly}
+			/>
 			<ResultsActions
 				ballot={ballot}
 				setBusy={setBusy}
@@ -105,13 +105,15 @@ export function BallotEditForm({
 	) : null;
 
 	return (
-		<Form>
-			<BallotEdit
-				ballot={edited}
-				updateBallot={handleUpdate}
-				readOnly={readOnly}
-			/>
+		<>
+			<Form>
+				<BallotEdit
+					ballot={edited}
+					updateBallot={handleUpdate}
+					readOnly={readOnly}
+				/>
+			</Form>
 			{actions}
-		</Form>
+		</>
 	);
 }

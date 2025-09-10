@@ -186,7 +186,7 @@ function BallotDetail({
 			/>
 			<Button
 				variant="outline-primary"
-				className="bi-plus"
+				className="bi-plus-lg"
 				title="Add ballot"
 				disabled={!isOnline}
 				active={action === "add"}

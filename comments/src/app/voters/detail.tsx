@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "react-bootstrap";
+import { Row, Col, Spinner, Button } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
@@ -13,7 +13,7 @@ import {
 } from "@/store/voters";
 
 import ShowAccess from "@/components/ShowAccess";
-import { VoterEditForm } from "./VoterEdit";
+import { VoterEditForm } from "./VoterEditForm";
 
 export function getDefaultVoter(ballot_id: number): VoterCreate {
 	return {
@@ -24,7 +24,7 @@ export function getDefaultVoter(ballot_id: number): VoterCreate {
 }
 
 const Placeholder = (props: React.ComponentProps<"span">) => (
-	<div className="placeholder">
+	<div className="details-panel-placeholder">
 		<span {...props} />
 	</div>
 );
@@ -56,6 +56,7 @@ function VoterDetail({
 	const [defaultVoter, setDefaultVoter] = React.useState<
 		VoterCreate | undefined
 	>();
+	const [busy, setBusy] = React.useState(false);
 
 	React.useEffect(() => {
 		setDefaultVoter(selectedVoters[0]);
@@ -130,10 +131,21 @@ function VoterDetail({
 
 	return (
 		<>
-			<div className="top-row">
-				<h3>{title}</h3>
-				<div>{actionButtons}</div>
-			</div>
+			<Row className="align-items-center mb-3">
+				<Col>
+					<h3>{title}</h3>
+				</Col>
+				<Col>
+					<Spinner
+						size="sm"
+						className={busy ? "visible" : "invisible"}
+					/>
+				</Col>
+				<Col xs="auto" className="d-flex gap-2">
+					{actionButtons}
+				</Col>
+			</Row>
+
 			{placeholder ? (
 				<Placeholder>{placeholder}</Placeholder>
 			) : (
@@ -142,6 +154,7 @@ function VoterDetail({
 						action={action}
 						voter={defaultVoter!}
 						cancel={cancelClick}
+						setBusy={setBusy}
 						readOnly={!edit}
 					/>
 				)

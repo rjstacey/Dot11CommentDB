@@ -1,4 +1,3 @@
-import React from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple, Multiple } from "@common";
 
@@ -6,71 +5,12 @@ import { useAppSelector } from "@/store/hooks";
 import {
 	Ballot,
 	BallotChange,
-	getBallotId,
 	BallotType,
 	BallotTypeLabels,
-	selectBallotIds,
-	selectBallotEntities,
 	selectBallots,
 } from "@/store/ballots";
-import { DateTime } from "luxon";
-import { createSelector } from "@reduxjs/toolkit";
-import { RootState } from "@/store";
 
-const BLANK_STR = "(Blank)";
-const MULTIPLE_STR = "(Multiple)";
-
-const selectPrevBallot = createSelector(
-	selectBallotIds,
-	selectBallotEntities,
-	(state: RootState, ballot: Multiple<Ballot>) => ballot,
-	(ids, entities, ballot) => {
-		if (isMultiple(ballot.id)) return;
-		const prevBallots: Ballot[] = ids
-			.map((id) => entities[id]!)
-			.filter(
-				(b) =>
-					b.Type === ballot.Type &&
-					b.groupId === ballot.groupId &&
-					b.Project === ballot.Project &&
-					DateTime.fromISO(b.Start!) <
-						DateTime.fromISO(ballot.Start!) &&
-					b.id !== ballot.id
-			)
-			.sort(
-				(b1, b2) =>
-					DateTime.fromISO(b1.Start!).valueOf() -
-					DateTime.fromISO(b2.Start!).valueOf()
-			);
-		if (prevBallots.length > 0) return prevBallots[prevBallots.length - 1];
-	}
-);
-
-const selectBallotSeries = createSelector(
-	selectBallotIds,
-	selectBallotEntities,
-	(state: RootState, ballot: Multiple<Ballot>) => ballot,
-	(ids, entities, ballotIn) => {
-		const ballotSeries: Ballot[] = [];
-		if (!isMultiple(ballotIn.id)) {
-			let ballot: Ballot | undefined = ballotIn as Ballot;
-			ballotSeries.unshift(ballot);
-			while (ballot?.prev_id) {
-				ballot = entities[ballot.prev_id];
-				if (ballot) ballotSeries.unshift(ballot);
-			}
-			ballot = ballotIn as Ballot;
-			for (const id of ids) {
-				const b = entities[id]!;
-				if (b.prev_id === ballot.id) {
-					ballot = b;
-					ballotSeries.push(ballot);
-				}
-			}
-		}
-		return ballotSeries;
-	}
-);
+import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 
 function nextBallotNumber(ballots: Ballot[], id: number, type: number) {
 	let maxNumber = 0;
@@ -79,144 +19,6 @@ function nextBallotNumber(ballots: Ballot[], id: number, type: number) {
 			maxNumber = b.number;
 	}
 	return maxNumber + 1;
-}
-
-function BallotSeries({
-	ballot,
-	updateBallot,
-	readOnly,
-}: {
-	ballot: Multiple<Ballot>;
-	updateBallot: (changes: BallotChange) => void;
-	readOnly?: boolean;
-}) {
-	const ballotSeries = useAppSelector((state) =>
-		selectBallotSeries(state, ballot)
-	);
-	const isLast = ballot.id === ballotSeries[ballotSeries.length - 1]?.id;
-
-	const ballotSeriesStr = ballotSeries.map((b, i) => (
-		<span
-			key={b.id}
-			style={{
-				marginRight: 20,
-				fontWeight: ballot.id === b.id ? "bold" : "normal",
-			}}
-		>
-			{getBallotId({ ...b, stage: i })}
-		</span>
-	));
-
-	return (
-		<Form.Group
-			as={Row}
-			controlId="BallotSeries"
-			className="align-items-center mb-3"
-			readOnly={readOnly}
-		>
-			<Form.Label column xs="auto">
-				Ballot series:
-			</Form.Label>
-			<Col className="d-flex justify-content-end align-items-center">
-				<div>{ballotSeriesStr}</div>
-				<Form.Check
-					label="Final in series"
-					checked={Boolean(ballot.IsComplete)}
-					onChange={
-						readOnly
-							? () => {}
-							: (e) =>
-									updateBallot({
-										IsComplete: e.target.checked,
-									})
-					}
-					ref={(ref) =>
-						ref &&
-						(ref.indeterminate = isMultiple(ballot.IsComplete))
-					}
-					disabled={!isLast}
-				/>
-			</Col>
-		</Form.Group>
-	);
-}
-
-export function BallotStageRow({
-	ballot,
-	updateBallot,
-	readOnly,
-}: {
-	ballot: Multiple<Ballot>;
-	updateBallot: (changes: BallotChange) => void;
-	readOnly?: boolean;
-}) {
-	const prevBallot = useAppSelector((state) =>
-		selectPrevBallot(state, ballot)
-	);
-
-	if (ballot.Type !== BallotType.WG && ballot.Type !== BallotType.SA)
-		return null;
-
-	return (
-		<>
-			<Row className="mb-3">
-				<Form.Label column>Ballot stage:</Form.Label>
-				<Col className="d-flex flex-wrap">
-					<Form.Check
-						style={{ width: 120 }}
-						label="Initial"
-						checked={!ballot.prev_id}
-						onChange={
-							readOnly
-								? () => {}
-								: (e) =>
-										updateBallot(
-											e.target.checked
-												? {
-														prev_id: null,
-												  }
-												: {
-														prev_id: prevBallot!.id,
-												  }
-										)
-						}
-						ref={(ref) =>
-							ref &&
-							(ref.indeterminate = isMultiple(ballot.prev_id))
-						}
-					/>
-					<Form.Check
-						style={{ width: 120 }}
-						label="Recirc"
-						checked={Boolean(ballot.prev_id)}
-						onChange={
-							readOnly
-								? () => {}
-								: (e) =>
-										updateBallot(
-											e.target.checked
-												? {
-														prev_id: prevBallot!.id,
-												  }
-												: {
-														prev_id: null,
-												  }
-										)
-						}
-						ref={(ref) =>
-							ref &&
-							(ref.indeterminate = isMultiple(ballot.prev_id))
-						}
-					/>
-				</Col>
-			</Row>
-			<BallotSeries
-				ballot={ballot}
-				updateBallot={updateBallot}
-				readOnly={readOnly}
-			/>
-		</>
-	);
 }
 
 export function BallotTypeRow({
@@ -234,7 +36,6 @@ export function BallotTypeRow({
 		if (type !== ballot.Type) {
 			updateBallot({
 				Type: type,
-				//IsRecirc: false,
 				prev_id: null,
 			});
 			if (!isMultiple(ballot.id)) {

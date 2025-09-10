@@ -31,6 +31,11 @@ export function BallotEdit({
 				updateBallot={updateBallot}
 				readOnly={readOnly}
 			/>
+			<BallotDocumentRow
+				ballot={ballot}
+				updateBallot={updateBallot}
+				readOnly={readOnly}
+			/>
 			<BallotTypeRow
 				ballot={ballot}
 				updateBallot={updateBallot}
@@ -52,11 +57,6 @@ export function BallotEdit({
 				readOnly={readOnly}
 			/>
 			<BallotEpollRow
-				ballot={ballot}
-				updateBallot={updateBallot}
-				readOnly={readOnly}
-			/>
-			<BallotDocumentRow
 				ballot={ballot}
 				updateBallot={updateBallot}
 				readOnly={readOnly}

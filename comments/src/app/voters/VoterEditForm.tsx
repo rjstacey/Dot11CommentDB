@@ -1,57 +1,39 @@
 import React from "react";
-import { Row, Col, Form, Button, Spinner } from "react-bootstrap";
+import { Row, Col, Form } from "react-bootstrap";
 import { Select, shallowDiff } from "@common";
 
 import MemberSelector from "./MemberSelector";
 
 import { useAppDispatch } from "@/store/hooks";
 import { VoterCreate, addVoter, updateVoter } from "@/store/voters";
+import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 const statusOptions = [
 	{ value: "Voter", label: "Voter" },
 	{ value: "ExOfficio", label: "ExOfficio" },
 ];
 
-function SubmitCancel({
-	action,
-	busy,
-	cancel,
-}: {
-	action: "add" | "update" | null;
-	busy?: boolean;
-	cancel?: () => void;
-}) {
-	if (action !== "add" && action !== "update") return null;
-	return (
-		<Form.Group as={Row} className="mb-3">
-			<Col xs={6} className="d-flex justify-content-center">
-				<Button variant="secondary" onClick={cancel}>
-					Cancel
-				</Button>
-			</Col>
-			<Col xs={6} className="d-flex justify-content-center">
-				<Button type="submit">
-					{busy && <Spinner size="sm" className="me-2" />}
-					{action === "add" ? "Add" : "Update"}
-				</Button>
-			</Col>
-		</Form.Group>
-	);
-}
-
 export function VoterEditForm({
 	voter,
 	action,
 	cancel,
+	setBusy,
 	readOnly,
 }: {
 	voter: VoterCreate;
 	action: "add" | "update" | null;
 	cancel: () => void;
+	setBusy: (busy: boolean) => void;
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
 	const [state, setState] = React.useState(voter);
+	const hasUpdates = React.useMemo(() => {
+		if (action === "add") return true;
+		const changes = shallowDiff(voter, state);
+		console.log(changes);
+		return Object.keys(changes).length > 0;
+	}, [action, state, voter]);
 
 	React.useEffect(() => setState(voter), [voter]);
 
@@ -66,16 +48,18 @@ export function VoterEditForm({
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
+		setBusy(true);
 		if (action === "add") {
 			await dispatch(addVoter(state));
 		} else {
 			const changes = shallowDiff(voter, state);
 			await dispatch(updateVoter(voter.id!, changes));
 		}
+		setBusy(false);
 	}
 
 	return (
-		<Form onSubmit={handleSubmit} className="p-3">
+		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
 			<Form.Group as={Row} className="mb-3">
 				<Form.Label column xs={2} htmlFor="voter-member-selector">
 					Member:
@@ -89,8 +73,8 @@ export function VoterEditForm({
 							setState({ ...state, SAPIN: value })
 						}
 						readOnly={readOnly}
+						isInvalid={!state.SAPIN}
 					/>
-					<Form.Control type="text" hidden isInvalid={!state.SAPIN} />
 					<Form.Control.Feedback type="invalid">
 						Select member
 					</Form.Control.Feedback>
@@ -135,8 +119,11 @@ export function VoterEditForm({
 					/>
 				</Col>
 			</Form.Group>
-			{!readOnly && (
-				<SubmitCancel action={action} busy={false} cancel={cancel} />
+			{!readOnly && hasUpdates && (
+				<SubmitCancelRow
+					submitLabel={action === "add" ? "Add" : "Update"}
+					cancel={cancel}
+				/>
 			)}
 		</Form>
 	);

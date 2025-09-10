@@ -1,12 +1,5 @@
 import React from "react";
-import {
-	Row,
-	Col,
-	Form,
-	DropdownButton,
-	Button,
-	Spinner,
-} from "react-bootstrap";
+import { Row, Col, Form, DropdownButton } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -15,12 +8,16 @@ import {
 } from "@/store/voters";
 import { BallotType, type Ballot } from "@/store/ballots";
 
+import { SubmitCancelRow } from "@/components/SubmitCancelRow";
+
 export function VotersImportForm({
-	close,
 	ballot,
+	close,
+	setBusy = () => {},
 }: {
-	close: () => void;
 	ballot: Ballot;
+	close: () => void;
+	setBusy?: (busy: boolean) => void;
 }) {
 	const dispatch = useAppDispatch();
 	const [source, setSource] = React.useState<"members" | "upload">("members");
@@ -28,13 +25,12 @@ export function VotersImportForm({
 		(ballot?.Start || new Date().toISOString()).slice(0, 10)
 	);
 	const [file, setFile] = React.useState<File | null>(null);
-	const [busy, setBusy] = React.useState(false);
 	const formRef = React.useRef<HTMLFormElement>(null);
 	const [formValid, setFormValid] = React.useState(false);
 
 	React.useLayoutEffect(() => {
-		const isValid = formRef.current?.checkValidity() || false;
-		setFormValid(isValid);
+		const formValid = formRef.current?.checkValidity() || false;
+		setFormValid(formValid);
 	});
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -42,8 +38,8 @@ export function VotersImportForm({
 		setBusy(true);
 		await dispatch(
 			source === "members"
-				? votersFromMembersSnapshot(ballot!.id, date)
-				: votersFromSpreadsheet(ballot!.id, file!)
+				? votersFromMembersSnapshot(ballot.id, date)
+				: votersFromSpreadsheet(ballot.id, file!)
 		);
 		setBusy(false);
 		close();
@@ -52,6 +48,8 @@ export function VotersImportForm({
 	return (
 		<Form
 			ref={formRef}
+			noValidate
+			validated
 			style={{ width: 410 }}
 			onSubmit={handleSubmit}
 			className="p-3"
@@ -59,7 +57,7 @@ export function VotersImportForm({
 			<Row className="mb-3">
 				<Col>Create voter pool from...</Col>
 			</Row>
-			<Row className="d-flex align-items-center mb-5">
+			<Row className="d-flex align-items-center mb-3">
 				<Col xs={6}>
 					<Form.Check
 						id="voters-import-source-members"
@@ -68,23 +66,22 @@ export function VotersImportForm({
 						label="Members snapshot:"
 					/>
 				</Col>
-				<Form.Group as={Col} xs={6}>
+				<Form.Group as={Col} xs={6} className="position-relative">
 					<Form.Control
+						key={source} // fixes form validation
 						id="voters-import-members-snapshot-date"
 						type="date"
 						value={date}
 						onChange={(e) => setDate(e.target.value)}
+						required={source === "members"}
 						isInvalid={source === "members" && !date}
 					/>
-					<Form.Control.Feedback
-						type="invalid"
-						className="position-absolute"
-					>
+					<Form.Control.Feedback type="invalid" tooltip>
 						Enter a date
 					</Form.Control.Feedback>
 				</Form.Group>
 			</Row>
-			<Row className="d-flex align-items-center mb-5">
+			<Row className="d-flex align-items-center mb-3">
 				<Col xs="auto">
 					<Form.Check
 						id="voters-import-source-upload"
@@ -93,7 +90,7 @@ export function VotersImportForm({
 						label="Upload:"
 					/>
 				</Col>
-				<Form.Group as={Col}>
+				<Form.Group as={Col} className="position-relative">
 					<Form.Control
 						id="voters-import-upload-file"
 						type="file"
@@ -104,25 +101,16 @@ export function VotersImportForm({
 						required={source === "upload"}
 						isInvalid={source === "upload" && !file}
 					/>
-					<Form.Control.Feedback
-						type="invalid"
-						className="position-absolute"
-					>
+					<Form.Control.Feedback type="invalid" tooltip>
 						Select spreadsheet file
 					</Form.Control.Feedback>
 				</Form.Group>
 			</Row>
-			<Row>
-				<Col className="d-flex justify-content-end gap-2">
-					<Button variant="secondary" type="button" onClick={close}>
-						Cancel
-					</Button>
-					<Button type="submit" disabled={!formValid}>
-						{busy && <Spinner size="sm" className="me-2" />}
-						Create
-					</Button>
-				</Col>
-			</Row>
+			<SubmitCancelRow
+				submitLabel="Create"
+				cancel={close}
+				disabled={!formValid}
+			/>
 		</Form>
 	);
 }
@@ -136,7 +124,7 @@ function VotersImportButton({ ballot }: { ballot: Ballot | undefined }) {
 			variant="light"
 			show={show}
 			onToggle={() => setShow(!show)}
-			title="New voters pool"
+			title={ballot?.Voters ? "Replace voter pool" : "Create voter pool"}
 			disabled={!isWgBallot}
 		>
 			{ballot ? (

@@ -2,11 +2,9 @@ import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple, Multiple } from "@common";
 
 import { Ballot, BallotChange } from "@/store/ballots";
+import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 
 import SelectProject from "./ProjectSelector";
-
-const BLANK_STR = "(Blank)";
-const MULTIPLE_STR = "(Multiple)";
 
 export function BallotProjectRow({
 	ballot,

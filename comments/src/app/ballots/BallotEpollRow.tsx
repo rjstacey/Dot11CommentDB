@@ -3,9 +3,7 @@ import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple, Multiple } from "@common";
 
 import { Ballot, BallotChange, BallotType } from "@/store/ballots";
-
-const BLANK_STR = "(Blank)";
-const MULTIPLE_STR = "(Multiple)";
+import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 
 export function BallotEpollRow({
 	ballot,
@@ -18,21 +16,28 @@ export function BallotEpollRow({
 }) {
 	const isMultipleBallots = isMultiple(ballot.id);
 
-	if (ballot.Type !== BallotType.SA) return null;
+	if (ballot.Type === BallotType.SA) return null;
 	return (
-		<Form.Group as={Row} controlId="ballot-epoll-number" className="mb-3">
+		<Form.Group
+			as={Row}
+			controlId="ballot-epoll-number"
+			className="align-items-center mb-3"
+		>
 			<Form.Label column>ePoll number:</Form.Label>
 			<Col xs="auto">
 				<Form.Control
 					type="search"
 					name="EpollNum"
 					value={
-						"" +
-						(isMultiple(ballot.EpollNum) ? "" : ballot.EpollNum)
+						isMultiple(ballot.EpollNum) || ballot.EpollNum === null
+							? ""
+							: ballot.EpollNum
 					}
 					onChange={(e) =>
 						updateBallot({
-							EpollNum: Number(e.target.value),
+							EpollNum: e.target.value
+								? Number(e.target.value)
+								: null,
 						})
 					}
 					placeholder={
@@ -40,6 +45,11 @@ export function BallotEpollRow({
 					}
 					readOnly={readOnly || isMultipleBallots}
 				/>
+			</Col>
+			<Col>
+				<Form.Text muted>
+					Identifies the ePoll on mentor.ieee.org
+				</Form.Text>
 			</Col>
 		</Form.Group>
 	);

@@ -1,5 +1,5 @@
 import React from "react";
-import { Row, Col, Button, Spinner, Form } from "react-bootstrap";
+import { Form } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -9,36 +9,8 @@ import {
 	Ballot,
 } from "@/store/ballots";
 
+import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import { BallotEdit } from "./BallotEdit";
-
-function SubmitCancel({
-	action,
-	busy,
-	cancel,
-	disabled,
-}: {
-	action: "add" | "update";
-	busy?: boolean;
-	cancel?: () => void;
-	disabled?: boolean;
-}) {
-	if (action !== "add" && action !== "update") return null;
-	return (
-		<Form.Group as={Row} className="mb-3">
-			<Col xs={6} className="d-flex justify-content-center">
-				<Button variant="secondary" onClick={cancel}>
-					Cancel
-				</Button>
-			</Col>
-			<Col xs={6} className="d-flex justify-content-center">
-				<Button type="submit" disabled={busy || disabled}>
-					{busy && <Spinner animation="border" size="sm" />}
-					{action === "add" ? "Add" : "Update"}
-				</Button>
-			</Col>
-		</Form.Group>
-	);
-}
 
 export function BallotAddForm({
 	defaultBallot,
@@ -87,7 +59,11 @@ export function BallotAddForm({
 				}
 				readOnly={false}
 			/>
-			<SubmitCancel action="add" cancel={close} disabled={!formValid} />
+			<SubmitCancelRow
+				submitLabel="Add"
+				cancel={close}
+				disabled={!formValid}
+			/>
 		</Form>
 	);
 }

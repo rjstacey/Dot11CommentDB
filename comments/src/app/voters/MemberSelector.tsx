@@ -12,7 +12,10 @@ function MemberSelector({
 }: {
 	value: number;
 	onChange: (value: number) => void;
-} & Pick<React.ComponentProps<typeof Select>, "readOnly" | "style" | "id">) {
+} & Pick<
+	React.ComponentProps<typeof Select>,
+	"readOnly" | "style" | "id" | "isInvalid"
+>) {
 	const { loading } = useAppSelector(selectMembersState);
 	const members = useAppSelector(selectMembers);
 	const options = React.useMemo(

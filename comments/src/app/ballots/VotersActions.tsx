@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "react-router";
 import { Row, Col, Form, DropdownButton } from "react-bootstrap";
 import { VotersImportForm } from "../voters/VotersImport";
@@ -6,18 +7,46 @@ import {
 	getBallotId,
 	selectBallotsWorkingGroup,
 	Ballot,
+	BallotType,
 } from "@/store/ballots";
-import React from "react";
+
+function VotersImportButton({
+	ballot,
+	setBusy,
+}: {
+	ballot: Ballot;
+	setBusy: (busy: boolean) => void;
+}) {
+	const [show, setShow] = React.useState(false);
+	return (
+		<DropdownButton
+			variant="light"
+			title={ballot.Voters ? "Replace voter pool" : "Create voter pool"}
+			onToggle={() => setShow(!show)}
+			show={show}
+		>
+			<VotersImportForm
+				key={"voters-import-form-" + show} // Re-initialize with open
+				ballot={ballot}
+				close={() => setShow(false)}
+				setBusy={setBusy}
+			/>
+		</DropdownButton>
+	);
+}
 
 function VotersActions({
 	ballot,
 	readOnly,
+	setBusy,
 }: {
 	ballot: Ballot;
 	readOnly?: boolean;
+	setBusy: (busy: boolean) => void;
 }) {
-	const [show, setShow] = React.useState(false);
 	const workingGroup = useAppSelector(selectBallotsWorkingGroup)!;
+
+	if (ballot.Type !== BallotType.WG) return null;
 
 	return (
 		<>
@@ -39,17 +68,7 @@ function VotersActions({
 						xs={12}
 						className="d-flex flex-row flex-wrap justify-content-start gap-2"
 					>
-						<DropdownButton
-							variant="light"
-							title={ballot.Voters ? "Reimport" : "Import"}
-							onToggle={() => setShow(!show)}
-							show={show}
-						>
-							<VotersImportForm
-								ballot={ballot}
-								close={() => setShow(false)}
-							/>
-						</DropdownButton>
+						<VotersImportButton ballot={ballot} setBusy={setBusy} />
 					</Col>
 				)}
 			</Row>
