@@ -30,7 +30,16 @@ function SelectGroup({
 }: {
 	value: string | null;
 	onChange: (value: string | null) => void;
-} & Pick<React.ComponentProps<typeof Select>, "placeholder" | "readOnly">) {
+} & Pick<
+	React.ComponentProps<typeof Select>,
+	| "placeholder"
+	| "readOnly"
+	| "disabled"
+	| "style"
+	| "id"
+	| "isInvalid"
+	| "className"
+>) {
 	const entities = useAppSelector(selectGroupEntities);
 	const options = useAppSelector(selectGroups);
 	const values = options.filter((o) => value === o.id);

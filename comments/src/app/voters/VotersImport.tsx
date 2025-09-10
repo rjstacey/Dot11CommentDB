@@ -8,123 +8,116 @@ import {
 	Spinner,
 } from "react-bootstrap";
 
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import {
 	votersFromSpreadsheet,
 	votersFromMembersSnapshot,
 } from "@/store/voters";
-import { selectBallot, Ballot } from "@/store/ballots";
-
-type Source = "members" | "upload";
-
-type State = {
-	source: Source;
-	date: string;
-	file: File | null;
-};
-
-function initState(ballot: Ballot | undefined): State {
-	const date = (
-		ballot?.Start ? ballot.Start : new Date().toISOString()
-	).slice(0, 10);
-	return {
-		source: "members",
-		date,
-		file: null,
-	};
-}
-
-function getErrorText(state: State) {
-	if (state.source === "members" && !state.date)
-		return "Select date for members snapshot";
-	if (state.source === "upload" && !state.file) return "Select a file upload";
-}
+import { BallotType, type Ballot } from "@/store/ballots";
 
 export function VotersImportForm({
 	close,
 	ballot,
 }: {
 	close: () => void;
-	ballot?: Ballot;
+	ballot: Ballot;
 }) {
 	const dispatch = useAppDispatch();
-	const [state, setState] = React.useState<State>(() => initState(ballot));
+	const [source, setSource] = React.useState<"members" | "upload">("members");
+	const [date, setDate] = React.useState<string>(
+		(ballot?.Start || new Date().toISOString()).slice(0, 10)
+	);
+	const [file, setFile] = React.useState<File | null>(null);
 	const [busy, setBusy] = React.useState(false);
-	const fileRef = React.useRef<HTMLInputElement>(null);
+	const formRef = React.useRef<HTMLFormElement>(null);
+	const [formValid, setFormValid] = React.useState(false);
 
-	const errorText = getErrorText(state);
+	React.useLayoutEffect(() => {
+		const isValid = formRef.current?.checkValidity() || false;
+		setFormValid(isValid);
+	});
 
-	async function handleSubmit() {
-		if (errorText || !ballot) return;
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
 		setBusy(true);
 		await dispatch(
-			state.source === "members"
-				? votersFromMembersSnapshot(ballot.id, state.date)
-				: votersFromSpreadsheet(ballot.id, state.file!)
+			source === "members"
+				? votersFromMembersSnapshot(ballot!.id, date)
+				: votersFromSpreadsheet(ballot!.id, file!)
 		);
 		setBusy(false);
 		close();
 	}
 
-	function changeState(changes: Partial<State>) {
-		setState({ ...state, ...changes });
-	}
-
 	return (
-		<Form style={{ width: 400 }} onSubmit={handleSubmit} className="p-3">
+		<Form
+			ref={formRef}
+			style={{ width: 410 }}
+			onSubmit={handleSubmit}
+			className="p-3"
+		>
 			<Row className="mb-3">
 				<Col>Create voter pool from...</Col>
 			</Row>
-			<Row className="d-flex align-items-center mb-3">
+			<Row className="d-flex align-items-center mb-5">
 				<Col xs={6}>
 					<Form.Check
-						id="source-members"
-						checked={state.source === "members"}
-						onChange={() => changeState({ source: "members" })}
+						id="voters-import-source-members"
+						checked={source === "members"}
+						onChange={() => setSource("members")}
 						label="Members snapshot:"
 					/>
 				</Col>
-				<Col xs={6}>
+				<Form.Group as={Col} xs={6}>
 					<Form.Control
+						id="voters-import-members-snapshot-date"
 						type="date"
-						value={state.date}
-						onChange={(e) => changeState({ date: e.target.value })}
+						value={date}
+						onChange={(e) => setDate(e.target.value)}
+						isInvalid={source === "members" && !date}
 					/>
-				</Col>
+					<Form.Control.Feedback
+						type="invalid"
+						className="position-absolute"
+					>
+						Enter a date
+					</Form.Control.Feedback>
+				</Form.Group>
 			</Row>
-			<Row className="d-flex align-items-center mb-3">
+			<Row className="d-flex align-items-center mb-5">
 				<Col xs="auto">
 					<Form.Check
-						id="source-upload"
-						checked={state.source === "upload"}
-						onChange={() => changeState({ source: "upload" })}
-						label="Upload"
+						id="voters-import-source-upload"
+						checked={source === "upload"}
+						onChange={() => setSource("upload")}
+						label="Upload:"
 					/>
 				</Col>
-				<Col>
+				<Form.Group as={Col}>
 					<Form.Control
-						id="source-upload-file"
+						id="voters-import-upload-file"
 						type="file"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-						ref={fileRef}
 						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-							changeState({
-								file: e.target.files ? e.target.files[0] : null,
-							})
+							setFile(e.target.files ? e.target.files[0] : null)
 						}
-						isInvalid={state.source === "upload" && !state.file}
+						required={source === "upload"}
+						isInvalid={source === "upload" && !file}
 					/>
-					<Form.Control.Feedback type="invalid">
+					<Form.Control.Feedback
+						type="invalid"
+						className="position-absolute"
+					>
 						Select spreadsheet file
 					</Form.Control.Feedback>
-				</Col>
+				</Form.Group>
 			</Row>
 			<Row>
-				<Col className="d-flex justify-content-end">
-					<Button
-						type="submit"
-						disabled={state.source === "upload" && !state.file}
-					>
+				<Col className="d-flex justify-content-end gap-2">
+					<Button variant="secondary" type="button" onClick={close}>
+						Cancel
+					</Button>
+					<Button type="submit" disabled={!formValid}>
 						{busy && <Spinner size="sm" className="me-2" />}
 						Create
 					</Button>
@@ -134,11 +127,9 @@ export function VotersImportForm({
 	);
 }
 
-function VotersImportButton({ ballot_id }: { ballot_id?: number | null }) {
+function VotersImportButton({ ballot }: { ballot: Ballot | undefined }) {
 	const [show, setShow] = React.useState(false);
-	const ballot = useAppSelector((state) =>
-		ballot_id ? selectBallot(state, ballot_id) : undefined
-	);
+	const isWgBallot = ballot?.Type === BallotType.WG;
 
 	return (
 		<DropdownButton
@@ -146,9 +137,14 @@ function VotersImportButton({ ballot_id }: { ballot_id?: number | null }) {
 			show={show}
 			onToggle={() => setShow(!show)}
 			title="New voters pool"
-			disabled={!ballot}
+			disabled={!isWgBallot}
 		>
-			<VotersImportForm ballot={ballot} close={() => setShow(false)} />
+			{ballot ? (
+				<VotersImportForm
+					ballot={ballot}
+					close={() => setShow(false)}
+				/>
+			) : null}
 		</DropdownButton>
 	);
 }

@@ -12,6 +12,7 @@ import {
 import { clearVoters, loadVoters } from "@/store/voters";
 
 import VotersLayout from "./layout";
+import VotersTable from "./table";
 import { rootLoader } from "../rootLoader";
 
 const indexLoader: LoaderFunction = async (args) => {
@@ -62,10 +63,12 @@ const route: RouteObject = {
 		{
 			index: true,
 			loader: indexLoader,
+			element: null,
 		},
 		{
 			path: ":ballotId",
 			loader: ballotIdLoader,
+			element: <VotersTable />,
 		},
 	],
 };

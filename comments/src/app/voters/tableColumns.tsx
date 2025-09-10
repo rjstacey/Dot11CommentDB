@@ -1,12 +1,18 @@
-import { SelectHeaderCell, SelectCell, ColumnProperties } from "@common";
+import {
+	SelectHeaderCell,
+	SelectCell,
+	ColumnProperties,
+	TablesConfig,
+	TableConfig,
+} from "@common";
 import { votersSelectors, votersActions } from "@/store/voters";
 
 type ColumnPropertiesWithWidth = ColumnProperties & { width: number };
 
 const controlColumn: ColumnPropertiesWithWidth = {
 	key: "__ctrl__",
-	width: 30,
-	flexGrow: 1,
+	width: 40,
+	flexGrow: 0,
 	flexShrink: 0,
 	headerRenderer: (p) => <SelectHeaderCell {...p} />,
 	cellRenderer: (p) => (
@@ -30,9 +36,20 @@ export const tableColumns: ColumnPropertiesWithWidth[] = [
 		width: 100,
 		dataRenderer: (value) => (value ? "Yes" : ""),
 	},
-	{
-		key: "Actions",
-		label: "Actions",
-		width: 100,
-	},
 ];
+
+const tableConfig: TableConfig = {
+	fixed: false,
+	columns: {},
+};
+
+for (const column of tableColumns) {
+	const key = column.key;
+	tableConfig.columns[key] = {
+		unselectable: key.startsWith("__"),
+		shown: true,
+		width: column.width || 200,
+	};
+}
+
+export const defaultTablesConfig: TablesConfig = { default: tableConfig };

@@ -1,18 +1,14 @@
 import React from "react";
 import { Modal, Button } from "react-bootstrap";
-import { AppTable, ColumnProperties } from "@common";
+import { AppTable } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
 import { BallotType, Ballot } from "@/store/ballots";
-import {
-	fields,
-	epollsSelectors,
-	epollsActions,
-	SyncedEpoll,
-} from "@/store/epolls";
+import { epollsSelectors, epollsActions, SyncedEpoll } from "@/store/epolls";
 
-import { BallotAddForm } from "../BallotAdd";
+import { tableColumns, defaultTablesConfig } from "./tableColumns";
+import { BallotAddForm } from "../BallotAddForm";
 
 function ePollToBallot(epoll: SyncedEpoll): Ballot {
 	// See if the ePoll name has something like CC53 or LB245
@@ -46,17 +42,6 @@ function ePollToBallot(epoll: SyncedEpoll): Ballot {
 	};
 	return ballot;
 }
-
-const tableColumns: (ColumnProperties & { width: number })[] = [
-	{ key: "id", ...fields.id, width: 100 },
-	{ key: "name", ...fields.name, width: 200 },
-	{ key: "start", ...fields.start, width: 100 },
-	{ key: "end", ...fields.end, width: 100 },
-	{ key: "document", ...fields.document, width: 200 },
-	{ key: "topic", ...fields.topic, width: 500 },
-	{ key: "resultsSummary", ...fields.resultsSummary, width: 100 },
-	{ key: "actions", label: "", width: 200, headerRenderer: () => "" },
-];
 
 function EpollsTable() {
 	const isOnline = useAppSelector(selectIsOnline);
@@ -92,6 +77,7 @@ function EpollsTable() {
 					estimatedRowHeight={64}
 					selectors={epollsSelectors}
 					actions={epollsActions}
+					defaultTablesConfig={defaultTablesConfig}
 				/>
 			</div>
 			<Modal show={addBallot !== null} onHide={() => setAddBallot(null)}>

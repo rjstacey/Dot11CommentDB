@@ -17,14 +17,15 @@ export function BallotActions() {
 	const { loading } = useAppSelector(selectBallotsState);
 
 	return (
-		<Row className="w-100 d-flex justify-content-end align-items-center m-2">
-			<BallotsSubmenu />
+		<Row className="w-100 d-flex justify-content-between align-items-center m-2">
+			<BallotsSubmenu xs="auto" />
 			<SplitTableButtonGroup
 				selectors={ballotsSelectors}
 				actions={ballotsActions}
 				columns={tableColumns}
+				xs="auto"
 			/>
-			<Col xs="auto" className="d-flex justify-content-end gap-2">
+			<Col className="d-flex justify-content-end gap-2">
 				<Button
 					variant="outline-primary"
 					className="bi-arrow-repeat"

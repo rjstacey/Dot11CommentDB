@@ -1,4 +1,5 @@
 import * as React from "react";
+import { FormSelect } from "react-bootstrap";
 import ReactDOM from "react-dom";
 
 import Dropdown from "./Dropdown";
@@ -121,6 +122,8 @@ type SelectRequiredProps<T> = {
 	onBlur?: React.FocusEventHandler;
 
 	onChange: (values: T[]) => void;
+
+	isInvalid?: boolean;
 };
 
 type SelectDefaultProps<T> = {
@@ -640,6 +643,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 		if (props.handle) cn += " handle";
 		if (props.disabled) cn += " disabled";
 		if (props.readOnly) cn += " read-only";
+		if (props.isInvalid) cn += " is-invalid";
 		if (props.className) cn += ` ${props.className}`;
 
 		let content = props.contentRenderer({ props, state, methods });
@@ -661,7 +665,11 @@ class SelectInternal<T extends ItemType> extends React.Component<
 				onFocus={this.onFocus}
 				onBlur={this.onBlur}
 			>
-				<select id={props.id} style={{ display: "none" }} />
+				<FormSelect
+					id={props.id}
+					//style={{ display: "none" }}
+					hidden
+				/>
 				<Content style={{ minWidth: `${props.placeholder.length}ch` }}>
 					{content}
 					{!props.readOnly &&

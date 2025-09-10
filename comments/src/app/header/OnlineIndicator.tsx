@@ -6,13 +6,14 @@ import { selectOfflineStatus, selectOfflineOutbox } from "@/store/offline";
 
 import styles from "./OnlineIndicator.module.css";
 
-function Selector({
-	show,
-	setShow,
-}: {
-	show: boolean;
-	setShow: (show: boolean) => void;
-}) {
+const Selector = React.forwardRef<
+	HTMLDivElement,
+	{
+		show: boolean;
+		setShow: (show: boolean) => void;
+	}
+>(function SelectorWithRef(props, ref) {
+	const { show, setShow } = props;
 	const status = useAppSelector(selectOfflineStatus);
 	let color = "#ff4e4e";
 	if (status === "online") color = "#bbff4e";
@@ -23,7 +24,7 @@ function Selector({
 	if (status !== "online") onClick = () => setShow(!show);
 
 	return (
-		<div className={styles.container} onClick={onClick}>
+		<div ref={ref} className={styles.container} onClick={onClick}>
 			<div
 				className={styles.indicator}
 				style={{ background }}
@@ -32,7 +33,7 @@ function Selector({
 			{status}
 		</div>
 	);
-}
+});
 
 function Outbox() {
 	const outbox = useAppSelector(selectOfflineOutbox);

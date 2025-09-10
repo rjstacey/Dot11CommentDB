@@ -81,7 +81,14 @@ export default slice;
 /* Slice actions */
 export const votersActions = slice.actions;
 
-const { getSuccess, getFailure, removeMany, setMany } = slice.actions;
+const {
+	getSuccess,
+	getFailure,
+	removeMany,
+	setMany,
+	setSelected: setSelectedVoters,
+} = slice.actions;
+export { setSelectedVoters };
 
 // Overload getPending() with one that sets ballot_id
 const getPending = createAction<{ ballot_id: number }>(dataSet + "/getPending");

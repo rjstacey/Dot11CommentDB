@@ -14,7 +14,16 @@ function SelectProject({
 	onChange: (value: string) => void;
 	groupId: string | null;
 	readOnly?: boolean;
-} & Pick<React.ComponentProps<typeof Select>, "placeholder" | "readOnly">) {
+} & Pick<
+	React.ComponentProps<typeof Select>,
+	| "placeholder"
+	| "readOnly"
+	| "disabled"
+	| "style"
+	| "id"
+	| "className"
+	| "isInvalid"
+>) {
 	const existingOptions = useAppSelector(selectGroupProjectOptions);
 	const [options, setOptions] = React.useState<GroupProjectOption[]>([]);
 

@@ -1,0 +1,49 @@
+import { Row, Col, Form } from "react-bootstrap";
+import { isMultiple, Multiple } from "@common";
+
+import { Ballot, BallotChange } from "@/store/ballots";
+
+import SelectGroup from "./GroupSelector";
+
+const BLANK_STR = "(Blank)";
+const MULTIPLE_STR = "(Multiple)";
+
+export function BallotGroupRow({
+	ballot,
+	updateBallot,
+	readOnly,
+}: {
+	ballot: Multiple<Ballot>;
+	updateBallot: (changes: BallotChange) => void;
+	readOnly?: boolean;
+}) {
+	return (
+		<Form.Group as={Row} className="align-items-center mb-3">
+			<Form.Label htmlFor="ballot-group" column>
+				Group:
+			</Form.Label>
+			<Col className="position-relative">
+				<SelectGroup
+					id="ballot-group"
+					value={isMultiple(ballot.groupId) ? null : ballot.groupId}
+					onChange={(groupId) =>
+						updateBallot({ groupId: groupId || undefined })
+					}
+					placeholder={
+						isMultiple(ballot.groupId) ? MULTIPLE_STR : BLANK_STR
+					}
+					readOnly={readOnly}
+					isInvalid={!ballot.groupId && !isMultiple(ballot.groupId)}
+				/>
+				<Form.Control.Feedback type="invalid" tooltip>
+					Select a group
+				</Form.Control.Feedback>
+			</Col>
+			<Col>
+				<Form.Text className="text-muted">
+					The group that owns this project
+				</Form.Text>
+			</Col>
+		</Form.Group>
+	);
+}

@@ -1,14 +1,7 @@
 import React from "react";
 import { Dictionary, EntityId } from "@reduxjs/toolkit";
-import { Row, Button, Spinner } from "react-bootstrap";
+import { Row, Col, Button, Spinner } from "react-bootstrap";
 import { ConfirmModal } from "@common";
-
-import VotersActions from "./VotersActions";
-import ResultsActions from "./ResultsActions";
-import CommentsActions from "./CommentsActions";
-import { BallotEditMultiple } from "./BallotEdit";
-import ShowAccess from "@/components/ShowAccess";
-import BallotAddForm from "./BallotAdd";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
@@ -22,46 +15,9 @@ import {
 	getBallotId,
 } from "@/store/ballots";
 
-function BallotEditMultipleWithActions({
-	ballots,
-	readOnly,
-}: {
-	ballots: Ballot[];
-	readOnly?: boolean;
-}) {
-	const [busy, setBusy] = React.useState(false);
-
-	let ballot: Ballot | undefined;
-	if (ballots.length === 1) ballot = ballots[0];
-
-	const actions = ballot ? (
-		<>
-			{ballot.Type === BallotType.WG && !ballot.prev_id && (
-				<VotersActions ballot={ballot} readOnly={readOnly} />
-			)}
-			<ResultsActions
-				ballot={ballot}
-				setBusy={setBusy}
-				readOnly={readOnly}
-			/>
-			<CommentsActions
-				ballot={ballot}
-				setBusy={setBusy}
-				readOnly={readOnly}
-			/>
-		</>
-	) : null;
-
-	return (
-		<div className="main">
-			<Row style={{ justifyContent: "center" }}>
-				<Spinner style={{ visibility: busy ? "visible" : "hidden" }} />
-			</Row>
-			<BallotEditMultiple ballots={ballots} readOnly={readOnly} />
-			{actions}
-		</div>
-	);
-}
+import { BallotEditForm } from "./BallotEditForm";
+import { BallotAddForm } from "./BallotAddForm";
+import ShowAccess from "@/components/ShowAccess";
 
 function nextBallotNumber(ballots: Ballot[], type: number) {
 	let maxNumber = 0;
@@ -138,7 +94,6 @@ function getDefaultBallot(
 		Start: today,
 		End: today,
 		prev_id,
-		//IsRecirc: Boolean(prev_id),
 		IsComplete: false,
 
 		id: 0,
@@ -152,7 +107,7 @@ function getDefaultBallot(
 }
 
 const Placeholder = (props: React.ComponentProps<"span">) => (
-	<div className="placeholder">
+	<div className="details-panel-placeholder">
 		<span {...props} />
 	</div>
 );
@@ -166,6 +121,7 @@ function BallotDetail({
 }) {
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
+	const [busy, setBusy] = React.useState(false);
 	const { selected, ids, entities, loading, valid } =
 		useAppSelector(selectBallotsState);
 	// Only ballots that exist (selection may be old)
@@ -248,24 +204,38 @@ function BallotDetail({
 
 	return (
 		<>
-			<div className="top-row">
-				<h3>{title}</h3>
-				<div>{actionButtons}</div>
-			</div>
+			<Row className="align-items-center mb-3">
+				<Col>
+					<h3>{title}</h3>
+				</Col>
+				<Col>
+					<Spinner
+						size="sm"
+						className={busy ? "visible" : "invisible"}
+					/>
+				</Col>
+				<Col xs="auto" className="d-flex gap-2">
+					{actionButtons}
+				</Col>
+			</Row>
 			{placeholder ? (
 				<Placeholder>{placeholder}</Placeholder>
 			) : action === "add" ? (
 				<BallotAddForm
 					defaultBallot={defaultBallot!}
 					close={() => setAction("update")}
+					setBusy={setBusy}
 				/>
 			) : (
-				<BallotEditMultipleWithActions
+				<BallotEditForm
 					ballots={selectedBallots}
+					setBusy={setBusy}
 					readOnly={readOnly || !isOnline || !edit}
 				/>
 			)}
-			<ShowAccess access={access} />
+			<Row>
+				<ShowAccess access={access} />
+			</Row>
 		</>
 	);
 }

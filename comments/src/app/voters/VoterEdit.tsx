@@ -1,5 +1,5 @@
 import React from "react";
-import { Row, Col, Form, Button, Spinner, Modal } from "react-bootstrap";
+import { Row, Col, Form, Button, Spinner } from "react-bootstrap";
 import { Select, shallowDiff } from "@common";
 
 import MemberSelector from "./MemberSelector";
@@ -25,28 +25,30 @@ function SubmitCancel({
 	return (
 		<Form.Group as={Row} className="mb-3">
 			<Col xs={6} className="d-flex justify-content-center">
-				<Button type="submit">
-					{busy && <Spinner size="sm" className="me-2" />}
-					{action === "add" ? "Add" : "Update"}
+				<Button variant="secondary" onClick={cancel}>
+					Cancel
 				</Button>
 			</Col>
 			<Col xs={6} className="d-flex justify-content-center">
-				<Button variant="secondary" onClick={cancel}>
-					Cancel
+				<Button type="submit">
+					{busy && <Spinner size="sm" className="me-2" />}
+					{action === "add" ? "Add" : "Update"}
 				</Button>
 			</Col>
 		</Form.Group>
 	);
 }
 
-function VoterEditForm({
+export function VoterEditForm({
 	voter,
 	action,
-	close,
+	cancel,
+	readOnly,
 }: {
 	voter: VoterCreate;
 	action: "add" | "update" | null;
-	close: () => void;
+	cancel: () => void;
+	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
 	const [state, setState] = React.useState(voter);
@@ -70,18 +72,10 @@ function VoterEditForm({
 			const changes = shallowDiff(voter, state);
 			await dispatch(updateVoter(voter.id!, changes));
 		}
-		close();
 	}
 
-	const title = action === "add" ? "Add voter" : "Update voter";
-
 	return (
-		<Form
-			style={{ width: 500 }}
-			title={title}
-			onSubmit={handleSubmit}
-			className="p-3"
-		>
+		<Form onSubmit={handleSubmit} className="p-3">
 			<Form.Group as={Row} className="mb-3">
 				<Form.Label column xs={2} htmlFor="voter-member-selector">
 					Member:
@@ -94,13 +88,9 @@ function VoterEditForm({
 						onChange={(value) =>
 							setState({ ...state, SAPIN: value })
 						}
+						readOnly={readOnly}
 					/>
-					<Form.Control
-						type="text"
-						hidden
-						required
-						isInvalid={!state.SAPIN}
-					/>
+					<Form.Control type="text" hidden isInvalid={!state.SAPIN} />
 					<Form.Control.Feedback type="invalid">
 						Select member
 					</Form.Control.Feedback>
@@ -120,13 +110,18 @@ function VoterEditForm({
 						]}
 						options={statusOptions}
 						onChange={changeStatus}
+						readOnly={readOnly}
 					/>
 				</Col>
 			</Form.Group>
 			<Form.Group
 				as={Row}
 				controlId="voter-excused"
-				className="align-items-center mb-3"
+				className={
+					"align-items-center mb-3" + (readOnly ? " pe-none" : "")
+				}
+				readOnly={readOnly}
+				tabIndex={readOnly ? -1 : undefined}
 			>
 				<Form.Label column xs={2}>
 					Excused:
@@ -140,28 +135,9 @@ function VoterEditForm({
 					/>
 				</Col>
 			</Form.Group>
-			<SubmitCancel action={action} busy={false} cancel={close} />
+			{!readOnly && (
+				<SubmitCancel action={action} busy={false} cancel={cancel} />
+			)}
 		</Form>
 	);
 }
-
-function VoterEditModal({
-	isOpen,
-	close,
-	voter,
-	action,
-}: {
-	isOpen: boolean;
-	close: () => void;
-	voter: VoterCreate;
-	action: "add" | "update" | null;
-}) {
-	return (
-		<Modal show={isOpen} onHide={close}>
-			<VoterEditForm voter={voter} action={action} close={close} />
-		</Modal>
-	);
-	return null;
-}
-
-export default VoterEditModal;

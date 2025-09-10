@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Row, Col, Form, Button, Spinner, Dropdown } from "react-bootstrap";
+import { Row, Col, Form, Button, DropdownButton } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 
 import { BallotComments } from "./BallotComments";
@@ -16,20 +16,19 @@ import {
 } from "@/store/comments";
 import { getBallotId, Ballot, BallotType } from "@/store/ballots";
 
-function ChangeStartCID({
+function ChangeStartCIDForm({
 	ballot,
+	setBusy,
 	close = () => {},
 }: {
 	ballot: Ballot;
+	setBusy: (busy: boolean) => void;
 	close?: () => void;
 }) {
 	const dispatch = useAppDispatch();
-	const [startCID, setStartCID] = React.useState<string>(
-		"" + (ballot.Comments?.CommentIDMin || 1)
+	const [startCID, setStartCID] = React.useState<number | null>(
+		ballot.Comments?.CommentIDMin || null
 	);
-	const [errorText, setErrorText] = React.useState("");
-	const [busy, setBusy] = React.useState(false);
-	console.log(ballot, startCID);
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -39,169 +38,80 @@ function ChangeStartCID({
 		close();
 	};
 
-	const change: React.ChangeEventHandler<HTMLInputElement> = (e) => {
-		const { value } = e.target;
-		setErrorText(/\d*/.test(value) ? "" : "Must be a number");
-		setStartCID(value);
+	const change = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const n = Number(e.target.value) || null;
+		setStartCID(n);
 	};
 
+	const formValid = !!startCID;
+
 	return (
-		<Form
-			style={{ minWidth: 300 }}
-			title="Change starting CID"
-			onSubmit={handleSubmit}
-		>
-			<Row style={{ marginBottom: 20 }}>
+		<Form onSubmit={handleSubmit} className="p-4">
+			<Form.Group as={Row} className="mb-5">
 				<Form.Label>Start CID:</Form.Label>
-				<Form.Control
-					type="search"
-					width={6}
-					value={startCID}
-					onChange={change}
-				/>
-				<Form.Control.Feedback type="invalid">
-					{errorText}
-				</Form.Control.Feedback>
-			</Row>
+				<Col>
+					<Form.Control
+						type="search"
+						value={startCID || ""}
+						onChange={change}
+						pattern="/\d+/"
+						isInvalid={!startCID}
+					/>
+					<Form.Control.Feedback
+						type="invalid"
+						className="position-absolute"
+					>
+						Enter number for first CID
+					</Form.Control.Feedback>
+				</Col>
+			</Form.Group>
 			<Row>
-				<Button type="submit">
-					{busy ? <Spinner animation="border" size="sm" /> : "OK"}
-				</Button>
+				<Col className="d-flex justify-content-end gap-2">
+					<Button variant="secondary" type="button" onClick={close}>
+						Cancel
+					</Button>
+					<Button type="submit" disabled={!formValid}>
+						Change
+					</Button>
+				</Col>
 			</Row>
 		</Form>
 	);
 }
 
-function AddMemberComments({
-	ballot,
-	close = () => {},
-}: {
-	ballot: Ballot;
-	close?: () => void;
-}) {
-	const dispatch = useAppDispatch();
-	const [commenterSAPIN, setCommenterSAPIN] = React.useState<number | null>(
-		null
-	);
-	const [busy, setBusy] = React.useState(false);
-	const [file, setFile] = React.useState<File | null>(null);
-
-	const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = (
-		e
-	) => {
-		const { files } = e.target;
-		setFile(files && files.length > 0 ? files[0] : null);
-	};
-
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
-		if (errorText) return;
-		setBusy(true);
-		await dispatch(uploadUserComments(ballot.id, commenterSAPIN!, file!));
-		setBusy(false);
-		close();
-	};
-
-	let errorText = "";
-	if (!commenterSAPIN) errorText = "Select commenter";
-	else if (!file) errorText = "Select file";
-
-	return (
-		<Form
-			style={{ minWidth: 300 }}
-			title="Add additional member comments"
-			onSubmit={handleSubmit}
-		>
-			<Row>
-				<Form.Label>Commenter:</Form.Label>
-				<MemberSelector
-					value={commenterSAPIN || 0}
-					onChange={setCommenterSAPIN}
-				/>
-			</Row>
-			<Row>
-				<Form.Control
-					type="file"
-					accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-					onChange={handleFileChange}
-				/>
-			</Row>
-			<Row>
-				<Button type="submit">
-					{busy ? <Spinner animation="border" size="sm" /> : "OK"}
-				</Button>
-			</Row>
-		</Form>
-	);
-}
-
-function AddPublicReviewComments({
-	ballot,
-	close = () => {},
-}: {
-	ballot: Ballot;
-	close?: () => void;
-}) {
-	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const [file, setFile] = React.useState<File | null>(null);
-
-	const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = (
-		e
-	) => {
-		const { files } = e.target;
-		setFile(files && files.length > 0 ? files[0] : null);
-	};
-
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
-		if (errorText) return;
-		setBusy(true);
-		await dispatch(uploadPublicReviewComments(ballot.id, file!));
-		setBusy(false);
-		close();
-	};
-
-	let errorText = "";
-	if (!file) errorText = "Select file";
-
-	return (
-		<Form
-			style={{ minWidth: 300 }}
-			title="Add public review comments"
-			onSubmit={handleSubmit}
-		>
-			<Row>
-				<Form.Control
-					type="file"
-					accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-					onChange={handleFileChange}
-				/>
-				<Form.Control.Feedback type="invalid">
-					{errorText}
-				</Form.Control.Feedback>
-			</Row>
-			<Row>
-				<Button type="submit">
-					{busy ? <Spinner animation="border" size="sm" /> : "OK"}
-				</Button>
-			</Row>
-		</Form>
-	);
-}
-
-const CommentsActions = ({
+function ChangeStartCID({
 	ballot,
 	setBusy,
-	readOnly,
 }: {
 	ballot: Ballot;
 	setBusy: (busy: boolean) => void;
-	readOnly?: boolean;
-}) => {
+}) {
+	const [show, setShow] = React.useState(false);
+	return (
+		<DropdownButton
+			variant="light"
+			title="Change start CID"
+			show={show}
+			onToggle={() => setShow(!show)}
+		>
+			<ChangeStartCIDForm
+				key={"start-cid-" + show} // re-mount when opened
+				ballot={ballot}
+				setBusy={setBusy}
+				close={() => setShow(false)}
+			/>
+		</DropdownButton>
+	);
+}
+
+function DeleteComments({
+	ballot,
+	setBusy,
+}: {
+	ballot: Ballot;
+	setBusy: (busy: boolean) => void;
+}) {
 	const dispatch = useAppDispatch();
-	const fileRef = React.useRef<HTMLInputElement>(null);
-	const [inputValue, setInputValue] = React.useState("");
 
 	async function handleDeleteComments() {
 		const ok = await ConfirmModal.show(
@@ -215,15 +125,60 @@ const CommentsActions = ({
 		setBusy(false);
 	}
 
+	return (
+		<Button
+			variant="light"
+			onClick={handleDeleteComments}
+			disabled={ballot.Comments && ballot.Comments.Count === 0}
+		>
+			Delete
+		</Button>
+	);
+}
+
+function ImportComments({
+	ballot,
+	setBusy,
+}: {
+	ballot: Ballot;
+	setBusy: (busy: boolean) => void;
+}) {
+	const dispatch = useAppDispatch();
+
 	const handleImportComments = async () => {
 		setBusy(true);
 		await dispatch(importComments(ballot.id, 1));
 		setBusy(false);
 	};
 
-	const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = async (
-		e
-	) => {
+	if (
+		(ballot.Type !== BallotType.WG && ballot.Type !== BallotType.CC) ||
+		!ballot.EpollNum
+	)
+		return null;
+
+	const title =
+		(ballot.Comments?.Count ? "Reimport" : "Import") + " from ePoll";
+
+	return (
+		<Button variant="light" onClick={handleImportComments}>
+			{title}
+		</Button>
+	);
+}
+
+function UploadComments({
+	ballot,
+	setBusy,
+}: {
+	ballot: Ballot;
+	setBusy: (busy: boolean) => void;
+}) {
+	const dispatch = useAppDispatch();
+	const fileRef = React.useRef<HTMLInputElement>(null);
+	const [inputValue, setInputValue] = React.useState("");
+
+	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		setInputValue(e.target.value);
 		const { files } = e.target;
 		if (files && files.length > 0) {
@@ -234,72 +189,205 @@ const CommentsActions = ({
 		}
 	};
 
+	if (ballot.Type !== BallotType.SA) return null;
+
 	return (
 		<>
-			<Row>
-				<Col>
-					<Form.Label>Comments:</Form.Label>
-					<BallotComments ballot={ballot} />
-				</Col>
-			</Row>
-			{!readOnly && (
-				<Row style={{ justifyContent: "flex-start" }}>
-					<Button
-						onClick={handleDeleteComments}
-						disabled={
-							ballot.Comments && ballot.Comments.Count === 0
-						}
-					>
-						Delete
-					</Button>
-					<Dropdown>
-						<Dropdown.Toggle>Change starting CID</Dropdown.Toggle>
-						<Dropdown.Menu>
-							<ChangeStartCID ballot={ballot!} />
-						</Dropdown.Menu>
-					</Dropdown>
-					{ballot.Type !== BallotType.SA && ballot.EpollNum ? (
-						<Button onClick={handleImportComments}>
-							{(ballot.Comments?.Count ? "Reimport" : "Import") +
-								" from ePoll"}
-						</Button>
-					) : null}
-					<Button onClick={() => fileRef.current?.click()}>
-						Upload comments
-					</Button>
-					<Dropdown>
-						<Dropdown.Toggle>Add member comments</Dropdown.Toggle>
-						<Dropdown.Menu>
-							<AddMemberComments ballot={ballot} />
-						</Dropdown.Menu>
-					</Dropdown>
-					{ballot.Type === BallotType.SA ? (
-						<Dropdown>
-							<Dropdown.Toggle
-								disabled={
-									ballot.Comments &&
-									ballot.Comments.Count === 0
-								}
-							>
-								Add public review comments
-							</Dropdown.Toggle>
-							<Dropdown.Menu>
-								<AddPublicReviewComments ballot={ballot} />
-							</Dropdown.Menu>
-						</Dropdown>
-					) : null}
-					<input
-						ref={fileRef}
-						type="file"
-						style={{ display: "none" }}
-						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-						value={inputValue} // necessary otherwise with the same file selected there is no onChange call
-						onChange={handleFileChange}
-					/>
-				</Row>
-			)}
+			<Button
+				variant="light"
+				title=""
+				disabled={ballot.Comments && ballot.Comments.Count === 0}
+				onClick={() => fileRef.current?.click()}
+			>
+				Upload comments
+			</Button>
+			<input
+				ref={fileRef}
+				type="file"
+				style={{ display: "none" }}
+				accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+				value={inputValue} // necessary otherwise with the same file selected there is no onChange call
+				onChange={handleFileChange}
+			/>
 		</>
 	);
-};
+}
+
+function AddMemberCommentsForm({
+	ballot,
+	setBusy,
+	close = () => {},
+}: {
+	ballot: Ballot;
+	setBusy: (busy: boolean) => void;
+	close?: () => void;
+}) {
+	const dispatch = useAppDispatch();
+	const [commenterSAPIN, setCommenterSAPIN] = React.useState<number | null>(
+		null
+	);
+	const [file, setFile] = React.useState<File | null>(null);
+
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const { files } = e.target;
+		setFile(files && files.length > 0 ? files[0] : null);
+	};
+
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		setBusy(true);
+		await dispatch(uploadUserComments(ballot.id, commenterSAPIN!, file!));
+		setBusy(false);
+		close();
+	};
+
+	return (
+		<Form
+			style={{ minWidth: 400 }}
+			title="Add additional member comments"
+			onSubmit={handleSubmit}
+			className="p-4"
+		>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Label htmlFor="commenter">Commenter:</Form.Label>
+				<MemberSelector
+					id="commenter"
+					value={commenterSAPIN || 0}
+					onChange={setCommenterSAPIN}
+				/>
+				<Form.Control hidden isInvalid={!commenterSAPIN} />
+				<Form.Control.Feedback type="invalid">
+					Select commenter
+				</Form.Control.Feedback>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Control
+					type="file"
+					accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+					onChange={handleFileChange}
+					isInvalid={!file}
+				/>
+				<Form.Control.Feedback type="invalid">
+					Select spreadsheet file
+				</Form.Control.Feedback>
+			</Form.Group>
+			<Row>
+				<Col className="d-flex justify-content-end gap-2">
+					<Button variant="secondary" type="button" onClick={close}>
+						Cancel
+					</Button>
+					<Button type="submit">Add</Button>
+				</Col>
+			</Row>
+		</Form>
+	);
+}
+
+function AddMemberComments({
+	ballot,
+	setBusy,
+}: {
+	ballot: Ballot;
+	setBusy: (busy: boolean) => void;
+}) {
+	const [show, setShow] = React.useState(false);
+	return (
+		<DropdownButton
+			variant="light"
+			title="Add member comments"
+			show={show}
+			onToggle={() => setShow(!show)}
+		>
+			<AddMemberCommentsForm
+				ballot={ballot}
+				setBusy={setBusy}
+				close={() => setShow(false)}
+			/>
+		</DropdownButton>
+	);
+}
+
+function AddPublicReviewComments({
+	ballot,
+	setBusy,
+}: {
+	ballot: Ballot;
+	setBusy: (busy: boolean) => void;
+}) {
+	const dispatch = useAppDispatch();
+	const fileRef = React.useRef<HTMLInputElement>(null);
+	const [inputValue, setInputValue] = React.useState("");
+
+	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		setInputValue(e.target.value);
+		const { files } = e.target;
+		if (files && files.length > 0) {
+			setBusy(true);
+			await dispatch(uploadPublicReviewComments(ballot.id, files[0]));
+			setBusy(false);
+			setInputValue("");
+		}
+	};
+
+	if (ballot.Type !== BallotType.SA) return null;
+
+	return (
+		<>
+			<Button
+				variant="light"
+				title=""
+				disabled={ballot.Comments && ballot.Comments.Count === 0}
+				onClick={() => fileRef.current?.click()}
+			>
+				Add public review comments
+			</Button>
+			<input
+				ref={fileRef}
+				type="file"
+				style={{ display: "none" }}
+				accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+				value={inputValue} // necessary otherwise with the same file selected there is no onChange call
+				onChange={handleFileChange}
+			/>
+		</>
+	);
+}
+
+function CommentsActions({
+	ballot,
+	setBusy,
+	readOnly,
+}: {
+	ballot: Ballot;
+	setBusy: (busy: boolean) => void;
+	readOnly?: boolean;
+}) {
+	return (
+		<Row className="align-items-center mb-3">
+			<Form.Label column xs="auto">
+				Comments:
+			</Form.Label>
+			<Col xs="auto">
+				<BallotComments ballot={ballot} />
+			</Col>
+			{!readOnly && (
+				<Col
+					xs={12}
+					className="d-flex flex-row flex-wrap justify-content-start gap-2"
+				>
+					<DeleteComments ballot={ballot} setBusy={setBusy} />
+					<ChangeStartCID ballot={ballot!} setBusy={setBusy} />
+					<ImportComments ballot={ballot} setBusy={setBusy} />
+					<UploadComments ballot={ballot} setBusy={setBusy} />
+					<AddMemberComments ballot={ballot} setBusy={setBusy} />
+					<AddPublicReviewComments
+						ballot={ballot}
+						setBusy={setBusy}
+					/>
+				</Col>
+			)}
+		</Row>
+	);
+}
 
 export default CommentsActions;

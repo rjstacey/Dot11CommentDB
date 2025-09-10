@@ -43,7 +43,7 @@
 
 	background-color: var(--background-color);
 
-	&:global(.handle) {
+	&:global(.handle:not(.read-only)) {
 		background-image: var(--handle-img);
 		background-repeat: no-repeat;
 		background-position: right 0.75rem center;
@@ -55,6 +55,7 @@
 
 	&:global(.read-only) {
 		cursor: inherit;
+		pointer-events: none;
 	}
 
 	&:hover:not(:global(.read-only)),

@@ -31,8 +31,8 @@ function Ballots() {
 					<AppTable
 						defaultTablesConfig={defaultTablesConfig}
 						columns={tableColumns}
-						headerHeight={42}
-						estimatedRowHeight={42}
+						headerHeight={52}
+						estimatedRowHeight={52}
 						selectors={ballotsSelectors}
 						actions={ballotsActions}
 					/>

@@ -29,10 +29,49 @@ function shortDateToDate(shortDateStr: string) {
 	const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
 	const diff = utcDate.getTime() - easternDate.getTime();
 	const newDate = new Date(date.getTime() + diff);
-	return isNaN(newDate.getTime()) ? "" : newDate.toISOString();
+	return isNaN(newDate.getTime()) ? null : newDate.toISOString();
 }
 
-function BallotDatesEdit({
+function BallotDateInput({
+	ballot,
+	dataKey,
+	updateBallot,
+	readOnly,
+}: {
+	ballot: Multiple<Ballot>;
+	dataKey: "Start" | "End";
+	updateBallot: (changes: BallotChange) => void;
+	readOnly?: boolean;
+}) {
+	const [value, setValue] = React.useState<string>(
+		isMultiple(ballot[dataKey]) ? "" : dateToShortDate(ballot[dataKey])
+	);
+
+	const changeDate: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+		const { name, value } = e.target;
+		setValue(value);
+		const dateStr = shortDateToDate(value);
+		if (dateStr) updateBallot({ [name]: dateStr });
+	};
+
+	return (
+		<>
+			<Form.Control
+				type="date"
+				name={dataKey}
+				value={value}
+				onChange={changeDate}
+				readOnly={readOnly || isMultiple(ballot.id)}
+				isInvalid={!isMultiple(ballot[dataKey]) && !value}
+			/>
+			<Form.Control.Feedback type="invalid" tooltip>
+				Enter a date
+			</Form.Control.Feedback>
+		</>
+	);
+}
+
+export function BallotDatesRows({
 	ballot,
 	updateBallot,
 	readOnly,
@@ -41,48 +80,30 @@ function BallotDatesEdit({
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const changeDate: React.ChangeEventHandler<HTMLInputElement> = (e) => {
-		const { name, value } = e.target;
-		const dateStr = shortDateToDate(value);
-		updateBallot({ [name]: dateStr });
-	};
-
 	return (
-		<Row style={{ flexWrap: "wrap" }}>
-			<Form.Group as={Row} controlId="Start">
+		<>
+			<Form.Group as={Row} controlId="ballot-start" className="mb-3">
 				<Form.Label column>Open Date:</Form.Label>
-				<Col>
-					<Form.Control
-						type="date"
-						name="Start"
-						value={
-							isMultiple(ballot.Start)
-								? ""
-								: dateToShortDate(ballot.Start)
-						}
-						onChange={changeDate}
-						disabled={readOnly || isMultiple(ballot.id)}
+				<Col xs="auto">
+					<BallotDateInput
+						ballot={ballot}
+						dataKey="Start"
+						updateBallot={updateBallot}
+						readOnly={readOnly}
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} controlId="End">
+			<Form.Group as={Row} controlId="ballot-end" className="mb-3">
 				<Form.Label column>Close Date:</Form.Label>
-				<Col>
-					<Form.Control
-						type="date"
-						name="End"
-						value={
-							isMultiple(ballot.End)
-								? ""
-								: dateToShortDate(ballot.End)
-						}
-						onChange={changeDate}
-						disabled={readOnly || isMultiple(ballot.id)}
+				<Col xs="auto" className="position-relative">
+					<BallotDateInput
+						ballot={ballot}
+						dataKey="End"
+						updateBallot={updateBallot}
+						readOnly={readOnly}
 					/>
 				</Col>
 			</Form.Group>
-		</Row>
+		</>
 	);
 }
-
-export default BallotDatesEdit;

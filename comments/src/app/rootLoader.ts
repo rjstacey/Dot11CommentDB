@@ -7,7 +7,6 @@ import { loadGroups } from "@/store/groups";
 import { selectIsOnline } from "@/store/offline";
 
 async function init() {
-	console.log("start init");
 	await persistReady;
 
 	const { dispatch, getState } = store;

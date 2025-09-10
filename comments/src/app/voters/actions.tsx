@@ -1,11 +1,10 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { ConfirmModal, TableColumnSelector } from "@common";
+import { SplitTableButtonGroup } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
-import { BallotType, selectBallot } from "@/store/ballots";
+import { Ballot, BallotType, selectBallot } from "@/store/ballots";
 import {
-	deleteVoters,
 	exportVoters,
 	selectVotersState,
 	selectVotersBallot_id,
@@ -16,17 +15,12 @@ import {
 import VotersImportButton from "./VotersImport";
 import ProjectBallotSelector from "@/components/ProjectBallotSelector";
 
-import { getDefaultVoter, VotersContext } from "./layout";
 import { tableColumns } from "./tableColumns";
 
-function InitialBallot() {
-	const id = useAppSelector(selectVotersBallot_id);
-	const b = useAppSelector((state) =>
-		id ? selectBallot(state, id) : undefined
-	);
+function BallotInfo({ ballot }: { ballot: Ballot | undefined }) {
 	const descr =
-		b?.Type === BallotType.WG
-			? `${b.BallotID} on ${b.Document}`
+		ballot?.Type === BallotType.WG
+			? `${ballot.BallotID} on ${ballot.Document}`
 			: "This is not a WG ballot";
 
 	return (
@@ -37,69 +31,42 @@ function InitialBallot() {
 	);
 }
 
-function VotersActions({ setVotersState }: VotersContext) {
+function VotersActions() {
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
 	const votersBallot_id = useAppSelector(selectVotersBallot_id);
-	const { loading, selected } = useAppSelector(selectVotersState);
-	const shownIds = useAppSelector(votersSelectors.selectSortedFilteredIds);
-
-	async function handleRemoveSelected() {
-		const ids = selected.filter((id) => shownIds.includes(id)); // only select checked items that are visible
-		if (ids.length) {
-			const ok = await ConfirmModal.show(
-				`Are you sure you want to delete ${ids.length} entries?`
-			);
-			if (ok) await dispatch(deleteVoters(ids));
-		}
-	}
-
-	const handleAddVoter = () =>
-		setVotersState({
-			action: "add",
-			voter: getDefaultVoter(votersBallot_id!),
-		});
+	const b = useAppSelector((state) =>
+		votersBallot_id ? selectBallot(state, votersBallot_id) : undefined
+	);
+	const isWgBallot = b?.Type === BallotType.WG;
+	const { loading } = useAppSelector(selectVotersState);
 
 	return (
 		<Row className="w-100 justify-content-between align-items-center">
 			<Col>
 				<ProjectBallotSelector />
 			</Col>
-			<Col>
-				<TableColumnSelector
-					actions={votersActions}
-					selectors={votersSelectors}
-					columns={tableColumns}
-				/>
-			</Col>
-			<InitialBallot />
+			{isWgBallot && (
+				<Col xs="auto">
+					<SplitTableButtonGroup
+						actions={votersActions}
+						selectors={votersSelectors}
+						columns={tableColumns}
+					/>
+				</Col>
+			)}
+			<BallotInfo ballot={b} />
 			<Col xs="auto" className="d-flex justify-content-end gap-2">
-				<VotersImportButton ballot_id={votersBallot_id} />
+				<VotersImportButton ballot={b} />
 				<Button
 					variant="light"
 					name="export"
 					title="Export voters"
-					disabled={!votersBallot_id || !isOnline}
+					disabled={!isWgBallot || !isOnline}
 					onClick={() => dispatch(exportVoters())}
 				>
 					Export voters
 				</Button>
-				<Button
-					variant="outline-primary"
-					className="bi-plus-lg"
-					name="add"
-					title="Add voter"
-					disabled={!votersBallot_id}
-					onClick={handleAddVoter}
-				/>
-				<Button
-					variant="outline-primary"
-					className="bi-trash"
-					name="delete"
-					title="Remove selected"
-					disabled={selected.length === 0}
-					onClick={handleRemoveSelected}
-				/>
 				<Button
 					variant="outline-primary"
 					className="bi-arrow-repeat"

@@ -81,48 +81,6 @@ function nextBallotNumber(ballots: Ballot[], id: number, type: number) {
 	return maxNumber + 1;
 }
 
-function LabeledCheckbox({
-	label,
-	value,
-	onChange,
-	indeterminate,
-	disabled,
-	style,
-	className,
-}: {
-	label: string;
-	value: boolean;
-	onChange: (value: boolean) => void;
-	indeterminate?: boolean;
-	disabled?: boolean;
-	style?: React.CSSProperties;
-	className?: string;
-}) {
-	return (
-		<div
-			className={className}
-			style={{
-				...style,
-				display: "flex",
-				alignContent: "center",
-			}}
-		>
-			<Form.Check
-				id={label}
-				checked={value}
-				ref={(ref) =>
-					ref && (ref.indeterminate = indeterminate || false)
-				}
-				onChange={(e) => onChange(e.target.checked)}
-				disabled={disabled}
-			/>
-			<label htmlFor={label} style={{ opacity: disabled ? 0.5 : 1 }}>
-				{label}
-			</label>
-		</div>
-	);
-}
-
 function BallotSeries({
 	ballot,
 	updateBallot,
@@ -150,29 +108,40 @@ function BallotSeries({
 	));
 
 	return (
-		<Form.Group as={Row} controlId="BallotSeries">
-			<Form.Label column>Ballot series:</Form.Label>
-			<Col>
-				<div style={{ display: "flex", flexWrap: "wrap" }}>
-					{ballotSeriesStr}
-					<LabeledCheckbox
-						label="Final in series"
-						value={Boolean(ballot.IsComplete)}
-						onChange={(checked) =>
-							updateBallot({
-								IsComplete: checked,
-							})
-						}
-						indeterminate={isMultiple(ballot.IsComplete)}
-						disabled={readOnly || !isLast}
-					/>
-				</div>
+		<Form.Group
+			as={Row}
+			controlId="BallotSeries"
+			className="align-items-center mb-3"
+			readOnly={readOnly}
+		>
+			<Form.Label column xs="auto">
+				Ballot series:
+			</Form.Label>
+			<Col className="d-flex justify-content-end align-items-center">
+				<div>{ballotSeriesStr}</div>
+				<Form.Check
+					label="Final in series"
+					checked={Boolean(ballot.IsComplete)}
+					onChange={
+						readOnly
+							? () => {}
+							: (e) =>
+									updateBallot({
+										IsComplete: e.target.checked,
+									})
+					}
+					ref={(ref) =>
+						ref &&
+						(ref.indeterminate = isMultiple(ballot.IsComplete))
+					}
+					disabled={!isLast}
+				/>
 			</Col>
 		</Form.Group>
 	);
 }
 
-function BallotStage({
+export function BallotStageRow({
 	ballot,
 	updateBallot,
 	readOnly,
@@ -187,50 +156,57 @@ function BallotStage({
 
 	if (ballot.Type !== BallotType.WG && ballot.Type !== BallotType.SA)
 		return null;
+
 	return (
 		<>
-			<Row>
+			<Row className="mb-3">
 				<Form.Label column>Ballot stage:</Form.Label>
 				<Col className="d-flex flex-wrap">
-					<LabeledCheckbox
+					<Form.Check
 						style={{ width: 120 }}
 						label="Initial"
-						value={!ballot.prev_id}
-						onChange={(checked) =>
-							updateBallot(
-								checked
-									? {
-											prev_id: null,
-											//IsRecirc: false,
-									  }
-									: {
-											prev_id: prevBallot!.id,
-											//IsRecirc: true,
-									  }
-							)
+						checked={!ballot.prev_id}
+						onChange={
+							readOnly
+								? () => {}
+								: (e) =>
+										updateBallot(
+											e.target.checked
+												? {
+														prev_id: null,
+												  }
+												: {
+														prev_id: prevBallot!.id,
+												  }
+										)
 						}
-						indeterminate={isMultiple(ballot.prev_id)}
-						disabled={readOnly}
+						ref={(ref) =>
+							ref &&
+							(ref.indeterminate = isMultiple(ballot.prev_id))
+						}
 					/>
-					<LabeledCheckbox
+					<Form.Check
 						style={{ width: 120 }}
 						label="Recirc"
-						value={Boolean(ballot.prev_id)}
-						onChange={(checked) =>
-							updateBallot(
-								checked
-									? {
-											prev_id: prevBallot!.id,
-											//IsRecirc: true,
-									  }
-									: {
-											prev_id: null,
-											//IsRecirc: false,
-									  }
-							)
+						checked={Boolean(ballot.prev_id)}
+						onChange={
+							readOnly
+								? () => {}
+								: (e) =>
+										updateBallot(
+											e.target.checked
+												? {
+														prev_id: prevBallot!.id,
+												  }
+												: {
+														prev_id: null,
+												  }
+										)
 						}
-						indeterminate={isMultiple(ballot.prev_id)}
-						disabled={readOnly || !prevBallot}
+						ref={(ref) =>
+							ref &&
+							(ref.indeterminate = isMultiple(ballot.prev_id))
+						}
 					/>
 				</Col>
 			</Row>
@@ -243,7 +219,7 @@ function BallotStage({
 	);
 }
 
-export function BallotTypeSelect({
+export function BallotTypeRow({
 	ballot,
 	updateBallot,
 	readOnly,
@@ -272,58 +248,56 @@ export function BallotTypeSelect({
 		ballot.Type !== BallotType.CC && ballot.Type !== BallotType.WG;
 
 	return (
-		<>
-			<Row>
-				<Form.Label column>Ballot type/number:</Form.Label>
-				<Col className="d-flex flex-wrap">
-					{Object.values(BallotType).map((value) => (
-						<LabeledCheckbox
-							key={value}
-							style={{ width: 120 }}
-							label={BallotTypeLabels[value]}
-							value={ballot.Type === value}
-							onChange={() => updateBallotType(value)}
-							indeterminate={isMultiple(ballot.Type)}
-							disabled={readOnly}
-						/>
-					))}
-					<Form.Control
-						style={{ lineHeight: "25px", width: "10ch" }}
-						//size={10}
-						type="number"
-						name="number"
-						value={
-							isMultiple(ballot.number) ||
-							ballotNumberNA ||
-							ballot.number === null
-								? ""
-								: ballot.number
+		<Row className="align-items-center mb-3">
+			<Form.Label as="span" column>
+				Ballot type/number:
+			</Form.Label>
+			<Col
+				xs="auto"
+				className="d-flex flex-wrap align-items-center justify-content-end"
+			>
+				{Object.values(BallotType).map((value) => (
+					<Form.Check
+						key={value}
+						style={{ width: 120 }}
+						label={BallotTypeLabels[value]}
+						checked={ballot.Type === value}
+						onChange={
+							readOnly ? () => {} : () => updateBallotType(value)
 						}
-						onChange={(e) =>
-							updateBallot({ number: Number(e.target.value) })
+						ref={(ref) =>
+							ref && (ref.indeterminate = isMultiple(ballot.Type))
 						}
-						placeholder={
-							isMultiple(ballot.number)
-								? MULTIPLE_STR
-								: ballotNumberNA
-								? "N/A"
-								: BLANK_STR
-						}
-						disabled={
-							readOnly ||
-							isMultiple(ballot.number) ||
-							ballotNumberNA
-						}
+						//disabled={readOnly}
 					/>
-				</Col>
-			</Row>
-			<BallotStage
-				ballot={ballot}
-				updateBallot={updateBallot}
-				readOnly={readOnly}
-			/>
-		</>
+				))}
+				<Form.Control
+					style={{ lineHeight: "25px", width: "10ch" }}
+					//size={10}
+					type="number"
+					name="number"
+					value={
+						isMultiple(ballot.number) ||
+						ballotNumberNA ||
+						ballot.number === null
+							? ""
+							: ballot.number
+					}
+					onChange={(e) =>
+						updateBallot({ number: Number(e.target.value) })
+					}
+					placeholder={
+						isMultiple(ballot.number)
+							? MULTIPLE_STR
+							: ballotNumberNA
+							? "N/A"
+							: BLANK_STR
+					}
+					readOnly={
+						readOnly || isMultiple(ballot.number) || ballotNumberNA
+					}
+				/>
+			</Col>
+		</Row>
 	);
 }
-
-export default BallotTypeSelect;

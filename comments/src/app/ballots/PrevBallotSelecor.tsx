@@ -36,7 +36,10 @@ function SelectPrevBallot({
 	value: number | null;
 	onChange: (value: number | null) => void;
 	ballot_id: number;
-} & Pick<React.ComponentProps<typeof Select>, "placeholder" | "readOnly">) {
+} & Pick<
+	React.ComponentProps<typeof Select>,
+	"placeholder" | "readOnly" | "disabled" | "style" | "id"
+>) {
 	const options = usePrevBallotOptions(ballot_id);
 	const values = options.filter((o) => o.id === value);
 	const handleChange = (values: typeof options) =>
