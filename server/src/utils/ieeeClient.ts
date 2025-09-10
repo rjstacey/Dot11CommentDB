@@ -2,6 +2,7 @@ import { CookieJar } from "tough-cookie";
 import { cookie } from "http-cookie-agent/undici";
 import { fetch, EnvHttpProxyAgent, RequestInit } from "undici";
 import qs from "node:querystring";
+import { ForbiddenError, NotFoundError } from "./error.js";
 
 type IeeeClientResponse<T = string> = {
 	headers: Headers;
@@ -23,7 +24,10 @@ export class IeeeClient {
 		if (url.search(/^http[s]{0,1}:/) === -1) url = this.baseURL + url;
 		const response = await fetch(url, options);
 		if (!response.ok) {
-			throw new Error(`${method} ${url}: ${response.statusText}`);
+			const msg = `${method} ${url}: ${response.statusText}`;
+			if (response.status === 403) throw new ForbiddenError(msg);
+			if (response.status === 404) throw new NotFoundError(msg);
+			throw new TypeError(msg);
 		}
 
 		return response;

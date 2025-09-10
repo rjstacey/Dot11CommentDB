@@ -4,7 +4,11 @@
  * We don't want to use sync operation since that blocks the main thread.
  */
 import { parse, Options as ParseOptions } from "csv-parse";
-import { stringify, Input as StringifyInput, Options as StringifyOptions } from "csv-stringify";
+import {
+	stringify,
+	Input as StringifyInput,
+	Options as StringifyOptions,
+} from "csv-stringify";
 
 type CsvObjRow = { [n: string]: string };
 export function csvParse(

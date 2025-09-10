@@ -45,6 +45,13 @@ export type BasicFile = {
 	buffer: Buffer;
 };
 
+function bufferToArrayBuffer(buffer: Buffer) {
+	return buffer.buffer.slice(
+		buffer.byteOffset,
+		buffer.byteOffset + buffer.byteLength
+	) as ArrayBuffer;
+}
+
 /**
  * Parse a spreadsheet in .xlsx or .csv format.
  *
@@ -64,7 +71,7 @@ export async function parseSpreadsheet(
 	if (file.originalname.search(/\.xlsx$/i) >= 0) {
 		const workbook = new ExcelJS.Workbook();
 		try {
-			await workbook.xlsx.load(file.buffer);
+			await workbook.xlsx.load(bufferToArrayBuffer(file.buffer));
 		} catch (error) {
 			throw TypeError("Invalid workbook: " + error);
 		}
