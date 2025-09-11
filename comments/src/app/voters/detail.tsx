@@ -12,8 +12,8 @@ import {
 	VoterCreate,
 } from "@/store/voters";
 
+import { VoterEditForm, VoterAddForm } from "./VoterEditForm";
 import ShowAccess from "@/components/ShowAccess";
-import { VoterEditForm } from "./VoterEditForm";
 
 export function getDefaultVoter(ballot_id: number): VoterCreate {
 	return {
@@ -39,11 +39,11 @@ function VoterDetail({
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
 	const votersBallot_id = useAppSelector(selectVotersBallot_id);
-	const { selected, ids, entities, loading, valid } =
+	const { selected, entities, loading, valid } =
 		useAppSelector(selectVotersState);
 	// Only ballots that exist (selection may be old)
 	const selectedVoters = React.useMemo(
-		() => selected.map((id) => entities[id]!).filter((b) => Boolean(b)),
+		() => selected.map((id) => entities[id]!).filter(Boolean),
 		[selected, entities]
 	);
 
@@ -51,22 +51,14 @@ function VoterDetail({
 	const setEdit = (edit: boolean) =>
 		dispatch(votersActions.setUiProperties({ edit }));
 
-	const [action, setAction] = React.useState<"add" | "update">("update");
+	const [addVoter, setAddVoter] = React.useState<VoterCreate | null>(null);
 
-	const [defaultVoter, setDefaultVoter] = React.useState<
-		VoterCreate | undefined
-	>();
 	const [busy, setBusy] = React.useState(false);
 
-	React.useEffect(() => {
-		setDefaultVoter(selectedVoters[0]);
-	}, [selectedVoters]);
-
 	const addClick = React.useCallback(() => {
-		setDefaultVoter(getDefaultVoter(votersBallot_id!));
-		setAction("add");
+		setAddVoter(getDefaultVoter(votersBallot_id!));
 		dispatch(setSelectedVoters([]));
-	}, [dispatch, ids, entities, selectedVoters]);
+	}, [dispatch, selectedVoters]);
 
 	const deleteClick = React.useCallback(async () => {
 		const list = selectedVoters.map((v) => v.SAPIN).join(", ");
@@ -80,25 +72,39 @@ function VoterDetail({
 		await dispatch(deleteVoters(ids));
 	}, [dispatch, selectedVoters]);
 
-	const cancelClick = () => {
-		setDefaultVoter(selectedVoters[0]);
-		setAction("update");
-	};
-
 	let title = "";
-	let placeholder: string | null = null;
-	if (action === "update") {
+	let content: JSX.Element;
+	if (addVoter) {
+		title = "Add voter";
+		content = (
+			<VoterAddForm
+				voter={addVoter}
+				cancel={() => setAddVoter(null)}
+				setBusy={setBusy}
+			/>
+		);
+	} else {
+		let placeholder: string | null = null;
 		if (!valid && loading) {
 			placeholder = "Loading...";
 		} else if (selectedVoters.length === 0) {
 			placeholder = "Nothing selected";
 		} else if (selectedVoters.length > 1) {
 			placeholder = "Mulitple selected";
+		}
+		if (placeholder) {
+			content = <Placeholder>{placeholder}</Placeholder>;
 		} else {
 			title = edit ? "Edit voter" : "Voter";
+			content = (
+				<VoterEditForm
+					key={selectedVoters[0].id}
+					voter={selectedVoters[0]}
+					setBusy={setBusy}
+					readOnly={!edit}
+				/>
+			);
 		}
-	} else {
-		title = "Add voter";
 	}
 
 	const actionButtons = readOnly ? null : (
@@ -115,8 +121,8 @@ function VoterDetail({
 				variant="outline-primary"
 				className="bi-plus-lg"
 				title="Add ballot"
-				disabled={!isOnline}
-				active={action === "add"}
+				disabled={loading || !isOnline}
+				active={Boolean(addVoter)}
 				onClick={addClick}
 			/>
 			<Button
@@ -145,20 +151,7 @@ function VoterDetail({
 					{actionButtons}
 				</Col>
 			</Row>
-
-			{placeholder ? (
-				<Placeholder>{placeholder}</Placeholder>
-			) : (
-				defaultVoter && (
-					<VoterEditForm
-						action={action}
-						voter={defaultVoter!}
-						cancel={cancelClick}
-						setBusy={setBusy}
-						readOnly={!edit}
-					/>
-				)
-			)}
+			{content}
 			<ShowAccess access={access} />
 		</Container>
 	);

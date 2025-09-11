@@ -3,7 +3,7 @@ import { Row, Col, Form, Button, DropdownButton } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 
 import { BallotComments } from "./BallotComments";
-import MemberSelector from "../voters/MemberSelector";
+import { MemberSelect } from "../voters/MemberSelect";
 
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -266,7 +266,7 @@ function AddMemberCommentsForm({
 					Commenter:
 				</Form.Label>
 				<Col className="position-relative">
-					<MemberSelector
+					<MemberSelect
 						id="add-comments-commenter"
 						value={commenterSAPIN || 0}
 						onChange={setCommenterSAPIN}

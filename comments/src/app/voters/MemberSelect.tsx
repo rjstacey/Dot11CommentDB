@@ -4,17 +4,16 @@ import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectMembersState, selectMembers } from "@/store/members";
 
-function MemberSelector({
+export function MemberSelect({
 	value,
 	onChange,
-	readOnly,
-	...otherProps
+	...props
 }: {
 	value: number;
 	onChange: (value: number) => void;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"readOnly" | "style" | "id" | "isInvalid"
+	"className" | "readOnly" | "id" | "isInvalid"
 >) {
 	const { loading } = useAppSelector(selectMembersState);
 	const members = useAppSelector(selectMembers);
@@ -34,15 +33,13 @@ function MemberSelector({
 
 	return (
 		<Select
+			style={{ width: 400 }}
 			values={values}
 			onChange={handleChange}
 			options={options}
 			loading={loading}
 			clearable
-			readOnly={readOnly}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
-
-export default MemberSelector;

@@ -27,8 +27,8 @@ export function BallotAddForm({
 	const [ballot, setBallot] = React.useState(defaultBallot);
 
 	React.useLayoutEffect(() => {
-		const isValid = formRef.current?.checkValidity() || false;
-		setFormValid(isValid);
+		const formValid = formRef.current?.checkValidity() || false;
+		setFormValid(formValid);
 	});
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -47,8 +47,6 @@ export function BallotAddForm({
 		setBusy(false);
 		close();
 	};
-
-	console.log(formValid);
 
 	return (
 		<Form ref={formRef} noValidate onSubmit={handleSubmit}>
