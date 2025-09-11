@@ -57,10 +57,13 @@ export function BallotStageRow({
 
 	return (
 		<Row className="mb-3">
-			<Form.Label column>Ballot stage:</Form.Label>
-			<Col className="d-flex flex-wrap">
+			<Form.Label as="span" column>
+				Ballot stage:
+			</Form.Label>
+			<Col xs="auto" className="d-flex flex-wrap align-items-center">
 				<Form.Check
-					style={{ width: 120 }}
+					//style={{ width: 120 }}
+					className="me-4"
 					label="Initial"
 					checked={!ballot.prev_id}
 					onChange={
@@ -82,8 +85,9 @@ export function BallotStageRow({
 					}
 				/>
 				<Form.Check
-					style={{ width: 120 }}
-					label="Recirc"
+					//style={{ width: 120 }}
+					className="me-2"
+					label="Recirculation"
 					checked={Boolean(ballot.prev_id)}
 					onChange={
 						readOnly

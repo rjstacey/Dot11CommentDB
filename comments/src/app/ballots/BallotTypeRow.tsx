@@ -1,3 +1,4 @@
+import React from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple, Multiple } from "@common";
 
@@ -12,13 +13,101 @@ import {
 
 import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 
-function nextBallotNumber(ballots: Ballot[], id: number, type: number) {
-	let maxNumber = 0;
-	for (const b of ballots) {
-		if (b.id !== id && b.Type === type && b.number && b.number > maxNumber)
-			maxNumber = b.number;
+function useNextBallotNumber(id: number, type: number) {
+	const ballots = useAppSelector(selectBallots);
+
+	return React.useMemo(() => {
+		if (type === BallotType.SA) return 0;
+		let maxNumber = 0;
+		for (const b of ballots) {
+			if (
+				b.id !== id &&
+				b.Type === type &&
+				b.number &&
+				b.number > maxNumber
+			)
+				maxNumber = b.number;
+		}
+		return maxNumber + 1;
+	}, [ballots, id, type]);
+}
+
+function BallotTypeNumberCol({
+	ballot,
+	type,
+	updateBallot,
+	readOnly,
+}: {
+	ballot: Multiple<Ballot>;
+	type: number;
+	updateBallot: (changes: BallotChange) => void;
+	readOnly?: boolean;
+}) {
+	const id = isMultiple(ballot.id) ? 0 : ballot.id;
+	const nextNumber = useNextBallotNumber(id, type);
+	const defaultNumber =
+		!isMultiple(ballot.Type) &&
+		!isMultiple(ballot.number) &&
+		ballot.Type === type
+			? ballot.number
+			: nextNumber;
+	const [ballotNumber, setBallotNumber] = React.useState(defaultNumber);
+
+	function updateBallotType(type: number) {
+		if (type !== ballot.Type) {
+			updateBallot({
+				Type: type,
+				prev_id: null,
+				number: ballotNumber,
+			});
+			if (!isMultiple(ballot.id)) {
+				updateBallot({ number: ballotNumber });
+			}
+		}
 	}
-	return maxNumber + 1;
+
+	function updateBallotNumber(number: number) {
+		setBallotNumber(number);
+		updateBallot({ number });
+	}
+
+	return (
+		<Col
+			xs="auto"
+			className="d-flex flex-wrap align-items-center justify-content-end"
+		>
+			<Form.Check
+				key={type}
+				label={BallotTypeLabels[type]}
+				checked={ballot.Type === type}
+				onChange={readOnly ? () => {} : () => updateBallotType(type)}
+				ref={(ref) =>
+					ref && (ref.indeterminate = isMultiple(ballot.Type))
+				}
+				className="me-2"
+			/>
+			{type !== BallotType.SA && (
+				<Form.Control
+					style={{
+						width: "10ch",
+						opacity: ballot.Type !== type ? 0.3 : undefined,
+					}}
+					//htmlSize={4}
+					type="number"
+					name="number"
+					value={ballotNumber}
+					onChange={(e) => updateBallotNumber(Number(e.target.value))}
+					placeholder={
+						isMultiple(ballot.Type) || isMultiple(ballot.number)
+							? MULTIPLE_STR
+							: BLANK_STR
+					}
+					readOnly={readOnly || isMultiple(ballot.number)}
+					disabled={ballot.Type !== type}
+				/>
+			)}
+		</Col>
+	);
 }
 
 export function BallotTypeRow({
@@ -30,74 +119,23 @@ export function BallotTypeRow({
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const ballots = useAppSelector(selectBallots);
-
-	function updateBallotType(type: number) {
-		if (type !== ballot.Type) {
-			updateBallot({
-				Type: type,
-				prev_id: null,
-			});
-			if (!isMultiple(ballot.id)) {
-				const number = nextBallotNumber(ballots, ballot.id, type);
-				updateBallot({ number });
-			}
-		}
-	}
-
-	const ballotNumberNA =
-		ballot.Type !== BallotType.CC && ballot.Type !== BallotType.WG;
-
 	return (
 		<Row className="align-items-center mb-3">
 			<Form.Label as="span" column>
 				Ballot type/number:
 			</Form.Label>
-			<Col
-				xs="auto"
-				className="d-flex flex-wrap align-items-center justify-content-end"
-			>
-				{Object.values(BallotType).map((value) => (
-					<Form.Check
-						key={value}
-						style={{ width: 120 }}
-						label={BallotTypeLabels[value]}
-						checked={ballot.Type === value}
-						onChange={
-							readOnly ? () => {} : () => updateBallotType(value)
-						}
-						ref={(ref) =>
-							ref && (ref.indeterminate = isMultiple(ballot.Type))
-						}
-						//disabled={readOnly}
-					/>
-				))}
-				<Form.Control
-					style={{ lineHeight: "25px", width: "10ch" }}
-					//size={10}
-					type="number"
-					name="number"
-					value={
-						isMultiple(ballot.number) ||
-						ballotNumberNA ||
-						ballot.number === null
-							? ""
-							: ballot.number
-					}
-					onChange={(e) =>
-						updateBallot({ number: Number(e.target.value) })
-					}
-					placeholder={
-						isMultiple(ballot.number)
-							? MULTIPLE_STR
-							: ballotNumberNA
-							? "N/A"
-							: BLANK_STR
-					}
-					readOnly={
-						readOnly || isMultiple(ballot.number) || ballotNumberNA
-					}
-				/>
+			<Col xs="auto">
+				<Row className="justify-content-end">
+					{Object.values(BallotType).map((type) => (
+						<BallotTypeNumberCol
+							key={type}
+							type={type}
+							ballot={ballot}
+							updateBallot={updateBallot}
+							readOnly={readOnly}
+						/>
+					))}
+				</Row>
 			</Col>
 		</Row>
 	);

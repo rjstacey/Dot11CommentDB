@@ -179,6 +179,14 @@ export const tableColumns: ColumnProperties[] = [
 		dropdownWidth: 200,
 	},
 	{
+		key: "Document",
+		...fields.Document,
+		width: 150,
+		flexShrink: 1,
+		flexGrow: 1,
+		dropdownWidth: 300,
+	},
+	{
 		key: "Type/Stage",
 		label: "Type/Stage",
 		headerRenderer: renderHeaderTypeStage,
@@ -218,14 +226,7 @@ export const tableColumns: ColumnProperties[] = [
 		flexShrink: 1,
 		dropdownWidth: 300,
 	},
-	{
-		key: "Document",
-		...fields.Document,
-		width: 150,
-		flexShrink: 1,
-		flexGrow: 1,
-		dropdownWidth: 300,
-	},
+
 	{
 		key: "EpollNum",
 		...fields.EpollNum,
@@ -263,21 +264,21 @@ export const tableColumns: ColumnProperties[] = [
 const defaultTablesColumns = {
 	Basic: [
 		"__ctrl__",
-		"Group/Project",
 		"BallotID",
-		"Start/End",
+		"Group/Project",
 		"Document",
+		"Start/End",
 		"Results",
 		"Comments",
 	],
 	Detailed: [
 		"__ctrl__",
-		"Group/Project",
 		"BallotID",
+		"Group/Project",
+		"Document",
 		"Type/Stage",
 		"Start/End",
-		"Document",
-		"Topic",
+		"EpollNum",
 		"Voters",
 		"Results",
 		"Comments",

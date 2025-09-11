@@ -20,7 +20,7 @@ export function BallotProjectRow({
 			<Form.Label htmlFor="ballot-project" column>
 				Project:
 			</Form.Label>
-			<Col className="position-relative">
+			<Col xs="auto" lassName="position-relative">
 				<SelectProject
 					id="ballot-project"
 					value={isMultiple(ballot.Project) ? "" : ballot.Project}
@@ -35,11 +35,6 @@ export function BallotProjectRow({
 				<Form.Control.Feedback type="invalid" tooltip>
 					Select and existing or add a new project (e.g., P802.11bn)
 				</Form.Control.Feedback>
-			</Col>
-			<Col>
-				<Form.Text className="text-muted">
-					The project for this ballot
-				</Form.Text>
 			</Col>
 		</Form.Group>
 	);

@@ -65,18 +65,17 @@ export function BallotSeriesRow({
 	));
 
 	return (
-		<Form.Group
-			as={Row}
-			controlId="BallotSeries"
-			className="align-items-center mb-3"
-			readOnly={readOnly}
-		>
-			<Form.Label column xs="auto">
+		<Form.Group as={Row} className="mb-3" readOnly={readOnly}>
+			<Form.Label as="span" column>
 				Ballot series:
 			</Form.Label>
-			<Col className="d-flex justify-content-end align-items-center">
+			<Col
+				xs="auto"
+				className="d-flex justify-content-end align-items-center"
+			>
 				<div>{ballotSeriesStr}</div>
 				<Form.Check
+					className="me-2"
 					label="Final in series"
 					checked={Boolean(ballot.IsComplete)}
 					onChange={

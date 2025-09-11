@@ -46,11 +46,6 @@ export function BallotEpollRow({
 					readOnly={readOnly || isMultipleBallots}
 				/>
 			</Col>
-			<Col>
-				<Form.Text muted>
-					Identifies the ePoll on mentor.ieee.org
-				</Form.Text>
-			</Col>
 		</Form.Group>
 	);
 }

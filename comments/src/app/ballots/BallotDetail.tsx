@@ -1,6 +1,6 @@
 import React from "react";
 import { Dictionary, EntityId } from "@reduxjs/toolkit";
-import { Row, Col, Button, Spinner } from "react-bootstrap";
+import { Container, Row, Col, Button, Spinner } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -203,7 +203,7 @@ function BallotDetail({
 	);
 
 	return (
-		<>
+		<Container style={{ maxWidth: 860 }}>
 			<Row className="align-items-center mb-3">
 				<Col>
 					<h3>{title}</h3>
@@ -236,7 +236,7 @@ function BallotDetail({
 			<Row>
 				<ShowAccess access={access} />
 			</Row>
-		</>
+		</Container>
 	);
 }
 

@@ -106,7 +106,7 @@ export function BallotEditForm({
 
 	return (
 		<>
-			<Form>
+			<Form style={{ pointerEvents: readOnly ? "none" : undefined }}>
 				<BallotEdit
 					ballot={edited}
 					updateBallot={handleUpdate}

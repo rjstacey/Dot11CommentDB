@@ -20,7 +20,7 @@ export function BallotGroupRow({
 			<Form.Label htmlFor="ballot-group" column>
 				Group:
 			</Form.Label>
-			<Col className="position-relative">
+			<Col xs="auto" className="position-relative">
 				<SelectGroup
 					id="ballot-group"
 					value={isMultiple(ballot.groupId) ? null : ballot.groupId}
@@ -36,11 +36,6 @@ export function BallotGroupRow({
 				<Form.Control.Feedback type="invalid" tooltip>
 					Select a group
 				</Form.Control.Feedback>
-			</Col>
-			<Col>
-				<Form.Text className="text-muted">
-					The group that owns this project
-				</Form.Text>
 			</Col>
 		</Form.Group>
 	);
