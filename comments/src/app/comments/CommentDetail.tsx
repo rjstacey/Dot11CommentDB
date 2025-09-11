@@ -147,7 +147,7 @@ function CommentResolutionEdit({
 }
 
 const Placeholder = (props: React.ComponentProps<"span">) => (
-	<div className="placeholder">
+	<div className="details-panel-placeholder">
 		<span {...props} />
 	</div>
 );
