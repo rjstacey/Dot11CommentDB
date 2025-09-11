@@ -1,6 +1,5 @@
 import React from "react";
-import { Button } from "react-bootstrap";
-import { AppTable, ShowFilters } from "@common";
+import { AppTable, ShowFilters, SplitPanel, Panel } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";
@@ -11,11 +10,10 @@ import {
 	resultsActions,
 	upsertTableColumns,
 	selectResultsAccess,
-	type Result,
 } from "@/store/results";
 import { selectBallot, BallotType } from "@/store/ballots";
 
-import { ResultEditModal } from "./ResultEdit";
+import { ResultsDetail } from "./detail";
 import { tableColumns, getDefaultTablesConfig } from "./tableColumns";
 
 function updateTableConfigAction(access: number, type: number) {
@@ -55,26 +53,6 @@ function Results() {
 			dispatch(updateTableConfigAction(access, resultsBallot.Type));
 	}, [dispatch, access, resultsBallot]);
 
-	const [editResult, setEditResult] = React.useState<Result | null>(null);
-
-	const columns = React.useMemo(() => {
-		return tableColumns.map((col) => {
-			if (col.key === "Action") {
-				col = {
-					...col,
-					cellRenderer: (props) => (
-						<Button
-							variant="secondary-outline"
-							className="bi-pencil"
-							onClick={() => setEditResult(props.rowData)}
-						/>
-					),
-				};
-			}
-			return col;
-		});
-	}, [setEditResult]);
-
 	if (!resultsBallot) return null;
 
 	return (
@@ -85,23 +63,25 @@ function Results() {
 				actions={resultsActions}
 				fields={fields}
 			/>
-			<div className="table-container">
-				<AppTable
-					fitWidth
-					fixed
-					defaultTablesConfig={defaultTablesConfig}
-					columns={columns}
-					headerHeight={38}
-					estimatedRowHeight={32}
-					selectors={resultsSelectors}
-					actions={resultsActions}
-				/>
-			</div>
-			<ResultEditModal
-				ballot={resultsBallot}
-				result={editResult}
-				close={() => setEditResult(null)}
-			/>
+
+			<SplitPanel selectors={resultsSelectors} actions={resultsActions}>
+				<Panel>
+					<AppTable
+						defaultTablesConfig={defaultTablesConfig}
+						columns={tableColumns}
+						headerHeight={52}
+						estimatedRowHeight={32}
+						selectors={resultsSelectors}
+						actions={resultsActions}
+					/>
+				</Panel>
+				<Panel className="details-panel">
+					<ResultsDetail
+						access={access}
+						readOnly={access < AccessLevel.admin}
+					/>
+				</Panel>
+			</SplitPanel>
 		</>
 	);
 }

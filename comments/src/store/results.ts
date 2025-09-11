@@ -1,4 +1,9 @@
-import { createAction, Action, createSelector } from "@reduxjs/toolkit";
+import {
+	createAction,
+	Action,
+	EntityId,
+	createSelector,
+} from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -83,7 +88,15 @@ export default slice;
 /* Slice actions */
 export const resultsActions = slice.actions;
 
-const { getSuccess, getFailure, setMany, upsertTableColumns } = slice.actions;
+const {
+	getSuccess,
+	getFailure,
+	setMany,
+	removeMany,
+	upsertTableColumns,
+	setSelected: setSelectedResults,
+} = slice.actions;
+export { setSelectedResults };
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ ballot_id: number | null }>(
@@ -271,5 +284,18 @@ export const uploadResults =
 				dispatch(getSuccess(results));
 		} catch (error) {
 			dispatch(setError("POST " + url, error));
+		}
+	};
+
+export const deleteResultsMany =
+	(ids: EntityId[]): AppThunk =>
+	async (dispatch, getState) => {
+		const ballot_id = selectResultsBallot_id(getState());
+		const url = `${baseUrl}/${ballot_id}`;
+		dispatch(removeMany(ids));
+		try {
+			await fetcher.delete(url, ids);
+		} catch (error) {
+			dispatch(setError("DELETE " + url, error));
 		}
 	};

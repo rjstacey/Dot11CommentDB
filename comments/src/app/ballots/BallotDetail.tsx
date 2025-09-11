@@ -203,7 +203,7 @@ function BallotDetail({
 	);
 
 	return (
-		<Container style={{ maxWidth: 860 }}>
+		<Container fluid style={{ maxWidth: 860 }}>
 			<Row className="align-items-center mb-3">
 				<Col>
 					<h3>{title}</h3>

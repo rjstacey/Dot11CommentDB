@@ -1,5 +1,3 @@
-import React from "react";
-
 import {
 	ColumnProperties,
 	TablesConfig,
@@ -31,7 +29,6 @@ export const tableColumns: ColumnProperties[] = [
 	{ key: "lastSAPIN", label: "SA PIN Used", width: 100 },
 	{ key: "BallotName", label: "Ballot", width: 100 },
 	{ key: "notes", label: "Notes", width: 250, flexShrink: 1, flexGrow: 1 },
-	{ key: "Action", label: "", width: 100 },
 ];
 
 export function getDefaultTablesConfig(

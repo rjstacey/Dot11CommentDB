@@ -28,6 +28,7 @@ export function VoterEditForm({
 }) {
 	const dispatch = useAppDispatch();
 	const [state, setState] = React.useState(voter);
+
 	const hasUpdates = React.useMemo(() => {
 		if (action === "add") return true;
 		const changes = shallowDiff(voter, state);
@@ -58,8 +59,16 @@ export function VoterEditForm({
 		setBusy(false);
 	}
 
+	let className = "p-3";
+	if (readOnly) className += " pe-none";
+
 	return (
-		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
+		<Form
+			noValidate
+			validated
+			onSubmit={handleSubmit}
+			className={className}
+		>
 			<Form.Group as={Row} className="mb-3">
 				<Form.Label column xs={2} htmlFor="voter-member-selector">
 					Member:

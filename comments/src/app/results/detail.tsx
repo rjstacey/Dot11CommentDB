@@ -3,25 +3,28 @@ import { Container, Row, Col, Spinner, Button } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
+import { selectBallot } from "@/store/ballots";
 import {
-	selectVotersState,
-	selectVotersBallot_id,
-	deleteVoters,
-	setSelectedVoters,
-	votersActions,
-	VoterCreate,
-} from "@/store/voters";
+	selectResultsState,
+	selectResultsBallot_id,
+	deleteResultsMany,
+	setSelectedResults,
+	resultsActions,
+	//ResultCreate,
+	Result,
+} from "@/store/results";
 
 import ShowAccess from "@/components/ShowAccess";
-import { VoterEditForm } from "./VoterEditForm";
+import { ResultEditForm } from "./ResultEditForm";
 
-export function getDefaultVoter(ballot_id: number): VoterCreate {
+/*
+export function getDefaultResult(ballot_id: number): ResultCreate {
 	return {
 		ballot_id,
 		SAPIN: 0,
 		Status: "Voter",
-	} satisfies VoterCreate;
-}
+	} satisfies ResultCreate;
+}*/
 
 const Placeholder = (props: React.ComponentProps<"span">) => (
 	<div className="details-panel-placeholder">
@@ -29,7 +32,7 @@ const Placeholder = (props: React.ComponentProps<"span">) => (
 	</div>
 );
 
-function VoterDetail({
+export function ResultsDetail({
 	access,
 	readOnly,
 }: {
@@ -38,50 +41,53 @@ function VoterDetail({
 }) {
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
-	const votersBallot_id = useAppSelector(selectVotersBallot_id);
+	const ballot_id = useAppSelector(selectResultsBallot_id)!;
+	const ballot = useAppSelector((state) => selectBallot(state, ballot_id));
+
 	const { selected, ids, entities, loading, valid } =
-		useAppSelector(selectVotersState);
+		useAppSelector(selectResultsState);
 	// Only ballots that exist (selection may be old)
-	const selectedVoters = React.useMemo(
+	const selectedResults = React.useMemo(
 		() => selected.map((id) => entities[id]!).filter((b) => Boolean(b)),
 		[selected, entities]
 	);
 
-	const edit: boolean | undefined = useAppSelector(selectVotersState).ui.edit;
+	const edit: boolean | undefined =
+		useAppSelector(selectResultsState).ui.edit;
 	const setEdit = (edit: boolean) =>
-		dispatch(votersActions.setUiProperties({ edit }));
+		dispatch(resultsActions.setUiProperties({ edit }));
 
 	const [action, setAction] = React.useState<"add" | "update">("update");
 
-	const [defaultVoter, setDefaultVoter] = React.useState<
-		VoterCreate | undefined
+	const [defaultResult, setDefaultResult] = React.useState<
+		Result | undefined
 	>();
 	const [busy, setBusy] = React.useState(false);
 
 	React.useEffect(() => {
-		setDefaultVoter(selectedVoters[0]);
-	}, [selectedVoters]);
+		setDefaultResult(selectedResults[0]);
+	}, [selectedResults]);
 
 	const addClick = React.useCallback(() => {
-		setDefaultVoter(getDefaultVoter(votersBallot_id!));
+		//setDefaultResult(getDefaultVoter(ballot_id!));
 		setAction("add");
-		dispatch(setSelectedVoters([]));
-	}, [dispatch, ids, entities, selectedVoters]);
+		dispatch(setSelectedResults([]));
+	}, [dispatch, ids, entities, selectedResults]);
 
 	const deleteClick = React.useCallback(async () => {
-		const list = selectedVoters.map((v) => v.SAPIN).join(", ");
-		const ids = selectedVoters.map((b) => b.id);
+		const list = selectedResults.map((v) => v.SAPIN).join(", ");
+		const ids = selectedResults.map((b) => b.id);
 		const ok = await ConfirmModal.show(
-			`Are you sure you want to delete voter${
-				selectedVoters.length > 1 ? "s" : ""
+			`Are you sure you want to delete result${
+				selectedResults.length > 1 ? "s" : ""
 			} ${list}?`
 		);
 		if (!ok) return;
-		await dispatch(deleteVoters(ids));
-	}, [dispatch, selectedVoters]);
+		await dispatch(deleteResultsMany(ids));
+	}, [dispatch, selectedResults]);
 
 	const cancelClick = () => {
-		setDefaultVoter(selectedVoters[0]);
+		setDefaultResult(selectedResults[0]);
 		setAction("update");
 	};
 
@@ -90,15 +96,15 @@ function VoterDetail({
 	if (action === "update") {
 		if (!valid && loading) {
 			placeholder = "Loading...";
-		} else if (selectedVoters.length === 0) {
+		} else if (selectedResults.length === 0) {
 			placeholder = "Nothing selected";
-		} else if (selectedVoters.length > 1) {
+		} else if (selectedResults.length > 1) {
 			placeholder = "Mulitple selected";
 		} else {
-			title = edit ? "Edit voter" : "Voter";
+			title = edit ? "Edit result" : "Result";
 		}
 	} else {
-		title = "Add voter";
+		title = "Add result";
 	}
 
 	const actionButtons = readOnly ? null : (
@@ -106,7 +112,7 @@ function VoterDetail({
 			<Button
 				variant="outline-primary"
 				className="bi-pencil"
-				title="Edit ballot"
+				title="Edit result"
 				disabled={loading || !isOnline}
 				active={edit}
 				onClick={() => setEdit(!edit)}
@@ -114,16 +120,17 @@ function VoterDetail({
 			<Button
 				variant="outline-primary"
 				className="bi-plus-lg"
-				title="Add ballot"
-				disabled={!isOnline}
+				title="Add result"
+				//disabled={!isOnline}
+				disabled={true}
 				active={action === "add"}
 				onClick={addClick}
 			/>
 			<Button
 				variant="outline-primary"
 				className="bi-trash"
-				title="Delete ballot"
-				disabled={selectedVoters.length === 0 || loading || !isOnline}
+				title="Delete result"
+				disabled={selectedResults.length === 0 || loading || !isOnline}
 				onClick={deleteClick}
 			/>
 		</>
@@ -149,10 +156,11 @@ function VoterDetail({
 			{placeholder ? (
 				<Placeholder>{placeholder}</Placeholder>
 			) : (
-				defaultVoter && (
-					<VoterEditForm
+				defaultResult && (
+					<ResultEditForm
 						action={action}
-						voter={defaultVoter!}
+						ballot={ballot}
+						result={defaultResult}
 						cancel={cancelClick}
 						setBusy={setBusy}
 						readOnly={!edit}
@@ -163,5 +171,3 @@ function VoterDetail({
 		</Container>
 	);
 }
-
-export default VoterDetail;
