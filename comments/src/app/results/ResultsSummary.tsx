@@ -109,10 +109,6 @@ const basicsRenderer: (Label | ResultRender)[] = [
 	{ label: "Opened:", value: (b) => ballotDate(b.Start) },
 	{ label: "Closed:", value: (b) => ballotDate(b.End) },
 	{ label: "Duration:", value: ballotDuration },
-	{
-		label: "Voting pool size:",
-		value: (b) => b.Results?.VotingPoolSize || 0,
-	},
 ];
 
 const wgHeaderRenderer: (Label | ResultRender)[] = [
@@ -122,6 +118,10 @@ const wgHeaderRenderer: (Label | ResultRender)[] = [
 const wgResultsRenderer: (Label | ResultRender)[] = wgHeaderRenderer
 	.concat(basicsRenderer)
 	.concat([
+		{
+			label: "Voting pool size:",
+			value: (b) => b.Results?.ReturnsPoolSize || 0,
+		},
 		"Result",
 		{ label: "Approve:", value: (b) => b.Results?.Approve || 0 },
 		{ label: "Disapprove:", value: (b) => b.Results?.Disapprove || 0 },
@@ -167,6 +167,10 @@ const saHeaderRenderer: (Label | ResultRender)[] = [
 const saResultsRenderer: (Label | ResultRender)[] = saHeaderRenderer
 	.concat(basicsRenderer)
 	.concat([
+		{
+			label: "Voting pool size:",
+			value: (b) => b.Results?.VotingPoolSize || 0,
+		},
 		"Result",
 		{ label: "Approve:", value: (b) => b.Results?.Approve || 0 },
 		{ label: "Disapprove:", value: (b) => b.Results?.Disapprove || 0 },
@@ -333,7 +337,8 @@ const failStyle = {
 };
 
 function resultsSummary(ballot: Ballot) {
-	const r = ballot.Results!;
+	const r = ballot.Results;
+	if (!r) return null;
 	return (
 		<span style={overallPass(ballot) ? passStyle : failStyle}>
 			{`${r.Approve}/${r.Disapprove}/${r.Abstain} (${approvalRateStr(

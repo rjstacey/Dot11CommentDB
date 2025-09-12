@@ -85,6 +85,7 @@ function EpollsTable() {
 					<BallotAddForm
 						defaultBallot={addBallot}
 						close={() => setAddBallot(null)}
+						setBusy={() => {}}
 					/>
 				)}
 			</Modal>

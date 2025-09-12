@@ -20,7 +20,6 @@ async function init() {
 	dispatch(setUser(user)); // Make sure we have the latest user info
 
 	await dispatch(loadGroups());
-	console.log("end init");
 }
 
 const oneTimeInit = init();

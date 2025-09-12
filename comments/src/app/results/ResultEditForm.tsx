@@ -29,7 +29,6 @@ export function ResultEditForm({
 	const hasUpdates = React.useMemo(() => {
 		if (action === "add") return true;
 		const changes = shallowDiff(result, state);
-		console.log(changes);
 		return Object.keys(changes).length > 0;
 	}, [action, state, result]);
 

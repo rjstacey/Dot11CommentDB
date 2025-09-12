@@ -23,7 +23,7 @@ type ResolutionEditEditable = Pick<
 	"EditInDraft" | "EditNotes" | "EditStatus"
 >;
 
-function EditStatus({
+function EditingStatus({
 	resolution,
 	updateResolution,
 	readOnly,
@@ -68,8 +68,8 @@ function EditStatus({
 
 	return (
 		<>
-			<Row>
-				<Col>
+			<Row className="align-items-center">
+				<Col xs="auto">
 					<Form.Check
 						id="implementedindraft"
 						name="EditStatus"
@@ -84,9 +84,11 @@ function EditStatus({
 						onChange={changeEditStatus}
 						label="Implemented in draft"
 						readOnly={readOnly}
+						className={readOnly ? "pe-none" : undefined}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				</Col>
-				<Col>
+				<Col xs="auto">
 					<Form.Control
 						type="number"
 						style={{ width: 80 }}
@@ -97,11 +99,13 @@ function EditStatus({
 						onChange={changeEditStatus}
 						placeholder={placeholder}
 						readOnly={readOnly}
+						className={readOnly ? "pe-none" : undefined}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				</Col>
 			</Row>
 			<Row>
-				<Col>
+				<Col xs="auto">
 					<Form.Check
 						id="nochange"
 						name="EditStatus"
@@ -116,6 +120,8 @@ function EditStatus({
 						onChange={changeEditStatus}
 						label="No change"
 						readOnly={readOnly}
+						className={readOnly ? "pe-none" : undefined}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				</Col>
 			</Row>
@@ -123,68 +129,84 @@ function EditStatus({
 	);
 }
 
-export function EditingEdit({
+function EditingNotesInternal({
 	resolution,
 	updateResolution = () => {},
-	forceShowEditing,
 	readOnly,
 }: {
 	resolution: Multiple<ResolutionEditEditable>;
 	updateResolution?: (changes: Partial<Resolution>) => void;
-	forceShowEditing?: boolean;
+	readOnly?: boolean;
+}) {
+	return (
+		<div className={styles.editingContainer}>
+			<EditingStatus
+				resolution={resolution}
+				updateResolution={updateResolution}
+				readOnly={readOnly}
+			/>
+			<Editor
+				value={
+					isMultiple(resolution.EditNotes) ? "" : resolution.EditNotes
+				}
+				onChange={(value) => updateResolution({ EditNotes: value })}
+				placeholder={
+					isMultiple(resolution.EditNotes) ? MULTIPLE_STR : BLANK_STR
+				}
+				readOnly={readOnly}
+			/>
+		</div>
+	);
+}
+
+const editingNotesLabel = <Form.Label as="span">Editing Notes:</Form.Label>;
+
+export function EditingNotesRow(props: {
+	resolution: Multiple<ResolutionEditEditable>;
+	updateResolution?: (changes: Partial<Resolution>) => void;
+	readOnly?: boolean;
+}) {
+	return (
+		<Row className="mb-3">
+			<Col xs={12}>{editingNotesLabel}</Col>
+			<Col>
+				<EditingNotesInternal {...props} />
+			</Col>
+		</Row>
+	);
+}
+
+export function EditingNotesRowCollapsable(props: {
+	resolution: Multiple<ResolutionEditEditable>;
+	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
-	const showEditing: boolean | undefined =
-		useAppSelector(selectCommentsState).ui.showEditing;
-	//const toggleShowEditing = () =>
-	//	dispatch(setUiProperties({ showEditing: !showEditing }));
+	const showEditingNotes: boolean | undefined =
+		useAppSelector(selectCommentsState).ui.showEditingNotes;
+	const key = "editing-notes";
 
 	return (
 		<Row className="mb-3">
 			<Accordion
+				flush
+				className={styles.notesField}
+				activeKey={showEditingNotes ? key : undefined}
 				onSelect={(eventKey) =>
 					dispatch(
-						setUiProperties({ showEditing: Boolean(eventKey) })
+						setUiProperties({ showEditingNotes: Boolean(eventKey) })
 					)
 				}
-				className={styles.notesField}
 			>
-				<Accordion.Item eventKey="0">
+				<Accordion.Item eventKey={key}>
 					<Accordion.Header>
-						<Form.Label>Editing Notes:</Form.Label>
+						<Form.Label as="span">Editing Notes:</Form.Label>
 					</Accordion.Header>
 					<Accordion.Body>
-						{(showEditing || forceShowEditing) && (
-							<div className={styles.editingContainer}>
-								<EditStatus
-									resolution={resolution}
-									updateResolution={updateResolution}
-									readOnly={readOnly}
-								/>
-								<Editor
-									value={
-										isMultiple(resolution.EditNotes)
-											? ""
-											: resolution.EditNotes
-									}
-									onChange={(value) =>
-										updateResolution({ EditNotes: value })
-									}
-									placeholder={
-										isMultiple(resolution.EditNotes)
-											? MULTIPLE_STR
-											: BLANK_STR
-									}
-									readOnly={readOnly}
-								/>
-							</div>
-						)}
+						<EditingNotesInternal {...props} />
 					</Accordion.Body>
 				</Accordion.Item>
 			</Accordion>
 		</Row>
 	);
 }
-
-export default EditingEdit;

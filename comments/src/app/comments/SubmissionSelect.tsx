@@ -58,14 +58,13 @@ const selectFieldValues = createSelector(
 	}
 );
 
-function SubmissionSelector({
+export function SubmissionSelect({
 	value,
 	onChange,
 	...otherProps
 }: {
 	value: string;
 	onChange: (value: string) => void;
-	readOnly?: boolean;
 } & Pick<
 	React.ComponentProps<typeof Select>,
 	"placeholder" | "readOnly" | "disabled" | "id" | "style"
@@ -99,5 +98,3 @@ function SubmissionSelector({
 		/>
 	);
 }
-
-export default SubmissionSelector;

@@ -36,7 +36,7 @@ const createViewResultsCurrent = `
 	SELECT
 		r.id,
 		r.SAPIN,
-		m.CurrentSAPIN,
+		COALESCE(m.CurrentSAPIN, r.SAPIN) AS CurrentSAPIN,
 		COALESCE(m.Name, r.Name) AS Name,
 		COALESCE(m.Email, r.Email) AS Email,
 		COALESCE(m.Affiliation, r.Affiliation) AS Affiliation,
@@ -219,6 +219,9 @@ export async function getWGBallotResults(ballot_id: number): Promise<Result[]> {
 					LAST_VALUE(r.commentCount) OVER w AS commentCount,
 					SUM(r.commentCount) OVER (PARTITION BY b.series_id, r.CurrentSAPIN) AS totalCommentCount,
 					LAST_VALUE(r.notes) OVER w AS notes,
+					LAST_VALUE(r.Name) OVER w AS Name,
+					LAST_VALUE(r.Email) OVER w AS Email,
+					LAST_VALUE(r.Affiliation) OVER w AS Affiliation,
 					ROW_NUMBER() OVER w AS n
 				FROM resultsCurrent r JOIN ballotsSeries b ON b.id=r.ballot_id
 				WHERE b.series_id=${ballot_id}
@@ -242,7 +245,8 @@ export async function getWGBallotResults(ballot_id: number): Promise<Result[]> {
 				r.vote,
 				r.commentCount,
 				r.totalCommentCount,
-				r.notes AS notes
+				r.notes AS notes,
+				r.Name, r.Email, r.Affiliation
 			FROM resultsForSeries r	LEFT JOIN votersForSeries v ON r.CurrentSAPIN=v.CurrentSAPIN
 			UNION ALL
 			SELECT
@@ -255,12 +259,13 @@ export async function getWGBallotResults(ballot_id: number): Promise<Result[]> {
 				"None" as vote,
 				0 AS commentCount,
 				0 AS totalCommentCount,
-				NULL as Notes
-			FROM votersForSeries v LEFT JOIN resultsForSeries r ON r.CurrentSAPIN=v.CurrentSAPIN
+				NULL as Notes,
+				m.Name, m.Email, m.Affiliation
+			FROM votersForSeries v LEFT JOIN members m ON m.SAPIN=v.CurrentSAPIN LEFT JOIN resultsForSeries r ON r.CurrentSAPIN=v.CurrentSAPIN
 			WHERE r.CurrentSAPIN IS NULL
 		)
-		SELECT t.*, m.Name, m.Email, m.Affiliation
-		FROM resultsPlusVoters t LEFT JOIN members m ON m.SAPIN=t.SAPIN
+		SELECT t.*
+		FROM resultsPlusVoters t 
 		ORDER BY SAPIN;
 	`;
 

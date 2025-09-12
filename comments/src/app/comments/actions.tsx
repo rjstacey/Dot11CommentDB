@@ -41,6 +41,7 @@ function CommentsActions() {
 				selectors={commentsSelectors}
 				actions={commentsActions}
 				columns={tableColumns}
+				xs="auto"
 			/>
 			<Col className="d-flex justify-content-end gap-2">
 				{access >= AccessLevel.rw && (

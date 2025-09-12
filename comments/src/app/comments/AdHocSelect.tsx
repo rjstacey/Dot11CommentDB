@@ -66,10 +66,10 @@ const itemRenderer = ({ item }: { item: AdHoc }) => {
 
 const nullAdHoc: AdHoc = { GroupId: null, Name: "" };
 
-function AdHocSelector({
+export function AdHocSelect({
 	value,
 	onChange,
-	...otherProps
+	...props
 }: {
 	value: AdHoc;
 	onChange: (value: AdHoc) => void;
@@ -115,9 +115,7 @@ function AdHocSelector({
 			itemRenderer={itemRenderer}
 			labelField="Name"
 			valueField="GroupId"
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
-
-export default AdHocSelector;

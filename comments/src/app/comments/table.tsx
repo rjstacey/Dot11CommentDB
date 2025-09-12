@@ -1,5 +1,5 @@
 import React from "react";
-
+//import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
 	SplitPanel,
@@ -18,8 +18,8 @@ import {
 } from "@common";
 
 import CommentDetail from "./CommentDetail";
-import { renderMBS, renderCommenter, renderCategory } from "./CommentEdit";
-import { renderSubmission } from "./SubmissionSelector";
+import { renderMBS, renderCommenter, renderCategory } from "./CommentBasics";
+import { renderSubmission } from "./SubmissionSelect";
 import {
 	fields,
 	commentsSelectors,

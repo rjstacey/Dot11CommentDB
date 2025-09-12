@@ -1,3 +1,7 @@
+.row {
+	display: flex;
+}
+
 .textBlockContainer {
 	overflow-wrap: break-word;
 }
@@ -26,15 +30,19 @@
 	position: relative; /* position toolbar */
 
 	& :global(.accordion-button) {
-		padding: 10px 0;
+		--bs-accordion-btn-padding-y: 0;
+		--bs-accordion-btn-padding-x: 0;
+		--bs-accordion-active-bg: transparent;
+		--bs-accordion-btn-focus-box-shadow: none;
 
 		&:not(:global(.collapsed)) {
-			background-color: transparent;
+			box-shadow: none;
 		}
 	}
 
 	& :global(.accordion-body) {
-		padding: 0;
+		--bs-accordion-body-padding-y: 0;
+		--bs-accordion-body-padding-x: 0;
 	}
 }
 

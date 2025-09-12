@@ -27,10 +27,10 @@ const selectFieldValues = createSelector(
 
 type Option = { label: string; value: string };
 
-function CommentGroupSelector({
+export function CommentGroupSelect({
 	value,
 	onChange,
-	...otherProps
+	...props
 }: {
 	value: string;
 	onChange: (value: string) => void;
@@ -60,9 +60,7 @@ function CommentGroupSelector({
 			clearable
 			create
 			createOption={createOption}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
-
-export default CommentGroupSelector;

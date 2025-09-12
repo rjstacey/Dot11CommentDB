@@ -63,7 +63,7 @@ const itemRenderer = ({ item }: { item: Assignee }) => {
 
 const nullAssignee: Assignee = { SAPIN: 0, Name: "" };
 
-function AssigneeSelector({
+export function AssigneeSelect({
 	value, // value is object with shape {SAPIN: number, Name: string}
 	onChange,
 	readOnly,
@@ -120,5 +120,3 @@ function AssigneeSelector({
 		/>
 	);
 }
-
-export default AssigneeSelector;

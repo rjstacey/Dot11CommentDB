@@ -79,7 +79,7 @@
 	display: flex;
 	flex: 1;
 	flex-wrap: wrap;
-	min-height: 1em;
+	min-height: 28px;
 }
 
 .select .placeholder {

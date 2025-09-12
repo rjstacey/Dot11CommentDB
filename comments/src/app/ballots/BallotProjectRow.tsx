@@ -20,7 +20,7 @@ export function BallotProjectRow({
 			<Form.Label htmlFor="ballot-project" column>
 				Project:
 			</Form.Label>
-			<Col xs="auto" lassName="position-relative">
+			<Col xs="auto" className="position-relative">
 				<SelectProject
 					id="ballot-project"
 					value={isMultiple(ballot.Project) ? "" : ballot.Project}

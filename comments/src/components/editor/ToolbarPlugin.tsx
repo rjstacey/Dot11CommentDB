@@ -200,20 +200,19 @@ function BlockStyleButtons({
 
 	const buttons = blockTypeOptions
 		.map((o) => (
-			<button
+			<Button
 				key={o.value}
 				className={
-					blockType !== "paragraph" && blockType === o.value
-						? "active"
-						: ""
+					o.icon +
+					(blockType !== "paragraph" && blockType === o.value
+						? " active"
+						: "")
 				}
 				disabled={disabled}
 				onClick={() => onChange(o.value)}
 				aria-label={o.label}
 				title={o.label}
-			>
-				<i className={o.icon} />
-			</button>
+			/>
 		))
 		.concat(
 			<SelectAlignment
@@ -232,7 +231,7 @@ function BlockStyleButtons({
 	} else if (size === "small") {
 		moreButtons = buttons.splice(1, 3);
 		moreButtons.concat(buttons.splice(-1, 1));
-		moreButtons.push(<div className="divider" />);
+		moreButtons.push(<div key="div1" className="divider" />);
 		moreButtons.push(buttons.pop()!);
 	}
 
@@ -350,9 +349,8 @@ function InlineStyleButtons({
 				}}
 				title={o.label}
 				active={formats.includes(o.value)}
-			>
-				<i className={o.icon} />
-			</Button>
+				className={o.icon}
+			/>
 		))
 		.concat(
 			<Button
@@ -361,9 +359,8 @@ function InlineStyleButtons({
 				onClick={insertLink}
 				title={(isLink ? "Remove" : "Insert") + " link"}
 				active={isLink}
-			>
-				<i className="bi-link" />
-			</Button>
+				className="bi-link"
+			/>
 		);
 	let moreButtons: JSX.Element[] = [];
 
@@ -379,10 +376,9 @@ function InlineStyleButtons({
 			{buttons}
 			{moreButtons.length > 0 && (
 				<DropdownButton
-					title=""
+					title={<i className="bi-three-dots-vertical" />}
 					align={size === "small" ? "start" : "end"}
 					disabled={disabled}
-					className="bi-three-dots-vertical"
 				>
 					<div className="button-group">{moreButtons}</div>
 				</DropdownButton>
@@ -439,7 +435,7 @@ function SelectAlignment({
 						<i className={o.icon} />
 					</Dropdown.Item>
 				) : (
-					<Dropdown.Divider key={i} className={styles.divider} />
+					<Dropdown.Divider key={i} />
 				)
 			)}
 		</DropdownButton>
@@ -488,9 +484,8 @@ function UndoRedo({
 				}}
 				aria-label="Undo"
 				title="Undo (Ctrl-z)"
-			>
-				<i className="bi-arrow-counterclockwise" />
-			</Button>
+				className="bi-arrow-counterclockwise"
+			/>
 			<Button
 				disabled={!canRedo || disabled}
 				onClick={() => {
@@ -498,9 +493,8 @@ function UndoRedo({
 				}}
 				aria-label="Redo"
 				title="Redo (Ctrl-r)"
-			>
-				<i className="bi-arrow-clockwise" />
-			</Button>
+				className="bi-arrow-clockwise"
+			/>
 		</div>
 	);
 }

@@ -1,4 +1,4 @@
-import { Button, Modal, Row, Col } from "react-bootstrap";
+import { Row, Col } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectCommentsState } from "@/store/comments";
@@ -9,19 +9,20 @@ import {
 	CommentHistoryEvent,
 } from "@/store/commentsHistory";
 
+import { CommentBasics } from "./CommentBasics";
 import {
-	CommentBasics,
 	CommentAdHoc,
 	CommentGroup,
-	CommentNotes,
-} from "./CommentEdit";
+	CommentNotesRow,
+} from "./CommentCategorization";
+
 import {
-	ResolutionAssignee,
-	ResolutionSubmission,
-	ResolutionApproval,
-	ResolutionAndStatus,
-} from "./ResolutionEdit";
-import { EditingEdit } from "./ResolutionEditingEdit";
+	ResolutionAssigneeRow,
+	ResolutionSubmissionRow,
+	ResolutionApprovalRow,
+} from "./ResolutionAssigneeMotionRow";
+import { ResolutionRow } from "./ResolutionRow";
+import { EditingNotesRow } from "./EditingNotes";
 
 import styles from "./CommentHistory.module.css";
 import React from "react";
@@ -99,12 +100,12 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 	if ("AdHoc" in changes || "CommentGroup" in changes)
 		body.push(
 			<Row key="adhocGroup">
-				<Col>
+				<Col xs={12} md={5}>
 					{"AdHoc" in changes && (
 						<CommentAdHoc comment={updatedComment} readOnly />
 					)}
 				</Col>
-				<Col>
+				<Col xs={12} md={7}>
 					{"CommentGroup" in changes && (
 						<CommentGroup comment={updatedComment} readOnly />
 					)}
@@ -114,13 +115,11 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 
 	if ("Notes" in changes)
 		body.push(
-			<Row key="notes">
-				<CommentNotes
-					comment={updatedComment}
-					forceShowNotes
-					readOnly
-				/>
-			</Row>
+			<CommentNotesRow
+				key="commentNotes"
+				comment={updatedComment}
+				readOnly
+			/>
 		);
 
 	return (
@@ -153,30 +152,38 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 
 	if ("AssigneeName" in changes)
 		body.push(
-			<Row key="assignee">
-				<ResolutionAssignee resolution={updatedResolution} readOnly />
-			</Row>
+			<ResolutionAssigneeRow
+				key="assignee"
+				resolution={updatedResolution}
+				readOnly
+			/>
 		);
 
 	if ("Submission" in changes)
 		body.push(
-			<Row key="submission">
-				<ResolutionSubmission resolution={updatedResolution} readOnly />
-			</Row>
+			<ResolutionSubmissionRow
+				key="submission"
+				resolution={updatedResolution}
+				readOnly
+			/>
 		);
 
 	if ("ReadyForMotion" in changes || "ApprovedByMotion" in changes)
 		body.push(
-			<Row key="approval">
-				<ResolutionApproval resolution={updatedResolution} readOnly />
-			</Row>
+			<ResolutionApprovalRow
+				key="approval"
+				resolution={updatedResolution}
+				readOnly
+			/>
 		);
 
 	if ("ResnStatus" in changes || "Resolution" in changes)
 		body.push(
-			<Row key="resolution">
-				<ResolutionAndStatus resolution={updatedResolution} readOnly />
-			</Row>
+			<ResolutionRow
+				key="resolution"
+				resolution={updatedResolution}
+				readOnly
+			/>
 		);
 
 	if (
@@ -185,13 +192,11 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 		"EditInDraft" in changes
 	)
 		body.push(
-			<Row key="editing">
-				<EditingEdit
-					resolution={updatedResolution}
-					forceShowEditing
-					readOnly
-				/>
-			</Row>
+			<EditingNotesRow
+				key="editing"
+				resolution={updatedResolution}
+				readOnly
+			/>
 		);
 
 	return (
@@ -234,23 +239,21 @@ function ChangeEntry(entry: CommentHistoryEntry) {
 }
 
 function CommentHistoryDisplay() {
-	const [show, setShow] = React.useState(false);
 	const dispatch = useAppDispatch();
 	const { selected, entities } = useAppSelector(selectCommentsState);
 	const { loading, commentsHistory } = useAppSelector(
 		selectCommentsHistoryState
 	);
 
-	const open = () => {
-		setShow(true);
-		if (selected.length) {
-			const id = selected[0];
-			const c = entities[id];
-			if (c) dispatch(loadCommentsHistory(c.comment_id));
-		}
-	};
+	const id = selected[0];
+	const comment_id = entities[id]?.comment_id;
 
-	const Elements = () => (
+	React.useEffect(() => {
+		if (!comment_id) return;
+		dispatch(loadCommentsHistory(comment_id));
+	}, [comment_id]);
+
+	return (
 		<div className={styles.container}>
 			{commentsHistory.length > 0 ? (
 				commentsHistory.map((props) => (
@@ -262,26 +265,6 @@ function CommentHistoryDisplay() {
 				</div>
 			)}
 		</div>
-	);
-
-	return (
-		<>
-			<Button
-				variant="outline-primary"
-				className="bi-clock-history"
-				onClick={open}
-				disabled={selected.length === 0}
-			/>
-			<Modal
-				show={show}
-				name="history"
-				title="Comment history"
-				disabled={selected.length === 0}
-				onHide={() => setShow(false)}
-			>
-				<Elements />
-			</Modal>
-		</>
 	);
 }
 
