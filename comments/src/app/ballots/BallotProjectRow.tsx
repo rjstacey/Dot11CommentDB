@@ -23,6 +23,7 @@ export function BallotProjectRow({
 			<Col xs="auto" className="position-relative">
 				<SelectProject
 					id="ballot-project"
+					style={{ width: 300 }}
 					value={isMultiple(ballot.Project) ? "" : ballot.Project}
 					onChange={(Project) => updateBallot({ Project })}
 					groupId={isMultiple(ballot.groupId) ? null : ballot.groupId}

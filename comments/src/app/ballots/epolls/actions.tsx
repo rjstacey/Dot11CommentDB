@@ -39,7 +39,9 @@ function EpollsActions() {
 					title="Load More"
 					onClick={() => dispatch(loadMoreEpolls())}
 					disabled={loading || !isOnline}
-				/>
+				>
+					&nbsp;Load More
+				</Button>
 				<Button
 					variant="outline-secondary"
 					className="bi-arrow-repeat"

@@ -23,6 +23,7 @@ export function BallotGroupRow({
 			<Col xs="auto" className="position-relative">
 				<SelectGroup
 					id="ballot-group"
+					style={{ width: 300 }}
 					value={isMultiple(ballot.groupId) ? null : ballot.groupId}
 					onChange={(groupId) =>
 						updateBallot({ groupId: groupId || undefined })

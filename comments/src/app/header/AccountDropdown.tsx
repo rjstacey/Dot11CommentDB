@@ -28,9 +28,7 @@ export function AccountDropdown() {
 				</Dropdown.ItemText>
 				<Dropdown.ItemText>{user.Email}</Dropdown.ItemText>
 				<Dropdown.Divider />
-				<Dropdown.Item onClick={reload}>
-					Clear Cache and Reload
-				</Dropdown.Item>
+				<Dropdown.Item onClick={reload}>Clear and Reload</Dropdown.Item>
 				<Dropdown.Item onClick={loginAndReturn}>Sign Out</Dropdown.Item>
 			</Dropdown.Menu>
 		</Dropdown>
