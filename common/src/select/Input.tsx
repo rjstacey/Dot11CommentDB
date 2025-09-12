@@ -9,6 +9,7 @@ function Input({
 	return (
 		<input
 			ref={inputRef}
+			id={"" + props.id + "-search"}
 			tabIndex={-1}
 			className="input"
 			style={{ width: `${state.search.length + 1}ch` }}

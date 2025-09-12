@@ -71,7 +71,10 @@
 	}
 }
 
-.select :global(.content) {
+.select button:global(.content) {
+	appearance: none;
+	border: none;
+	background: none;
 	position: relative;
 	display: flex;
 	flex: 1;

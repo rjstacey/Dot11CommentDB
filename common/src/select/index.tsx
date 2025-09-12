@@ -11,8 +11,8 @@ import debounce from "lodash.debounce";
 
 import styles from "./select.module.css";
 
-const Content = (props: React.ComponentProps<"div">) => (
-	<div className="content" {...props} />
+const Content = (props: React.ComponentProps<"button">) => (
+	<button className="content" {...props} />
 );
 const Loading = (props: React.ComponentProps<"div">) => (
 	<div className="loading" {...props} />
@@ -665,7 +665,10 @@ class SelectInternal<T extends ItemType> extends React.Component<
 				onFocus={this.onFocus}
 				onBlur={this.onBlur}
 			>
-				<Content style={{ minWidth: `${props.placeholder.length}ch` }}>
+				<Content
+					id={props.id}
+					style={{ minWidth: `${props.placeholder.length}ch` }}
+				>
 					{content}
 					{!props.readOnly &&
 						props.searchable &&
