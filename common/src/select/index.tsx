@@ -470,13 +470,13 @@ class SelectInternal<T extends ItemType> extends React.Component<
 			options = options.filter((item) => methods.isSelected(item));
 		options = methods.filter(options);
 		options = methods.sort(options);
-		/*if (props.create && state.search) {
+		if (props.create && state.search) {
 			const newItem = {
 				[props.valueField]: state.search,
 				[props.labelField]: state.search,
 			};
-			options = [newItem, ...options];
-		}*/
+			options = [newItem as T, ...options];
+		}
 		return options;
 	};
 
@@ -665,11 +665,6 @@ class SelectInternal<T extends ItemType> extends React.Component<
 				onFocus={this.onFocus}
 				onBlur={this.onBlur}
 			>
-				<FormSelect
-					id={props.id}
-					//style={{ display: "none" }}
-					hidden
-				/>
 				<Content style={{ minWidth: `${props.placeholder.length}ch` }}>
 					{content}
 					{!props.readOnly &&
