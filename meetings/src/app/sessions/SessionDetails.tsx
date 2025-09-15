@@ -2,23 +2,17 @@ import * as React from "react";
 import { connect, ConnectedProps } from "react-redux";
 import { EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
-import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
-import "react-tabs/style/react-tabs.css";
-
+import { Tabs, Tab, Button, Row, Col, Form } from "react-bootstrap";
 import {
 	shallowDiff,
 	deepMergeTagMultiple,
 	isMultiple,
 	debounce,
 	ConfirmModal,
-	ActionButton,
-	Row,
-	Field,
-	Input,
 	TextArea,
 	Select,
 	Multiple,
-} from "dot11-components";
+} from "@common";
 
 import TimeZoneSelector from "@/components/TimeZoneSelector";
 import ImatMeetingSelector from "@/components/ImatMeetingSelector";
@@ -73,9 +67,9 @@ function SessionTypeSelector({
 }: {
 	value: SessionType | null;
 	onChange: (value: SessionType) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "options" | "onChange"
+	"readOnly" | "disabled" | "placeholder" | "id" | "style" | "className"
 >) {
 	const values = SessionTypeOptions.filter((o) => o.value === value);
 	const handleChange = (values: typeof SessionTypeOptions) =>
@@ -125,11 +119,12 @@ function SessionBasics({
 
 	return (
 		<>
-			<Row>
-				<Field id="session-number" label="Session number:">
-					<Input
-						style={{ fontSize: "1em" }}
+			<Form.Group as={Row} className="mb-3" controlId="session-number">
+				<Form.Label column>Session number:</Form.Label>
+				<Col xs="auto">
+					<Form.Control
 						type="number"
+						style={{ width: "6rem" }}
 						name="Number"
 						value={
 							isMultiple(session.number)
@@ -153,10 +148,11 @@ function SessionBasics({
 						step={0.1}
 						autoComplete="none"
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field id="session-name" label="Session name:">
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3" controlId="session-name">
+				<Form.Label column>Session name:</Form.Label>
+				<Col>
 					<TextArea
 						style={{ width: `${nameMinWidthCh}ch` }}
 						name="Name"
@@ -168,10 +164,11 @@ function SessionBasics({
 						disabled={readOnly}
 						autoComplete="none"
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Session type:">
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3" controlId="session-type">
+				<Form.Label column>Session type:</Form.Label>
+				<Col>
 					<SessionTypeSelector
 						value={
 							!session.type || isMultiple(session.type)
@@ -181,10 +178,15 @@ function SessionBasics({
 						onChange={(type) => handleChange({ type })}
 						readOnly={readOnly}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Organizing group:">
+				</Col>
+			</Form.Group>
+			<Form.Group
+				as={Row}
+				className="mb-3"
+				controlId="session-organizing-group"
+			>
+				<Form.Label column>Organizing group:</Form.Label>
+				<Col>
 					<GroupParentsSelector
 						value={
 							isMultiple(session.groupId) ? null : session.groupId
@@ -192,11 +194,12 @@ function SessionBasics({
 						onChange={(groupId) => handleChange({ groupId })}
 						readOnly={readOnly}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field id="session-start" label="Start:">
-					<Input
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3" controlId="session-start">
+				<Form.Label column>Start:</Form.Label>
+				<Col xs="auto">
+					<Form.Control
 						type="date"
 						value={
 							isMultiple(session.startDate)
@@ -213,11 +216,12 @@ function SessionBasics({
 						}
 						disabled={readOnly}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field id="session-end" label="End:">
-					<Input
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3" controlId="session-end">
+				<Form.Label column>End:</Form.Label>
+				<Col xs="auto">
+					<Form.Control
 						type="date"
 						value={
 							isMultiple(session.endDate) ? "" : session.endDate
@@ -232,10 +236,11 @@ function SessionBasics({
 						}
 						disabled={readOnly}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Time zone:">
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3" controlId="session-timezone">
+				<Form.Label column>Time zone:</Form.Label>
+				<Col xs="auto">
 					<TimeZoneSelector
 						style={{ width: 200 }}
 						value={
@@ -249,10 +254,15 @@ function SessionBasics({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="IMAT meeting:">
+				</Col>
+			</Form.Group>
+			<Form.Group
+				as={Row}
+				className="mb-3"
+				controlId="session-imat-meeting"
+			>
+				<Form.Label column>IMAT meeting:</Form.Label>
+				<Col>
 					<ImatMeetingSelector
 						value={
 							isMultiple(session.imatMeetingId)
@@ -269,8 +279,8 @@ function SessionBasics({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
-			</Row>
+				</Col>
+			</Form.Group>
 		</>
 	);
 }
@@ -303,21 +313,16 @@ function SessionEdit({
 					onSelect={(tabIndex) => {
 						dispatch(setUiProperties({ tabIndex }));
 					}}
-					selectedIndex={uiProperties.tabIndex || 0}
+					activeKey={uiProperties.tabIndex || 0}
 				>
-					<TabList>
-						<Tab>Rooms</Tab>
-						<Tab>Timeslots</Tab>
-						<Tab>Credit</Tab>
-					</TabList>
-					<TabPanel>
+					<Tab title="Rooms" eventKey={0}>
 						<RoomDetails
 							rooms={(session as Session).rooms || []}
 							setRooms={(rooms) => updateSession({ rooms })}
 							readOnly={readOnly}
 						/>
-					</TabPanel>
-					<TabPanel>
+					</Tab>
+					<Tab title="Timeslots" eventKey={1}>
 						<TimeslotDetails
 							timeslots={(session as Session).timeslots || []}
 							setTimeslots={(timeslots) =>
@@ -325,14 +330,14 @@ function SessionEdit({
 							}
 							readOnly={readOnly}
 						/>
-					</TabPanel>
-					<TabPanel>
+					</Tab>
+					<Tab title="Credit" eventKey={2}>
 						<SessionCredit
 							session={session as Session}
 							updateSession={updateSession}
 							readOnly={readOnly}
 						/>
-					</TabPanel>
+					</Tab>
 				</Tabs>
 			)}
 		</div>
@@ -461,24 +466,27 @@ class SessionDetail extends React.Component<
 
 		return (
 			<>
-				<div className="top-row justify-right">
+				<div className="top-row justify-right gap-2">
 					{!readOnly && (
 						<>
-							<ActionButton
-								name="edit"
+							<Button
+								variant="outline-primary"
+								className="bi-pencil"
 								title="Edit session"
 								disabled={disableButtons}
-								isActive={uiProperties.editEnabled || readOnly}
+								active={uiProperties.editEnabled || readOnly}
 								onClick={this.handleToggleEditEnabled}
 							/>
-							<ActionButton
-								name="add"
+							<Button
+								variant="outline-primary"
+								className="bi-plus-lg"
 								title="Add a session"
 								disabled={!uiProperties.editEnabled}
 								onClick={this.add}
 							/>
-							<ActionButton
-								name="delete"
+							<Button
+								variant="outline-primary"
+								className="bi-trash"
 								title="Delete session"
 								disabled={
 									disableButtons ||

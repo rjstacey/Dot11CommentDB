@@ -1,7 +1,6 @@
 import * as React from "react";
 import { DateTime } from "luxon";
-
-import { Checkbox, ActionIcon } from "dot11-components";
+import { Button, FormCheck } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -44,8 +43,9 @@ function SelectAllMeetings({ style }: { style?: React.CSSProperties }) {
 
 	const isIndeterminate = !allSelected && selectedMeetings.length > 0;
 
-	const toggleSelect = () =>
+	const toggleSelect = () => {
 		dispatch(setSelectedMeetings(selectedMeetings.length ? [] : ids));
+	};
 
 	return (
 		<div
@@ -58,7 +58,7 @@ function SelectAllMeetings({ style }: { style?: React.CSSProperties }) {
 				justifyContent: "center",
 			}}
 		>
-			<Checkbox
+			<FormCheck
 				title={
 					allSelected
 						? "Clear all"
@@ -67,7 +67,9 @@ function SelectAllMeetings({ style }: { style?: React.CSSProperties }) {
 						: "Select all"
 				}
 				checked={allSelected}
-				indeterminate={isIndeterminate}
+				ref={(ref) => {
+					if (ref) ref.indeterminate = isIndeterminate;
+				}}
 				onChange={toggleSelect}
 				disabled={isDisabled}
 			/>
@@ -166,7 +168,7 @@ function TimeslotContent({
 	return (
 		<div className="slot" style={style}>
 			<span style={{ width: "100%" }}>
-				<Checkbox
+				<FormCheck
 					style={{ float: "right" }}
 					checked={selectedSlots.includes(id)}
 					onChange={() => dispatch(toggleSelectedSlots([id]))}
@@ -231,7 +233,7 @@ function MeetingContent({
 	return (
 		<div className="slot" style={style}>
 			<span style={{ width: "100%" }}>
-				<Checkbox
+				<FormCheck
 					style={{ float: "right" }}
 					checked={selectedMeetings.includes(meeting.id)}
 					onChange={() =>
@@ -434,8 +436,9 @@ function MeetingsCalendar({ nDays }: { nDays: number }) {
 					}}
 				>
 					{day > 0 && (
-						<ActionIcon
-							type="prev"
+						<Button
+							variant="light"
+							className="bi-arrow-left-circle"
 							style={{
 								position: "absolute",
 								top: 10,
@@ -446,8 +449,9 @@ function MeetingsCalendar({ nDays }: { nDays: number }) {
 						/>
 					)}
 					{day + nDays < dates.length && (
-						<ActionIcon
-							type="next"
+						<Button
+							variant="light"
+							className="bi-arrow-right-circle"
 							style={{
 								position: "absolute",
 								top: 10,

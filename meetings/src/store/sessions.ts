@@ -13,7 +13,7 @@ import {
 	setError,
 	displayDate,
 	getAppTableDataSelectors,
-} from "dot11-components";
+} from "@common";
 
 import type { RootState, AppThunk } from ".";
 import { selectCurrentSessionId } from "./current";
@@ -74,7 +74,7 @@ export type SessionType = keyof typeof SessionTypeLabels;
 
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 	([value, label]) =>
-		({ value, label }) as { value: SessionType; label: string }
+		({ value, label } as { value: SessionType; label: string })
 );
 
 export const displaySessionType = (type: SessionType | null) =>

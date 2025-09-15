@@ -6,7 +6,7 @@ import {
 	ColumnProperties,
 	TablesConfig,
 	TableConfig,
-} from "dot11-components";
+} from "@common";
 
 import {
 	fields,

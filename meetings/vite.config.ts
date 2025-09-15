@@ -1,8 +1,4 @@
-import {
-	defineConfig,
-	loadEnv,
-	UserConfig,
-} from "vite";
+import { defineConfig, loadEnv, UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
@@ -50,6 +46,7 @@ export default defineConfig(({ command, mode }) => {
 			alias: {
 				"@": "/src",
 				"@schemas": path.resolve("../schemas"),
+				"@common": path.resolve(__dirname, "../common/src"),
 			},
 		},
 		server: {

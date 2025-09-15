@@ -1,8 +1,5 @@
-import {
-	ActionButton,
-	SplitPanelButton,
-	TableColumnSelector,
-} from "dot11-components";
+import { Row, Col, Button } from "react-bootstrap";
+import { SplitTableButtonGroup } from "@common";
 
 import {
 	webexMeetingsSelectors,
@@ -17,27 +14,26 @@ import { refresh } from "./route";
 
 function WebexMeetingsActions() {
 	return (
-		<div className="top-row">
-			<SessionSelectorNav allowShowDateRange />
+		<Row className="w-100 m-3">
+			<Col>
+				<SessionSelectorNav allowShowDateRange />
+			</Col>
 
-			<div style={{ display: "flex" }}>
-				<TableColumnSelector
-					selectors={webexMeetingsSelectors}
-					actions={webexMeetingsActions}
-					columns={tableColumns}
-				/>
-				<SplitPanelButton
-					selectors={webexMeetingsSelectors}
-					actions={webexMeetingsActions}
-				/>
+			<SplitTableButtonGroup
+				selectors={webexMeetingsSelectors}
+				actions={webexMeetingsActions}
+				columns={tableColumns}
+			/>
+			<Col className="d-flex justify-content-end align-items-center gap-2">
 				<CopyWebexMeetingListButton />
-				<ActionButton
-					name="refresh"
+				<Button
+					variant="outline-primary"
+					className="bi-arrow-repeat"
 					title="Refresh"
 					onClick={refresh}
 				/>
-			</div>
-		</div>
+			</Col>
+		</Row>
 	);
 }
 

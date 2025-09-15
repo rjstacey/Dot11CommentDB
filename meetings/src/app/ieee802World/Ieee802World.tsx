@@ -1,18 +1,18 @@
 import { useNavigate } from "react-router";
+import { Button } from "react-bootstrap";
 import {
 	AppTable,
 	SelectHeaderCell,
 	SelectCell,
 	TableColumnSelector,
 	TableColumnHeader,
-	ActionButton,
 	ConfirmModal,
 	ColumnProperties,
 	TableConfig,
 	TablesConfig,
 	HeaderCellRendererProps,
 	RowGetterProps,
-} from "dot11-components";
+} from "@common";
 
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -195,13 +195,17 @@ function Ieee802WorldSchedule() {
 					actions={ieee802WorldActions}
 					columns={tableColumns}
 				/>
-				<ActionButton
+				<Button
+					variant="light"
 					name="import"
 					title="Import selected"
 					onClick={importSelected}
-				/>
-				<ActionButton
-					name="refresh"
+				>
+					{"Import selected"}
+				</Button>
+				<Button
+					variant="outline-primary"
+					className="bi-arrow-repeat"
 					title="Refresh"
 					onClick={refresh}
 				/>

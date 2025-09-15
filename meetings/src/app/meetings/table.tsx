@@ -4,7 +4,7 @@ import {
 	Panel,
 	ShowFilters,
 	RowGetterProps,
-} from "dot11-components";
+} from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {

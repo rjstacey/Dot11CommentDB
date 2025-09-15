@@ -1,7 +1,7 @@
 import { createAction } from "@reduxjs/toolkit";
-import { createAppTableDataSlice, shallowEqual } from "dot11-components";
+import { createAppTableDataSlice, shallowEqual } from "@common";
 
-import { dataSet, fields } from "./webexMeetingsSelectors";
+import { dataSet, fields, type WebexMeeting } from "./webexMeetingsSelectors";
 import { WebexMeetingsQuery } from "@schemas/webex";
 
 const initialState: {
@@ -13,9 +13,11 @@ const initialState: {
 	lastLoad: null,
 };
 
+const selectId = (entity: WebexMeeting) => entity.id;
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	selectId,
 	initialState,
 	reducers: {},
 	extraReducers(builder, dataAdapter) {

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Select } from "dot11-components";
+import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectImatCommmittees } from "@/store/imatBreakouts";
@@ -11,9 +11,9 @@ function ImatCommitteeSelector({
 }: {
 	value: string | null;
 	onChange: (value: string | null) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const options = useAppSelector(selectImatCommmittees);
 	const values = options.filter((o) => o.symbol === value);

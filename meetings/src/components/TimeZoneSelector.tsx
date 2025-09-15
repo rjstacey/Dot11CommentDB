@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Select } from "dot11-components";
+import { Select } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loadTimeZones, selectTimeZonesState } from "@/store/timeZones";
 
@@ -10,9 +10,9 @@ function TimeZoneSelector({
 }: {
 	value: string;
 	onChange: (value: string) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const dispatch = useAppDispatch();
 	const { valid, loading, timeZones } = useAppSelector(selectTimeZonesState);

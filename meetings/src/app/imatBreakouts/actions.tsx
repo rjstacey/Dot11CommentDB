@@ -1,9 +1,6 @@
 import { useNavigate, useParams } from "react-router";
-import {
-	ActionButton,
-	TableColumnSelector,
-	SplitPanelButton,
-} from "dot11-components";
+import { Row, Col, Button } from "react-bootstrap";
+import { SplitTableButtonGroup } from "@common";
 
 import {
 	imatBreakoutsSelectors,
@@ -25,31 +22,36 @@ function ImatBreakoutsActions() {
 	};
 
 	return (
-		<div className="top-row">
-			<ImatMeetingSelector
-				value={imatMeetingId}
-				onChange={setImatMeetingId}
+		<Row className="w-100 m-3">
+			<Col xs="auto">
+				<ImatMeetingSelector
+					value={imatMeetingId}
+					onChange={setImatMeetingId}
+				/>
+			</Col>
+
+			<Col>
+				<ImatMeetingInfo imatMeetingId={imatMeetingId} />
+			</Col>
+
+			<SplitTableButtonGroup
+				selectors={imatBreakoutsSelectors}
+				actions={imatBreakoutsActions}
+				columns={tableColumns}
+				xs="auto"
 			/>
-
-			<ImatMeetingInfo imatMeetingId={imatMeetingId} />
-
-			<div style={{ display: "flex" }}>
-				<TableColumnSelector
-					selectors={imatBreakoutsSelectors}
-					actions={imatBreakoutsActions}
-					columns={tableColumns}
-				/>
-				<SplitPanelButton
-					selectors={imatBreakoutsSelectors}
-					actions={imatBreakoutsActions}
-				/>
-				<ActionButton
-					name="refresh"
+			<Col
+				xs="auto"
+				className="d-flex justify-content-end align-items-center gap-2"
+			>
+				<Button
+					variant="outline-primary"
+					className="bi-arrow-repeat"
 					title="Refresh"
 					onClick={refresh}
 				/>
-			</div>
-		</div>
+			</Col>
+		</Row>
 	);
 }
 

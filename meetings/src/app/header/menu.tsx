@@ -1,14 +1,13 @@
-import React from "react";
-import { matchPath, NavLink, useLocation, useParams } from "react-router";
-
-import { Dropdown, DropdownRendererProps } from "dot11-components";
+import * as React from "react";
+import { NavLink, useParams, useLocation } from "react-router";
+import { Navbar, Nav } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";
 import { selectTopLevelGroupByName } from "@/store/groups";
 import { selectBreakoutMeetingId } from "@/store/imatBreakouts";
 
-import routes, { AppRoute } from "./routes";
+import routes, { AppRoute } from "../routes";
 
 type MenuPathItem = {
 	path: string;
@@ -77,82 +76,45 @@ function useMenuLinks() {
 	return menu;
 }
 
-export function NavMenu({
-	className,
-	methods,
-}: {
-	className?: string;
-	methods?: DropdownRendererProps["methods"];
-}) {
+const appName = "Meetings";
+export function Menu() {
 	const location = useLocation();
+	const { groupName } = useParams();
+
+	const title = (groupName ? groupName + " " : "") + appName;
+	if (document.title !== title) document.title = title;
+
 	const menu = useMenuLinks();
-
-	let classNames: string = "nav-menu";
-	if (className) classNames += " " + className;
-
-	return (
-		<nav
-			className={classNames}
-			onClick={methods?.close} // If a click bubbles up, close the dropdown
+	const menuItems = menu.map((item) => (
+		<Nav.Link
+			as={NavLink}
+			key={item.link}
+			eventKey={item.link} // callopseOnSelect wont fire unless eventKey is provided
+			to={item.link + location.search}
 		>
-			{menu.map((m) => (
-				<NavLink
-					className="nav-link"
-					key={m.link}
-					to={m.link + location.search}
-				>
-					{m.label}
-				</NavLink>
-			))}
-		</nav>
-	);
-}
-
-export function SmallNavMenu() {
-	const { pathname } = useLocation();
-	const menu = useMenuPaths();
-	const menuItem = menu.find((m) => matchPath(m.path, pathname));
+			{item.label}
+		</Nav.Link>
+	));
 
 	return (
-		<>
-			<i className="bi-list" />
-			<div className="nav-link active">{menuItem?.label}</div>
-		</>
+		<Navbar
+			collapseOnSelect
+			expand="lg"
+			style={{
+				width: 275,
+			}}
+		>
+			<Navbar.Brand as={NavLink} to="/">
+				{title}
+			</Navbar.Brand>
+			<Navbar.Toggle aria-controls="basic-navbar-nav" />
+			<Navbar.Collapse id="basic-navbar-nav">
+				<Nav variant="underline" className="me-auto">
+					{menuItems}
+				</Nav>
+			</Navbar.Collapse>
+		</Navbar>
 	);
 }
 
-const smallScreenQuery = window.matchMedia("(max-width: 992px");
-
-function Nav() {
-	const [isSmall, setIsSmall] = React.useState(smallScreenQuery.matches);
-
-	React.useEffect(() => {
-		const updateSmallScreen = (e: MediaQueryListEvent) =>
-			setIsSmall(e.matches);
-		smallScreenQuery.addEventListener("change", updateSmallScreen);
-		return () =>
-			smallScreenQuery.removeEventListener("change", updateSmallScreen);
-	}, []);
-
-	return (
-		<div className="nav-menu-container">
-			{isSmall ? (
-				<Dropdown
-					className="nav-small-menu"
-					selectRenderer={() => <SmallNavMenu />}
-					dropdownRenderer={(props) => (
-						<NavMenu
-							className="nav-menu-vertical"
-							methods={props.methods}
-						/>
-					)}
-					dropdownAlign="left"
-				/>
-			) : (
-				<NavMenu className="nav-menu-horizontal" />
-			)}
-		</div>
-	);
-}
-
-export default Nav;
+export default Menu;

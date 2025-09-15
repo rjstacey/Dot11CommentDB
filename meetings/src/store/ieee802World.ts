@@ -10,7 +10,7 @@ import {
 	FieldType,
 	AppTableDataState,
 	Fields,
-} from "dot11-components";
+} from "@common";
 
 import type { AppThunk, RootState } from ".";
 import { selectGroupsState, selectTopLevelGroup } from "./groups";

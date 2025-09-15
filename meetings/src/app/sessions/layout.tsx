@@ -4,9 +4,7 @@ import SessionsTable from "./table";
 function SessionsLayout() {
 	return (
 		<>
-			<div className="top-row justify-right">
-				<SessionsActions />
-			</div>
+			<SessionsActions />
 			<SessionsTable />
 		</>
 	);

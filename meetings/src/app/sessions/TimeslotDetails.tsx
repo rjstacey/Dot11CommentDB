@@ -1,7 +1,6 @@
 import * as React from "react";
 import { EntityId } from "@reduxjs/toolkit";
-
-import { Input, ActionIcon } from "dot11-components";
+import { Button, FormControl } from "react-bootstrap";
 
 import { EditTable as Table, TableColumn } from "@/components/Table";
 import { RawSessionSelector } from "@/components/SessionSelector";
@@ -67,7 +66,7 @@ function TimeslotDetails({
 		columns = columns.map((col) => {
 			if (col.key === "name") {
 				col.renderCell = (entry) => (
-					<Input
+					<FormControl
 						type="search"
 						value={entry.name}
 						onChange={(e) =>
@@ -78,7 +77,7 @@ function TimeslotDetails({
 				);
 			} else if (col.key === "startTime") {
 				col.renderCell = (entry) => (
-					<Input
+					<FormControl
 						type="time"
 						value={entry.startTime}
 						onChange={(e) =>
@@ -91,7 +90,7 @@ function TimeslotDetails({
 				);
 			} else if (col.key === "endTime") {
 				col.renderCell = (entry) => (
-					<Input
+					<FormControl
 						type="time"
 						value={entry.endTime}
 						onChange={(e) =>
@@ -104,8 +103,9 @@ function TimeslotDetails({
 				);
 			} else if (col.key === "action") {
 				col.renderCell = (entry) => (
-					<ActionIcon
-						type="delete"
+					<Button
+						variant="light"
+						className="bi-trash"
 						onClick={() => removeTimeslot(entry.id)}
 					/>
 				);
@@ -118,8 +118,9 @@ function TimeslotDetails({
 							fontWeight: "normal",
 						}}
 					>
-						<ActionIcon
-							type="add"
+						<Button
+							variant="light"
+							className="bi-plus-lg"
 							onClick={() => addTimeslot(defaultEntry)}
 						/>
 						<RawSessionSelector

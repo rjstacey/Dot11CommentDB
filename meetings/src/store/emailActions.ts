@@ -1,4 +1,4 @@
-import { fetcher, setError } from "dot11-components";
+import { fetcher, setError } from "@common";
 import type { AppThunk } from ".";
 import type {
 	Destination,

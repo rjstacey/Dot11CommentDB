@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Input } from "dot11-components";
+import { FormControl } from "react-bootstrap";
 
 function timeRangeToDuration(startTime: string, endTime: string) {
 	const [startHstr, startMstr] = startTime.split(":");
@@ -60,7 +60,7 @@ function InputTimeRangeAsDuration({
 	entry: TimeRange;
 	changeEntry: (changes: Partial<TimeRange>) => void;
 } & Omit<
-	React.ComponentProps<typeof Input>,
+	React.ComponentProps<typeof FormControl>,
 	"style" | "type" | "value" | "onChange"
 >) {
 	const [duration, setDuration] = React.useState(
@@ -89,7 +89,7 @@ function InputTimeRangeAsDuration({
 	const style = hasError ? { border: "1px dashed red" } : undefined;
 
 	return (
-		<Input
+		<FormControl
 			style={style}
 			type="search"
 			value={duration}

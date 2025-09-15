@@ -13,13 +13,13 @@ div#root {
 }
 
 .details-panel {
-	padding: 10px;
 	overflow: auto;
 	display: flex;
 	flex-direction: column;
 }
 
 .details-panel .placeholder {
+	all: unset;
 	display: flex;
 	align-items: center;
 	justify-content: center;

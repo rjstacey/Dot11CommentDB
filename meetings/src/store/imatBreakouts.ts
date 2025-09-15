@@ -13,7 +13,7 @@ import {
 	FieldType,
 	getAppTableDataSelectors,
 	Fields,
-} from "dot11-components";
+} from "@common";
 
 import type { AppThunk, RootState } from ".";
 import { selectMeetingEntities } from "./meetings";

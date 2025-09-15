@@ -1,6 +1,6 @@
 import { LoaderFunction, RouteObject } from "react-router";
 
-import { setError } from "dot11-components";
+import { setError } from "@common";
 import { store } from "@/store";
 import { selectTopLevelGroupByName, loadGroups } from "@/store/groups";
 import { AccessLevel } from "@/store/user";
@@ -13,7 +13,9 @@ import {
 } from "@/store/meetings";
 import { setCurrentSessionId, setShowDateRange } from "@/store/current";
 
-import MeetingsLayout from "./layout";
+import { MainLayout } from "./main";
+import MeetingsTable from "./table";
+import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -25,14 +27,16 @@ export function refresh() {
 
 export type LoaderData = Session | null;
 
-const meetingsLoader: LoaderFunction<LoaderData> = async ({
-	params,
-	request,
-}): Promise<LoaderData> => {
+const meetingsLoader: LoaderFunction<LoaderData> = async (
+	args
+): Promise<LoaderData> => {
+	await rootLoader(args);
+
+	const { params, request } = args;
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const url = new URL(request.url);
-	const sessionNumber = Number(url.searchParams.get("sessionNumber"));
+	const sessionNumber = Number(params.sessionNumber);
 	const showDateRange = Boolean(url.searchParams.get("showDateRange"));
 
 	const { dispatch, getState } = store;
@@ -71,8 +75,14 @@ const meetingsLoader: LoaderFunction<LoaderData> = async ({
 };
 
 const route: RouteObject = {
-	element: <MeetingsLayout />,
-	loader: meetingsLoader,
+	element: <MainLayout />,
+	children: [
+		{
+			path: ":sessionNumber",
+			element: <MeetingsTable />,
+			loader: meetingsLoader,
+		},
+	],
 };
 
 export default route;

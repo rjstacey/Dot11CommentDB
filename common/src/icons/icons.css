@@ -8,6 +8,13 @@
 	content: " ";
 }
 
+.icon.action {
+	cursor: pointer;
+	&:hover {
+		color: tomato;
+	}
+}
+
 .icon-caret-right:before {
 	background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30"><path d="M 10 10 L 10 30 L 20 20 Z"/></svg>');
 	background-size: contain;

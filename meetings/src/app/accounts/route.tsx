@@ -4,9 +4,12 @@ import { selectTopLevelGroupByName, loadGroups } from "@/store/groups";
 import { AccessLevel } from "@/store/user";
 
 import AccountsLayout from "./layout";
+import { rootLoader } from "../rootLoader";
 
-const accountsLoader: LoaderFunction = async ({ params }) => {
-	const { groupName } = params;
+const accountsLoader: LoaderFunction = async (args) => {
+	await rootLoader(args);
+
+	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;

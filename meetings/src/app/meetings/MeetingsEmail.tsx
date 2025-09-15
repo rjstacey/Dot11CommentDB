@@ -1,11 +1,11 @@
 import * as React from "react";
 import { DateTime } from "luxon";
-import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
+//import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
 import { EntityId, Dictionary } from "@reduxjs/toolkit";
 import { useParams } from "react-router";
 
-import { Form, Checkbox } from "dot11-components";
+import { Form, Spinner, Tab, Tabs } from "react-bootstrap";
 
 import type { RootState } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -22,6 +22,7 @@ import { WebexMeeting, displayMeetingNumber } from "@/store/webexMeetings";
 import { sendEmails, type Email } from "@/store/emailActions";
 
 import styles from "./meetings.module.css";
+import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 function displayDateTime(entity: WebexMeeting, timezone: string) {
 	const start = DateTime.fromISO(entity.start, { zone: timezone });
@@ -209,7 +210,8 @@ function MeetingEmail({ close }: { close: () => void }) {
 		setSelectedGroups(selected);
 	};
 
-	async function send() {
+	async function send(e: React.ChangeEvent<HTMLFormElement>) {
+		e.preventDefault();
 		setBusy(true);
 		await dispatch(
 			sendEmails(groupName!, Object.values(emails) as Email[])
@@ -220,14 +222,11 @@ function MeetingEmail({ close }: { close: () => void }) {
 
 	return (
 		<Form
-			title="Email host keys"
-			busy={busy}
-			submit={send}
-			submitLabel="Send"
-			cancel={close}
-			cancelLabel="Cancel"
+			onSubmit={send}
 			style={{ minWidth: "600px", maxHeight: "80vh", overflow: "auto" }}
 		>
+			<h3>Email host keys</h3>
+			{busy && <Spinner size="sm" />}
 			<div
 				className={styles["meetings-email-grid"]}
 				//style={{ gridTemplateRows: `repeat(${nRows}, 1fr)` }}
@@ -237,31 +236,27 @@ function MeetingEmail({ close }: { close: () => void }) {
 						key={g.id}
 						style={{ display: "flex", alignItems: "center" }}
 					>
-						<Checkbox
+						<Form.Check
 							value={g.id}
 							onChange={handleSelectGroup}
 							checked={selectedGroups.includes(g.id)}
+							label={g.name}
 						/>
-						<label>{g.name}</label>
 					</div>
 				))}
 			</div>
 			<Tabs>
-				<TabList>
-					{Object.keys(emails).map((key) => (
-						<Tab key={key}>{key}</Tab>
-					))}
-				</TabList>
 				{Object.entries(emails).map(([key, email]) => (
-					<TabPanel key={key}>
+					<Tab key={key} title={key}>
 						<div
 							dangerouslySetInnerHTML={{
 								__html: email!.Message.Body.Html!.Data,
 							}}
 						/>
-					</TabPanel>
+					</Tab>
 				))}
 			</Tabs>
+			<SubmitCancelRow submitLabel="Send" cancel={close} />
 		</Form>
 	);
 }

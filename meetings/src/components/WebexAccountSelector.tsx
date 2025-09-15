@@ -1,4 +1,4 @@
-import { Select } from "dot11-components";
+import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectWebexAccounts } from "@/store/webexAccounts";
 
@@ -9,9 +9,9 @@ function WebexAccountSelector({
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const options = useAppSelector(selectWebexAccounts);
 	const values = options.filter((o) => o.id === value);

@@ -1,4 +1,4 @@
-import { displayDateRange } from "dot11-components";
+import { displayDateRange } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectImatMeetingEntities } from "@/store/imatMeetings";
 

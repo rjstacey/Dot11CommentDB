@@ -1,4 +1,4 @@
-import { AppTable, SplitPanel, Panel } from "dot11-components";
+import { AppTable, SplitPanel, Panel } from "@common";
 import { sessionsSelectors, sessionsActions } from "@/store/sessions";
 import SessionDetails from "./SessionDetails";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
@@ -10,8 +10,8 @@ function SessionsTable() {
 				<AppTable
 					defaultTablesConfig={defaultTablesConfig}
 					columns={tableColumns}
-					headerHeight={44}
-					estimatedRowHeight={44}
+					headerHeight={52}
+					estimatedRowHeight={48}
 					selectors={sessionsSelectors}
 					actions={sessionsActions}
 				/>

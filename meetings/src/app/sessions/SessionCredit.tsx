@@ -2,7 +2,7 @@ import * as React from "react";
 import { DateTime } from "luxon";
 import { EntityId } from "@reduxjs/toolkit";
 
-import { Button } from "dot11-components";
+import { Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import {

@@ -1,6 +1,6 @@
 import { LoaderFunction, RouteObject } from "react-router";
 
-import { setError } from "dot11-components";
+import { setError } from "@common";
 import { store } from "@/store";
 import { selectTopLevelGroupByName, loadGroups } from "@/store/groups";
 import { AccessLevel } from "@/store/user";
@@ -14,6 +14,8 @@ import { WebexMeetingsQuery } from "@/store/webexMeetingsSelectors";
 import { setCurrentSessionId, setShowDateRange } from "@/store/current";
 
 import WebexMeetingsLayout from "./layout";
+import WebexMeetingsTable from "./table";
+import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -25,14 +27,15 @@ export function refresh() {
 
 export type LoaderData = Session | null;
 
-const webexMeetingsLoader: LoaderFunction = async ({
-	params,
-	request,
-}): Promise<LoaderData> => {
+const webexMeetingsLoader: LoaderFunction = async (
+	args
+): Promise<LoaderData> => {
+	await rootLoader(args);
+	const { params, request } = args;
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const url = new URL(request.url);
-	const sessionNumber = Number(url.searchParams.get("sessionNumber"));
+	const sessionNumber = Number(params.sessionNumber);
 	const showDateRange = Boolean(url.searchParams.get("showDateRange"));
 
 	const { dispatch, getState } = store;
@@ -72,7 +75,13 @@ const webexMeetingsLoader: LoaderFunction = async ({
 
 const route: RouteObject = {
 	element: <WebexMeetingsLayout />,
-	loader: webexMeetingsLoader,
+	children: [
+		{
+			path: ":sessionNumber",
+			element: <WebexMeetingsTable />,
+			loader: webexMeetingsLoader,
+		},
+	],
 };
 
 export default route;

@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router";
 
-import { ActionButton, Spinner } from "dot11-components";
+import { Row, Col, Button, Spinner } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectMeetingAttendanceState } from "@/store/imatMeetingAttendance";
@@ -16,31 +16,37 @@ function ReportsActions() {
 	const refresh = () => navigate(0);
 
 	return (
-		<div className="top-row">
-			<SessionSelectorNav />
+		<Row className="w-100 m-3">
+			<Col xs="auto">
+				<SessionSelectorNav />
+			</Col>
 
-			{loading && <Spinner />}
+			<Col>{loading && <Spinner size="sm" />}</Col>
 
-			<div style={{ display: "flex" }}>
-				<ActionButton
-					name="copy"
+			<Col className="d-flex justify-content-end align-items-center gap-2">
+				<Button
+					variant="outline-primary"
+					className="bi-copy"
 					title="Copy chart to clipboard"
 					onClick={() => copyChartToClipboard()}
 					disabled={!chart}
 				/>
-				<ActionButton
+				<Button
+					variant="outline-primary"
+					className="bi-cloud-download"
 					name="export"
 					title="Export chart"
 					//disabled={!showChart}
 					onClick={downloadChart}
 				/>
-				<ActionButton
-					name="refresh"
+				<Button
+					variant="outline-primary"
+					className="bi-arrow-repeat"
 					title="Refresh"
 					onClick={refresh}
 				/>
-			</div>
-		</div>
+			</Col>
+		</Row>
 	);
 }
 

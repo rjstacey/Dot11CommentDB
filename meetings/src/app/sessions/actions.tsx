@@ -1,13 +1,6 @@
 import { useNavigate, useParams } from "react-router";
-
-import {
-	TableColumnSelector,
-	ButtonGroup,
-	TableViewSelector,
-	SplitPanelButton,
-	ActionButton,
-	ConfirmModal,
-} from "dot11-components";
+import { Row, Col, Button } from "react-bootstrap";
+import { ConfirmModal, SplitTableButtonGroup } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -35,38 +28,34 @@ function SessionsActions() {
 		}
 	};
 	return (
-		<div className="control-group">
-			<ButtonGroup className="button-group">
-				<div>Table view</div>
-				<div style={{ display: "flex" }}>
-					<TableViewSelector
-						selectors={sessionsSelectors}
-						actions={sessionsActions}
-					/>
-					<TableColumnSelector
-						selectors={sessionsSelectors}
-						actions={sessionsActions}
-						columns={tableColumns}
-					/>
-					<SplitPanelButton
-						selectors={sessionsSelectors}
-						actions={sessionsActions}
-					/>
-				</div>
-			</ButtonGroup>
-			<ActionButton
-				name="import"
-				title="Import IMAT session"
-				onClick={showImatMeetings}
+		<Row className="w-100 m-3">
+			<SplitTableButtonGroup
+				selectors={sessionsSelectors}
+				actions={sessionsActions}
+				columns={tableColumns}
 			/>
-			<ActionButton
-				name="delete"
-				title="Remove selected"
-				disabled={selected.length === 0}
-				onClick={handleRemoveSelected}
-			/>
-			<ActionButton name="refresh" title="Refresh" onClick={refresh} />
-		</div>
+			<Col className="d-flex justify-content-end align-items-center gap-2">
+				<Button
+					variant="outline-primary"
+					className="bi-cloud-upload"
+					title="Import IMAT session"
+					onClick={showImatMeetings}
+				/>
+				<Button
+					variant="outline-primary"
+					className="bi-trash"
+					title="Remove selected"
+					disabled={selected.length === 0}
+					onClick={handleRemoveSelected}
+				/>
+				<Button
+					variant="outline-primary"
+					className="bi-arrow-repeat"
+					title="Refresh"
+					onClick={refresh}
+				/>
+			</Col>
+		</Row>
 	);
 }
 

@@ -1,6 +1,6 @@
-import { useLocation, useNavigate } from "react-router";
+import { useParams, useLocation, useNavigate } from "react-router";
 
-import { Checkbox } from "dot11-components";
+import { FormCheck } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectSessionIds, selectSessionEntities } from "@/store/sessions";
@@ -13,19 +13,19 @@ function LabeledCurrentSessionSelector({
 	allowShowDateRange?: boolean;
 }) {
 	const navigate = useNavigate();
-	const location = useLocation();
+	const { search } = useLocation();
+	const params = useParams();
 	const sessionIds = useAppSelector(selectSessionIds);
 	const sessionEntities = useAppSelector(selectSessionEntities);
 
-	const s = new URLSearchParams(location.search);
+	const s = new URLSearchParams(search);
 	const showDateRange = Boolean(s.get("showDateRange"));
-	const sessionNumber = Number(s.get("sessionNumber"));
+	const sessionNumber =
+		"sessionNumber" in params ? Number(params.sessionNumber) : null;
 	const sessionId =
-		Number(
-			sessionIds.find(
-				(id) => sessionEntities[id]!.number === sessionNumber
-			)
-		) || null;
+		(sessionIds.find(
+			(id) => sessionEntities[id]!.number === sessionNumber
+		) as number) || null;
 
 	function toggleShowDateRange() {
 		if (showDateRange) s.delete("showDateRange");
@@ -34,13 +34,10 @@ function LabeledCurrentSessionSelector({
 	}
 
 	function setSessionId(sessionId: number | null) {
-		s.delete("sessionNumber");
-		if (sessionId) {
-			const session = sessionEntities[sessionId];
-			if (session && session.number)
-				s.set("sessionNumber", session.number.toString());
-		}
-		navigate({ search: s.toString() });
+		let pathname = "";
+		const session = sessionId ? sessionEntities[sessionId] : undefined;
+		if (session) pathname += session.number;
+		navigate({ pathname, search });
 	}
 
 	return (
@@ -59,11 +56,12 @@ function LabeledCurrentSessionSelector({
 						marginLeft: 10,
 					}}
 				>
-					<label htmlFor="show-date-range">Show date range</label>
-					<Checkbox
+					<FormCheck
 						id="show-date-range"
 						checked={showDateRange}
 						onChange={toggleShowDateRange}
+						label="Show date range"
+						reverse
 					/>
 				</div>
 			)}

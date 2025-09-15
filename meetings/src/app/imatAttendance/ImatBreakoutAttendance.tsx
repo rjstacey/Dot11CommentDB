@@ -3,7 +3,7 @@ import {
 	SelectHeaderCell,
 	SelectCell,
 	ColumnProperties,
-} from "dot11-components";
+} from "@common";
 
 import {
 	imatBreakoutAttendanceSelectors,

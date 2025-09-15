@@ -1,6 +1,7 @@
 import * as React from "react";
 import { connect, ConnectedProps } from "react-redux";
 import { DateTime } from "luxon";
+import { Button, Form, Row, Col } from "react-bootstrap";
 import type { Dictionary } from "@reduxjs/toolkit";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -12,19 +13,14 @@ import {
 	deepMerge,
 	deepMergeTagMultiple,
 	isMultiple,
-	ActionButton,
-	Form,
-	Row,
-	Field,
 	Select,
-	Input,
-	InputTime,
 	setError,
 	Multiple,
-} from "dot11-components";
+} from "@common";
 
 import ImatCommitteeSelector from "@/components/ImatCommitteeSelector";
 import MeetingSelector from "@/components/MeetingSelector";
+import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import {
 	convertEntryToMeeting,
 	type MeetingEntry,
@@ -143,14 +139,14 @@ function SlotSelector({
 	value,
 	onChange,
 	isStart,
-	...otherProps
+	...props
 }: {
 	value: number | null;
 	onChange: (value: number) => void;
 	isStart?: boolean;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "className" | "style" | "placeholder"
 >) {
 	const { timeslots } = useAppSelector(selectBreakoutsState);
 	const options = timeslots.map((s) => ({
@@ -174,7 +170,7 @@ function SlotSelector({
 			options={options}
 			values={values}
 			onChange={handleChange}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
@@ -186,13 +182,13 @@ const EndSlotSelector = SlotSelector;
 function SessionDaySelector({
 	value,
 	onChange,
-	...otherProps
+	...props
 }: {
 	value: number | null;
 	onChange: (value: number) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "className" | "style" | "placeholder"
 >) {
 	const imatMeeting = useAppSelector(selectBreakoutMeeting)!;
 
@@ -229,7 +225,7 @@ function SessionDaySelector({
 			options={options}
 			values={values}
 			onChange={handleChange}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
@@ -316,122 +312,120 @@ export function BreakoutCredit({
 	return (
 		<>
 			<Row>
-				<Field label="Credit:">
-					<div
-						style={{
-							display: "flex",
-							justifyContent: "space-between",
-						}}
-					>
-						<div style={{ margin: "0 5px" }}>
-							<input
-								type="radio"
-								id="extra"
-								value="Extra"
-								checked={entry.credit === "Extra"}
-								//indeterminate={isMultiple(entry.credit).toString()}
-								onChange={(e) =>
-									changeEntry({ credit: e.target.value })
-								}
-								disabled={readOnly}
-							/>
-							<label htmlFor="extra">Extra</label>
-						</div>
-						<div style={{ margin: "0 5px" }}>
-							<input
-								type="radio"
-								id="normal"
-								value="Normal"
-								checked={entry.credit === "Normal"}
-								//indeterminate={isMultiple(entry.credit).toString()}
-								onChange={(e) =>
-									changeEntry({ credit: e.target.value })
-								}
-								disabled={readOnly}
-							/>
-							<label htmlFor="normal">Normal</label>
-						</div>
-						<div style={{ margin: "0 5px" }}>
-							<input
-								type="radio"
-								id="other"
-								value="Other"
-								checked={entry.credit === "Other"}
-								//indeterminate={isMultiple(entry.credit).toString()}
-								onChange={(e) =>
-									changeEntry({ credit: e.target.value })
-								}
-								disabled={readOnly}
-							/>
-							<label htmlFor="other">Other</label>
-						</div>
-						<div style={{ margin: "0 5px" }}>
-							<input
-								type="radio"
-								id="zero"
-								value="Zero"
-								checked={entry.credit === "Zero"}
-								//indeterminate={isMultiple(entry.credit).toString()}
-								onChange={(e) =>
-									changeEntry({ credit: e.target.value })
-								}
-								disabled={readOnly}
-							/>
-							<label htmlFor="zero">Zero</label>
-						</div>
+				<Form.Label column>Credit:</Form.Label>
+				<Col
+					style={{
+						display: "flex",
+						justifyContent: "space-between",
+					}}
+				>
+					<div style={{ margin: "0 5px" }}>
+						<Form.Check
+							type="radio"
+							id="extra"
+							value="Extra"
+							checked={entry.credit === "Extra"}
+							//indeterminate={isMultiple(entry.credit).toString()}
+							onChange={(e) =>
+								changeEntry({ credit: e.target.value })
+							}
+							disabled={readOnly}
+							label="Extra"
+						/>
 					</div>
-				</Field>
+					<div style={{ margin: "0 5px" }}>
+						<input
+							type="radio"
+							id="normal"
+							value="Normal"
+							checked={entry.credit === "Normal"}
+							//indeterminate={isMultiple(entry.credit).toString()}
+							onChange={(e) =>
+								changeEntry({ credit: e.target.value })
+							}
+							disabled={readOnly}
+						/>
+						<label htmlFor="normal">Normal</label>
+					</div>
+					<div style={{ margin: "0 5px" }}>
+						<input
+							type="radio"
+							id="other"
+							value="Other"
+							checked={entry.credit === "Other"}
+							//indeterminate={isMultiple(entry.credit).toString()}
+							onChange={(e) =>
+								changeEntry({ credit: e.target.value })
+							}
+							disabled={readOnly}
+						/>
+						<label htmlFor="other">Other</label>
+					</div>
+					<div style={{ margin: "0 5px" }}>
+						<input
+							type="radio"
+							id="zero"
+							value="Zero"
+							checked={entry.credit === "Zero"}
+							//indeterminate={isMultiple(entry.credit).toString()}
+							onChange={(e) =>
+								changeEntry({ credit: e.target.value })
+							}
+							disabled={readOnly}
+						/>
+						<label htmlFor="zero">Zero</label>
+					</div>
+				</Col>
 			</Row>
 			<Row>
-				<Field label="Other credit (numerator/denominator):">
-					<div>
-						<Input
-							type="text"
-							size={4}
-							value={
-								isMultiple(entry.creditOverrideNumerator)
-									? ""
-									: entry.creditOverrideNumerator || ""
-							}
-							onChange={(e) =>
-								changeEntry({
-									creditOverrideNumerator: Number(
-										e.target.value
-									),
-								})
-							}
-							disabled={entry.credit !== "Other" || readOnly}
-							placeholder={
-								isMultiple(entry.creditOverrideNumerator)
-									? MULTIPLE_STR
-									: undefined
-							}
-						/>
-						<label>/</label>
-						<Input
-							type="text"
-							size={4}
-							value={
-								isMultiple(entry.creditOverrideDenominator)
-									? ""
-									: entry.creditOverrideDenominator || ""
-							}
-							onChange={(e) =>
-								changeEntry({
-									creditOverrideDenominator: Number(
-										e.target.value
-									),
-								})
-							}
-							disabled={entry.credit !== "Other" || readOnly}
-							placeholder={
-								isMultiple(entry.creditOverrideDenominator)
-									? MULTIPLE_STR
-									: undefined
-							}
-						/>
-					</div>
-				</Field>
+				<Form.Label column>
+					Other credit (numerator/denominator):
+				</Form.Label>
+				<Col>
+					<Form.Control
+						type="text"
+						htmlSize={4}
+						value={
+							isMultiple(entry.creditOverrideNumerator)
+								? ""
+								: entry.creditOverrideNumerator || ""
+						}
+						onChange={(e) =>
+							changeEntry({
+								creditOverrideNumerator: Number(e.target.value),
+							})
+						}
+						disabled={entry.credit !== "Other" || readOnly}
+						placeholder={
+							isMultiple(entry.creditOverrideNumerator)
+								? MULTIPLE_STR
+								: undefined
+						}
+					/>
+					<label>/</label>
+					<Form.Control
+						type="text"
+						htmlSize={4}
+						value={
+							isMultiple(entry.creditOverrideDenominator)
+								? ""
+								: entry.creditOverrideDenominator || ""
+						}
+						onChange={(e) =>
+							changeEntry({
+								creditOverrideDenominator: Number(
+									e.target.value
+								),
+							})
+						}
+						disabled={entry.credit !== "Other" || readOnly}
+						placeholder={
+							isMultiple(entry.creditOverrideDenominator)
+								? MULTIPLE_STR
+								: undefined
+						}
+					/>
+				</Col>
 			</Row>
 		</>
 	);
@@ -440,7 +434,6 @@ export function BreakoutCredit({
 function BreakoutEntryForm({
 	entry,
 	changeEntry,
-	busy,
 	submit,
 	cancel,
 	action,
@@ -469,7 +462,8 @@ function BreakoutEntryForm({
 		} else {
 			submitLabel = "Update";
 		}
-		submitForm = () => {
+		submitForm = (e: React.ChangeEvent<HTMLFormElement>) => {
+			e.preventDefault();
 			if (errMsg) {
 				dispatch(setError("Fix error", errMsg));
 				return;
@@ -501,16 +495,11 @@ function BreakoutEntryForm({
 	}
 
 	return (
-		<Form
-			busy={busy}
-			submitLabel={submitLabel}
-			submit={submitForm}
-			cancel={cancelForm}
-			errorText={errMsg}
-		>
+		<Form onSubmit={submitForm}>
 			<Row>
-				<Field label="Meeting name:">
-					<Input
+				<Form.Label column>Meeting name:</Form.Label>
+				<Col>
+					<Form.Control
 						type="text"
 						value={isMultiple(entry.name) ? "" : entry.name}
 						onChange={(e) => handleChange({ name: e.target.value })}
@@ -519,10 +508,11 @@ function BreakoutEntryForm({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
+				</Col>
 			</Row>
 			<Row>
-				<Field label="Group:">
+				<Form.Label column>Group:</Form.Label>
+				<Col>
 					<GroupIdSelector
 						value={isMultiple(entry.groupId) ? null : entry.groupId}
 						onChange={(groupId) => handleChange({ groupId })}
@@ -531,10 +521,11 @@ function BreakoutEntryForm({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
+				</Col>
 			</Row>
 			<Row>
-				<Field label="Session day:">
+				<Form.Label column>Session day:</Form.Label>
+				<Col>
 					<SessionDaySelector
 						value={isMultiple(entry.day) ? null : entry.day}
 						onChange={(day) => handleChange({ day })}
@@ -543,10 +534,11 @@ function BreakoutEntryForm({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
+				</Col>
 			</Row>
 			<Row>
-				<Field label="Start slot:">
+				<Form.Label column>Start slot:</Form.Label>
+				<Col>
 					<StartSlotSelector
 						value={
 							isMultiple(entry.startSlotId)
@@ -563,15 +555,19 @@ function BreakoutEntryForm({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
+				</Col>
 			</Row>
 			<Row>
-				<Field label="Override start time:">
-					<InputTime
+				<Form.Label column>Override start time:</Form.Label>
+				<Col>
+					<Form.Control
+						type="time"
 						value={
 							isMultiple(entry.startTime) ? "" : entry.startTime
 						}
-						onChange={(startTime) => handleChange({ startTime })}
+						onChange={(e) =>
+							handleChange({ startTime: e.target.value })
+						}
 						placeholder={
 							isMultiple(entry.startTime)
 								? MULTIPLE_STR
@@ -579,10 +575,11 @@ function BreakoutEntryForm({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
+				</Col>
 			</Row>
 			<Row>
-				<Field label="End slot:">
+				<Form.Label column>End slot:</Form.Label>
+				<Col>
 					<EndSlotSelector
 						value={
 							isMultiple(entry.endSlotId) ? null : entry.endSlotId
@@ -595,13 +592,17 @@ function BreakoutEntryForm({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
+				</Col>
 			</Row>
 			<Row>
-				<Field label="Override end time:">
-					<InputTime
+				<Form.Label>Override start time:</Form.Label>
+				<Col>
+					<Form.Control
+						type="time"
 						value={isMultiple(entry.endTime) ? "" : entry.endTime}
-						onChange={(endTime) => handleChange({ endTime })}
+						onChange={(e) =>
+							handleChange({ endTime: e.target.value })
+						}
 						placeholder={
 							isMultiple(entry.endTime)
 								? MULTIPLE_STR
@@ -609,11 +610,12 @@ function BreakoutEntryForm({
 						}
 						disabled={readOnly}
 					/>
-				</Field>
+				</Col>
 			</Row>
 			<Row>
-				<Field label="Location/room:">
-					<Input
+				<Form.Label column>Location/room:</Form.Label>
+				<Col>
+					<Form.Control
 						type="text"
 						value={isMultiple(entry.location) ? "" : entry.location}
 						onChange={(e) =>
@@ -626,7 +628,7 @@ function BreakoutEntryForm({
 						}
 						disabled={readOnly}
 					/>
-				</Field>
+				</Col>
 			</Row>
 			<BreakoutCredit
 				entry={entry}
@@ -634,8 +636,9 @@ function BreakoutEntryForm({
 				readOnly={readOnly}
 			/>
 			<Row>
-				<Field label="Facilitator:">
-					<Input
+				<Form.Label column>Facilitator:</Form.Label>
+				<Col>
+					<Form.Control
 						type="text"
 						value={
 							isMultiple(entry.facilitator)
@@ -652,10 +655,11 @@ function BreakoutEntryForm({
 						}
 						disabled={readOnly}
 					/>
-				</Field>
+				</Col>
 			</Row>
 			<Row>
-				<Field label="Associate with meeting:">
+				<Form.Label column>Associate with meeting:</Form.Label>
+				<Col>
 					<AssociatedMeetingSelector
 						value={
 							isMultiple(entry.meetingId) ? null : entry.meetingId
@@ -668,8 +672,9 @@ function BreakoutEntryForm({
 						}
 						readOnly={readOnly}
 					/>
-				</Field>
+				</Col>
 			</Row>
+			<SubmitCancelRow submitLabel={submitLabel} cancel={cancelForm} />
 		</Form>
 	);
 }
@@ -984,21 +989,24 @@ class BreakoutDetails extends React.Component<
 
 		const actionButtons = (
 			<div>
-				<ActionButton
-					name="import"
+				<Button
+					variant="outline-secondary"
+					className="bi-cloud-download"
 					title="Import as meeting"
 					disabled={loading || busy || readOnly}
 					onClick={this.clickImport}
 				/>
-				<ActionButton
-					name="add"
+				<Button
+					variant="outline-secondary"
+					className="bi-plus-lg"
 					title="Add breakout"
 					disabled={loading || busy || readOnly}
-					isActive={action === "add"}
+					active={action === "add"}
 					onClick={this.clickAdd}
 				/>
-				<ActionButton
-					name="delete"
+				<Button
+					variant="outline-secondary"
+					className="bi-trash"
 					title="Delete breakout"
 					disabled={
 						loading || breakouts.length === 0 || busy || readOnly

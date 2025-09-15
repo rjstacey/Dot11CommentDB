@@ -18,7 +18,7 @@ import {
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import { get, set, del } from "idb-keyval";
 
-import { errorsSlice } from "dot11-components";
+import { errorsSlice, createPersistReady } from "@common";
 
 import userSlice from "./user";
 import currentSlice from "./current";
@@ -150,6 +150,7 @@ export const store = configureReduxStore({
 });
 
 export const persistor = persistStore(store);
+export const persistReady = createPersistReady(persistor);
 
 export const resetStore = (): Action => ({ type: RESET_STORE_ACTION });
 

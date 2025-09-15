@@ -6,6 +6,7 @@ import { loadSessions, selectSessionsState } from "@/store/sessions";
 import { loadImatMeetings } from "@/store/imatMeetings";
 
 import SessionsLayout from "./layout";
+import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -17,8 +18,10 @@ export function refresh() {
 	dispatch(loadImatMeetings(groupName, true));
 }
 
-const sessionsLoader: LoaderFunction = async ({ params }) => {
-	const { groupName } = params;
+const sessionsLoader: LoaderFunction = async (args) => {
+	await rootLoader(args);
+
+	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;

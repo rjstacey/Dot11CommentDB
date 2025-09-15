@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Select, displayDateRange } from "dot11-components";
+import { Select, displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectImatMeetingsState, ImatMeeting } from "@/store/imatMeetings";
@@ -25,9 +25,9 @@ function ImatMeetingSelector({
 	value: number | null;
 	onChange: (value: number | null) => void;
 	readOnly?: boolean;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const { loading, valid, ids, entities } = useAppSelector(
 		selectImatMeetingsState

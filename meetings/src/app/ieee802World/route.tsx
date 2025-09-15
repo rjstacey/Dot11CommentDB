@@ -4,8 +4,11 @@ import { store } from "@/store";
 import { load802WorldSchedule } from "@/store/ieee802World";
 
 import Ieee802World from "./Ieee802World";
+import { rootLoader } from "../rootLoader";
 
-const ieee802WorldLoader: LoaderFunction = async () => {
+const ieee802WorldLoader: LoaderFunction = async (args) => {
+	await rootLoader(args);
+
 	store.dispatch(load802WorldSchedule());
 	return null;
 };

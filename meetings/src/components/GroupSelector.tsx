@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Select } from "dot11-components";
+import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { Group, selectGroups } from "@/store/groups";
@@ -14,9 +14,9 @@ export function GroupSelector({
 	value: string;
 	onChange: (value: string) => void;
 	types?: string[];
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	let groups = useAppSelector(selectGroups);
 	if (types) groups = groups.filter((group) => types.includes(group.type!));

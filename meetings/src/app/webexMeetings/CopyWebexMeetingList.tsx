@@ -1,7 +1,6 @@
 import { EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
-
-import { ActionButton } from "dot11-components";
+import { Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -65,8 +64,9 @@ function CopyWebexMeetingListButton() {
 	const wmEntities = useAppSelector(selectSyncedWebexMeetingEntities);
 
 	return (
-		<ActionButton
-			name="copy"
+		<Button
+			variant="outline-primary"
+			className="bi-copy"
 			title="Copy meeting list"
 			onClick={() => copyWebexMeetingList(selected, wmEntities)}
 		/>

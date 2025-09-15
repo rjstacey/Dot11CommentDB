@@ -1,7 +1,7 @@
 import { createAction, PayloadAction } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
-import { createAppTableDataSlice, shallowEqual } from "dot11-components";
+import { createAppTableDataSlice, shallowEqual } from "@common";
 
 import {
 	dataSet,
@@ -45,9 +45,11 @@ const initialState: {
 	lastLoad: null,
 };
 
+const selectId = (entity: Meeting) => entity.id;
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	selectId,
 	sortComparer,
 	initialState,
 	reducers: {

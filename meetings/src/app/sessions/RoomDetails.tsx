@@ -1,6 +1,5 @@
 import * as React from "react";
-
-import { Input, ActionIcon } from "dot11-components";
+import { Button, FormControl } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectSessionEntities, Room } from "@/store/sessions";
@@ -89,7 +88,7 @@ function RoomDetails({
 			col = { ...col };
 			if (col.key === "name") {
 				col.renderCell = (entry) => (
-					<Input
+					<FormControl
 						id={`room-${entry.id}-name`}
 						aria-label={`Room ${entry.id} name`}
 						type="search"
@@ -102,7 +101,7 @@ function RoomDetails({
 				);
 			} else if (col.key === "description") {
 				col.renderCell = (entry) => (
-					<Input
+					<FormControl
 						id={`room-${entry.id}-description`}
 						aria-label={`Room ${entry.id} description`}
 						type="search"
@@ -124,18 +123,21 @@ function RoomDetails({
 							justifyContent: "space-evenly",
 						}}
 					>
-						<ActionIcon
-							type="prev"
+						<Button
+							variant="light"
+							className="bi-arrow-right-circle"
 							style={{ transform: "rotate(90deg)" }}
 							onClick={() => moveRoomUp(entry.id)}
 						/>
-						<ActionIcon
-							type="next"
+						<Button
+							variant="light"
+							className="bi-arrow-left-circle"
 							style={{ transform: "rotate(90deg)" }}
 							onClick={() => moveRoomDown(entry.id)}
 						/>
-						<ActionIcon
-							type="delete"
+						<Button
+							variant="light"
+							className="bi-trash"
 							onClick={() => removeRoom(entry.id)}
 						/>
 					</div>
@@ -149,8 +151,9 @@ function RoomDetails({
 							fontWeight: "normal",
 						}}
 					>
-						<ActionIcon
-							type="add"
+						<Button
+							variant="light"
+							className="bi-plus-lg"
 							onClick={() => addRoom(defaultEntry)}
 						/>
 						<RawSessionSelector onChange={importRoomsFromSession} />

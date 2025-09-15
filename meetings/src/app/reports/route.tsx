@@ -1,5 +1,5 @@
 import { LoaderFunction, RouteObject } from "react-router";
-import { setError } from "dot11-components";
+import { setError } from "@common";
 import { store } from "@/store";
 import { selectTopLevelGroupByName, loadGroups } from "@/store/groups";
 import { AccessLevel } from "@/store/user";
@@ -10,19 +10,22 @@ import {
 	clearImatMeetingAttendance,
 } from "@/store/imatMeetingAttendance";
 
-import ReportsLayout from "./layout";
+import MainLayout from "./main";
+import BranchLayout from "./branch";
 import ReportsChart from "./chart";
+import { rootLoader } from "../rootLoader";
 
 export type LoaderData = Session | null;
 
-const sessionsLoader: LoaderFunction = async ({
-	params,
-	request,
-}): Promise<Session | null> => {
+const sessionsLoader: LoaderFunction = async (
+	args
+): Promise<Session | null> => {
+	await rootLoader(args);
+
+	const { params } = args;
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
-	const url = new URL(request.url);
-	const sessionNumber = Number(url.searchParams.get("sessionNumber"));
+	const sessionNumber = Number(params.sessionNumber);
 
 	const { dispatch, getState } = store;
 
@@ -55,16 +58,22 @@ const sessionsLoader: LoaderFunction = async ({
 };
 
 const route: RouteObject = {
-	element: <ReportsLayout />,
-	loader: sessionsLoader,
+	element: <MainLayout />,
 	children: [
 		{
-			index: true,
-			element: null,
-		},
-		{
-			path: ":chart",
-			element: <ReportsChart />,
+			path: ":sessionNumber",
+			element: <BranchLayout />,
+			loader: sessionsLoader,
+			children: [
+				{
+					index: true,
+					element: null,
+				},
+				{
+					path: ":chart",
+					element: <ReportsChart />,
+				},
+			],
 		},
 	],
 };

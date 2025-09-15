@@ -1,6 +1,5 @@
 import * as React from "react";
-
-import { ActionButton, Input, ActionIcon, Checkbox } from "dot11-components";
+import { Button, FormControl, FormCheck } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -19,8 +18,6 @@ import {
 import { selectMemberEntities } from "@/store/members";
 
 import { EditTable as Table, TableColumn } from "@/components/Table";
-
-import styles from "./accounts.module.css";
 
 const displayDate = (d: string) =>
 	new Intl.DateTimeFormat("default", {
@@ -46,7 +43,7 @@ function AccountName({ account, readOnly }: CellProps) {
 	const handleChange = (id: number, changes: Partial<CalendarAccount>) =>
 		dispatch(updateCalendarAccount(id, changes));
 	return (
-		<Input
+		<FormControl
 			id={`cal-account-${account.id}-name`}
 			aria-label={`Calendar account ${account.id} name`}
 			type="search"
@@ -78,20 +75,15 @@ function AuthButtons({ account }: CellProps) {
 	if (!account.authUrl) return null;
 	return (
 		<>
-			<a
-				style={{ marginLeft: "1em" }}
-				className={styles.button}
-				href={account.authUrl}
-			>
+			<Button variant="outline-secondary" href={account.authUrl}>
 				{account.authDate ? "Reauthorize" : "Authorize"}
-			</a>
-			<button
-				style={{ marginLeft: "1em" }}
-				className={styles.button}
+			</Button>
+			<Button
+				variant="outline-secondary"
 				onClick={() => handleRevoke(account.id)}
 			>
 				{"Revoke"}
-			</button>
+			</Button>
 		</>
 	);
 }
@@ -103,7 +95,7 @@ function Defaults({ account }: CellProps) {
 	const toggleDefaultId = () =>
 		dispatch(setCalendarAccountDefaultId(isDefault ? null : account.id));
 	return (
-		<Checkbox
+		<FormCheck
 			id={`cal-account-${account.id}-use-by-default`}
 			aria-label={`Calendar account ${account.id} use by default`}
 			checked={isDefault}
@@ -116,14 +108,24 @@ function Actions({ account }: CellProps) {
 	const dispatch = useAppDispatch();
 	const handleDelete = (id: number) => dispatch(deleteCalendarAccount(id));
 	return (
-		<ActionIcon type="delete" onClick={() => handleDelete(account.id)} />
+		<Button
+			variant="outline-secondary"
+			className="bi-trash"
+			onClick={() => handleDelete(account.id)}
+		/>
 	);
 }
 
 function ActionsHeader() {
 	const dispatch = useAppDispatch();
 	const handleAdd = () => dispatch(addCalendarAccount(defaultAccount));
-	return <ActionIcon type="add" onClick={() => handleAdd()} />;
+	return (
+		<Button
+			variant="outline-secondary"
+			className="bi-plus-lg"
+			onClick={() => handleAdd()}
+		/>
+	);
 }
 
 const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
@@ -160,14 +162,15 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 	},
 	authButtons: {
 		label: "Authorize",
+		styleCell: { gap: "0.5rem" },
 		renderCell: (props: CellProps) => <AuthButtons {...props} />,
 	},
 	defaults: {
 		label: "Use by default",
+		styleCell: { justifyContent: "center" },
 		renderCell: (props: CellProps) => <Defaults {...props} />,
 	},
 	actions: {
-		gridTemplate: "40px",
 		label: <ActionsHeader />,
 		renderCell: (props: CellProps) => <Actions {...props} />,
 	},
@@ -206,15 +209,17 @@ function CalendarAccounts() {
 		<>
 			<div className="top-row">
 				<h3>Google calendar accounts</h3>
-				<div style={{ display: "flex" }}>
-					<ActionButton
-						name="edit"
+				<div className="d-flex gap-2">
+					<Button
+						variant="outline-primary"
+						className="bi-pencil"
 						title="Edit"
-						isActive={!readOnly}
+						active={!readOnly}
 						onClick={() => setReadOnly(!readOnly)}
 					/>
-					<ActionButton
-						name="refresh"
+					<Button
+						variant="outline-primary"
+						className="bi-arrow-repeat"
 						title="Refresh"
 						onClick={refresh}
 						disabled={loading}

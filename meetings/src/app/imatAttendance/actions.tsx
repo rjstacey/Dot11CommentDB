@@ -1,6 +1,5 @@
 import { useParams, Link } from "react-router";
-
-import { ActionButton, Button } from "dot11-components";
+import { Button } from "react-bootstrap";
 
 import ImatMeetingInfo from "@/components/ImatMeetingInfo";
 import ImatBreakoutInfo from "@/components/ImatBreakoutInfo";
@@ -20,8 +19,9 @@ function ImatAttendanceActions() {
 					breakoutId={breakoutNumber}
 				/>
 				<div>
-					<ActionButton
-						name="refresh"
+					<Button
+						variant="outline-primary"
+						className="bi-arrow-repeat"
 						title="Refresh"
 						onClick={() => refresh(meetingNumber, breakoutNumber)}
 					/>

@@ -1,5 +1,5 @@
 import { DateTime, Duration } from "luxon";
-import type { Multiple } from "dot11-components";
+import type { Multiple } from "@common";
 import type { Session, Timeslot, Room } from "@/store/sessions";
 import type { MeetingCreate, SyncedMeeting } from "@/store/meetings";
 import type { WebexMeetingChange } from "@/store/webexMeetings";

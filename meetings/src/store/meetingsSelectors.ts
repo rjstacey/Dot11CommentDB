@@ -6,7 +6,7 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
-} from "dot11-components";
+} from "@common";
 
 import type { RootState } from ".";
 import {
@@ -135,7 +135,7 @@ export function getField(entity: SyncedMeeting, key: string) {
 		return webexMeeting
 			? `${webexAccountName}: ${displayMeetingNumber(
 					webexMeeting.meetingNumber
-				)}`
+			  )}`
 			: "";
 	}
 	if (key === "meetingNumber")
@@ -183,7 +183,7 @@ export const selectSyncedMeetingEntities = createSelector(
 		const entities: Record<EntityId, SyncedMeeting> = {};
 		for (const [id, meeting] of Object.entries(meetingEntities) as [
 			string,
-			Meeting,
+			Meeting
 		][]) {
 			const group: Group | undefined = meeting.organizationId
 				? groupEntities[meeting.organizationId]
@@ -206,7 +206,7 @@ export const selectSyncedMeetingEntities = createSelector(
 			const room = meeting!.sessionId
 				? sessionEntities[meeting.sessionId]!.rooms?.find(
 						(room) => room.id === meeting.roomId
-					)
+				  )
 				: undefined;
 			const sessionName = meeting!.sessionId
 				? sessionEntities[meeting.sessionId]!.name

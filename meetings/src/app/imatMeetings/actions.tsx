@@ -1,9 +1,5 @@
-import {
-	ActionButton,
-	ButtonGroup,
-	TableViewSelector,
-	TableColumnSelector,
-} from "dot11-components";
+import { Row, Col, Button } from "react-bootstrap";
+import { SplitTableButtonGroup } from "@common";
 
 import {
 	imatMeetingsSelectors,
@@ -15,30 +11,22 @@ import { refresh } from "./route";
 
 function ImatMeetingsActions() {
 	return (
-		<div className="top-row">
-			<div>IMAT Sessions</div>
-			<div style={{ display: "flex" }}>
-				<ButtonGroup>
-					<div>Table view</div>
-					<div style={{ display: "flex" }}>
-						<TableViewSelector
-							selectors={imatMeetingsSelectors}
-							actions={imatMeetingsActions}
-						/>
-						<TableColumnSelector
-							selectors={imatMeetingsSelectors}
-							actions={imatMeetingsActions}
-							columns={tableColumns}
-						/>
-					</div>
-				</ButtonGroup>
-				<ActionButton
-					name="refresh"
+		<Row className="w-100 m-3">
+			<Col>IMAT Sessions</Col>
+			<SplitTableButtonGroup
+				selectors={imatMeetingsSelectors}
+				actions={imatMeetingsActions}
+				columns={tableColumns}
+			/>
+			<Col className="d-flex justify-content-end align-items-center gap-2">
+				<Button
+					variant="outline-primary"
+					className="bi-arrow-repeat"
 					title="Refresh"
 					onClick={refresh}
 				/>
-			</div>
-		</div>
+			</Col>
+		</Row>
 	);
 }
 

@@ -16,6 +16,7 @@ import {
 import ImatAttendanceLayout from "./layout";
 import ImatMeetingAttendance from "./ImatMeetingAttendance";
 import ImatBreakoutAttendance from "./ImatBreakoutAttendance";
+import { rootLoader } from "../rootLoader";
 
 export function refresh(
 	meetingNumber: number | undefined,
@@ -39,8 +40,10 @@ export function refresh(
 	}
 }
 
-const imatAttendanceLoader: LoaderFunction = async ({ params }) => {
-	const { groupName } = params;
+const imatAttendanceLoader: LoaderFunction = async (args) => {
+	await rootLoader(args);
+
+	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;

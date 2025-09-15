@@ -1,4 +1,4 @@
-import { displayDayDate, displayTime } from "dot11-components";
+import { displayDayDate, displayTime } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import {
 	selectBreakoutEntities,

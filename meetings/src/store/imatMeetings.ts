@@ -8,7 +8,7 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
-} from "dot11-components";
+} from "@common";
 
 import type { RootState, AppThunk } from ".";
 import { selectCurrentSession, selectSessionEntities } from "./sessions";

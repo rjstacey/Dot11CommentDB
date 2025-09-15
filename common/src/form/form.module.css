@@ -59,15 +59,13 @@
 	box-shadow: 0 0 0 3px rgb(0 116 217 / 20%);
 }
 
-.input-dates {
+.input-dates:global(.form-control) {
 	display: flex;
 	align-items: center;
-	border: solid 1px #ddd;
-	background-color: #fafafa;
-	box-sizing: border-box;
-	border-radius: 3px;
-	line-height: 25px;
-	padding: 0 5px;
+}
+
+.input-dates :global(.dropdown-toggle):after {
+	all: unset;
 }
 
 .input-dates:global(.disabled) :global(.clear),

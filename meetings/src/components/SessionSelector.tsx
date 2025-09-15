@@ -1,6 +1,6 @@
 import * as React from "react";
-
-import { Select, ActionIcon, displayDateRange } from "dot11-components";
+import { Button } from "react-bootstrap";
+import { Select, displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -92,7 +92,9 @@ export function RawSessionSelector({
 			handle={false}
 			dropdownWidth={300}
 			dropdownAlign="right"
-			contentRenderer={() => <ActionIcon name="import" />}
+			contentRenderer={() => (
+				<Button variant="light" className="bi-cloud-upload" />
+			)}
 		/>
 	);
 }

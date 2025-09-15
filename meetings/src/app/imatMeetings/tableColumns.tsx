@@ -11,7 +11,7 @@ import {
 	TableConfig,
 	CellRendererProps,
 	displayDateRange,
-} from "dot11-components";
+} from "@common";
 
 import {
 	fields,

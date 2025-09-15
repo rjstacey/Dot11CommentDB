@@ -1,4 +1,4 @@
-import { fetcher, setError, shallowEqual } from "dot11-components";
+import { fetcher, setError, shallowEqual } from "@common";
 
 import slice, { getPending, clearWebexMeetings } from "./webexMeetingsSlice";
 import type { AppThunk } from ".";

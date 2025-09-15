@@ -1,10 +1,5 @@
-import {
-	ActionButton,
-	ActionButtonDropdown,
-	SplitPanelButton,
-	TableColumnSelector,
-	Select,
-} from "dot11-components";
+import { Row, Col, Button, DropdownButton } from "react-bootstrap";
+import { SplitPanelButton, TableColumnSelector, Select } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -22,6 +17,7 @@ import CopyMeetingListButton from "./CopyMeetingList";
 
 import { tableColumns } from "./tableColumns";
 import { refresh } from "./route";
+import React from "react";
 
 const DisplayFormat = {
 	0: "Table view",
@@ -50,6 +46,8 @@ function SelectDisplayFormat({
 
 	return (
 		<Select
+			style={{ width: 180 }}
+			searchable={false}
 			values={values}
 			options={displayFormatOptions}
 			onChange={handleChange}
@@ -59,6 +57,7 @@ function SelectDisplayFormat({
 
 function MeetingsActions() {
 	const dispatch = useAppDispatch();
+	const [showEmail, setShowEmail] = React.useState(false);
 
 	const showDays: number = useAppSelector(selectUiProperties).showDays || 0;
 	const setShowDays = (showDays: number) =>
@@ -70,21 +69,14 @@ function MeetingsActions() {
 	}
 
 	return (
-		<div className="top-row">
-			<SessionSelectorNav allowShowDateRange />
-
-			<ActionButtonDropdown
-				label="Email host keys"
-				dropdownRenderer={({ methods }) => (
-					<MeetingsEmail close={methods.close} />
-				)}
-			/>
-
-			<div className="control-group">
-				<SelectDisplayFormat
-					value={showDays}
-					onChange={changeShowDays}
-				/>
+		<Row className="w-100 m-3">
+			<Col>
+				<SessionSelectorNav allowShowDateRange />
+			</Col>
+			<Col
+				xs="auto"
+				className="d-flex justify-content-end align-items-center gap-2"
+			>
 				{showDays === 0 && (
 					<TableColumnSelector
 						selectors={meetingsSelectors}
@@ -96,14 +88,34 @@ function MeetingsActions() {
 					selectors={meetingsSelectors}
 					actions={meetingsActions}
 				/>
+			</Col>
+
+			<Col
+				xs="auto"
+				className="d-flex justify-content-end align-items-center gap-2"
+			>
+				<SelectDisplayFormat
+					value={showDays}
+					onChange={changeShowDays}
+				/>
+				<DropdownButton
+					variant="light"
+					title="Email host keys"
+					show={showEmail}
+					onToggle={() => setShowEmail(!showEmail)}
+				>
+					<MeetingsEmail close={() => setShowEmail(false)} />
+				</DropdownButton>
+
 				<CopyMeetingListButton />
-				<ActionButton
-					name="refresh"
+				<Button
+					variant="outline-primary"
+					className="bi-arrow-repeat"
 					title="Refresh"
 					onClick={refresh}
 				/>
-			</div>
-		</div>
+			</Col>
+		</Row>
 	);
 }
 

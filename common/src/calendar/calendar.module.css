@@ -1,0 +1,257 @@
+.calendar {
+	/* General Theme */
+	--calendar-color-transparent: rgba(0, 0, 0, 0);
+	--calendar-color-text-dark: #353535;
+	--calendar-color-text-inactive: #c9c9ca;
+	--calendar-color-text-light: #fff;
+	--calendar-color-bg-light: #fff;
+	--calendar-color-border: #f3f3f3;
+	--calendar-color-text-hover: rgb(248, 249, 250);
+
+	/* General Theme Main Colors Parts */
+	--calendar-hsl-primary-hue: 208deg;
+	--calendar-hsl-primary-saturation: 77%;
+	--calendar-hsl-primary-light: 47%;
+	--calendar-hsl-accent-hue: 0deg;
+	--calendar-hsl-accent-saturation: 77%;
+	--calendar-hsl-accent-light: 47%;
+
+	/* General Theme Main Colors */
+	--calendar-color-primary: hsl(
+		var(--calendar-hsl-primary-hue) var(--calendar-hsl-primary-saturation)
+			var(--calendar-hsl-primary-light)
+	);
+
+	--calendar-color-primary-light: hsla(
+		var(--calendar-hsl-primary-hue) var(--calendar-hsl-primary-saturation)
+			var(--calendar-hsl-primary-light) / 40%
+	);
+
+	--calendar-color-primary-lighter: hsla(
+		var(--calendar-hsl-primary-hue) var(--calendar-hsl-primary-saturation)
+			var(--calendar-hsl-primary-light) / 8%
+	);
+
+	--calendar-color-accent: hsl(
+		var(--calendar-hsl-accent-hue) var(--calendar-hsl-accent-saturation)
+			var(--calendar-hsl-accent-light)
+	);
+
+	--calendar-color-accent-light: hsla(
+		var(--calendar-hsl-accent-hue) var(--calendar-hsl-accent-saturation)
+			var(--calendar-hsl-accent-light) / 40%
+	);
+
+	--calendar-color-accent-lighter: hsla(
+		var(--calendar-hsl-accent-hue) var(--calendar-hsl-accent-saturation)
+			var(--calendar-hsl-accent-light) / 8%
+	);
+
+	/* Context Specific */
+	--calendar-color-border-root: var(--calendar-color-border);
+	--calendar-color-bg-text-hover-header-button: var(
+		--calendar-color-text-hover
+	);
+	--calendar-color-text-today: var(--calendar-color-primary);
+	--calendar-color-border-weekdays: var(--calendar-color-border);
+
+	--calendar-color-text-column-labels: var(--calendar-color-text-inactive);
+	--calendar-color-text-column-weekend-labels: var(
+		--calendar-color-accent-light
+	);
+
+	--calendar-color-text-date-inactive: var(--calendar-color-text-inactive);
+	--calendar-color-text-date-active: var(--calendar-color-text-dark);
+	--calendar-color-text-date-weekend-active: var(--calendar-color-accent);
+	--calendar-color-text-date-weekend-inactive: var(
+		--calendar-color-accent-light
+	);
+
+	--calendar-color-bg-date-selected: var(--calendar-color-primary);
+	--calendar-color-bg-date-weekend-selected: var(--calendar-color-accent);
+	--calendar-color-text-date-selected: var(--calendar-color-text-light);
+	--calendar-color-text-date-weekend-selected: var(
+		--calendar-color-text-light
+	);
+	--calendar-color-text-date-disabled: var(--calendar-color-text-inactive);
+	--calendar-color-text-date-weekend-disabled: var(
+		--calendar-color-accent-light
+	);
+
+	--calendar-color-bg-disabled: var(--calendar-color-bg-light);
+	--calendar-color-bg-disabled-cross: var(--calendar-color-text-inactive);
+	--calendar-color-bg-disabled-weekend-cross: var(
+		--calendar-color-accent-light
+	);
+}
+
+.calendar {
+	display: flex;
+	align-items: flex-start;
+	flex-direction: column;
+	box-sizing: border-box;
+
+	cursor: default;
+
+	background-color: var(--calendar-color-bg-light);
+	border: 1px solid var(--calendar-color-border);
+	font-size: 1rem;
+	border-radius: 8px;
+}
+
+.calendar * {
+	box-sizing: border-box;
+	-webkit-tap-highlight-color: var(--calendar-color-transparent);
+	font-family: inherit;
+}
+
+.calendar button {
+	border: none;
+	margin: 0;
+	padding: 0;
+	width: auto;
+	overflow: visible;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	line-height: normal;
+	-webkit-font-smoothing: inherit;
+	-moz-osx-font-smoothing: inherit;
+	appearance: none;
+}
+
+.calendar .header {
+	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	width: 100%;
+}
+
+.calendar .header :global .label {
+	display: flex;
+	justify-content: center;
+}
+
+.calendar .header :global .arrow-left,
+.calendar .header :global .arrow-right {
+	position: absolute;
+	height: 100%;
+}
+
+.calendar .header :global .arrow-left {
+	left: 10px;
+}
+
+.calendar .header :global .arrow-left:before {
+	content: "←";
+}
+
+.calendar .header :global .arrow-right {
+	right: 10px;
+}
+
+.calendar .header :global .arrow-right:after {
+	content: "→";
+}
+
+.calendar .header span {
+	font-size: 0.85em;
+	color: var(--calendar-color-text-dark);
+}
+
+.calendar .header button:hover {
+	opacity: 0.5;
+}
+
+.calendar .header button:active {
+	transform: translateY(1px);
+}
+
+.calendar :global .month {
+	padding: 5px;
+}
+
+.calendar :global .month .week-row {
+	display: flex;
+	align-items: center;
+}
+
+.calendar :global .day {
+	padding: 3px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.calendar :global .day .inner {
+	width: 1.5em;
+	height: 1em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.calendar :global .day span {
+	color: var(--calendar-color-text-column-labels);
+	font-size: 0.83em;
+	text-transform: uppercase;
+}
+
+.calendar :global .day.weekend span {
+	color: var(--calendar-color-text-column-weekend-labels);
+}
+
+.calendar :global .date:not(.disabled) {
+	cursor: pointer;
+	border-radius: 2px;
+}
+
+.calendar :global .date .inner {
+	border-radius: 2px;
+}
+
+.calendar :global .date:not(.disabled):hover {
+	opacity: 0.5;
+}
+
+.calendar :global .date span {
+	font-size: 0.85em;
+	color: var(--calendar-color-text-date-active);
+}
+
+/* Color for weekend dates */
+.calendar :global .date.weekend span {
+	color: var(--calendar-color-text-date-weekend-active);
+}
+
+.calendar :global .date.disabled {
+	opacity: 0.5;
+}
+
+/* Color for inactive dates */
+.calendar :global .date.inactive {
+	opacity: 0;
+}
+.calendar :global .date.inactive.weekend span {
+	color: var(--calendar-color-text-date-weekend-inactive);
+}
+
+/* Underline today's date (if not selected or disabled) */
+.calendar :global .date.today:not(.selected):not(.disabled) span {
+	border-bottom: 1px solid currentColor;
+}
+
+/* Color and background when selected (both weekday and weekend) */
+.calendar :global .date.selected .inner {
+	background-color: var(--calendar-color-bg-date-selected);
+}
+.calendar :global .date.selected span {
+	color: var(--calendar-color-text-date-selected);
+}
+.calendar :global .date.selected.weekend .inner {
+	background-color: var(--calendar-color-bg-date-weekend-selected);
+}
+.calendar :global .date.selected.weekend span {
+	color: var(--calendar-color-text-date-weekend-selected);
+}

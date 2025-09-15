@@ -5,7 +5,7 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
-} from "dot11-components";
+} from "@common";
 
 import type { AppThunk, RootState } from ".";
 import { selectImatMeetingEntities } from "./imatMeetings";

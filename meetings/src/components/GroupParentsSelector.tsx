@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Select } from "dot11-components";
+import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectGroupParents } from "@/store/groups";
@@ -12,9 +12,9 @@ export function GroupParentsSelector({
 }: {
 	value: string | null;
 	onChange: (value: string | null) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const groups = useAppSelector(selectGroupParents);
 

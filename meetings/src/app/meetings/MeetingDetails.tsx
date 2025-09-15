@@ -1,6 +1,6 @@
 import * as React from "react";
 import { connect, ConnectedProps } from "react-redux";
-
+import { Row, Col, Button, Container } from "react-bootstrap";
 import {
 	ConfirmModal,
 	deepDiff,
@@ -8,9 +8,8 @@ import {
 	deepMergeTagMultiple,
 	isMultiple,
 	MULTIPLE,
-	ActionButton,
 	setError,
-} from "dot11-components";
+} from "@common";
 
 import type { RootState } from "@/store";
 import { selectCurrentGroupDefaults } from "@/store/current";
@@ -476,41 +475,49 @@ class MeetingDetails extends React.Component<
 		}
 
 		const actionButtons = (
-			<div>
-				<ActionButton
-					name="upload"
+			<Col
+				xs="auto"
+				className="d-flex justify-content-end align-items-center gap-2"
+			>
+				<Button
+					variant="outline-primary"
+					className="bi-cloud-upload"
 					title="Sync meeting"
 					disabled={
 						meetings.length === 0 || loading || busy || readOnly
 					}
 					onClick={this.clickSync}
 				/>
-				<ActionButton
-					name="add"
+				<Button
+					variant="outline-primary"
+					className="bi-plus-lg"
 					title="Add meeting"
 					disabled={
 						action === "add-by-slot" || loading || busy || readOnly
 					}
-					isActive={action === "add-by-date"}
+					active={action === "add-by-date"}
 					onClick={this.clickAdd}
 				/>
-				<ActionButton
-					name="delete"
+				<Button
+					variant="outline-primary"
+					className="bi-trash"
 					title="Delete meeting"
 					disabled={
 						meetings.length === 0 || loading || busy || readOnly
 					}
 					onClick={this.clickDelete}
 				/>
-			</div>
+			</Col>
 		);
 
 		return (
-			<>
-				<div className="header">
-					<h3 className="title">{title}</h3>
+			<Container fluid>
+				<Row className="mb-3">
+					<Col>
+						<h3 className="title">{title}</h3>
+					</Col>
 					{actionButtons}
-				</div>
+				</Row>
 				{notAvailableStr ? (
 					<Placeholder>{notAvailableStr}</Placeholder>
 				) : (
@@ -525,7 +532,7 @@ class MeetingDetails extends React.Component<
 					/>
 				)}
 				<ShowAccess access={access} />
-			</>
+			</Container>
 		);
 	}
 }

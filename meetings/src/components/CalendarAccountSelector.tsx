@@ -1,4 +1,4 @@
-import { Select } from "dot11-components";
+import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectCalendarAccounts } from "@/store/calendarAccounts";
@@ -10,9 +10,9 @@ function CalendarAccountSelector({
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const options = useAppSelector(selectCalendarAccounts);
 	const values = options.filter((o) => o.id === value);

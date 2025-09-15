@@ -1,4 +1,4 @@
-import { Row } from "dot11-components";
+import { Row, Col } from "react-bootstrap";
 import { AccessLevel } from "@/store/user";
 
 function renderAccess(access: number) {
@@ -10,8 +10,13 @@ function renderAccess(access: number) {
 
 function ShowAccess({ access }: { access: number }) {
 	return (
-		<Row style={{ justifyContent: "flex-end", opacity: 0.5 }}>
-			{renderAccess(access)}
+		<Row>
+			<Col
+				style={{ opacity: 0.5 }}
+				className="d-flex justify-content-end"
+			>
+				{renderAccess(access)}
+			</Col>
 		</Row>
 	);
 }

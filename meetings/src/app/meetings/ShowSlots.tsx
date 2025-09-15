@@ -1,8 +1,6 @@
 import * as React from "react";
 import { DateTime } from "luxon";
 
-import { ActionIcon } from "dot11-components";
-
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fromSlotId, selectCurrentSession } from "@/store/sessions";
 import { selectSelectedSlots, toggleSelectedSlots } from "@/store/meetings";
@@ -18,7 +16,7 @@ const Slot = ({
 }) => (
 	<div className={styles.slot} role="listitem">
 		{children && <span className={styles["slot-item"]}>{children}</span>}
-		<ActionIcon style={{ minWidth: 16 }} type="clear" onClick={remove} />
+		<i className="bi-x icon action" onClick={remove} />
 	</div>
 );
 

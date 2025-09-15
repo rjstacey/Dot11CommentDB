@@ -1,11 +1,7 @@
 import { createSelector, EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
-import {
-	displayDate,
-	getAppTableDataSelectors,
-	FieldType,
-} from "dot11-components";
+import { displayDate, getAppTableDataSelectors, FieldType } from "@common";
 
 import type { RootState } from ".";
 import { selectMeetingEntities } from "./meetingsSelectors";

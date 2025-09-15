@@ -12,6 +12,7 @@ import {
 
 import ImatBreakoutsLayout from "./layout";
 import ImatBreakoutsTable from "./table";
+import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -21,8 +22,10 @@ export function refresh() {
 	if (imatMeetingId) dispatch(loadBreakouts(groupName, imatMeetingId));
 }
 
-const imatBreakoutsLoader: LoaderFunction = async ({ params }) => {
-	const { groupName } = params;
+const imatBreakoutsLoader: LoaderFunction = async (args) => {
+	await rootLoader(args);
+
+	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;
@@ -38,16 +41,20 @@ const imatBreakoutsLoader: LoaderFunction = async ({ params }) => {
 	return null;
 };
 
-const breakoutNumberLoader: LoaderFunction = async ({ params }) => {
-	const { groupName } = params;
-	const meetingNumber = Number(params.meetingNumber);
+const breakoutNumberLoader: LoaderFunction = async (args) => {
+	await rootLoader(args);
+
+	const { groupName } = args.params;
+	const meetingNumber = Number(args.params.meetingNumber);
 	if (!groupName || !meetingNumber)
 		throw new Error("Route error: groupName or meetingNumber not set");
 	store.dispatch(loadBreakouts(groupName, meetingNumber));
 	return null;
 };
 
-const breakoutIndexLoader: LoaderFunction = () => {
+const breakoutIndexLoader: LoaderFunction = async (args) => {
+	await rootLoader(args);
+
 	store.dispatch(clearBreakouts());
 	return null;
 };

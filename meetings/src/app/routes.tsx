@@ -11,11 +11,11 @@ import { loadCalendarAccounts } from "@/store/calendarAccounts";
 import { loadWebexAccounts } from "@/store/webexAccounts";
 import { loadMembers } from "@/store/members";
 import { loadOfficers } from "@/store/officers";
-import { loadTimeZones } from "@/store/timeZones";
 
+import { rootLoader } from "./rootLoader";
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
-import RootMain from "./rootMain";
+import RootMain from "./root";
 import { NavigateToGroupAccounts } from "./NavigateToGroupAccounts";
 import accountsRoute from "./accounts/route";
 import sessionsRoute from "./sessions/route";
@@ -28,18 +28,10 @@ import imatAttendanceRoute from "./imatAttendance/route";
 import calendarRoute from "./calendar/route";
 import ieee802WorldRoute from "./ieee802World/route";
 
-/*
- * Routing loader functions
- */
-const rootLoader: LoaderFunction = async () => {
-	const { dispatch } = store;
-	dispatch(loadTimeZones());
-	await dispatch(loadGroups());
-	return null;
-};
+const groupLoader: LoaderFunction = async (args) => {
+	await rootLoader(args);
 
-const groupLoader: LoaderFunction = async ({ params }) => {
-	const { groupName } = params;
+	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;
@@ -125,7 +117,7 @@ const groupRoutes: AppRoute[] = [
 	},
 ];
 
-const routes: AppRoute[] = [
+export const routes: AppRoute[] = [
 	{
 		path: "/",
 		element: <AppLayout />,

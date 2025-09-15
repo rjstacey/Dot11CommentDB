@@ -1,6 +1,5 @@
 import * as React from "react";
-
-import { ActionButton, Input, ActionIcon, Checkbox } from "dot11-components";
+import { Button, FormControl, FormCheck } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectMemberEntities } from "@/store/members";
@@ -19,8 +18,6 @@ import {
 } from "@/store/webexAccounts";
 
 import { EditTable as Table, TableColumn } from "@/components/Table";
-
-import styles from "./accounts.module.css";
 
 const displayDate = (d: string) =>
 	new Intl.DateTimeFormat("default", {
@@ -46,7 +43,7 @@ function AccountName({ account, readOnly }: CellProps) {
 	const handleChange = (id: number, changes: Partial<WebexAccount>) =>
 		dispatch(updateWebexAccount(id, changes));
 	return (
-		<Input
+		<FormControl
 			id={`webex-account-${account.id}-name`}
 			aria-label={`Webex account ${account.id} name`}
 			type="search"
@@ -77,21 +74,16 @@ function AuthButtons({ account }: CellProps) {
 	if (!account.authUrl) return null;
 	return (
 		<>
-			<a
-				style={{ marginLeft: "1em" }}
-				className={styles.button}
-				href={account.authUrl}
-			>
+			<Button variant="outline-secondary" href={account.authUrl}>
 				{account.authDate ? "Reauthorize" : "Authorize"}
-			</a>
+			</Button>
 			{account.authDate && (
-				<button
-					style={{ marginLeft: "1em" }}
-					className={styles.button}
+				<Button
+					variant="outline-secondary"
 					onClick={() => handleRevoke(account.id)}
 				>
 					{"Revoke"}
-				</button>
+				</Button>
 			)}
 		</>
 	);
@@ -104,7 +96,7 @@ function Defaults({ account }: CellProps) {
 	const toggleDefaultId = () =>
 		dispatch(setWebexAccountDefaultId(isDefault ? null : account.id));
 	return (
-		<Checkbox
+		<FormCheck
 			id={`webex-account-${account.id}-use-by-default`}
 			aria-label={`Webex account ${account.id} use by default`}
 			checked={isDefault}
@@ -117,14 +109,24 @@ function Actions({ account }: CellProps) {
 	const dispatch = useAppDispatch();
 	const handleDelete = (id: number) => dispatch(deleteWebexAccount(id));
 	return (
-		<ActionIcon type="delete" onClick={() => handleDelete(account.id)} />
+		<Button
+			variant="outline-secondary"
+			className="bi-trash"
+			onClick={() => handleDelete(account.id)}
+		/>
 	);
 }
 
 function ActionsHeader() {
 	const dispatch = useAppDispatch();
 	const handleAdd = () => dispatch(addWebexAccount(defaultAccount));
-	return <ActionIcon type="add" onClick={() => handleAdd()} />;
+	return (
+		<Button
+			variant="outline-secondary"
+			className="bi-plus-lg"
+			onClick={() => handleAdd()}
+		/>
+	);
 }
 
 const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
@@ -165,14 +167,15 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 	},
 	authButtons: {
 		label: "Authorize",
+		styleCell: { gap: "0.5rem" },
 		renderCell: (props: CellProps) => <AuthButtons {...props} />,
 	},
 	defaults: {
 		label: "Use by default",
+		styleCell: { justifyContent: "center" },
 		renderCell: (props: CellProps) => <Defaults {...props} />,
 	},
 	actions: {
-		gridTemplate: "40px",
 		label: <ActionsHeader />,
 		renderCell(props: CellProps) {
 			return <Actions {...props} />;
@@ -211,15 +214,17 @@ function WebexAccounts() {
 		<>
 			<div className="top-row">
 				<h3>Webex accounts</h3>
-				<div style={{ display: "flex" }}>
-					<ActionButton
-						name="edit"
+				<div className="d-flex gap-2">
+					<Button
+						variant="outline-primary"
+						className="bi-pencil"
 						title="Edit"
-						isActive={!readOnly}
+						active={!readOnly}
 						onClick={() => setReadOnly(!readOnly)}
 					/>
-					<ActionButton
-						name="refresh"
+					<Button
+						variant="outline-primary"
+						className="bi-arrow-repeat"
 						title="Refresh"
 						onClick={refresh}
 						disabled={loading}

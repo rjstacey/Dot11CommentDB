@@ -20,9 +20,10 @@
 		"baseUrl": ".",
 		"paths": {
 			"@schemas/*": ["../schemas/*"],
+			"@common": ["../common/src"],
 			"@/*": ["src/*"]
 		}
 	},
-	"include": ["src", "../schemas"],
+	"include": ["src", "../schemas", "../common/src"],
 	"references": [{ "path": "./tsconfig.node.json" }]
 }

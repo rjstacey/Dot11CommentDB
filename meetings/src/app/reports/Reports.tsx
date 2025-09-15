@@ -2,7 +2,7 @@ import * as React from "react";
 import { useParams } from "react-router";
 import AutoSizer from "react-virtualized-auto-sizer";
 
-import { ActionButton, Button, Spinner } from "dot11-components";
+import { Button, Spinner } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectCurrentImatMeeting } from "@/store/imatMeetings";
@@ -57,7 +57,7 @@ function ReportsNav({
 				<Button
 					key={a}
 					onClick={() => handleAction(a)}
-					isActive={action === a}
+					active={action === a}
 				>
 					{chartSelector[a]}
 				</Button>
@@ -223,15 +223,17 @@ function Reports() {
 
 				{loading && <Spinner />}
 
-				<div style={{ display: "flex" }}>
-					<ActionButton
-						name="copy"
+				<div className="d-flex gap-2">
+					<Button
+						variant="outline-primary"
+						className="bi-copy"
 						title="Copy chart to clipboard"
 						onClick={() => copyToClipboard(svgRef.current)}
 						disabled={!action || !svgRef.current}
 					/>
-					<ActionButton
-						name="refresh"
+					<Button
+						variant="outline-primary"
+						className="bi-arrow-repeat"
 						title="Refresh"
 						onClick={refresh}
 					/>

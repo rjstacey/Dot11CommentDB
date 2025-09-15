@@ -1,4 +1,4 @@
-import { AppTable } from "dot11-components";
+import { AppTable } from "@common";
 import {
 	imatMeetingsSelectors,
 	imatMeetingsActions,

@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import type { Multiple } from "dot11-components";
+import type { Multiple } from "@common";
 import {
 	defaultWebexMeetingParams,
 	WebexMeetingOptions,

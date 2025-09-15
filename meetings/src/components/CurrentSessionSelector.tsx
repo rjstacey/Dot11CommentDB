@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useLocation, useNavigate } from "react-router";
 
-import { Checkbox } from "dot11-components";
+import { FormCheck } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -74,7 +74,7 @@ function LabeledCurrentSessionSelector({
 					}}
 				>
 					<label>Show date range</label>
-					<Checkbox
+					<FormCheck
 						checked={showDateRange}
 						onChange={() =>
 							dispatch(setShowDateRange(!showDateRange))

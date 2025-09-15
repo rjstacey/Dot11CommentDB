@@ -4,7 +4,7 @@ import {
 	Panel,
 	displayDateRange,
 	RowGetterProps,
-} from "dot11-components";
+} from "@common";
 
 import {
 	getField,

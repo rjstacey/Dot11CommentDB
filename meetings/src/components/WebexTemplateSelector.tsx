@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Select } from "dot11-components";
+import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectWebexAccountsState } from "@/store/webexAccounts";
 
@@ -12,9 +12,9 @@ function WebexTemplateSelector({
 	value: string | null;
 	onChange: (value: string | null) => void;
 	accountId: number | null;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const { loading, entities } = useAppSelector(selectWebexAccountsState);
 

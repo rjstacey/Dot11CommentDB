@@ -1,14 +1,14 @@
 import * as React from "react";
 import { DateTime } from "luxon";
 
-import { Select } from "dot11-components";
+import { Select, SelectItemRendererProps } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
-import { selectMeetingsState, getField, SyncedMeeting } from "@/store/meetings";
+import { selectMeetingsState, getField, Meeting } from "@/store/meetings";
 
 import styles from "./MeetingSelector.module.css";
 
-const renderItem = ({ item }: { item: SyncedMeeting }) => {
+const renderItem = ({ item }: SelectItemRendererProps<Meeting>) => {
 	let summary = item.summary;
 	if (item.isCancelled) summary = "🚫 " + summary;
 	return (
@@ -40,9 +40,9 @@ function MeetingSelector({
 	readOnly?: boolean;
 	fromDate?: string;
 	toDate?: string;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const { loading, valid, ids, entities } =
 		useAppSelector(selectMeetingsState);
