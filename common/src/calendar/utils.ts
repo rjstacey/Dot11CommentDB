@@ -1,4 +1,4 @@
-export const weekdayLabels = {
+export const weekdayLabels: Record<number, string> = {
 	0: "Su",
 	1: "Mo",
 	2: "Tu",
@@ -8,7 +8,7 @@ export const weekdayLabels = {
 	6: "Sa",
 };
 
-export const monthLabels = {
+export const monthLabels: Record<number, string> = {
 	0: "January",
 	1: "February",
 	2: "March",
@@ -23,7 +23,7 @@ export const monthLabels = {
 	11: "December",
 };
 
-const weekendMap = {
+const weekendMap: Record<number, boolean> = {
 	0: true,
 	1: false,
 	2: false,
@@ -53,7 +53,7 @@ export const isEqual = (d1: Date, d2: Date) =>
 	d1.getMonth() === d2.getMonth() &&
 	d1.getDate() === d2.getDate();
 
-type MonthGridDay = {
+export type MonthGridDay = {
 	isoDate: string;
 	date: Date;
 	isSelected: boolean;
@@ -63,7 +63,15 @@ type MonthGridDay = {
 	isDisabled: boolean;
 };
 
-export function getMonthGrid({ dates, viewDate, options }) {
+export function getMonthGrid({
+	dates,
+	viewDate,
+	options,
+}: {
+	dates: string[];
+	viewDate: { year: number; month: number };
+	options: { minDate?: string; maxDate?: string; disablePast?: boolean };
+}) {
 	let today = new Date();
 	today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 	const { year, month } = viewDate;

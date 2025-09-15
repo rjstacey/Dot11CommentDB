@@ -1,24 +1,28 @@
 import React from "react";
 
 import type { ViewDate } from "./Calendar";
-import { getMonthGrid, weekdayLabels } from "./utils";
+import { getMonthGrid, MonthGridDay, weekdayLabels } from "./utils";
 
-function DayLabel({ cell }) {
+function DayLabel({ cell }: { cell: MonthGridDay }) {
 	const classNames = ["day"];
 	if (cell.isWeekend) classNames.push("weekend");
 
 	return (
 		<div className={classNames.join(" ")}>
 			<div className="inner">
-				<span>
-					{weekdayLabels[cell.date.getDay()]}
-				</span>
+				<span>{weekdayLabels[cell.date.getDay()]}</span>
 			</div>
 		</div>
 	);
 }
 
-function Day({ cell, onClick }) {
+function Day({
+	cell,
+	onClick,
+}: {
+	cell: MonthGridDay;
+	onClick: (cell: MonthGridDay) => void;
+}) {
 	const classNames = ["day", "date"];
 	if (cell.isInactive) classNames.push("inactive");
 	if (cell.isDisabled) classNames.push("disabled");
@@ -33,9 +37,7 @@ function Day({ cell, onClick }) {
 			onClick={cell.isDisabled ? undefined : () => onClick(cell)}
 		>
 			<div className="inner">
-				<span>
-					{cell.date.getDate()}
-				</span>
+				<span>{cell.date.getDate()}</span>
 			</div>
 		</div>
 	);
@@ -146,16 +148,9 @@ function Month({
 					<DayLabel key={index} cell={cell} />
 				))}
 			</div>
-			<div
-				ref={setRef}
-				className="dates-block"
-				role="grid"
-			>
+			<div ref={setRef} className="dates-block" role="grid">
 				{matrix.map((row, index) => (
-					<div
-						className="week-row"
-						key={index}
-					>
+					<div className="week-row" key={index}>
 						{row.map((cell) => (
 							<Day
 								key={cell.isoDate}
