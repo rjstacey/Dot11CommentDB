@@ -8,7 +8,6 @@ import {
 } from "@/store/imatBreakouts";
 
 import ImatMeetingSelector from "@/components/ImatMeetingSelector";
-import ImatMeetingInfo from "@/components/ImatMeetingInfo";
 
 import { tableColumns } from "./tableColumns";
 import { refresh } from "./route";
@@ -31,20 +30,11 @@ function ImatBreakoutsActions() {
 			</Col>
 
 			{imatBreakoutMeetingId ? (
-				<>
-					<Col>
-						<ImatMeetingInfo
-							imatMeetingId={imatBreakoutMeetingId}
-						/>
-					</Col>
-
-					<SplitTableButtonGroup
-						selectors={imatBreakoutsSelectors}
-						actions={imatBreakoutsActions}
-						columns={tableColumns}
-						xs="auto"
-					/>
-				</>
+				<SplitTableButtonGroup
+					selectors={imatBreakoutsSelectors}
+					actions={imatBreakoutsActions}
+					columns={tableColumns}
+				/>
 			) : null}
 
 			<Col

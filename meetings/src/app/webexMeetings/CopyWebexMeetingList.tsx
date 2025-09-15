@@ -61,14 +61,15 @@ function copyWebexMeetingList(
 
 function CopyWebexMeetingListButton() {
 	const { selected } = useAppSelector(selectWebexMeetingsState);
-	const wmEntities = useAppSelector(selectSyncedWebexMeetingEntities);
+	const entities = useAppSelector(selectSyncedWebexMeetingEntities);
 
 	return (
 		<Button
 			variant="outline-primary"
 			className="bi-copy"
 			title="Copy meeting list"
-			onClick={() => copyWebexMeetingList(selected, wmEntities)}
+			onClick={() => copyWebexMeetingList(selected, entities)}
+			disabled={selected.length === 0}
 		/>
 	);
 }

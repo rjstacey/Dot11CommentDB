@@ -1,7 +1,6 @@
 import { RouteObject, LoaderFunction } from "react-router";
 
 import { store } from "../store";
-import { AccessLevel } from "../store/user";
 import {
 	selectTopLevelGroupByName,
 	setTopLevelGroupId,
@@ -47,77 +46,7 @@ const groupLoader: LoaderFunction = async (args) => {
 	return null;
 };
 
-/*
- * Routes
- */
-export type AppRoute = RouteObject & {
-	minAccess?: number;
-	menuLabel?: string;
-};
-
-const groupRoutes: AppRoute[] = [
-	{
-		menuLabel: "Accounts",
-		path: "accounts",
-		...accountsRoute,
-		minAccess: AccessLevel.admin,
-	},
-	{
-		menuLabel: "Sessions",
-		path: "sessions",
-		...sessionsRoute,
-		minAccess: AccessLevel.ro,
-	},
-	{
-		menuLabel: "Meetings",
-		path: "meetings",
-		...meetingsRoute,
-		minAccess: AccessLevel.ro,
-	},
-	{
-		menuLabel: "Webex",
-		path: "webexMeetings",
-		...webexMeetingsRoute,
-		minAccess: AccessLevel.ro,
-	},
-	{
-		menuLabel: "IMAT breakouts",
-		path: "imatBreakouts",
-		...imatBreakoutsRoute,
-		minAccess: AccessLevel.ro,
-	},
-	{
-		menuLabel: "IMAT sessions",
-		path: "imatMeetings",
-		...imatMeetingsRoute,
-		minAccess: AccessLevel.ro,
-	},
-	{
-		path: "imatAttendance",
-		...imatAttendanceRoute,
-		minAccess: AccessLevel.ro,
-	},
-	{
-		menuLabel: "Calendar",
-		path: "calendar",
-		...calendarRoute,
-		minAccess: AccessLevel.ro,
-	},
-	{
-		menuLabel: "802 World",
-		path: "ieee802World",
-		...ieee802WorldRoute,
-		minAccess: AccessLevel.ro,
-	},
-	{
-		menuLabel: "Reports",
-		path: "reports",
-		...reportsRoute,
-		minAccess: AccessLevel.ro,
-	},
-];
-
-export const routes: AppRoute[] = [
+export const routes: RouteObject[] = [
 	{
 		path: "/",
 		element: <AppLayout />,
@@ -143,7 +72,46 @@ export const routes: AppRoute[] = [
 						index: true,
 						element: <RootMain />,
 					},
-					...groupRoutes,
+					{
+						path: "accounts",
+						...accountsRoute,
+					},
+					{
+						path: "sessions",
+						...sessionsRoute,
+					},
+					{
+						path: "meetings",
+						...meetingsRoute,
+					},
+					{
+						path: "webexMeetings",
+						...webexMeetingsRoute,
+					},
+					{
+						path: "imatBreakouts",
+						...imatBreakoutsRoute,
+					},
+					{
+						path: "imatMeetings",
+						...imatMeetingsRoute,
+					},
+					{
+						path: "imatAttendance",
+						...imatAttendanceRoute,
+					},
+					{
+						path: "calendar",
+						...calendarRoute,
+					},
+					{
+						path: "ieee802World",
+						...ieee802WorldRoute,
+					},
+					{
+						path: "reports",
+						...reportsRoute,
+					},
 					{
 						path: "*",
 						element: <span>Not found</span>,

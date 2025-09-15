@@ -50,6 +50,7 @@ function SessionSelector({
 			onChange={handleChange}
 			options={options}
 			loading={loading && !valid}
+			searchable={false}
 			clearable
 			itemRenderer={renderSession}
 			selectItemRenderer={renderSession}

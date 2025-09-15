@@ -12,7 +12,6 @@ import { refresh } from "./route";
 function ImatMeetingsActions() {
 	return (
 		<Row className="w-100 m-3">
-			<Col>IMAT Sessions</Col>
 			<SplitTableButtonGroup
 				selectors={imatMeetingsSelectors}
 				actions={imatMeetingsActions}

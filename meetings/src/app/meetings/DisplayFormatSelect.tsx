@@ -2,10 +2,10 @@ import { Dropdown } from "react-bootstrap";
 
 const displayFormat: Record<number, string> = {
 	0: "Table view",
-	1: "1-day slot view",
-	3: "3-day slot view",
-	5: "5-day slot view",
-	6: "6-day slot view",
+	1: "Slot view: 1-day",
+	3: "Slot view: 3-day",
+	5: "Slot view: 5-day",
+	6: "Slot view: 6-day",
 };
 
 const displayFormatOptions = Object.entries(displayFormat).map(
