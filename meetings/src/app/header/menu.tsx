@@ -5,49 +5,13 @@ import { Navbar, Nav } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";
 import { selectTopLevelGroupByName } from "@/store/groups";
+import { selectCurrentSession } from "@/store/sessions";
 import { selectBreakoutMeetingId } from "@/store/imatBreakouts";
 
-import routes, { AppRoute } from "../routes";
-
-type MenuPathItem = {
-	path: string;
-	label: string;
-	minAccess?: number;
-};
-
-type MenuLinkItem = {
+type MenuItem = {
 	link: string;
 	label: string;
-	minAccess?: number;
 };
-
-function useMenuPaths() {
-	return React.useMemo(() => {
-		const menu: MenuPathItem[] = [];
-		function getMenuItem(path: string, route: AppRoute) {
-			if (route.path) {
-				if (route.path[0] === "/") {
-					path = route.path;
-				} else {
-					path =
-						path +
-						(path[path.length - 1] === "/" ? "" : "/") +
-						route.path;
-				}
-				if (route.menuLabel)
-					menu.push({
-						path,
-						label: route.menuLabel,
-						minAccess: route.minAccess,
-					});
-				if (route.children)
-					route.children.forEach((route) => getMenuItem(path, route));
-			}
-		}
-		routes.forEach((route) => getMenuItem("", route));
-		return menu;
-	}, []);
-}
 
 function useMenuLinks() {
 	const groupName = useParams().groupName || "*";
@@ -55,30 +19,73 @@ function useMenuLinks() {
 		selectTopLevelGroupByName(state, groupName!)
 	);
 	const access = group?.permissions.meetings || AccessLevel.none;
+	const session = useAppSelector(selectCurrentSession);
 	const imatBreakoutMeetingId = useAppSelector(selectBreakoutMeetingId);
-	const menuPaths = useMenuPaths();
 
-	const menu: MenuLinkItem[] = React.useMemo(() => {
-		return menuPaths
-			.filter((m) => access >= (m.minAccess || AccessLevel.none))
-			.map((m) => {
-				const link = m.path
-					.replace(":groupName", groupName)
-					.replace(
-						"/:meetingNumber?",
-						imatBreakoutMeetingId ? `/${imatBreakoutMeetingId}` : ""
-					)
-					.replace(/\/:[^/]+\?/, ""); // remove optional parameters
-				return { ...m, link };
+	const menu: MenuItem[] = React.useMemo(() => {
+		const menu: MenuItem[] = [];
+
+		// No menu items if there is no group
+		if (!group) return menu;
+
+		if (access >= AccessLevel.admin) {
+			menu.push({
+				link: `/${group.name}/accounts`,
+				label: "Accounts",
 			});
-	}, [menuPaths, access, groupName, imatBreakoutMeetingId]);
+		}
+
+		if (access >= AccessLevel.ro) {
+			menu.push({
+				link: `/${group.name}/sessions`,
+				label: "Sessions",
+			});
+			menu.push({
+				link:
+					`/${group.name}/meetings` +
+					(session ? `/${session.number}` : ""),
+				label: "Meetings",
+			});
+			menu.push({
+				link:
+					`/${group.name}/webexMeetings` +
+					(session ? `/${session.number}` : ""),
+				label: "Webex",
+			});
+			menu.push({
+				link:
+					`/${group.name}/imatBreakouts` +
+					(imatBreakoutMeetingId ? `/${imatBreakoutMeetingId}` : ""),
+				label: "IMAT breakouts",
+			});
+			menu.push({
+				link: `/${group.name}/imatMeetings`,
+				label: "IMAT sessions",
+			});
+			menu.push({
+				link: `/${group.name}/calendar`,
+				label: "Calendar",
+			});
+			menu.push({
+				link: `/${group.name}/ieee802World`,
+				label: "802 World",
+			});
+			menu.push({
+				link:
+					`/${group.name}/reports` +
+					(session ? `/${session.number}` : ""),
+				label: "Reports",
+			});
+		}
+		return menu;
+	}, [access, groupName, session]);
 
 	return menu;
 }
 
 const appName = "Meetings";
 export function Menu() {
-	const location = useLocation();
+	const { search } = useLocation();
 	const { groupName } = useParams();
 
 	const title = (groupName ? groupName + " " : "") + appName;
@@ -90,7 +97,7 @@ export function Menu() {
 			as={NavLink}
 			key={item.link}
 			eventKey={item.link} // callopseOnSelect wont fire unless eventKey is provided
-			to={item.link + location.search}
+			to={item.link + search}
 		>
 			{item.label}
 		</Nav.Link>

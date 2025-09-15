@@ -7,7 +7,7 @@ function WebexTemplateSelector({
 	value,
 	onChange,
 	accountId,
-	...otherProps
+	...props
 }: {
 	value: string | null;
 	onChange: (value: string | null) => void;
@@ -49,7 +49,7 @@ function WebexTemplateSelector({
 			clearable
 			labelField="name"
 			valueField="id"
-			{...otherProps}
+			{...props}
 		/>
 	);
 }

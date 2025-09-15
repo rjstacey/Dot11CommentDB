@@ -16,30 +16,37 @@ import { refresh } from "./route";
 function ImatBreakoutsActions() {
 	const navigate = useNavigate();
 
-	const imatMeetingId = Number(useParams().meetingNumber);
-	const setImatMeetingId = (imatMeetingId: number | null) => {
+	const imatBreakoutMeetingId = Number(useParams().meetingNumber);
+	const setImatBreakoutMeetingId = (imatMeetingId: number | null) => {
 		navigate(imatMeetingId ? imatMeetingId.toString() : "");
 	};
 
 	return (
-		<Row className="w-100 m-3">
+		<Row className="w-100 justify-content-between m-3">
 			<Col xs="auto">
 				<ImatMeetingSelector
-					value={imatMeetingId}
-					onChange={setImatMeetingId}
+					value={imatBreakoutMeetingId}
+					onChange={setImatBreakoutMeetingId}
 				/>
 			</Col>
 
-			<Col>
-				<ImatMeetingInfo imatMeetingId={imatMeetingId} />
-			</Col>
+			{imatBreakoutMeetingId ? (
+				<>
+					<Col>
+						<ImatMeetingInfo
+							imatMeetingId={imatBreakoutMeetingId}
+						/>
+					</Col>
 
-			<SplitTableButtonGroup
-				selectors={imatBreakoutsSelectors}
-				actions={imatBreakoutsActions}
-				columns={tableColumns}
-				xs="auto"
-			/>
+					<SplitTableButtonGroup
+						selectors={imatBreakoutsSelectors}
+						actions={imatBreakoutsActions}
+						columns={tableColumns}
+						xs="auto"
+					/>
+				</>
+			) : null}
+
 			<Col
 				xs="auto"
 				className="d-flex justify-content-end align-items-center gap-2"

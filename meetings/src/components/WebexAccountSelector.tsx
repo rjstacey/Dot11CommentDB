@@ -5,7 +5,7 @@ import { selectWebexAccounts } from "@/store/webexAccounts";
 function WebexAccountSelector({
 	value,
 	onChange,
-	...otherProps
+	...props
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
@@ -26,7 +26,7 @@ function WebexAccountSelector({
 			clearable
 			labelField="name"
 			valueField="id"
-			{...otherProps}
+			{...props}
 		/>
 	);
 }

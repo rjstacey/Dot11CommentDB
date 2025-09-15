@@ -51,8 +51,8 @@ export * from "./ui";
 
 //type Dictionary<T> = Record<EntityId, T>;
 
-export type GetEntityField<T1 extends {} = Record<string, any>> = (
-	entity: T1,
+export type GetEntityField<T extends {} = Record<string, any>> = (
+	entity: T,
 	dataKey: string
 ) => any;
 
@@ -103,7 +103,7 @@ export type AppTableDataSelectorOptions<S, T1, T2 extends T1 = T1> = {
 	/** Optionally override the ids selector; allows for pre-filtering of table entires */
 	selectIds?: (state: S) => EntityId[];
 	/** Optional function that will derive a field `dataKey` from other fields */
-	getField?: (entity: T1, dataKey: string) => T2[keyof T2];
+	getField?: (entity: T2, dataKey: string) => any;
 };
 
 export function getAppTableDataSelectors<S, T1 extends {}, T2 extends T1>(
@@ -127,7 +127,9 @@ export function getAppTableDataSelectors<S, T1 extends {}, T2 extends T1>(
 			return options.selectEntities(state);
 		return selectState(state).entities;
 	}*/
-	let selectEntities;
+	let selectEntities:
+		| ((state: S) => Dictionary<T1>)
+		| ((state: S) => Dictionary<T2>);
 	if (options && options.selectEntities)
 		selectEntities = options.selectEntities;
 	else selectEntities = (state: S) => selectState(state).entities;

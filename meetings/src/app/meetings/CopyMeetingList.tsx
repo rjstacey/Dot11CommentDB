@@ -73,7 +73,7 @@ function copyMeetingList(
 	navigator.clipboard.write(data);
 }
 
-function CopyMeetingListButton() {
+function CopyMeetingListButton({ disabled }: { disabled?: boolean }) {
 	const { selected } = useAppSelector(selectMeetingsState);
 	const wmEntities = useAppSelector(selectSyncedWebexMeetingEntities);
 	const meetingEntities = useAppSelector(selectSyncedMeetingEntities);
@@ -86,6 +86,7 @@ function CopyMeetingListButton() {
 			onClick={() =>
 				copyMeetingList(selected, meetingEntities, wmEntities)
 			}
+			disabled={disabled || selected.length === 0}
 		/>
 	);
 }

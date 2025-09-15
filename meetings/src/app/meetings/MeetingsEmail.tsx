@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import { EntityId, Dictionary } from "@reduxjs/toolkit";
 import { useParams } from "react-router";
 
-import { Form, Spinner, Tab, Tabs } from "react-bootstrap";
+import { Form, Spinner, Tab, Tabs, DropdownButton } from "react-bootstrap";
 
 import type { RootState } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -188,7 +188,7 @@ function selectEmails(state: RootState, groupIds: EntityId[]) {
 	return emails;
 }
 
-function MeetingEmail({ close }: { close: () => void }) {
+function MeetingsEmail({ close }: { close: () => void }) {
 	const dispatch = useAppDispatch();
 	const { groupName } = useParams();
 	const groups = useAppSelector(selectMeetingsGroups);
@@ -259,4 +259,18 @@ function MeetingEmail({ close }: { close: () => void }) {
 	);
 }
 
-export default MeetingEmail;
+export function EmailMeetingHostKeys({ disabled }: { disabled?: boolean }) {
+	const [showEmail, setShowEmail] = React.useState(false);
+
+	return (
+		<DropdownButton
+			variant="light"
+			title="Email host keys"
+			show={showEmail}
+			onToggle={() => setShowEmail(!showEmail)}
+			disabled={disabled}
+		>
+			<MeetingsEmail close={() => setShowEmail(false)} />
+		</DropdownButton>
+	);
+}

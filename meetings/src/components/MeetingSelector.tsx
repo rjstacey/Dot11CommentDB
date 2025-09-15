@@ -4,11 +4,16 @@ import { DateTime } from "luxon";
 import { Select, SelectItemRendererProps } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
-import { selectMeetingsState, getField, Meeting } from "@/store/meetings";
+import {
+	selectMeetingsState,
+	selectSyncedMeetingEntities,
+	getField,
+	SyncedMeeting,
+} from "@/store/meetings";
 
 import styles from "./MeetingSelector.module.css";
 
-const renderItem = ({ item }: SelectItemRendererProps<Meeting>) => {
+const renderItem = ({ item }: SelectItemRendererProps<SyncedMeeting>) => {
 	let summary = item.summary;
 	if (item.isCancelled) summary = "🚫 " + summary;
 	return (
@@ -33,7 +38,7 @@ function MeetingSelector({
 	readOnly,
 	fromDate,
 	toDate,
-	...otherProps
+	...props
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
@@ -44,8 +49,8 @@ function MeetingSelector({
 	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
-	const { loading, valid, ids, entities } =
-		useAppSelector(selectMeetingsState);
+	const { loading, valid, ids } = useAppSelector(selectMeetingsState);
+	const entities = useAppSelector(selectSyncedMeetingEntities);
 
 	const options = React.useMemo(() => {
 		let options = ids.map((id) => entities[id]!);
@@ -78,7 +83,7 @@ function MeetingSelector({
 			portal={document.querySelector("#root")}
 			valueField="id"
 			labelField="summary"
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
