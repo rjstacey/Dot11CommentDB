@@ -1,12 +1,12 @@
 import * as React from "react";
 import { Select } from "@common";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { loadTimeZones, selectTimeZonesState } from "@/store/timeZones";
+import { useAppSelector } from "@/store/hooks";
+import { selectTimeZonesState } from "@/store/timeZones";
 
 function TimeZoneSelector({
 	value,
 	onChange,
-	...otherProps
+	...props
 }: {
 	value: string;
 	onChange: (value: string) => void;
@@ -14,12 +14,7 @@ function TimeZoneSelector({
 	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
-	const dispatch = useAppDispatch();
-	const { valid, loading, timeZones } = useAppSelector(selectTimeZonesState);
-
-	React.useEffect(() => {
-		if (!valid && !loading) dispatch(loadTimeZones());
-	}, []);
+	const { timeZones } = useAppSelector(selectTimeZonesState);
 
 	const options = React.useMemo(
 		() => timeZones.map((tz: string) => ({ value: tz, label: tz })),
@@ -37,9 +32,8 @@ function TimeZoneSelector({
 			values={values}
 			onChange={handleChange}
 			options={options}
-			loading={loading}
 			clearable
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
