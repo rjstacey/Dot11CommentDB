@@ -1,7 +1,5 @@
 import * as React from "react";
 import { DateTime } from "luxon";
-//import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
-import "react-tabs/style/react-tabs.css";
 import { EntityId, Dictionary } from "@reduxjs/toolkit";
 import { useParams } from "react-router";
 
