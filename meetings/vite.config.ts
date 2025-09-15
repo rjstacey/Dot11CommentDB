@@ -14,6 +14,22 @@ export default defineConfig(({ command, mode }) => {
 		base: env.BASE_URL,
 		build: {
 			outDir: env.BUILD_PATH,
+			rollupOptions: {
+				output: {
+					manualChunks: {
+						core: ["react", "react-dom", "react-router"],
+						boostrap: ["react-bootstrap"],
+						redux: [
+							"@reduxjs/toolkit",
+							"react-redux",
+							"redux-persist",
+						],
+						d3: ["d3"],
+						luxon: ["luxon"],
+						//editor: ["lexical", "@lexical/code", "@lexical/react", "@lexical/rich-text"],
+					},
+				},
+			},
 		},
 		plugins: [
 			react(),
