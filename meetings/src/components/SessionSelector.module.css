@@ -1,13 +1,24 @@
 .item {
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
+	width: 100%;
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
+
+	& > span {
+		width: 100%;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	& > span:last-of-type {
+		font-style: italic;
+		font-size: smaller;
+	}
 }
 
-.item > span:last-of-type {
-	font-style: italic;
-	font-size: smaller;
+.menu {
+	max-width: 300px;
+	max-height: 300px;
+	overflow-y: auto;
 }

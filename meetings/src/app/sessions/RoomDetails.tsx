@@ -8,13 +8,13 @@ import { EditTable as Table, TableColumn } from "@/components/Table";
 import { RawSessionSelector } from "@/components/SessionSelector";
 
 const tableColumns: TableColumn[] = [
-	{ key: "name", label: "Name", gridTemplate: "minmax(200px, auto)" },
+	{ key: "name", label: "Name", gridTemplate: "auto" },
 	{
 		key: "description",
 		label: "Description",
-		gridTemplate: "minmax(200px, auto)",
+		gridTemplate: "auto",
 	},
-	{ key: "action", label: "", gridTemplate: "80px" },
+	{ key: "action", label: "", gridTemplate: "auto" },
 ];
 
 const defaultEntry = { name: "", description: "" };
@@ -30,20 +30,20 @@ function RoomDetails({
 }) {
 	const entities = useAppSelector(selectSessionEntities);
 
+	const importRoomsFromSession = (sessionId: number) => {
+		const session = entities[sessionId];
+		if (session) setRooms(session.rooms);
+	};
+
+	const addRoom = (room: Omit<Room, "id">) => {
+		const updatedRooms = rooms.slice();
+		const id =
+			rooms.reduce((maxId, room) => Math.max(maxId, room.id), 0) + 1;
+		updatedRooms.push({ ...room, id });
+		setRooms(updatedRooms);
+	};
+
 	const columns = React.useMemo(() => {
-		const importRoomsFromSession = (sessionId: number) => {
-			const session = entities[sessionId];
-			if (session) setRooms(session.rooms);
-		};
-
-		const addRoom = (room: Omit<Room, "id">) => {
-			const updatedRooms = rooms.slice();
-			const id =
-				rooms.reduce((maxId, room) => Math.max(maxId, room.id), 0) + 1;
-			updatedRooms.push({ ...room, id });
-			setRooms(updatedRooms);
-		};
-
 		const updateRoom = (id: number, changes: Partial<Room>) => {
 			const updatedRooms = rooms.slice();
 			const i = rooms.findIndex((room) => room.id === id);
@@ -89,6 +89,7 @@ function RoomDetails({
 			if (col.key === "name") {
 				col.renderCell = (entry) => (
 					<FormControl
+						style={{ width: "10rem" }}
 						id={`room-${entry.id}-name`}
 						aria-label={`Room ${entry.id} name`}
 						type="search"
@@ -102,6 +103,7 @@ function RoomDetails({
 			} else if (col.key === "description") {
 				col.renderCell = (entry) => (
 					<FormControl
+						style={{ width: "10rem" }}
 						id={`room-${entry.id}-description`}
 						aria-label={`Room ${entry.id} description`}
 						type="search"
@@ -116,47 +118,21 @@ function RoomDetails({
 				);
 			} else if (col.key === "action") {
 				col.renderCell = (entry) => (
-					<div
-						style={{
-							width: "100%",
-							display: "flex",
-							justifyContent: "space-evenly",
-						}}
-					>
-						<Button
-							variant="light"
-							className="bi-arrow-right-circle"
+					<div className="d-flex gap-2">
+						<button
+							className="bi-arrow-left-circle icon action"
 							style={{ transform: "rotate(90deg)" }}
 							onClick={() => moveRoomUp(entry.id)}
 						/>
-						<Button
-							variant="light"
-							className="bi-arrow-left-circle"
+						<i
+							className="bi-arrow-right-circle icon action"
 							style={{ transform: "rotate(90deg)" }}
 							onClick={() => moveRoomDown(entry.id)}
 						/>
-						<Button
-							variant="light"
-							className="bi-trash"
+						<i
+							className="bi-trash icon action"
 							onClick={() => removeRoom(entry.id)}
 						/>
-					</div>
-				);
-				col.label = (
-					<div
-						style={{
-							width: "100%",
-							display: "flex",
-							justifyContent: "space-evenly",
-							fontWeight: "normal",
-						}}
-					>
-						<Button
-							variant="light"
-							className="bi-plus-lg"
-							onClick={() => addRoom(defaultEntry)}
-						/>
-						<RawSessionSelector onChange={importRoomsFromSession} />
 					</div>
 				);
 			}
@@ -166,7 +142,22 @@ function RoomDetails({
 		return columns;
 	}, [setRooms, rooms, entities, readOnly]);
 
-	return <Table columns={columns} values={rooms} />;
+	return (
+		<>
+			<div className="d-flex justify-content-end align-items-center gap-2 p-2">
+				<Button
+					variant="light"
+					className="bi-plus-lg"
+					onClick={() => addRoom(defaultEntry)}
+				>
+					{" Add Room"}
+				</Button>
+				<RawSessionSelector onChange={importRoomsFromSession} />
+			</div>
+
+			<Table columns={columns} values={rooms} />
+		</>
+	);
 }
 
 export default RoomDetails;

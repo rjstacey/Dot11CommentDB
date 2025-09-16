@@ -40,6 +40,7 @@ import {
 	SortDirectionValue,
 } from "./sorts";
 import { createUiSubslice, getUiSelectors, UiState } from "./ui";
+import { O } from "vitest/dist/chunks/reporters.d.BFLkQcL6.js";
 
 //export * from './selected';
 //export * from './expanded';
@@ -106,45 +107,77 @@ export type AppTableDataSelectorOptions<S, T1, T2 extends T1 = T1> = {
 	getField?: (entity: T2, dataKey: string) => any;
 };
 
+interface O1<S, T1 extends {}> {
+	selectIds?: (state: S) => EntityId[];
+	getField?: GetEntityField<T1>;
+}
+interface O2<S, T1 extends {}, T2 extends T1>
+	extends Omit<O1<S, T1>, "getField"> {
+	selectEntities: (state: S) => Dictionary<T2>;
+	getField?: GetEntityField<T2>;
+}
+
+interface R1<S, T1 extends {}>
+	extends ReturnType<typeof getSelectedSelectors<S>>,
+		ReturnType<typeof getExpandedSelectors<S>>,
+		ReturnType<typeof getFiltersSelectors<S>>,
+		ReturnType<typeof getSortsSelectors<S>>,
+		ReturnType<typeof getUiSelectors<S>> {
+	selectState: (state: S) => AppTableDataState<T1>;
+	selectIds: (state: S) => EntityId[];
+	selectSortedIds: (state: S) => EntityId[];
+	selectFilteredIds: (state: S) => EntityId[];
+	selectSortedFilteredIds: (state: S) => EntityId[];
+	selectEntities: (state: S) => Dictionary<T1>;
+	getField: GetEntityField<T1>;
+}
+
+interface R2<S, T1 extends {}, T2 extends T1>
+	extends Omit<R1<S, T1>, "selectEntities" | "getField"> {
+	selectEntities: (state: S) => Dictionary<T2>;
+	getField: GetEntityField<T2>;
+}
+
 export function getAppTableDataSelectors<S, T1 extends {}, T2 extends T1>(
+	selectState: (state: S) => AppTableDataState<T1>,
+	options?: O1<S, T1>
+): R1<S, T1>;
+export function getAppTableDataSelectors<S, T1 extends {}, T2 extends T1>(
+	selectState: (state: S) => AppTableDataState<T1>,
+	options?: O2<S, T1, T2>
+): R2<S, T1, T2>;
+export function getAppTableDataSelectors<
+	S,
+	T1 extends {},
+	T2 extends T1,
+	O extends O1<S, T1> | O2<S, T1, T2>
+>(
 	/** Selector for the slice state (required) */
 	selectState: (state: S) => AppTableDataState<T1>,
-	options?: AppTableDataSelectorOptions<S, T1, T2>
-) {
+	options?: O
+): O extends O2<S, T1, T2> ? R2<S, T1, T2> : R1<S, T1> {
 	const selectFilters = (state: S) => selectState(state).filters;
 	const selectSorts = (state: S) => selectState(state).sorts;
 
 	/** If `selectIds` is not provided, then the default is to return slice `ids` */
 	let selectIds = (state: S) => selectState(state).ids;
-	if (options && typeof options.selectIds !== "undefined")
+	if (typeof options?.selectIds !== "undefined")
 		selectIds = options.selectIds;
 
 	/** If `selectEntities` is not provided, then default is to return slice `entities` */
-	/*function selectEntities(state: S): Dictionary<T1>;
-	function selectEntities(state: S): Dictionary<T2>;
-	function selectEntities(state: S) {
-		if (options && options.selectEntities)
-			return options.selectEntities(state);
-		return selectState(state).entities;
-	}*/
-	let selectEntities:
-		| ((state: S) => Dictionary<T1>)
-		| ((state: S) => Dictionary<T2>);
-	if (options && options.selectEntities)
+	let selectEntities: any;
+	let getField: any;
+	if (options && "selectEntities" in options) {
 		selectEntities = options.selectEntities;
-	else selectEntities = (state: S) => selectState(state).entities;
-
-	//function getField(entity: T1, dataKey: keyof T1): any;
-	//function getField(entity: T1, dataKey: keyof T2): any;
-	/*function getField(entity: T1, dataKey: string) {
-		if (options && options.getField)
-			return options.getField(entity, dataKey);
-		return entity[dataKey as keyof T1];
-	}*/
-	let getField;
-	if (options && options.getField) getField = options.getField;
-	else
-		getField = (entity: T1, dataKey: string) => entity[dataKey as keyof T1];
+		getField =
+			options.getField ||
+			((entity: T2, dataKey: string) => entity[dataKey as keyof T2]);
+	} else {
+		selectEntities = (state: S) => selectState(state).entities;
+		getField =
+			options?.getField ||
+			((entity: T1, dataKey: string) => entity[dataKey as keyof T1]);
+	}
 
 	/** Select array of filtered ids */
 	const selectFilteredIds: (state: S) => EntityId[] = createSelector(

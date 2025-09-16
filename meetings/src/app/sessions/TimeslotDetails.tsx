@@ -1,7 +1,7 @@
 import * as React from "react";
 import { EntityId } from "@reduxjs/toolkit";
 import { Button, FormControl } from "react-bootstrap";
-
+import { InputTime } from "@common";
 import { EditTable as Table, TableColumn } from "@/components/Table";
 import { RawSessionSelector } from "@/components/SessionSelector";
 
@@ -9,10 +9,10 @@ import { useAppSelector } from "@/store/hooks";
 import { selectSessionEntities, Timeslot } from "@/store/sessions";
 
 const tableColumns: TableColumn[] = [
-	{ key: "name", label: "Name", gridTemplate: "minmax(200px, auto)" },
-	{ key: "startTime", label: "Start", gridTemplate: "minmax(200px, auto)" },
-	{ key: "endTime", label: "End", gridTemplate: "minmax(200px, auto)" },
-	{ key: "action", label: "", gridTemplate: "60px" },
+	{ key: "name", label: "Name", gridTemplate: "auto" },
+	{ key: "startTime", label: "Start", gridTemplate: "auto" },
+	{ key: "endTime", label: "End", gridTemplate: "auto" },
+	{ key: "action", label: "", gridTemplate: "auto" },
 ];
 
 const defaultEntry: Omit<Timeslot, "id"> = {
@@ -67,6 +67,7 @@ function TimeslotDetails({
 			if (col.key === "name") {
 				col.renderCell = (entry) => (
 					<FormControl
+						style={{ width: "10rem" }}
 						type="search"
 						value={entry.name}
 						onChange={(e) =>
@@ -77,12 +78,12 @@ function TimeslotDetails({
 				);
 			} else if (col.key === "startTime") {
 				col.renderCell = (entry) => (
-					<FormControl
-						type="time"
+					<InputTime
+						style={{ width: "6rem" }}
 						value={entry.startTime}
-						onChange={(e) =>
+						onChange={(startTime) =>
 							updateTimeslot(entry.id, {
-								startTime: e.target.value,
+								startTime,
 							})
 						}
 						disabled={readOnly}
@@ -90,12 +91,12 @@ function TimeslotDetails({
 				);
 			} else if (col.key === "endTime") {
 				col.renderCell = (entry) => (
-					<FormControl
-						type="time"
+					<InputTime
+						style={{ width: "6rem" }}
 						value={entry.endTime}
-						onChange={(e) =>
+						onChange={(endTime) =>
 							updateTimeslot(entry.id, {
-								endTime: e.target.value,
+								endTime,
 							})
 						}
 						disabled={readOnly}
@@ -112,10 +113,10 @@ function TimeslotDetails({
 				col.label = (
 					<div
 						style={{
-							width: "100%",
 							display: "flex",
 							justifyContent: "space-evenly",
-							fontWeight: "normal",
+							alignItems: "center",
+							gap: "0.5rem",
 						}}
 					>
 						<Button

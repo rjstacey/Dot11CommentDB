@@ -2,8 +2,6 @@ import * as React from "react";
 import { DateTime } from "luxon";
 import { EntityId } from "@reduxjs/toolkit";
 
-import { Button } from "react-bootstrap";
-
 import { useAppSelector } from "@/store/hooks";
 import {
 	Session,
@@ -138,6 +136,7 @@ const gridCellBackground: { [K: string]: string } = {
 	Normal: "#cccccc",
 	Extra: "#eeeeee",
 	Zero: "#ffffff",
+	"Other 2/1": "#ddddff",
 };
 
 const CreditButton: React.FC<{
@@ -147,7 +146,7 @@ const CreditButton: React.FC<{
 	disabled?: boolean;
 }> = function ({ credit, style, ...otherProps }) {
 	return (
-		<Button
+		<button
 			style={{
 				...style,
 				width: "100%",
@@ -156,7 +155,7 @@ const CreditButton: React.FC<{
 			{...otherProps}
 		>
 			{credit}
-		</Button>
+		</button>
 	);
 };
 
@@ -229,13 +228,7 @@ function SessionCredit({
 
 	return (
 		<>
-			<div
-				style={{
-					display: "flex",
-					justifyContent: "space-between",
-					paddingBottom: 10,
-				}}
-			>
+			<div className="d-flex justify-content-between align-items-center p-2">
 				<CreditTotals defaultCredits={defaultCredits} />
 				<RawSessionSelector
 					onChange={importDefaultCreditsFromSession}

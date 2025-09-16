@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button } from "react-bootstrap";
+import { Button, Dropdown } from "react-bootstrap";
 import { Select, displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -62,11 +62,9 @@ function SessionSelector({
 	);
 }
 
-export function RawSessionSelector({
-	style,
+export function RawSessionSelector2({
 	onChange,
 }: {
-	style?: React.CSSProperties;
 	onChange: (value: number) => void;
 }) {
 	const { loading, valid, ids, entities } =
@@ -79,7 +77,7 @@ export function RawSessionSelector({
 		onChange(values.length > 0 ? values[0].id : 0);
 	return (
 		<Select
-			style={{ ...style, border: "none", padding: "none" }}
+			style={{ border: "none", padding: 0, width: "unset" }}
 			options={options}
 			values={[]}
 			loading={loading && !valid}
@@ -97,6 +95,33 @@ export function RawSessionSelector({
 				<Button variant="light" className="bi-cloud-upload" />
 			)}
 		/>
+	);
+}
+
+export function RawSessionSelector({
+	onChange,
+}: {
+	onChange: (value: number) => void;
+}) {
+	const { ids, entities } = useAppSelector(selectSessionsState);
+	const options = React.useMemo(
+		() => ids.map((id) => entities[id]!),
+		[entities, ids]
+	);
+	return (
+		<Dropdown>
+			<Dropdown.Toggle variant="light">Import from...</Dropdown.Toggle>
+			<Dropdown.Menu className={styles.menu}>
+				{options.map((item) => (
+					<Dropdown.Item
+						key={item.id}
+						onClick={() => onChange(item.id)}
+					>
+						{renderSession({ item })}
+					</Dropdown.Item>
+				))}
+			</Dropdown.Menu>
+		</Dropdown>
 	);
 }
 
