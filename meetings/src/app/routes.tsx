@@ -15,6 +15,7 @@ import { rootLoader } from "./rootLoader";
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
 import RootMain from "./root";
+import Fallback from "./fallback";
 import { NavigateToGroupAccounts } from "./NavigateToGroupAccounts";
 import accountsRoute from "./accounts/route";
 import sessionsRoute from "./sessions/route";
@@ -51,7 +52,7 @@ export const routes: RouteObject[] = [
 		path: "/",
 		element: <AppLayout />,
 		errorElement: <ErrorPage />,
-		hydrateFallbackElement: <span>Fallback</span>,
+		hydrateFallbackElement: <Fallback />,
 		loader: rootLoader,
 		children: [
 			{
