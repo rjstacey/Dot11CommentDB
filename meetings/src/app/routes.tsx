@@ -12,11 +12,11 @@ import { loadMembers } from "@/store/members";
 import { loadOfficers } from "@/store/officers";
 
 import { rootLoader } from "./rootLoader";
+import { oauthRedirectLoader } from "./oauthRedirectLoader";
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
 import RootMain from "./root";
 import Fallback from "./fallback";
-import { NavigateToGroupAccounts } from "./NavigateToGroupAccounts";
 import accountsRoute from "./accounts/route";
 import sessionsRoute from "./sessions/route";
 import reportsRoute from "./reports/route";
@@ -60,9 +60,9 @@ export const routes: RouteObject[] = [
 				element: <RootMain />,
 			},
 			{
-				// Oauth2 completion will dump us here; navigate to the current group account
+				// Oauth2 completion will dump us here; redirect to the current group account
 				path: "accounts",
-				element: <NavigateToGroupAccounts />,
+				loader: oauthRedirectLoader,
 			},
 			{
 				path: ":groupName",
