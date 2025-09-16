@@ -242,7 +242,7 @@ function SessionBasics({
 				<Form.Label column>Time zone:</Form.Label>
 				<Col xs="auto">
 					<TimeZoneSelector
-						style={{ width: 200 }}
+						style={{ width: 250 }}
 						value={
 							isMultiple(session.timezone) ? "" : session.timezone
 						}

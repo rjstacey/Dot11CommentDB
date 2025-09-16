@@ -1,7 +1,6 @@
 import * as React from "react";
 import { EntityId } from "@reduxjs/toolkit";
 import { Button, FormControl } from "react-bootstrap";
-import { InputTime } from "@common";
 import { EditTable as Table, TableColumn } from "@/components/Table";
 import { RawSessionSelector } from "@/components/SessionSelector";
 
@@ -77,12 +76,13 @@ function TimeslotDetails({
 				);
 			} else if (col.key === "startTime") {
 				col.renderCell = (entry) => (
-					<InputTime
-						style={{ width: "6rem" }}
+					<FormControl
+						//style={{ width: "6rem" }}
+						type="time"
 						value={entry.startTime}
-						onChange={(startTime) =>
+						onChange={(e) =>
 							updateTimeslot(entry.id, {
-								startTime,
+								startTime: e.target.value,
 							})
 						}
 						disabled={readOnly}
@@ -90,12 +90,13 @@ function TimeslotDetails({
 				);
 			} else if (col.key === "endTime") {
 				col.renderCell = (entry) => (
-					<InputTime
-						style={{ width: "6rem" }}
+					<FormControl
+						//style={{ width: "6rem" }}
+						type="time"
 						value={entry.endTime}
-						onChange={(endTime) =>
+						onChange={(e) =>
 							updateTimeslot(entry.id, {
-								endTime,
+								endTime: e.target.value,
 							})
 						}
 						disabled={readOnly}
@@ -103,9 +104,8 @@ function TimeslotDetails({
 				);
 			} else if (col.key === "action") {
 				col.renderCell = (entry) => (
-					<Button
-						variant="light"
-						className="bi-trash"
+					<button
+						className="bi-trash icon action"
 						onClick={() => removeTimeslot(entry.id)}
 					/>
 				);
