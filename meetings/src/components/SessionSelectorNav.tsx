@@ -1,6 +1,5 @@
 import { useParams, useLocation, useNavigate } from "react-router";
-
-import { FormCheck } from "react-bootstrap";
+import { FormCheck, FormLabel, Row, Col } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectSessionIds, selectSessionEntities } from "@/store/sessions";
@@ -41,31 +40,34 @@ function LabeledCurrentSessionSelector({
 	}
 
 	return (
-		<div style={{ display: "flex", alignItems: "center" }}>
-			<label style={{ marginRight: 10, fontWeight: "bold" }}>
-				Session:
-			</label>
-			<SessionSelector value={sessionId} onChange={setSessionId} />
-			{allowShowDateRange && (
-				<div
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						justifyContent: "center",
-						alignItems: "center",
-						marginLeft: 10,
-					}}
-				>
-					<FormCheck
-						id="show-date-range"
-						checked={showDateRange}
-						onChange={toggleShowDateRange}
-						label="Show date range"
-						reverse
+		<>
+			<Row
+				className="d-flex align-items-center flex-nowrap"
+				style={{ maxWidth: 500 }}
+			>
+				<Col>
+					<SessionSelector
+						value={sessionId}
+						onChange={setSessionId}
 					/>
-				</div>
-			)}
-		</div>
+				</Col>
+				{allowShowDateRange && (
+					<Col
+						xs="auto"
+						className="d-flex flex-column align-items-center"
+					>
+						<FormLabel htmlFor="show-date-range">
+							Show date range
+						</FormLabel>
+						<FormCheck
+							id="show-date-range"
+							checked={showDateRange}
+							onChange={toggleShowDateRange}
+						/>
+					</Col>
+				)}
+			</Row>
+		</>
 	);
 }
 

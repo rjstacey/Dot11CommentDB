@@ -19,15 +19,13 @@ const renderItem = ({ item: session }: { item: ImatMeeting }) => (
 function ImatMeetingSelector({
 	value,
 	onChange,
-	readOnly,
-	...otherProps
+	...props
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
-	readOnly?: boolean;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
+	"readOnly" | "disabled" | "id" | "className" | "style"
 >) {
 	const { loading, valid, ids, entities } = useAppSelector(
 		selectImatMeetingsState
@@ -47,14 +45,15 @@ function ImatMeetingSelector({
 			onChange={handleChange}
 			options={options}
 			loading={loading && !valid}
+			placeholder="Select IMAT meeting..."
 			clearable
+			searchable={false}
 			itemRenderer={renderItem}
 			selectItemRenderer={renderItem}
-			portal={document.querySelector("#root")}
+			//portal={document.querySelector("#root")}
 			valueField="id"
 			labelField="name"
-			readOnly={readOnly}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }

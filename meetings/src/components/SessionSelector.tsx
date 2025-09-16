@@ -28,14 +28,15 @@ const renderSession = ({ item: session }: { item: Session }) => (
 function SessionSelector({
 	value,
 	onChange,
-	readOnly,
 	style,
+	...props
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
-	readOnly?: boolean;
-	style?: React.CSSProperties;
-}) {
+} & Pick<
+	React.ComponentProps<typeof Select>,
+	"readOnly" | "disabled" | "id" | "style"
+>) {
 	const { loading, valid } = useAppSelector(selectSessionsState);
 	const options = useAppSelector(selectSessions);
 
@@ -45,19 +46,20 @@ function SessionSelector({
 
 	return (
 		<Select
-			style={{ ...style, minWidth: 300 }}
+			style={{ ...style, minWidth: 300, maxWidth: 400 }}
 			values={values}
 			onChange={handleChange}
 			options={options}
 			loading={loading && !valid}
+			placeholder="Select session..."
 			searchable={false}
 			clearable
 			itemRenderer={renderSession}
 			selectItemRenderer={renderSession}
-			readOnly={readOnly}
-			portal={document.querySelector("#root")}
+			//portal={document.querySelector("#root")}
 			valueField="id"
 			labelField="name"
+			{...props}
 		/>
 	);
 }

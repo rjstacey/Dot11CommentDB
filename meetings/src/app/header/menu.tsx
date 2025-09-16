@@ -1,5 +1,5 @@
 import * as React from "react";
-import { NavLink, useParams, useLocation } from "react-router";
+import { NavLink, useParams, useLocation, useMatch } from "react-router";
 import { Navbar, Nav } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -78,9 +78,31 @@ function useMenuLinks() {
 			});
 		}
 		return menu;
-	}, [access, groupName, session]);
+	}, [access, group, session, imatBreakoutMeetingId]);
 
 	return menu;
+}
+
+function AppNavLink({
+	to,
+	eventKey,
+	children,
+}: {
+	to: string;
+	eventKey: string;
+	children: React.ReactNode;
+}) {
+	const active = useMatch(to);
+	return (
+		<Nav.Link
+			as={NavLink}
+			eventKey={eventKey} // callopseOnSelect wont fire unless eventKey is provided
+			to={to}
+			active={Boolean(active)}
+		>
+			{children}
+		</Nav.Link>
+	);
 }
 
 const appName = "Meetings";
@@ -93,14 +115,13 @@ export function Menu() {
 
 	const menu = useMenuLinks();
 	const menuItems = menu.map((item) => (
-		<Nav.Link
-			as={NavLink}
-			key={item.link}
-			eventKey={item.link} // callopseOnSelect wont fire unless eventKey is provided
+		<AppNavLink
 			to={item.link + search}
+			eventKey={item.link}
+			key={item.link}
 		>
 			{item.label}
-		</Nav.Link>
+		</AppNavLink>
 	));
 
 	return (
@@ -116,7 +137,7 @@ export function Menu() {
 			</Navbar.Brand>
 			<Navbar.Toggle aria-controls="basic-navbar-nav" />
 			<Navbar.Collapse id="basic-navbar-nav">
-				<Nav variant="underline" className="me-auto">
+				<Nav className="navbar-nav nav-underline me-auto">
 					{menuItems}
 				</Nav>
 			</Navbar.Collapse>
