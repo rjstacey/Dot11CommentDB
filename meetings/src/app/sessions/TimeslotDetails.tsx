@@ -32,21 +32,20 @@ function TimeslotDetails({
 }) {
 	const entities = useAppSelector(selectSessionEntities);
 
+	const importTimeslotsFromSession = (sessionId: EntityId) => {
+		const session = entities[sessionId];
+		if (session) setTimeslots(session.timeslots);
+	};
+
+	const addTimeslot = (slot: Omit<Timeslot, "id">) => {
+		const updateTimeslots = timeslots.slice();
+		const id =
+			timeslots.reduce((maxId, slot) => Math.max(maxId, slot.id), 0) + 1;
+		updateTimeslots.push({ ...slot, id });
+		setTimeslots(updateTimeslots);
+	};
+
 	const columns = React.useMemo(() => {
-		const importTimeslotsFromSession = (sessionId: EntityId) => {
-			const session = entities[sessionId];
-			if (session) setTimeslots(session.timeslots);
-		};
-
-		const addTimeslot = (slot: Omit<Timeslot, "id">) => {
-			const updateTimeslots = timeslots.slice();
-			const id =
-				timeslots.reduce((maxId, slot) => Math.max(maxId, slot.id), 0) +
-				1;
-			updateTimeslots.push({ ...slot, id });
-			setTimeslots(updateTimeslots);
-		};
-
 		const updateTimeslot = (id: number, changes: Partial<Timeslot>) => {
 			const updateTimeslots = timeslots.slice();
 			const i = timeslots.findIndex((slot) => slot.id === id);
@@ -110,25 +109,6 @@ function TimeslotDetails({
 						onClick={() => removeTimeslot(entry.id)}
 					/>
 				);
-				col.label = (
-					<div
-						style={{
-							display: "flex",
-							justifyContent: "space-evenly",
-							alignItems: "center",
-							gap: "0.5rem",
-						}}
-					>
-						<Button
-							variant="light"
-							className="bi-plus-lg"
-							onClick={() => addTimeslot(defaultEntry)}
-						/>
-						<RawSessionSelector
-							onChange={importTimeslotsFromSession}
-						/>
-					</div>
-				);
 			}
 			return col;
 		});
@@ -136,7 +116,21 @@ function TimeslotDetails({
 		return columns;
 	}, [setTimeslots, timeslots, entities, readOnly]);
 
-	return <Table columns={columns} values={timeslots} />;
+	return (
+		<>
+			<div className="d-flex justify-content-end align-items-center gap-2 p-2">
+				<Button
+					variant="light"
+					className="bi-plus-lg"
+					onClick={() => addTimeslot(defaultEntry)}
+				>
+					{" Add Timeslot"}
+				</Button>
+				<RawSessionSelector onChange={importTimeslotsFromSession} />
+			</div>
+			<Table columns={columns} values={timeslots} />
+		</>
+	);
 }
 
 export default TimeslotDetails;

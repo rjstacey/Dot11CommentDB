@@ -124,12 +124,12 @@ function RoomDetails({
 							style={{ transform: "rotate(90deg)" }}
 							onClick={() => moveRoomUp(entry.id)}
 						/>
-						<i
+						<button
 							className="bi-arrow-right-circle icon action"
 							style={{ transform: "rotate(90deg)" }}
 							onClick={() => moveRoomDown(entry.id)}
 						/>
-						<i
+						<button
 							className="bi-trash icon action"
 							onClick={() => removeRoom(entry.id)}
 						/>
