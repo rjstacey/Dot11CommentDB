@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Button, FormControl, FormCheck } from "react-bootstrap";
-
+import { Container, Button, FormControl, FormCheck } from "react-bootstrap";
+import { ConfirmModal } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	updateCalendarAccount,
@@ -106,24 +106,19 @@ function Defaults({ account }: CellProps) {
 
 function Actions({ account }: CellProps) {
 	const dispatch = useAppDispatch();
-	const handleDelete = (id: number) => dispatch(deleteCalendarAccount(id));
+	async function handleDelete(id: number) {
+		if (account.name) {
+			const ok = await ConfirmModal.show(
+				`Are you sure you want to delete the account "${account.name}"?`
+			);
+			if (!ok) return;
+		}
+		dispatch(deleteCalendarAccount(id));
+	}
 	return (
-		<Button
-			variant="outline-secondary"
-			className="bi-trash"
+		<button
+			className="bi-trash icon action"
 			onClick={() => handleDelete(account.id)}
-		/>
-	);
-}
-
-function ActionsHeader() {
-	const dispatch = useAppDispatch();
-	const handleAdd = () => dispatch(addCalendarAccount(defaultAccount));
-	return (
-		<Button
-			variant="outline-secondary"
-			className="bi-plus-lg"
-			onClick={() => handleAdd()}
 		/>
 	);
 }
@@ -171,7 +166,7 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 		renderCell: (props: CellProps) => <Defaults {...props} />,
 	},
 	actions: {
-		label: <ActionsHeader />,
+		label: "",
 		renderCell: (props: CellProps) => <Actions {...props} />,
 	},
 };
@@ -180,18 +175,18 @@ function CalendarAccounts() {
 	const dispatch = useAppDispatch();
 	const { loading } = useAppSelector(selectCalendarAccountsState);
 	const accounts = useAppSelector(selectCalendarAccounts);
+	const handleAdd = () => dispatch(addCalendarAccount(defaultAccount));
 
-	const [readOnly, setReadOnly] = React.useState(true);
 	const refresh = () => dispatch(refreshCalendarAccounts());
 
 	const colProps = React.useMemo(
-		() => accounts.map((account) => ({ account, readOnly })),
-		[accounts, readOnly]
+		() => accounts.map((account) => ({ account, readOnly: false })),
+		[accounts]
 	);
 
 	const columns = React.useMemo(() => {
-		let keys = Object.keys(tableColumns);
-		if (readOnly) keys = keys.filter((key) => key !== "actions");
+		const keys = Object.keys(tableColumns);
+		//if (readOnly) keys = keys.filter((key) => key !== "actions");
 
 		const columns = keys.map((key) => {
 			const col: TableColumn = {
@@ -203,20 +198,20 @@ function CalendarAccounts() {
 		});
 
 		return columns;
-	}, [readOnly]);
+	}, []);
 
 	return (
-		<>
+		<Container fluid className="p-3">
 			<div className="top-row">
 				<h3>Google calendar accounts</h3>
 				<div className="d-flex gap-2">
 					<Button
-						variant="outline-primary"
-						className="bi-pencil"
-						title="Edit"
-						active={!readOnly}
-						onClick={() => setReadOnly(!readOnly)}
-					/>
+						variant="light"
+						className="bi-plus-lg"
+						onClick={() => handleAdd()}
+					>
+						{" Add account"}
+					</Button>
 					<Button
 						variant="outline-primary"
 						className="bi-arrow-repeat"
@@ -227,7 +222,7 @@ function CalendarAccounts() {
 				</div>
 			</div>
 			<Table values={colProps} columns={columns} />
-		</>
+		</Container>
 	);
 }
 
