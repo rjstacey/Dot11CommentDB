@@ -22,7 +22,7 @@ function useMenuLinks() {
 	const session = useAppSelector(selectCurrentSession);
 	const imatBreakoutMeetingId = useAppSelector(selectBreakoutMeetingId);
 
-	const menu: MenuItem[] = React.useMemo(() => {
+	return React.useMemo(() => {
 		const menu: MenuItem[] = [];
 
 		// No menu items if there is no group
@@ -79,8 +79,6 @@ function useMenuLinks() {
 		}
 		return menu;
 	}, [access, group, session, imatBreakoutMeetingId]);
-
-	return menu;
 }
 
 function AppNavLink({
@@ -89,14 +87,14 @@ function AppNavLink({
 	children,
 }: {
 	to: string;
-	eventKey: string;
-	children: React.ReactNode;
+	eventKey?: string;
+	children?: React.ReactNode;
 }) {
 	const active = useMatch(to);
 	return (
 		<Nav.Link
 			as={NavLink}
-			eventKey={eventKey} // callopseOnSelect wont fire unless eventKey is provided
+			eventKey={eventKey} // collapseOnSelect wont fire unless eventKey is provided
 			to={to}
 			active={Boolean(active)}
 		>
@@ -104,6 +102,33 @@ function AppNavLink({
 		</Nav.Link>
 	);
 }
+
+function AppNavLinkActive({
+	to,
+	children,
+}: {
+	to: string;
+	children?: React.ReactNode;
+}) {
+	const active = useMatch(to);
+	if (!active) return null;
+	return (
+		<Nav.Link as={NavLink} to={to}>
+			{children}
+		</Nav.Link>
+	);
+}
+
+const style = `
+	@media (max-width: 992px) {
+		.nabar-expand-lg .navbar-active-item {
+			display: none;
+		}
+	}
+	.navbar-active-item {
+		display: block;
+	}
+`;
 
 const appName = "Meetings";
 export function Menu() {
@@ -116,32 +141,41 @@ export function Menu() {
 	const menu = useMenuLinks();
 	const menuItems = menu.map((item) => (
 		<AppNavLink
+			key={item.link}
 			to={item.link + search}
 			eventKey={item.link}
-			key={item.link}
 		>
 			{item.label}
 		</AppNavLink>
 	));
 
+	const activeMenuItem = menu.map((item) => (
+		<AppNavLinkActive key={item.link} to={item.link + search}>
+			{item.label}
+		</AppNavLinkActive>
+	));
+
 	return (
-		<Navbar
-			collapseOnSelect
-			expand="lg"
-			style={{
-				width: 275,
-			}}
-		>
-			<Navbar.Brand as={NavLink} to="/">
-				{title}
-			</Navbar.Brand>
-			<Navbar.Toggle aria-controls="basic-navbar-nav" />
-			<Navbar.Collapse id="basic-navbar-nav">
-				<Nav className="navbar-nav nav-underline me-auto">
-					{menuItems}
-				</Nav>
-			</Navbar.Collapse>
-		</Navbar>
+		<>
+			<style>{style}</style>
+			<Navbar
+				collapseOnSelect
+				expand="lg"
+				style={{
+					width: 275,
+				}}
+			>
+				<Navbar.Brand as={NavLink} to="/">
+					{title}
+				</Navbar.Brand>
+				<Navbar.Toggle aria-controls="main-nav" />
+				<Navbar.Collapse id="main-nav">
+					<Nav variant="underline">{menuItems}</Nav>
+				</Navbar.Collapse>
+
+				<div className="navbar-active-item w-100">{activeMenuItem}</div>
+			</Navbar>
+		</>
 	);
 }
 
