@@ -352,7 +352,6 @@ export function MeetingEntryForm({
 	const groupEntities = useAppSelector(selectGroupEntities);
 
 	const isSession = isSessionMeeting(session);
-	console.log(session);
 
 	let errMsg = "";
 	if (!entry.organizationId) errMsg = "Group not set";
@@ -416,11 +415,7 @@ export function MeetingEntryForm({
 	}
 
 	return (
-		<Form
-			style={{ flex: 1, overflow: "auto" }}
-			onSubmit={submitForm}
-			className="p-3"
-		>
+		<Form onSubmit={submitForm} className="p-3">
 			<Form.Group as={Row} className="mb-3" controlId="meeting-cancel">
 				<Col className="d-flex justify-content-end align-items-center">
 					<Button
@@ -635,13 +630,13 @@ export function MeetingEntryForm({
 								? MULTIPLE_STR
 								: undefined
 						}
-						//portal={document.querySelector("#root")}
-						//dropdownPosition="top"
 						readOnly={readOnly}
 					/>
 				</Col>
 			</Form.Group>
-			<SubmitCancelRow submitLabel={submitLabel} cancel={cancel} />
+			{submit && (
+				<SubmitCancelRow submitLabel={submitLabel} cancel={cancel} />
+			)}
 		</Form>
 	);
 }
