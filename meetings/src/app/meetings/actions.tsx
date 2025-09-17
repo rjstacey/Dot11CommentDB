@@ -36,8 +36,8 @@ function MeetingsActions() {
 	}
 
 	return (
-		<Row className="w-100 m-3">
-			<Col>
+		<Row className="w-100 justify-content-between m-3">
+			<Col xs="auto">
 				<SessionSelectorNav allowShowDateRange />
 			</Col>
 
