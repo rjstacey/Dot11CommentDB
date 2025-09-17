@@ -28,6 +28,7 @@
 }
 
 .show-slots :global .placeholder {
+	all: unset;
 	color: #ccc;
 	margin-left: 5px;
 }
