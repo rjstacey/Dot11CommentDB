@@ -19,7 +19,7 @@ export default defineConfig(({ command, mode }) => {
 				output: {
 					manualChunks: {
 						react: ["react", "react-dom"],
-						boostrap: ["bootstrap", "react-bootstrap"],
+						boostrap: ["react-bootstrap"],
 						redux: [
 							"@reduxjs/toolkit",
 							"react-redux",
@@ -28,6 +28,8 @@ export default defineConfig(({ command, mode }) => {
 						d3: ["d3"],
 						luxon: ["luxon"],
 						//editor: ["lexical", "@lexical/code", "@lexical/react", "@lexical/rich-text"],
+						common: ["@common"],
+						store: ["./src/store"],
 					},
 				},
 			},

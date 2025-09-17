@@ -17,7 +17,8 @@ export default defineConfig(({ command, mode }) => {
 			rollupOptions: {
 				output: {
 					manualChunks: {
-						core: ["react", "react-dom", "react-router"],
+						react: ["react", "react-dom"],
+						router: ["react-router"],
 						boostrap: ["react-bootstrap"],
 						redux: [
 							"@reduxjs/toolkit",
@@ -27,6 +28,8 @@ export default defineConfig(({ command, mode }) => {
 						d3: ["d3"],
 						luxon: ["luxon"],
 						//editor: ["lexical", "@lexical/code", "@lexical/react", "@lexical/rich-text"],
+						common: ["@common"],
+						store: ["./src/store"],
 					},
 				},
 			},
