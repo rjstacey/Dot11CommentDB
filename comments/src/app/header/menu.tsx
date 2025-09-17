@@ -1,5 +1,5 @@
 import * as React from "react";
-import { NavLink, useParams } from "react-router";
+import { NavLink, useParams, useMatch } from "react-router";
 import { Navbar, Nav } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -69,6 +69,55 @@ function useMenuLinks() {
 	}, [group, ballotId]);
 }
 
+function AppNavLink({
+	to,
+	eventKey,
+	children,
+}: {
+	to: string;
+	eventKey?: string;
+	children?: React.ReactNode;
+}) {
+	const active = useMatch(to);
+	return (
+		<Nav.Link
+			as={NavLink}
+			eventKey={eventKey} // collapseOnSelect wont fire unless eventKey is provided
+			to={to}
+			active={Boolean(active)}
+		>
+			{children}
+		</Nav.Link>
+	);
+}
+
+function AppNavLinkActive({
+	to,
+	children,
+}: {
+	to: string;
+	children?: React.ReactNode;
+}) {
+	const active = useMatch(to);
+	if (!active) return null;
+	return (
+		<Nav.Link as={NavLink} to={to}>
+			{children}
+		</Nav.Link>
+	);
+}
+
+const style = `
+	@media (max-width: 992px) {
+		.nabar-expand-lg .navbar-active-item {
+			display: none;
+		}
+	}
+	.navbar-active-item {
+		display: block;
+	}
+`;
+
 const appName = "Comments";
 export function Menu() {
 	const { groupName } = useParams();
@@ -78,30 +127,39 @@ export function Menu() {
 
 	const menu = useMenuLinks();
 	const menuItems = menu.map((item) => (
-		<Nav.Link as={NavLink} key={item.link} to={item.link}>
+		<AppNavLink key={item.link} to={item.link} eventKey={item.link}>
 			{item.label}
-		</Nav.Link>
+		</AppNavLink>
+	));
+
+	const activeMenuItem = menu.map((item) => (
+		<AppNavLinkActive key={item.link} to={item.link}>
+			{item.label}
+		</AppNavLinkActive>
 	));
 
 	return (
-		<Navbar
-			expand="lg"
-			className="w-50"
-			style={{
-				//flex: "1 0 50%",
-				maxWidth: 275,
-			}}
-		>
-			<Navbar.Brand as={NavLink} to="/">
-				{title}
-			</Navbar.Brand>
-			<Navbar.Toggle aria-controls="basic-navbar-nav" />
-			<Navbar.Collapse id="basic-navbar-nav">
-				<Nav variant="underline" className="me-auto">
-					{menuItems}
-				</Nav>
-			</Navbar.Collapse>
-		</Navbar>
+		<>
+			<style>{style}</style>
+			<Navbar
+				collapseOnSelect
+				expand="lg"
+				style={{
+					maxWidth: 275,
+				}}
+			>
+				<Navbar.Brand as={NavLink} to="/">
+					{title}
+				</Navbar.Brand>
+				<Navbar.Toggle aria-controls="basic-navbar-nav" />
+				<Navbar.Collapse id="basic-navbar-nav">
+					<Nav variant="underline" className="me-auto">
+						{menuItems}
+					</Nav>
+				</Navbar.Collapse>
+				<div className="navbar-active-item w-100">{activeMenuItem}</div>
+			</Navbar>
+		</>
 	);
 }
 
