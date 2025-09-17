@@ -441,7 +441,7 @@ function MeetingsCalendar({ nDays }: { nDays: number }) {
 							className="bi-arrow-left-circle"
 							style={{
 								position: "absolute",
-								top: 10,
+								top: 0,
 								left: 10,
 								fontSize: "x-large",
 							}}
@@ -454,7 +454,7 @@ function MeetingsCalendar({ nDays }: { nDays: number }) {
 							className="bi-arrow-right-circle"
 							style={{
 								position: "absolute",
-								top: 10,
+								top: 0,
 								right: 10,
 								fontSize: "x-large",
 							}}
