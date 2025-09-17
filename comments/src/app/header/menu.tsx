@@ -108,13 +108,13 @@ function AppNavLinkActive({
 }
 
 const style = `
-	@media (max-width: 992px) {
-		.nabar-expand-lg .navbar-active-item {
-			display: none;
-		}
-	}
 	.navbar-active-item {
 		display: block;
+	}
+	@media (min-width: 992px) {
+		.navbar-active-item {
+			display: none;
+		}
 	}
 `;
 
