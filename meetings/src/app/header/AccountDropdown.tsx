@@ -8,7 +8,7 @@ import { selectUser, setUser } from "@/store/user";
 
 import pkg from "../../../package.json";
 
-export function AccountDropdown() {
+export function AccountDropdown({ className }: { className?: string }) {
 	const dispatch = useAppDispatch();
 	const user = useAppSelector(selectUser);
 	const reload = () => {
@@ -18,7 +18,7 @@ export function AccountDropdown() {
 	};
 
 	return (
-		<Dropdown id="account-dropdown">
+		<Dropdown id="account-dropdown" className={className}>
 			<Dropdown.Toggle
 				variant="outline-secondary"
 				id="account-dropdown-toggle"

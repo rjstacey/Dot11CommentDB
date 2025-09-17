@@ -7,10 +7,10 @@ function Header() {
 		<Container
 			as="header"
 			fluid
-			className="d-flex flex-row justify-content-between align-items-center bg-body-tertiary "
+			className="d-flex flex-row justify-content-between bg-body-tertiary "
 		>
 			<Menu />
-			<AccountDropdown />
+			<AccountDropdown className="mt-2" />
 		</Container>
 	);
 }
