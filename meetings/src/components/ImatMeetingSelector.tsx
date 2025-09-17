@@ -25,7 +25,7 @@ function ImatMeetingSelector({
 	onChange: (value: number | null) => void;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"readOnly" | "disabled" | "id" | "className" | "style"
+	"readOnly" | "disabled" | "placeholder" | "id" | "className" | "style"
 >) {
 	const { loading, valid, ids, entities } = useAppSelector(
 		selectImatMeetingsState
