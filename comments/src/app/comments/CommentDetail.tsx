@@ -104,17 +104,21 @@ function CommentDetail() {
 				onClick={toggleShowHistory}
 				active={showHistory}
 				disabled={selected.length === 0}
-			/>
+			>
+				{" History"}
+			</Button>
 			{(commentsAccess >= AccessLevel.rw ||
 				resolutionsAccess >= AccessLevel.rw) && (
 				<Button
 					variant="outline-primary"
 					className="bi-pencil"
 					title="Edit resolution"
-					disabled={disableButtons}
+					disabled={disableButtons || showHistory}
 					active={editMode}
 					onClick={toggleEditMode}
-				/>
+				>
+					{" Edit"}
+				</Button>
 			)}
 			{commentsAccess >= AccessLevel.rw && (
 				<>
@@ -122,16 +126,20 @@ function CommentDetail() {
 						variant="outline-primary"
 						className="bi-plus-lg"
 						title="Create alternate resolution"
-						disabled={disableEditButtons}
+						disabled={disableEditButtons || showHistory}
 						onClick={handleAddResolutions}
-					/>
+					>
+						{" Add Resn"}
+					</Button>
 					<Button
 						variant="outline-primary"
 						className="bi-trash"
 						title="Delete resolution"
-						disabled={disableEditButtons}
+						disabled={disableEditButtons || showHistory}
 						onClick={handleDeleteResolutions}
-					/>
+					>
+						{" Delete Resn"}
+					</Button>
 				</>
 			)}
 		</>

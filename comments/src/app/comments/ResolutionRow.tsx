@@ -23,11 +23,9 @@ function ResnStatus({
 }) {
 	const handleChange: React.ChangeEventHandler<HTMLInputElement> = (e) =>
 		onChange(e.target.checked ? (e.target.value as ResnStatusType) : null);
-	const backgroundColor =
-		(!isMultiple(value) && value && resnColor[value]) || "#fafafa";
+
 	return (
 		<Form.Group
-			style={{ backgroundColor }}
 			className={
 				styles.resolutionStatus + (className ? ` ${className}` : "")
 			}
@@ -41,6 +39,7 @@ function ResnStatus({
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="ACCEPTED"
+				className={styles.acceptedCheckbox}
 			/>
 			<Form.Check
 				id="revised-checkbox"
@@ -51,6 +50,7 @@ function ResnStatus({
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="REVISED"
+				className={styles.revisedCheckbox}
 			/>
 			<Form.Check
 				id="rejected-checkbox"
@@ -61,17 +61,13 @@ function ResnStatus({
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="REJECTED"
+				className={styles.rejectedCheckbox}
 			/>
+			<div className={styles.shadow} />
+			<div className={styles.block} />
 		</Form.Group>
 	);
 }
-
-const resnColor: Record<ResnStatusType, string> = {
-	"": "#fafafa",
-	A: "#d3ecd3",
-	V: "#f9ecb9",
-	J: "#f3c0c0",
-};
 
 export function ResolutionRow({
 	resolution,
@@ -82,21 +78,19 @@ export function ResolutionRow({
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
-	const backgroundColor =
-		(!isMultiple(resolution.ResnStatus) &&
-			resolution.ResnStatus &&
-			resnColor[resolution.ResnStatus]) ||
-		"#fafafa";
+	let className = styles.resolutionContainer;
+	if (!isMultiple(resolution.ResnStatus)) {
+		if (resolution.ResnStatus === "A") className += " accepted";
+		else if (resolution.ResnStatus === "V") className += " revised";
+		else if (resolution.ResnStatus === "J") className += " rejected";
+	}
+	if (readOnly) className += " readonly";
+
 	return (
-		<Row className="mb-3">
+		<Row className="mt-3 mb-2">
 			<Col className={styles.resolutionField}>
-				<span className="label">Resolution:</span>
-				<div
-					className={
-						styles.resolutionContainer +
-						(readOnly ? " readonly" : "")
-					}
-				>
+				<Form.Label as="span">Resolution:</Form.Label>
+				<div className={className}>
 					<ResnStatus
 						value={resolution.ResnStatus}
 						onChange={(value) =>
@@ -106,10 +100,6 @@ export function ResolutionRow({
 					/>
 					<Editor
 						className={styles.resolutionEditor}
-						style={{
-							backgroundColor,
-							borderRadius: "0 5px 5px 5px",
-						}}
 						value={
 							isMultiple(resolution.Resolution)
 								? ""

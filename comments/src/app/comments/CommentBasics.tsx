@@ -123,9 +123,9 @@ function CommentPage({
 	}
 
 	return (
-		<Form.Group as={Row} controlId="comment-page-line">
+		<Form.Group as={Row} controlId="comment-page-line" className="mb-2">
 			<Form.Label column>Page/Line:</Form.Label>
-			<Col xs="auto">
+			<Col xs="auto" className="d-flex flex-nowrap gap-2">
 				<Form.Control
 					type="text"
 					htmlSize={6}
@@ -137,8 +137,6 @@ function CommentPage({
 					className={readOnly ? "pe-none" : undefined}
 					tabIndex={readOnly ? -1 : undefined}
 				/>
-			</Col>
-			<Col xs="auto">
 				<Form.Text
 					style={{
 						display: "flex",
@@ -170,7 +168,7 @@ function CommentClause({
 	return (
 		<Form.Group as={Row} controlId="comment-clause">
 			<Form.Label column>Clause:</Form.Label>
-			<Col xs="auto">
+			<Col xs="auto" className="d-flex flex-nowrap gap-2">
 				<Form.Control
 					type="text"
 					htmlSize={15}
@@ -183,8 +181,6 @@ function CommentClause({
 					className={readOnly ? "pe-none" : undefined}
 					tabIndex={readOnly ? -1 : undefined}
 				/>
-			</Col>
-			<Col xs="auto">
 				<Form.Text
 					style={{
 						display: "flex",
@@ -212,13 +208,13 @@ export function CommentBasics({
 }) {
 	return (
 		<>
-			<Row className="mb-3">
+			<Row className="mb-2">
 				<Col>
 					<Form.Label as="span">Commenter: </Form.Label>
 					<span>{renderCommenter(comment)}</span>
 				</Col>
 			</Row>
-			<Row className="mb-3">
+			<Row className="mb-2">
 				<Col>
 					<Form.Label as="span">Category: </Form.Label>
 					{renderCategory(comment)}
@@ -226,15 +222,15 @@ export function CommentBasics({
 					{renderMBS(comment)}
 				</Col>
 			</Row>
-			<Row className="mb-3">
-				<Col xs={12} xl={5}>
+			<Row className="mb-2">
+				<Col xs="auto">
 					<CommentPage
 						comment={comment}
 						setComment={updateComment}
 						readOnly={readOnly}
 					/>
 				</Col>
-				<Col xs={12} xl={7}>
+				<Col xs="auto">
 					<CommentClause
 						comment={comment}
 						setComment={updateComment}
@@ -242,11 +238,11 @@ export function CommentBasics({
 					/>
 				</Col>
 			</Row>
-			<Form.Group as={Row} className="mb-3">
+			<Form.Group as={Row} className="mb-2">
 				<Form.Label as="span">Comment:</Form.Label>
 				<div>{renderTextBlock(comment.Comment)}</div>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3">
+			<Form.Group as={Row} className="mb-2">
 				<Form.Label as="span">Proposed Change:</Form.Label>
 				<div>{renderTextBlock(comment.ProposedChange)}</div>
 			</Form.Group>

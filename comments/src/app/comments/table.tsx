@@ -1,5 +1,5 @@
 import React from "react";
-//import { Row, Col } from "react-bootstrap";
+import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
 	SplitPanel,
@@ -569,19 +569,21 @@ function commentsRowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 function CommentsTable() {
 	return (
 		<>
-			<div
-				style={{ width: "100%", display: "flex", alignItems: "center" }}
-			>
-				<ShowFilters
-					selectors={commentsSelectors}
-					actions={commentsActions}
-					fields={fields}
-				/>
-				<GlobalFilter
-					selectors={commentsSelectors}
-					actions={commentsActions}
-				/>
-			</div>
+			<Row className="w-100">
+				<Col>
+					<ShowFilters
+						selectors={commentsSelectors}
+						actions={commentsActions}
+						fields={fields}
+					/>
+				</Col>
+				<Col xs={2} className="d-flex align-items-center">
+					<GlobalFilter
+						selectors={commentsSelectors}
+						actions={commentsActions}
+					/>
+				</Col>
+			</Row>
 
 			<SplitPanel selectors={commentsSelectors} actions={commentsActions}>
 				<Panel>

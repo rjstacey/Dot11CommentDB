@@ -280,8 +280,8 @@ function CommentsImportDropdown({
 
 	return (
 		<Form style={{ width: 600 }} onSubmit={handleSubmit} className="p-3">
-			<Row className="mb-3">{title}</Row>
-			<Row className="mb-3">
+			<Row className="mb-2">{title}</Row>
+			<Row className="mb-2">
 				<Col>
 					<ImportFieldsList
 						fields={fields}
@@ -290,7 +290,7 @@ function CommentsImportDropdown({
 					/>
 				</Col>
 				<Col>
-					<Row className="mb-3">
+					<Row className="mb-2">
 						<MatchAlgoList algo={algo} setAlgo={handleSetAlgo} />
 					</Row>
 					<Row>
@@ -301,7 +301,7 @@ function CommentsImportDropdown({
 					</Row>
 				</Col>
 			</Row>
-			<Form.Group as={Row} controlId="spreadsheet-file" className="mb-3">
+			<Form.Group as={Row} controlId="spreadsheet-file" className="mb-2">
 				<Form.Label column xs={4}>
 					Spreadsheet file:
 				</Form.Label>
@@ -319,7 +319,7 @@ function CommentsImportDropdown({
 					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} controlId="worksheet-name" className="mb-3">
+			<Form.Group as={Row} controlId="worksheet-name" className="mb-2">
 				<Form.Label column xs={4}>
 					Worksheet name:
 				</Form.Label>

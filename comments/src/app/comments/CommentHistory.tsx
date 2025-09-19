@@ -260,7 +260,7 @@ function CommentHistoryDisplay() {
 					<ChangeEntry key={props.id} {...props} />
 				))
 			) : (
-				<div className="placeholder">
+				<div className="details-panel-placeholder">
 					{loading ? "Loading..." : "No history"}
 				</div>
 			)}

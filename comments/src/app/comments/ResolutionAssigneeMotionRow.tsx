@@ -21,7 +21,7 @@ export function ResolutionAssigneeRow({
 	readOnly?: boolean;
 }) {
 	return (
-		<Form.Group as={Row} className="mb-3">
+		<Form.Group as={Row} className="mb-2">
 			<Form.Label column xs="auto" htmlFor="resolution-assignee">
 				Assignee:
 			</Form.Label>
@@ -186,26 +186,32 @@ export function ResolutionAssigneeMotionRow({
 	commentsAccess?: number;
 }) {
 	return (
-		<Row className="mb-3">
-			<Col>
-				<ResolutionAssigneeRow
-					resolution={resolution}
-					updateResolution={updateResolution}
-					readOnly={readOnly}
-				/>
-				<ResolutionSubmissionRow
-					resolution={resolution}
-					updateResolution={updateResolution}
-					readOnly={readOnly}
-				/>
-			</Col>
-			<Col>
-				<ResolutionApprovalRow
-					resolution={resolution}
-					updateResolution={updateResolution}
-					readOnly={readOnly || commentsAccess < AccessLevel.rw}
-				/>
-			</Col>
-		</Row>
+		<>
+			<Row className="mb-2">
+				<Col>
+					<ResolutionAssigneeRow
+						resolution={resolution}
+						updateResolution={updateResolution}
+						readOnly={readOnly}
+					/>
+				</Col>
+				<Col>
+					<ResolutionSubmissionRow
+						resolution={resolution}
+						updateResolution={updateResolution}
+						readOnly={readOnly}
+					/>
+				</Col>
+			</Row>
+			<Row>
+				<Col>
+					<ResolutionApprovalRow
+						resolution={resolution}
+						updateResolution={updateResolution}
+						readOnly={readOnly || commentsAccess < AccessLevel.rw}
+					/>
+				</Col>
+			</Row>
+		</>
 	);
 }

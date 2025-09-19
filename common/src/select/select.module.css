@@ -76,10 +76,8 @@
 	border: none;
 	background: none;
 	position: relative;
-	display: flex;
-	flex: 1;
-	flex-wrap: wrap;
 	min-height: 28px;
+	text-align: start;
 }
 
 .select .placeholder {

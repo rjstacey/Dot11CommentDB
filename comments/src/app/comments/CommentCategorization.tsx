@@ -26,7 +26,7 @@ export const CommentAdHoc = ({
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
-	<Form.Group as={Row} className="mb-3">
+	<Form.Group as={Row} className="mb-2">
 		<Form.Label htmlFor="ad-hoc" column xs="auto">
 			Ad-hoc:
 		</Form.Label>
@@ -67,7 +67,7 @@ export const CommentGroup = ({
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
-	<Form.Group as={Row} className="mb-3">
+	<Form.Group as={Row} className="mb-2">
 		<Form.Label htmlFor="comment-group" column xs="auto">
 			Comment group:
 		</Form.Label>
@@ -122,7 +122,7 @@ export function CommentNotesRow(props: {
 	readOnly?: boolean;
 }) {
 	return (
-		<Row className="mb-3">
+		<Row className="mb-2">
 			<Col xs={12}>{commentNotesLabel}</Col>
 			<Col>
 				<CommentNotesInternal {...props} />
@@ -144,7 +144,7 @@ export function CommentNotesRowCollapsable(props: {
 	return (
 		<Accordion
 			flush
-			className={styles.notesField}
+			className={styles.notesField + " mb-2"}
 			defaultActiveKey={showNotes ? key : undefined}
 			activeKey={showNotes ? key : undefined}
 			onSelect={(eventKey) =>
@@ -171,15 +171,15 @@ export const CommentCategorization = ({
 	readOnly?: boolean;
 }) => (
 	<>
-		<Row className="mb-3">
-			<Col xs={12} md={5}>
+		<Row className="mb-2">
+			<Col xs="auto">
 				<CommentAdHoc
 					comment={comment}
 					updateComment={updateComment}
 					readOnly={readOnly}
 				/>
 			</Col>
-			<Col xs={12} md={7}>
+			<Col xs="auto">
 				<CommentGroup
 					comment={comment}
 					updateComment={updateComment}

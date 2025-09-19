@@ -155,8 +155,8 @@ function CommentsExportDropdown({
 
 	return (
 		<Form style={{ width: 450 }} onSubmit={handleSubmit} className="p-3">
-			<Row className="mb-3">{title}</Row>
-			<Row className="mb-3">
+			<Row className="mb-2">{title}</Row>
+			<Row className="mb-2">
 				<Col>
 					<SpreadsheetFormatSelect
 						value={format}
@@ -164,12 +164,12 @@ function CommentsExportDropdown({
 					/>
 				</Col>
 			</Row>
-			<Row className="mb-3">
+			<Row className="mb-2">
 				<Col>
 					<SpreadsheetStyleSelect value={style} setValue={setStyle} />
 				</Col>
 			</Row>
-			<Form.Group as={Row} controlId="spreadsheet-file" className="mb-3">
+			<Form.Group as={Row} controlId="spreadsheet-file" className="mb-2">
 				<Form.Label>Spreadsheet file:</Form.Label>
 				<Col>
 					<Form.Control

@@ -167,7 +167,7 @@ export function EditingNotesRow(props: {
 	readOnly?: boolean;
 }) {
 	return (
-		<Row className="mb-3">
+		<Row className="mb-2">
 			<Col xs={12}>{editingNotesLabel}</Col>
 			<Col>
 				<EditingNotesInternal {...props} />
@@ -187,7 +187,7 @@ export function EditingNotesRowCollapsable(props: {
 	const key = "editing-notes";
 
 	return (
-		<Row className="mb-3">
+		<Row className="mt-3 mb-2">
 			<Accordion
 				flush
 				className={styles.notesField}

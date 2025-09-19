@@ -50,24 +50,84 @@
 	border-color: #0074d9;
 }
 
+.resolutionContainer {
+	--bg-color-accepted: #d3ecd3;
+	--bg-color-revised: #f9ecb9;
+	--bg-color-rejected: #f3c0c0;
+
+	& .resolutionStatus,
+	& .resolutionEditor {
+		background-color: var(--bs-body-bg);
+	}
+
+	&:global(.accepted) .resolutionStatus,
+	&:global(.accepted) .resolutionEditor {
+		background-color: var(--bg-color-accepted);
+	}
+	&:global(.revised) .resolutionStatus,
+	&:global(.revised) .resolutionEditor {
+		background-color: var(--bg-color-revised);
+	}
+
+	&:global(.rejected) .resolutionStatus,
+	&:global(.rejected) .resolutionEditor {
+		background-color: var(--bg-color-rejected);
+	}
+}
+
 .resolutionStatus {
+	position: relative;
 	width: fit-content;
-	border: 1px solid #ddd;
+	bottom: -1px;
+	border: var(--bs-border-width) solid var(--bs-border-color);
 	border-bottom: none;
 	border-radius: 5px 5px 0 0;
-	position: relative;
-	bottom: -1px;
-	z-index: 1;
 	display: flex;
 	padding: 5px 10px;
 
-	& > div {
-		margin-right: 20px;
+	& .shadow {
+		position: absolute;
+		width: 100%;
+		height: calc(100% - 0.5rem - 1px);
+		top: 0;
+		left: 0;
+		z-index: -1;
+		border: var(--bs-border-width) solid var(--bs-border-color);
+		border-radius: inherit;
+	}
+
+	.resolutionContainer:focus-within & .shadow {
+		border-color: #86b7fe;
+		outline: 0;
+		box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+		z-index: -2;
+	}
+
+	& .block {
+		position: absolute;
+		width: 100%;
+		height: calc(0.25rem + 1px);
+		top: calc(100% - 0.25rem - 1px);
+		left: 0;
+		background-color: inherit;
+		z-index: 1;
+	}
+
+	& .acceptedCheckbox,
+	& .revisedCheckbox {
+		margin-right: 1rem;
 	}
 }
 
 .resolutionEditor {
-	border-radius: 0 5px 5px 5px;
+	border-radius: 0 5px 5px 5px !important;
+
+	.resolutionContainer:focus-within & {
+		border-color: #86b7fe;
+		outline: 0;
+		box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+		z-index: -2;
+	}
 }
 
 .editor {
