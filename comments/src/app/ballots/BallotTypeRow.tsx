@@ -120,7 +120,7 @@ export function BallotTypeRow({
 	readOnly?: boolean;
 }) {
 	return (
-		<Row className="align-items-center mb-3">
+		<Row className="align-items-center mb-2">
 			<Form.Label as="span" column>
 				Ballot type/number:
 			</Form.Label>

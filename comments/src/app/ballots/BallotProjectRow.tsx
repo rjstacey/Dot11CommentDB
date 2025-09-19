@@ -16,7 +16,7 @@ export function BallotProjectRow({
 	readOnly?: boolean;
 }) {
 	return (
-		<Form.Group as={Row} className="mb-3">
+		<Form.Group as={Row} className="mb-2">
 			<Form.Label htmlFor="ballot-project" column>
 				Project:
 			</Form.Label>

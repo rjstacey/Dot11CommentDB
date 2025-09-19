@@ -159,19 +159,33 @@ function BallotDetail({
 		await dispatch(deleteBallots(ids));
 	}, [dispatch, selectedBallots]);
 
-	let title = "";
-	let placeholder: string | null = null;
-	if (action === "update") {
+	let content: JSX.Element;
+	if (action === "add") {
+		content = (
+			<BallotAddForm
+				defaultBallot={defaultBallot!}
+				close={() => setAction("update")}
+				setBusy={setBusy}
+			/>
+		);
+	} else {
+		let placeholder: string | null = null;
 		if (!valid && loading) {
 			placeholder = "Loading...";
 		} else if (selectedBallots.length === 0) {
 			placeholder = "Nothing selected";
-		} else {
-			title = edit ? "Edit ballot" : "Ballot";
-			if (selectedBallots.length > 1) title += "s";
 		}
-	} else {
-		title = "Add ballot";
+		if (placeholder) {
+			content = <Placeholder>{placeholder}</Placeholder>;
+		} else {
+			content = (
+				<BallotEditForm
+					ballots={selectedBallots}
+					setBusy={setBusy}
+					readOnly={readOnly || !isOnline || !edit}
+				/>
+			);
+		}
 	}
 
 	const actionButtons = readOnly ? null : (
@@ -183,7 +197,9 @@ function BallotDetail({
 				disabled={loading || !isOnline}
 				active={edit}
 				onClick={() => setEdit(!edit)}
-			/>
+			>
+				{" Edit"}
+			</Button>
 			<Button
 				variant="outline-primary"
 				className="bi-plus-lg"
@@ -191,23 +207,24 @@ function BallotDetail({
 				disabled={!isOnline}
 				active={action === "add"}
 				onClick={addClick}
-			/>
+			>
+				{" Add"}
+			</Button>
 			<Button
 				variant="outline-primary"
 				className="bi-trash"
 				title="Delete ballot"
 				disabled={selectedBallots.length === 0 || loading || !isOnline}
 				onClick={deleteClick}
-			/>
+			>
+				{" Delete"}
+			</Button>
 		</>
 	);
 
 	return (
 		<Container fluid style={{ maxWidth: 860 }}>
-			<Row className="align-items-center mb-3">
-				<Col>
-					<h3>{title}</h3>
-				</Col>
+			<Row className="align-items-center mb-2">
 				<Col>
 					<Spinner
 						size="sm"
@@ -218,24 +235,8 @@ function BallotDetail({
 					{actionButtons}
 				</Col>
 			</Row>
-			{placeholder ? (
-				<Placeholder>{placeholder}</Placeholder>
-			) : action === "add" ? (
-				<BallotAddForm
-					defaultBallot={defaultBallot!}
-					close={() => setAction("update")}
-					setBusy={setBusy}
-				/>
-			) : (
-				<BallotEditForm
-					ballots={selectedBallots}
-					setBusy={setBusy}
-					readOnly={readOnly || !isOnline || !edit}
-				/>
-			)}
-			<Row>
-				<ShowAccess access={access} />
-			</Row>
+			{content}
+			<ShowAccess access={access} />
 		</Container>
 	);
 }

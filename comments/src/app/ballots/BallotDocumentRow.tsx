@@ -13,7 +13,7 @@ export function BallotDocumentRow({
 	readOnly?: boolean;
 }) {
 	return (
-		<Form.Group as={Row} controlId="ballot-document" className="mb-3">
+		<Form.Group as={Row} controlId="ballot-document" className="mb-2">
 			<Form.Label column>Document version:</Form.Label>
 			<Col xs="auto">
 				<Form.Control

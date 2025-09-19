@@ -82,7 +82,7 @@ export function BallotDatesRows({
 }) {
 	return (
 		<>
-			<Form.Group as={Row} controlId="ballot-start" className="mb-3">
+			<Form.Group as={Row} controlId="ballot-start" className="mb-2">
 				<Form.Label column>Open Date:</Form.Label>
 				<Col xs="auto">
 					<BallotDateInput
@@ -93,7 +93,7 @@ export function BallotDatesRows({
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} controlId="ballot-end" className="mb-3">
+			<Form.Group as={Row} controlId="ballot-end" className="mb-2">
 				<Form.Label column>Close Date:</Form.Label>
 				<Col xs="auto" className="position-relative">
 					<BallotDateInput

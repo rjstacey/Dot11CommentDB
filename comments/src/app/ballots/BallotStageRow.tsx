@@ -56,7 +56,7 @@ export function BallotStageRow({
 		return null;
 
 	return (
-		<Row className="mb-3">
+		<Row className="mb-2">
 			<Form.Label as="span" column>
 				Ballot stage:
 			</Form.Label>

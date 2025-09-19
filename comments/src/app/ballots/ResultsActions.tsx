@@ -115,7 +115,7 @@ function ResultsActions({
 }) {
 	return (
 		<>
-			<Row className="align-items-center mb-3">
+			<Row className="align-items-center mb-2">
 				<Form.Label as="span" column xs="auto">
 					Results:
 				</Form.Label>

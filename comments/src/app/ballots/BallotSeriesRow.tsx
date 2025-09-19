@@ -65,7 +65,7 @@ export function BallotSeriesRow({
 	));
 
 	return (
-		<Form.Group as={Row} className="mb-3" readOnly={readOnly}>
+		<Form.Group as={Row} className="mb-2" readOnly={readOnly}>
 			<Form.Label as="span" column>
 				Ballot series:
 			</Form.Label>

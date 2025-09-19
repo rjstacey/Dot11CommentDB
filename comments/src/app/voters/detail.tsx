@@ -72,10 +72,8 @@ function VoterDetail({
 		await dispatch(deleteVoters(ids));
 	}, [dispatch, selectedVoters]);
 
-	let title = "";
 	let content: JSX.Element;
 	if (addVoter) {
-		title = "Add voter";
 		content = (
 			<VoterAddForm
 				voter={addVoter}
@@ -95,7 +93,6 @@ function VoterDetail({
 		if (placeholder) {
 			content = <Placeholder>{placeholder}</Placeholder>;
 		} else {
-			title = edit ? "Edit voter" : "Voter";
 			content = (
 				<VoterEditForm
 					key={selectedVoters[0].id}
@@ -116,7 +113,9 @@ function VoterDetail({
 				disabled={loading || !isOnline}
 				active={edit}
 				onClick={() => setEdit(!edit)}
-			/>
+			>
+				{" Edit"}
+			</Button>
 			<Button
 				variant="outline-primary"
 				className="bi-plus-lg"
@@ -124,23 +123,24 @@ function VoterDetail({
 				disabled={loading || !isOnline}
 				active={Boolean(addVoter)}
 				onClick={addClick}
-			/>
+			>
+				{" Add"}
+			</Button>
 			<Button
 				variant="outline-primary"
 				className="bi-trash"
 				title="Delete ballot"
 				disabled={selectedVoters.length === 0 || loading || !isOnline}
 				onClick={deleteClick}
-			/>
+			>
+				{" Delete"}
+			</Button>
 		</>
 	);
 
 	return (
 		<Container fluid style={{ maxWidth: 860 }}>
 			<Row className="align-items-center mb-3">
-				<Col>
-					<h3>{title}</h3>
-				</Col>
 				<Col>
 					<Spinner
 						size="sm"

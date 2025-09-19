@@ -21,7 +21,7 @@ export function BallotEpollRow({
 		<Form.Group
 			as={Row}
 			controlId="ballot-epoll-number"
-			className="align-items-center mb-3"
+			className="align-items-center mb-2"
 		>
 			<Form.Label column>ePoll number:</Form.Label>
 			<Col xs="auto">

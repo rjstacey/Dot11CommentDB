@@ -48,7 +48,7 @@ function ChangeStartCIDForm({
 			className="p-4"
 			style={{ minWidth: 250 }}
 		>
-			<Form.Group as={Row} className="mb-3">
+			<Form.Group as={Row} className="mb-2">
 				<Form.Label>Start CID:</Form.Label>
 				<Col className="position-relative">
 					<Form.Control
@@ -381,7 +381,7 @@ function CommentsActions({
 	readOnly?: boolean;
 }) {
 	return (
-		<Row className="align-items-center mb-3">
+		<Row className="align-items-center mb-2">
 			<Form.Label column xs="auto">
 				Comments:
 			</Form.Label>

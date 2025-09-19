@@ -91,7 +91,6 @@ export function ResultsDetail({
 		setAction("update");
 	};
 
-	let title = "";
 	let placeholder: string | null = null;
 	if (action === "update") {
 		if (!valid && loading) {
@@ -100,11 +99,7 @@ export function ResultsDetail({
 			placeholder = "Nothing selected";
 		} else if (selectedResults.length > 1) {
 			placeholder = "Mulitple selected";
-		} else {
-			title = edit ? "Edit result" : "Result";
 		}
-	} else {
-		title = "Add result";
 	}
 
 	const actionButtons = readOnly ? null : (
@@ -116,7 +111,9 @@ export function ResultsDetail({
 				disabled={loading || !isOnline}
 				active={edit}
 				onClick={() => setEdit(!edit)}
-			/>
+			>
+				{" Edit"}
+			</Button>
 			<Button
 				variant="outline-primary"
 				className="bi-plus-lg"
@@ -125,23 +122,24 @@ export function ResultsDetail({
 				disabled={true}
 				active={action === "add"}
 				onClick={addClick}
-			/>
+			>
+				{" Add"}
+			</Button>
 			<Button
 				variant="outline-primary"
 				className="bi-trash"
 				title="Delete result"
 				disabled={selectedResults.length === 0 || loading || !isOnline}
 				onClick={deleteClick}
-			/>
+			>
+				{" Delete"}
+			</Button>
 		</>
 	);
 
 	return (
 		<Container fluid style={{ maxWidth: 860 }}>
 			<Row className="align-items-center mb-3">
-				<Col>
-					<h3>{title}</h3>
-				</Col>
 				<Col>
 					<Spinner
 						size="sm"
