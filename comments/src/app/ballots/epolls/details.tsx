@@ -3,6 +3,7 @@ import { Dictionary } from "@reduxjs/toolkit";
 import { Container, Row, Col, Spinner } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
+import { selectTopLevelGroupId } from "@/store/groups";
 import {
 	selectEpollsState,
 	selectSyncedEntities,
@@ -44,6 +45,7 @@ const defaultBallot: Ballot = {
 
 function ePollToBallot(
 	epoll: SyncedEpoll,
+	groupId: string,
 	ballotEntities: Dictionary<Ballot>
 ): Partial<Ballot> {
 	const ballot: Partial<Ballot> = {
@@ -52,14 +54,16 @@ function ePollToBallot(
 		End: epoll.end,
 		Document: epoll.document,
 		Topic: epoll.topic,
+		groupId,
 	};
-	// See if the ePoll name has something like "CC53 P802.11bp D0.2" or "LB245 P802.11bi D2.0"
+	// Get ballot type and number; see if the ePoll name has something like "CC53" or "LB245"
 	const m1 = epoll.name.match(/(CC|LB)(\d+)/);
 	if (m1) {
 		ballot.Type = m1[1] === "CC" ? BallotType.CC : BallotType.WG;
 		ballot.number = Number(m1[2]);
 	}
-	const m2 = epoll.name.match(/(P802[^\s]*)\s+(D*[\d.]+)/);
+	// Get project and document version; see if the ePoll name has something like "P802.11ax/D4.0" or "P802.11bn 3.2"
+	const m2 = epoll.name.match(/(P802[^\s]*)[\s/]+(D{0,1}[\d.]+)/);
 	if (m2) {
 		ballot.Project = m2[1];
 		ballot.Document = m2[2];
@@ -84,6 +88,7 @@ export function EpollsDetail() {
 	const isOnline = useAppSelector(selectIsOnline);
 	const access = useAppSelector(selectBallotsAccess);
 	const readOnly = access < AccessLevel.admin;
+	const groupId = useAppSelector(selectTopLevelGroupId)!;
 	const { selected, loading } = useAppSelector(selectEpollsState);
 	const entities = useAppSelector(selectSyncedEntities);
 	const ballotEntities = useAppSelector(selectBallotEntities);
@@ -97,7 +102,11 @@ export function EpollsDetail() {
 			if (ballot) {
 				const toEdit = {
 					...ballot,
-					...ePollToBallot(selectedEpolls[0], ballotEntities),
+					...ePollToBallot(
+						selectedEpolls[0],
+						groupId,
+						ballotEntities
+					),
 				};
 				if (
 					new Date(toEdit.Start || "").getTime() ===
@@ -113,16 +122,16 @@ export function EpollsDetail() {
 			}
 		}
 		return [null, []];
-	}, [selectedEpolls, ballotEntities]);
+	}, [selectedEpolls, groupId, ballotEntities]);
 	const ballotToAdd = React.useMemo(() => {
 		if (selectedEpolls.length === 1 && !selectedEpolls[0].ballot_id) {
 			return {
 				...defaultBallot,
-				...ePollToBallot(selectedEpolls[0], ballotEntities),
+				...ePollToBallot(selectedEpolls[0], groupId, ballotEntities),
 			};
 		}
 		return null;
-	}, [selectedEpolls, ballotEntities]);
+	}, [selectedEpolls, groupId, ballotEntities]);
 	const [busy, setBusy] = React.useState(false);
 
 	let content: JSX.Element;
