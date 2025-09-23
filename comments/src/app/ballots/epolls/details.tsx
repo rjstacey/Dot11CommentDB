@@ -147,6 +147,7 @@ export function EpollsDetail() {
 	} else if (ballotToAdd) {
 		content = (
 			<BallotAddForm
+				key={ballotToAdd.EpollNum}
 				defaultBallot={ballotToAdd}
 				setBusy={setBusy}
 				readOnly={readOnly || !isOnline}
