@@ -14,8 +14,8 @@ export function BallotDocumentRow({
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const cn =
-		original && original.Document !== ballot.Document ? "has-changes" : "";
+	const hasChanges = original && original.Document !== ballot.Document;
+	const cn = hasChanges ? "has-changes" : undefined;
 	return (
 		<Form.Group as={Row} controlId="ballot-document" className="mb-2">
 			<Form.Label column>Document version:</Form.Label>
@@ -33,6 +33,13 @@ export function BallotDocumentRow({
 					}
 					readOnly={readOnly}
 				/>
+				{hasChanges && (
+					<Form.Text>
+						{isMultiple(original.Document)
+							? MULTIPLE_STR
+							: original.Document}
+					</Form.Text>
+				)}
 			</Col>
 		</Form.Group>
 	);

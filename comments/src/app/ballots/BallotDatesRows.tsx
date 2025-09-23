@@ -3,6 +3,7 @@ import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple, Multiple } from "@common";
 
 import { Ballot, BallotChange } from "@/store/ballots";
+import { MULTIPLE_STR } from "@/components/constants";
 
 /* Convert an ISO date string to US eastern time and return string in form "YYYY-MM-DD" */
 function dateToShortDate(isoDate: string | null) {
@@ -26,13 +27,9 @@ function shortDateToDate(shortDateStr: string) {
 	const easternDate = new Date(
 		date.toLocaleString("en-US", { timeZone: "America/New_York" })
 	);
-	//console.log("easternDate", easternDate.toISOString());
 	const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
 	const diff = utcDate.getTime() - easternDate.getTime();
 	const newDate = new Date(date.getTime() + diff);
-	console.log(
-		newDate.toLocaleString("en-US", { timeZone: "America/New_York" })
-	);
 	return isNaN(newDate.getTime()) ? null : newDate.toISOString();
 }
 
@@ -60,8 +57,8 @@ function BallotDateInput({
 		if (dateStr) updateBallot({ [name]: dateStr });
 	};
 
-	const cn =
-		original && original[dataKey] !== ballot[dataKey] ? "has-changes" : "";
+	const hasChanges = original && original[dataKey] !== ballot[dataKey];
+	const cn = hasChanges ? "has-changes" : "";
 
 	return (
 		<>
@@ -77,6 +74,16 @@ function BallotDateInput({
 			<Form.Control.Feedback type="invalid" tooltip>
 				Enter a date
 			</Form.Control.Feedback>
+			{hasChanges && (
+				<Form.Text>
+					{isMultiple(original[dataKey])
+						? MULTIPLE_STR
+						: new Date(original[dataKey] || "").toLocaleDateString(
+								"en-US",
+								{ timeZone: "America/New_York" }
+						  )}
+				</Form.Text>
+			)}
 		</>
 	);
 }

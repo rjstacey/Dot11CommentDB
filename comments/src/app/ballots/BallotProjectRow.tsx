@@ -17,8 +17,8 @@ export function BallotProjectRow({
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const cn =
-		original && original.Project !== ballot.Project ? "has-changes" : "";
+	const hasChanges = original && original.Project !== ballot.Project;
+	const cn = hasChanges ? "has-changes" : undefined;
 
 	return (
 		<Form.Group as={Row} className="mb-2">
@@ -42,6 +42,13 @@ export function BallotProjectRow({
 				<Form.Control.Feedback type="invalid" tooltip>
 					Select an existing or add a new project (e.g., P802.11bn)
 				</Form.Control.Feedback>
+				{hasChanges && (
+					<Form.Text>
+						{isMultiple(original.Project)
+							? MULTIPLE_STR
+							: original.Project}
+					</Form.Text>
+				)}
 			</Col>
 		</Form.Group>
 	);

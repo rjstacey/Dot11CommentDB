@@ -18,8 +18,8 @@ export function BallotEpollRow({
 }) {
 	if (ballot.Type === BallotType.SA) return null;
 	const isMultipleBallots = isMultiple(ballot.id);
-	const cn =
-		original && original.EpollNum !== ballot.EpollNum ? "has-changes" : "";
+	const hasChanges = original && original.EpollNum !== ballot.EpollNum;
+	const cn = hasChanges ? "has-changes" : undefined;
 	return (
 		<Form.Group
 			as={Row}
@@ -49,6 +49,13 @@ export function BallotEpollRow({
 					}
 					readOnly={readOnly || isMultipleBallots}
 				/>
+				{hasChanges && (
+					<Form.Text>
+						{isMultiple(original.EpollNum)
+							? MULTIPLE_STR
+							: original.EpollNum}
+					</Form.Text>
+				)}
 			</Col>
 		</Form.Group>
 	);

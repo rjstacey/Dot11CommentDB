@@ -17,8 +17,8 @@ export function BallotGroupRow({
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const cn =
-		original && original.groupId !== ballot.groupId ? "has-changes" : "";
+	const hasChanges = original && original.groupId !== ballot.groupId;
+	const cn = hasChanges ? "has-changes" : undefined;
 	return (
 		<Form.Group as={Row} className="align-items-center mb-2">
 			<Form.Label htmlFor="ballot-group" column>
