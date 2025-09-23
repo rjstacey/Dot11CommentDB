@@ -38,11 +38,13 @@ function shortDateToDate(shortDateStr: string) {
 
 function BallotDateInput({
 	ballot,
+	original,
 	dataKey,
 	updateBallot,
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
+	original?: Multiple<Ballot>;
 	dataKey: "Start" | "End";
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
@@ -58,9 +60,13 @@ function BallotDateInput({
 		if (dateStr) updateBallot({ [name]: dateStr });
 	};
 
+	const cn =
+		original && original[dataKey] !== ballot[dataKey] ? "has-changes" : "";
+
 	return (
 		<>
 			<Form.Control
+				className={cn}
 				type="date"
 				name={dataKey}
 				value={value}
@@ -77,10 +83,12 @@ function BallotDateInput({
 
 export function BallotDatesRows({
 	ballot,
+	original,
 	updateBallot,
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
+	original?: Multiple<Ballot>;
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
@@ -91,6 +99,7 @@ export function BallotDatesRows({
 				<Col xs="auto">
 					<BallotDateInput
 						ballot={ballot}
+						original={original}
 						dataKey="Start"
 						updateBallot={updateBallot}
 						readOnly={readOnly}
@@ -102,6 +111,7 @@ export function BallotDatesRows({
 				<Col xs="auto" className="position-relative">
 					<BallotDateInput
 						ballot={ballot}
+						original={original}
 						dataKey="End"
 						updateBallot={updateBallot}
 						readOnly={readOnly}

@@ -8,13 +8,18 @@ import SelectProject from "./ProjectSelector";
 
 export function BallotProjectRow({
 	ballot,
+	original,
 	updateBallot,
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
+	original?: Multiple<Ballot>;
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
+	const cn =
+		original && original.Project !== ballot.Project ? "has-changes" : "";
+
 	return (
 		<Form.Group as={Row} className="mb-2">
 			<Form.Label htmlFor="ballot-project" column>
@@ -23,6 +28,7 @@ export function BallotProjectRow({
 			<Col xs="auto" className="position-relative">
 				<SelectProject
 					id="ballot-project"
+					className={cn}
 					style={{ width: 300 }}
 					value={isMultiple(ballot.Project) ? "" : ballot.Project}
 					onChange={(Project) => updateBallot({ Project })}

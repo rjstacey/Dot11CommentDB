@@ -12,10 +12,12 @@ import { BallotDocumentRow } from "./BallotDocumentRow";
 
 export function BallotEdit({
 	ballot,
+	original,
 	updateBallot,
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
+	original?: Multiple<Ballot>;
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
@@ -23,41 +25,49 @@ export function BallotEdit({
 		<>
 			<BallotGroupRow
 				ballot={ballot}
+				original={original}
 				updateBallot={updateBallot}
 				readOnly={readOnly}
 			/>
 			<BallotProjectRow
 				ballot={ballot}
+				original={original}
 				updateBallot={updateBallot}
 				readOnly={readOnly}
 			/>
 			<BallotDocumentRow
 				ballot={ballot}
+				original={original}
 				updateBallot={updateBallot}
 				readOnly={readOnly}
 			/>
 			<BallotTypeRow
 				ballot={ballot}
+				original={original}
 				updateBallot={updateBallot}
 				readOnly={readOnly}
 			/>
 			<BallotStageRow
 				ballot={ballot}
+				original={original}
 				updateBallot={updateBallot}
 				readOnly={readOnly}
 			/>
 			<BallotSeriesRow
 				ballot={ballot}
+				original={original}
 				updateBallot={updateBallot}
 				readOnly={readOnly}
 			/>
 			<BallotDatesRows
 				ballot={ballot}
+				original={original}
 				updateBallot={updateBallot}
 				readOnly={readOnly}
 			/>
 			<BallotEpollRow
 				ballot={ballot}
+				original={original}
 				updateBallot={updateBallot}
 				readOnly={readOnly}
 			/>

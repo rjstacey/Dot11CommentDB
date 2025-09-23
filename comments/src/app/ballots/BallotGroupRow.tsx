@@ -8,13 +8,17 @@ import SelectGroup from "./GroupSelector";
 
 export function BallotGroupRow({
 	ballot,
+	original,
 	updateBallot,
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
+	original?: Multiple<Ballot>;
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
+	const cn =
+		original && original.groupId !== ballot.groupId ? "has-changes" : "";
 	return (
 		<Form.Group as={Row} className="align-items-center mb-2">
 			<Form.Label htmlFor="ballot-group" column>
@@ -23,6 +27,7 @@ export function BallotGroupRow({
 			<Col xs="auto" className="position-relative">
 				<SelectGroup
 					id="ballot-group"
+					className={cn}
 					style={{ width: 300 }}
 					value={isMultiple(ballot.groupId) ? null : ballot.groupId}
 					onChange={(groupId) =>

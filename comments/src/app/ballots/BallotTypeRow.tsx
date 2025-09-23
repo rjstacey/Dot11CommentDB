@@ -34,11 +34,13 @@ function useNextBallotNumber(id: number, type: number) {
 
 function BallotTypeNumberCol({
 	ballot,
+	original,
 	type,
 	updateBallot,
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
+	original?: Multiple<Ballot>;
 	type: number;
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
@@ -71,6 +73,9 @@ function BallotTypeNumberCol({
 		updateBallot({ number });
 	}
 
+	const cn =
+		original && original.number !== ballot.number ? "has-changes" : "";
+
 	return (
 		<Col
 			xs="auto"
@@ -88,6 +93,7 @@ function BallotTypeNumberCol({
 			/>
 			{type !== BallotType.SA && (
 				<Form.Control
+					className={cn}
 					style={{
 						width: "10ch",
 						opacity: ballot.Type !== type ? 0.3 : undefined,
@@ -112,25 +118,30 @@ function BallotTypeNumberCol({
 
 export function BallotTypeRow({
 	ballot,
+	original,
 	updateBallot,
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
+	original?: Multiple<Ballot>;
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
+	const cn = original && original.Type !== ballot.Type ? "has-changes" : "";
+
 	return (
-		<Row className="align-items-center mb-2">
+		<Row className={"align-items-center mb-2"}>
 			<Form.Label as="span" column>
 				Ballot type/number:
 			</Form.Label>
 			<Col xs="auto">
-				<Row className="justify-content-end">
+				<Row className={"justify-content-end" + " " + cn}>
 					{Object.values(BallotType).map((type) => (
 						<BallotTypeNumberCol
 							key={type}
 							type={type}
 							ballot={ballot}
+							original={original}
 							updateBallot={updateBallot}
 							readOnly={readOnly}
 						/>

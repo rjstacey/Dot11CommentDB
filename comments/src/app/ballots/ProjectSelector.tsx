@@ -32,6 +32,14 @@ function SelectProject({
 	}, [existingOptions, groupId]);
 
 	const values = options.filter((o) => value === o.project);
+	if (value && values.length === 0) {
+		const option: GroupProjectOption = {
+			groupId: groupId,
+			project: value,
+			label: value,
+		};
+		setOptions(options.concat(option));
+	}
 
 	const handleChange = (values: typeof options) =>
 		onChange((values.length > 0 && values[0].project) || "");

@@ -89,7 +89,7 @@ export function BallotEditForm({
 		setEdited((edited) => ({ ...edited!, ...changes }));
 	};
 
-	if (!edited) return null;
+	if (!edited || !saved) return null;
 
 	let ballot: Ballot | undefined;
 	if (ballots.length === 1 && !hasChanges) ballot = ballots[0];
@@ -124,6 +124,7 @@ export function BallotEditForm({
 			>
 				<BallotEdit
 					ballot={edited}
+					original={saved}
 					updateBallot={handleUpdate}
 					readOnly={readOnly}
 				/>

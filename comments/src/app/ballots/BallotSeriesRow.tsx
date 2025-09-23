@@ -40,10 +40,12 @@ const selectBallotSeries = createSelector(
 
 export function BallotSeriesRow({
 	ballot,
+	original,
 	updateBallot,
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
+	original?: Multiple<Ballot>;
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
@@ -64,6 +66,11 @@ export function BallotSeriesRow({
 		</span>
 	));
 
+	const cn =
+		original && original.IsComplete !== ballot.IsComplete
+			? "has-changes"
+			: "";
+
 	return (
 		<Form.Group as={Row} className="mb-2" readOnly={readOnly}>
 			<Form.Label as="span" column>
@@ -75,7 +82,7 @@ export function BallotSeriesRow({
 			>
 				<div>{ballotSeriesStr}</div>
 				<Form.Check
-					className="me-2"
+					className={cn + " me-2"}
 					label="Final in series"
 					checked={Boolean(ballot.IsComplete)}
 					onChange={

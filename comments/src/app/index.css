@@ -115,3 +115,7 @@ main {
 		}
 	}
 }
+
+.has-changes {
+	background-color: ivory;
+}
