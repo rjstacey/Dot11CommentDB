@@ -62,8 +62,8 @@ function ePollToBallot(
 		ballot.Type = m1[1] === "CC" ? BallotType.CC : BallotType.WG;
 		ballot.number = Number(m1[2]);
 	}
-	// Get project and document version; see if the ePoll name has something like "P802.11ax/D4.0" or "P802.11bn 3.2"
-	const m2 = epoll.name.match(/(P802[^\s]*)[\s/]+(D{0,1}[\d.]+)/);
+	// Get project and document version; see if the ePoll topic has something like "P802.11ax/D4.0" or "P802.11bn 3.2"
+	const m2 = epoll.topic.match(/(P802[^\s]*)[\s/]+(D{0,1}\d+(.\d+)*)/);
 	if (m2) {
 		ballot.Project = m2[1];
 		ballot.Document = m2[2];
