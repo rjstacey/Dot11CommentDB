@@ -68,7 +68,7 @@ function VotersActions() {
 					Export voters
 				</Button>
 				<Button
-					variant="outline-primary"
+					variant="outline-secondary"
 					className="bi-arrow-repeat"
 					name="refresh"
 					title="Refresh"

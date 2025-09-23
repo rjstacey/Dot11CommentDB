@@ -9,17 +9,19 @@ import {
 	Ballot,
 } from "@/store/ballots";
 
-import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import { BallotEdit } from "./BallotEdit";
+import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 export function BallotAddForm({
 	defaultBallot,
 	close,
 	setBusy,
+	readOnly,
 }: {
 	defaultBallot: Ballot;
-	close: () => void;
+	close?: () => void;
 	setBusy: (busy: boolean) => void;
+	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
 	const formRef = React.useRef<HTMLFormElement>(null);
@@ -45,7 +47,11 @@ export function BallotAddForm({
 			dispatch(setSelectedBallots([b.id]));
 		}
 		setBusy(false);
-		close();
+		close?.();
+	};
+
+	const handleCancel = () => {
+		setBallot(defaultBallot);
 	};
 
 	return (
@@ -57,11 +63,13 @@ export function BallotAddForm({
 				}
 				readOnly={false}
 			/>
-			<SubmitCancelRow
-				submitLabel="Add"
-				cancel={close}
-				disabled={!formValid}
-			/>
+			{!readOnly && (
+				<SubmitCancelRow
+					submitLabel="Add"
+					cancel={handleCancel}
+					disabled={!formValid}
+				/>
+			)}
 		</Form>
 	);
 }

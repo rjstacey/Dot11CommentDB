@@ -34,7 +34,7 @@ export function BallotProjectRow({
 					isInvalid={!ballot.Project && !isMultiple(ballot.Project)}
 				/>
 				<Form.Control.Feedback type="invalid" tooltip>
-					Select and existing or add a new project (e.g., P802.11bn)
+					Select an existing or add a new project (e.g., P802.11bn)
 				</Form.Control.Feedback>
 			</Col>
 		</Form.Group>

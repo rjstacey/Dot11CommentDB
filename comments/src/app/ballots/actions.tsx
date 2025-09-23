@@ -27,7 +27,7 @@ export function BallotActions() {
 			/>
 			<Col className="d-flex justify-content-end gap-2">
 				<Button
-					variant="outline-primary"
+					variant="outline-secondary"
 					className="bi-arrow-repeat"
 					title="Refresh"
 					onClick={refresh}

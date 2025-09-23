@@ -1,11 +1,6 @@
 import React from "react";
 import { Form } from "react-bootstrap";
-import {
-	Multiple,
-	shallowDiff,
-	deepMergeTagMultiple,
-	useDebounce,
-} from "@common";
+import { Multiple, shallowDiff, deepMergeTagMultiple } from "@common";
 
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -13,24 +8,33 @@ import {
 	setCurrentGroupProject,
 	Ballot,
 	BallotChange,
-	BallotUpdate,
 } from "@/store/ballots";
 
 import { BallotEdit } from "./BallotEdit";
+import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import VotersActions from "./VotersActions";
 import ResultsActions from "./ResultsActions";
 import CommentsActions from "./CommentsActions";
 
 export function BallotEditForm({
 	ballots,
+	defaultEdited,
 	readOnly,
 	setBusy,
 }: {
 	ballots: Ballot[];
+	defaultEdited?: Ballot;
 	readOnly?: boolean;
 	setBusy: (busy: boolean) => void;
 }) {
 	const dispatch = useAppDispatch();
+	const formRef = React.useRef<HTMLFormElement>(null);
+	const [formValid, setFormValid] = React.useState(false);
+
+	React.useLayoutEffect(() => {
+		const formValid = formRef.current?.checkValidity() || false;
+		setFormValid(formValid);
+	});
 
 	const [edited, setEdited] = React.useState<Multiple<Ballot> | null>(null);
 	const [saved, setSaved] = React.useState<Multiple<Ballot> | null>(null);
@@ -46,45 +50,51 @@ export function BallotEditForm({
 		ballots.forEach((ballot) => {
 			diff = deepMergeTagMultiple(diff || {}, ballot) as Multiple<Ballot>;
 		});
-		setEdited(diff);
+		setEdited(defaultEdited ? defaultEdited : diff);
 		setSaved(diff);
 		setEditedBallots(ballots);
 	}, [ballots, editedBallots]);
 
-	const triggerSave = useDebounce(() => {
+	const hasChanges = React.useMemo(() => {
 		const changes = shallowDiff(saved!, edited!) as BallotChange;
-		let updates: BallotUpdate[] = [];
+		return Object.keys(changes).length > 0;
+	}, [saved, edited]);
+
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		if (!hasChanges) return;
+		const changes = shallowDiff(saved!, edited!) as BallotChange;
 		if (Object.keys(changes).length > 0) {
-			updates = ballots.map((b) => ({ id: b.id, changes }));
-			dispatch(updateBallots(updates));
+			setBusy(true);
+			const updates = ballots.map((b) => ({ id: b.id, changes }));
+			await dispatch(updateBallots(updates));
+			if (changes.groupId || changes.Project) {
+				dispatch(
+					setCurrentGroupProject({
+						groupId: edited!.groupId,
+						project: edited!.Project,
+					})
+				);
+			}
+			setSaved(edited);
+			setBusy(false);
 		}
-		if (changes.groupId || changes.Project) {
-			dispatch(
-				setCurrentGroupProject({
-					groupId: edited!.groupId,
-					project: edited!.Project,
-				})
-			);
-		}
-		setSaved(edited);
-	});
+	};
+
+	const handleCancel = () => {
+		setEdited(saved);
+	};
 
 	const handleUpdate = (changes: BallotChange) => {
-		if (readOnly) {
-			console.warn("Ballot update while read-only");
-			return;
-		}
-		// merge in the edits and trigger a debounced save
 		setEdited((edited) => ({ ...edited!, ...changes }));
-		triggerSave();
 	};
 
 	if (!edited) return null;
 
 	let ballot: Ballot | undefined;
-	if (ballots.length === 1) ballot = ballots[0];
+	if (ballots.length === 1 && !hasChanges) ballot = ballots[0];
 
-	const actions = ballot ? (
+	const ballotActions = ballot ? (
 		<>
 			<VotersActions
 				ballot={ballot}
@@ -106,14 +116,26 @@ export function BallotEditForm({
 
 	return (
 		<>
-			<Form style={{ pointerEvents: readOnly ? "none" : undefined }}>
+			<Form
+				ref={formRef}
+				noValidate
+				onSubmit={handleSubmit}
+				style={{ pointerEvents: readOnly ? "none" : undefined }}
+			>
 				<BallotEdit
 					ballot={edited}
 					updateBallot={handleUpdate}
 					readOnly={readOnly}
 				/>
+				{!readOnly && hasChanges && (
+					<SubmitCancelRow
+						submitLabel="Update"
+						cancel={handleCancel}
+						disabled={!formValid}
+					/>
+				)}
 			</Form>
-			{actions}
+			{ballotActions}
 		</>
 	);
 }

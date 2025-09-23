@@ -12,7 +12,7 @@ import debounce from "lodash.debounce";
 import styles from "./select.module.css";
 
 const Content = (props: React.ComponentProps<"button">) => (
-	<button className="content" {...props} />
+	<button className="content" type="button" {...props} />
 );
 const Loading = (props: React.ComponentProps<"div">) => (
 	<div className="loading" {...props} />

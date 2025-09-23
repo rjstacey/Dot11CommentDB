@@ -81,8 +81,6 @@
 }
 
 .select .placeholder {
-	position: absolute;
-	padding-left: 1ch;
 	font-style: italic;
 	color: GrayText;
 }

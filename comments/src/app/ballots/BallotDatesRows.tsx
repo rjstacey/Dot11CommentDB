@@ -26,9 +26,13 @@ function shortDateToDate(shortDateStr: string) {
 	const easternDate = new Date(
 		date.toLocaleString("en-US", { timeZone: "America/New_York" })
 	);
+	//console.log("easternDate", easternDate.toISOString());
 	const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
 	const diff = utcDate.getTime() - easternDate.getTime();
 	const newDate = new Date(date.getTime() + diff);
+	console.log(
+		newDate.toLocaleString("en-US", { timeZone: "America/New_York" })
+	);
 	return isNaN(newDate.getTime()) ? null : newDate.toISOString();
 }
 

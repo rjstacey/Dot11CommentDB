@@ -6,7 +6,7 @@ export function BallotsSubmenu(props: React.ComponentProps<typeof Col>) {
 	const epollsShown = /epolls$/.test(location.pathname);
 
 	return (
-		<Col className="align-items-center m-3" {...props}>
+		<Col className="align-items-center" {...props}>
 			<Nav variant="underline">
 				<Nav.Link
 					as={Link}

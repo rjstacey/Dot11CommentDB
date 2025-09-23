@@ -16,7 +16,10 @@ import { Epoll, epollsSchema } from "@schemas/epolls";
 
 export type { Epoll };
 
-export type SyncedEpoll = Epoll & { InDatabase: boolean };
+export type SyncedEpoll = Epoll & {
+	InDatabase: boolean;
+	ballot_id: number | null;
+};
 
 export const fields: Fields = {
 	id: { label: "ePoll", type: FieldType.NUMERIC },
@@ -26,6 +29,10 @@ export const fields: Fields = {
 	document: { label: "Document" },
 	topic: { label: "Topic" },
 	resultsSummary: { label: "Result", type: FieldType.NUMERIC },
+	ballot_id: {
+		label: "Already Present",
+		dataRenderer: (v) => (v ? "Yes" : "No"),
+	},
 };
 
 const initialState = {
@@ -96,10 +103,16 @@ export const selectSyncedEntities = createSelector(
 	(ballotEntities, epollEntities) => {
 		const syncedEntities: Dictionary<SyncedEpoll> = {};
 		for (const id of Object.keys(epollEntities))
-			syncedEntities[id] = { ...epollEntities[id]!, InDatabase: false };
+			syncedEntities[id] = {
+				...epollEntities[id]!,
+				InDatabase: false,
+				ballot_id: null,
+			};
 		for (const b of Object.values(ballotEntities)) {
-			if (b!.EpollNum && syncedEntities[b!.EpollNum])
+			if (b!.EpollNum && syncedEntities[b!.EpollNum]) {
 				syncedEntities[b!.EpollNum]!.InDatabase = true;
+				syncedEntities[b!.EpollNum]!.ballot_id = b!.id;
+			}
 		}
 		return syncedEntities;
 	}
