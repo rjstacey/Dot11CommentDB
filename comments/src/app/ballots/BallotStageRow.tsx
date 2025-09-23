@@ -79,7 +79,9 @@ export function BallotStageRow({
 													prev_id: null,
 											  }
 											: {
-													prev_id: prevBallot!.id,
+													prev_id: prevBallot
+														? prevBallot.id
+														: null,
 											  }
 									)
 					}
@@ -98,7 +100,9 @@ export function BallotStageRow({
 									updateBallot(
 										e.target.checked
 											? {
-													prev_id: prevBallot!.id,
+													prev_id: prevBallot
+														? prevBallot.id
+														: null,
 											  }
 											: {
 													prev_id: null,
@@ -108,6 +112,7 @@ export function BallotStageRow({
 					ref={(ref) =>
 						ref && (ref.indeterminate = isMultiple(ballot.prev_id))
 					}
+					disabled={!prevBallot}
 				/>
 			</Col>
 		</Row>
