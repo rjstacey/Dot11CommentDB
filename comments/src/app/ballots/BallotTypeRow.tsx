@@ -47,13 +47,15 @@ function BallotTypeNumberCol({
 }) {
 	const id = isMultiple(ballot.id) ? 0 : ballot.id;
 	const nextNumber = useNextBallotNumber(id, type);
-	const defaultNumber =
-		!isMultiple(ballot.Type) &&
-		!isMultiple(ballot.number) &&
-		ballot.Type === type
-			? ballot.number
-			: nextNumber;
+	let defaultNumber = 0;
+	if (!isMultiple(ballot.Type) && !isMultiple(ballot.number)) {
+		defaultNumber = ballot.Type === type ? ballot.number : nextNumber;
+	}
 	const [ballotNumber, setBallotNumber] = React.useState(defaultNumber);
+
+	React.useEffect(() => {
+		if (original === ballot) setBallotNumber(defaultNumber);
+	}, [original, ballot]);
 
 	function updateBallotType(type: number) {
 		if (type !== ballot.Type) {
