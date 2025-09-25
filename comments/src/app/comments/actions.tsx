@@ -18,7 +18,7 @@ import {
 import { selectIsOnline } from "@/store/offline";
 
 import ProjectBallotSelector from "@/components/ProjectBallotSelector";
-import { tableColumns } from "./table";
+import { tableColumns } from "./tableColumns";
 
 function CommentsActions() {
 	const dispatch = useAppDispatch();
