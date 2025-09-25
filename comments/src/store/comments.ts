@@ -444,11 +444,6 @@ export const loadComments =
 		return loadingPromise;
 	};
 
-export const refreshComments = (): AppThunk => async (dispatch, getState) => {
-	const ballot_id = selectCommentsState(getState()).ballot_id;
-	dispatch(ballot_id ? loadComments(ballot_id, true) : clearComments());
-};
-
 export const getCommentUpdates = (): AppThunk => async (dispatch, getState) => {
 	const state = getState();
 	const ballot_id = selectCommentsBallot_id(state);

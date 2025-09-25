@@ -9,10 +9,15 @@ import {
 } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 
-import { useAppDispatch } from "@/store/hooks";
-import { uploadResolutions } from "@/store/comments";
-import type { FieldToUpdate, MatchAlgo, MatchUpdate } from "@/store/comments";
-import { getBallotId, Ballot } from "@/store/ballots";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+	type FieldToUpdate,
+	type MatchAlgo,
+	type MatchUpdate,
+	selectCommentsBallot_id,
+	uploadResolutions,
+} from "@/store/comments";
+import { getBallotId, Ballot, selectBallot } from "@/store/ballots";
 
 const importFieldOptions: {
 	value: FieldToUpdate;
@@ -343,14 +348,13 @@ function CommentsImportDropdown({
 	);
 }
 
-function CommentsImport({
-	ballot,
-	disabled,
-}: {
-	ballot?: Ballot;
-	disabled?: boolean;
-}) {
+function CommentsImport({ disabled }: { disabled?: boolean }) {
 	const [show, setShow] = React.useState(false);
+	const ballot_id = useAppSelector(selectCommentsBallot_id);
+	const ballot = useAppSelector((state) =>
+		ballot_id ? selectBallot(state, ballot_id) : undefined
+	);
+
 	return (
 		<DropdownButton
 			variant="light"

@@ -1,11 +1,10 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { refreshComments } from "@/store/comments";
+import { useAppSelector } from "@/store/hooks";
+import { refresh } from "../comments/loader";
 import { selectIsOnline } from "@/store/offline";
 import ProjectBallotSelector from "@/components/ProjectBallotSelector";
 
 function ReportsActions({ onCopy }: { onCopy: () => void }) {
-	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
 
 	return (
@@ -23,7 +22,7 @@ function ReportsActions({ onCopy }: { onCopy: () => void }) {
 					variant="outline-secondary"
 					className="bi-arrow-repeat"
 					title="Refresh"
-					onClick={() => dispatch(refreshComments())}
+					onClick={refresh}
 					disabled={!isOnline}
 				/>
 			</Col>

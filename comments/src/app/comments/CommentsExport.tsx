@@ -8,13 +8,14 @@ import {
 	Spinner,
 } from "react-bootstrap";
 
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	exportCommentsSpreadsheet,
 	CommentsExportFormat,
 	CommentsExportStyle,
+	selectCommentsBallot_id,
 } from "@/store/comments";
-import { getBallotId, Ballot } from "@/store/ballots";
+import { getBallotId, Ballot, selectBallot } from "@/store/ballots";
 
 const spreadsheetFormatOptions: {
 	value: CommentsExportFormat;
@@ -222,14 +223,12 @@ function CommentsExportDropdown({
 	);
 }
 
-function CommentsExport({
-	ballot,
-	disabled,
-}: {
-	ballot?: Ballot;
-	disabled?: boolean;
-}) {
+function CommentsExport({ disabled }: { disabled?: boolean }) {
 	const [show, setShow] = React.useState(false);
+	const ballot_id = useAppSelector(selectCommentsBallot_id);
+	const ballot = useAppSelector((state) =>
+		ballot_id ? selectBallot(state, ballot_id) : undefined
+	);
 	return (
 		<DropdownButton
 			variant="light"
