@@ -20,6 +20,8 @@ import {
 import CommentDetail from "./CommentDetail";
 import { renderMBS, renderCommenter, renderCategory } from "./CommentBasics";
 import { renderSubmission } from "./SubmissionSelect";
+import { useAppSelector } from "@/store/hooks";
+import { selectBallotsState } from "@/store/ballots";
 import {
 	fields,
 	commentsSelectors,
@@ -255,16 +257,15 @@ const renderHeaderCellStacked2 = (props: HeaderCellRendererProps) => (
 	</>
 );
 
-const renderDataCellStacked2 = ({
-	rowData,
-}: {
-	rowData: CommentResolution;
-}) => (
-	<>
-		<div>{rowData.AssigneeName}</div>
-		<div>{renderSubmission(rowData["Submission"])}</div>
-	</>
-);
+function renderDataCellStacked2({ rowData }: { rowData: CommentResolution }) {
+	const { groupName } = useAppSelector(selectBallotsState);
+	return (
+		<>
+			<div>{rowData.AssigneeName}</div>
+			<div>{renderSubmission(groupName, rowData["Submission"])}</div>
+		</>
+	);
+}
 
 const renderHeaderCellStacked3 = (props: HeaderCellRendererProps) => (
 	<>
@@ -547,7 +548,6 @@ function commentsRowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 	comment = {
 		...comment,
 		Status: getCommentStatus(comment),
-		//CID: getCID(comment),
 	};
 	if (rowIndex === 0) return comment;
 	const prevComment = entities[ids[rowIndex - 1]];
