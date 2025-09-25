@@ -78,7 +78,7 @@ export function ResolutionRow({
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
-	let className = styles.resolutionContainer;
+	let className = styles.resolutionEditContainer;
 	if (!isMultiple(resolution.ResnStatus)) {
 		if (resolution.ResnStatus === "A") className += " accepted";
 		else if (resolution.ResnStatus === "V") className += " revised";

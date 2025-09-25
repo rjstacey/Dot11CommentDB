@@ -26,9 +26,11 @@
 .notesField,
 .resolutionField,
 .editingField {
-	width: 100%;
 	position: relative; /* position toolbar */
+}
 
+.notesField,
+.editingField {
 	& :global(.accordion-button) {
 		--bs-accordion-btn-padding-y: 0;
 		--bs-accordion-btn-padding-x: 0;
@@ -46,15 +48,14 @@
 	}
 }
 
-.resolutionContainer:hover:not(:global(.readonly)) > div {
-	border-color: #0074d9;
-}
-
+.resolutionEditContainer,
 .resolutionContainer {
 	--bg-color-accepted: #d3ecd3;
 	--bg-color-revised: #f9ecb9;
 	--bg-color-rejected: #f3c0c0;
+}
 
+.resolutionEditContainer {
 	& .resolutionStatus,
 	& .resolutionEditor {
 		background-color: var(--bs-body-bg);
@@ -72,6 +73,11 @@
 	&:global(.rejected) .resolutionStatus,
 	&:global(.rejected) .resolutionEditor {
 		background-color: var(--bg-color-rejected);
+	}
+
+	&:hover:not(:global(.readonly)) .resolutionStatus,
+	&:hover:not(:global(.readonly)) .resolutionEditor {
+		border-color: #0074d9;
 	}
 }
 
@@ -130,6 +136,14 @@
 	}
 }
 
-.editor {
-	color: unset;
+.resolutionContainer {
+	&:global(.accepted) {
+		background-color: var(--bg-color-accepted);
+	}
+	&:global(.revised) {
+		background-color: var(--bg-color-revised);
+	}
+	&:global(.rejected) {
+		background-color: var(--bg-color-rejected);
+	}
 }

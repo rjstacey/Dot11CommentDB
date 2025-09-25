@@ -98,18 +98,16 @@ const renderDataCellEditing = ({ rowData }: { rowData: CommentResolution }) => (
 const resnStatusRenderer = (resnStatus: ResnStatusType | null) =>
 	resnStatus ? resnStatusMap[resnStatus] : "";
 
-const resnColor: Record<ResnStatusType, string> = {
-	"": "#fafafa",
-	A: "#d3ecd3",
-	V: "#f9ecb9",
-	J: "#f3c0c0",
-} as const;
-
 function renderDataCellResolution({ rowData }: { rowData: CommentResolution }) {
 	const resnStatus = rowData["ResnStatus"];
-	const backgroundColor = resnStatus ? resnColor[resnStatus] : "";
+
+	let className = styles.resolutionContainer;
+	if (resnStatus === "A") className += " accepted";
+	else if (resnStatus === "V") className += " revised";
+	else if (resnStatus === "J") className += " rejected";
+
 	return (
-		<div className={styles.editor} style={{ backgroundColor }}>
+		<div className={className}>
 			<div>{resnStatusRenderer(resnStatus)}</div>
 			<div
 				dangerouslySetInnerHTML={{
