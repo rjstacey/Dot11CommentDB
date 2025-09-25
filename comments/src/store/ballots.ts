@@ -105,6 +105,9 @@ export function getBallotId(ballot: Ballot) {
 	return ballot.id.toString();
 }
 
+export const getEncodedBallotId = (ballot: Ballot) =>
+	encodeURIComponent(getBallotId(ballot));
+
 export function getField(entity: Ballot, dataKey: string) {
 	if (dataKey === "Stage") {
 		if (entity.Type === BallotType.SA || entity.Type === BallotType.WG) {
@@ -274,7 +277,7 @@ export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
 		const n = Number(m[2]);
 		return ballots.find((b) => b.Type === type && b.number === n);
 	}
-	m = ballotId.match(/([a-zA-Z0-9.]+)-(I|R)(\d*)/);
+	m = ballotId.match(/(.+)-(I|R)(\d*)/);
 	if (m) {
 		const project = m[1];
 		let stage = 0;

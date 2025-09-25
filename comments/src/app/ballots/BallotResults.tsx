@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";
 import {
-	getBallotId,
+	getEncodedBallotId,
 	selectBallotsAccess,
 	BallotType,
 	Ballot,
@@ -27,7 +27,7 @@ export function BallotResults({ ballot }: { ballot: Ballot }) {
 		if (!str) str = "None";
 	}
 	return access >= AccessLevel.admin ? (
-		<Link to={`../results/${getBallotId(ballot)}`}>{str}</Link>
+		<Link to={`../results/${getEncodedBallotId(ballot)}`}>{str}</Link>
 	) : (
 		<>{str}</>
 	);

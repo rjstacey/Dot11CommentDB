@@ -17,7 +17,8 @@ function useMenuLinks() {
 	const group = useAppSelector((state) =>
 		groupName ? selectTopLevelGroupByName(state, groupName) : undefined
 	);
-	const ballotId = useAppSelector(selectCurrentBallotID);
+	let ballotId = useAppSelector(selectCurrentBallotID);
+	if (ballotId) ballotId = encodeURIComponent(ballotId);
 
 	// Only display links for which the user has permissions
 	// Replace params with the current setting

@@ -72,6 +72,8 @@
 }
 
 .select button:global(.content) {
+	display: flex;
+	flex-wrap: wrap;
 	appearance: none;
 	border: none;
 	background: none;

@@ -20,6 +20,7 @@ import { selectGroupEntities } from "@/store/groups";
 import {
 	fields,
 	getBallotId,
+	getEncodedBallotId,
 	selectBallotsAccess,
 	ballotsSelectors,
 	ballotsActions,
@@ -118,7 +119,7 @@ function BallotVoters({ ballot }: { ballot: Ballot }) {
 
 	if (ballotInitial.Type === BallotType.WG && !ballotInitial.prev_id) {
 		return access >= AccessLevel.admin ? (
-			<Link to={`../voters/${getBallotId(ballot)}`}>
+			<Link to={`../voters/${getEncodedBallotId(ballot)}`}>
 				{ballotInitial.Voters}
 			</Link>
 		) : (

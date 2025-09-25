@@ -4,7 +4,7 @@ import { Row, Col, Form, DropdownButton } from "react-bootstrap";
 import { VotersImportForm } from "../voters/VotersImport";
 import { useAppSelector } from "@/store/hooks";
 import {
-	getBallotId,
+	getEncodedBallotId,
 	selectBallotsWorkingGroup,
 	Ballot,
 	BallotType,
@@ -56,7 +56,7 @@ function VotersActions({
 				</Form.Label>
 				<Col xs="auto">
 					<Link
-						to={`/${workingGroup.name}/voters/${getBallotId(
+						to={`/${workingGroup.name}/voters/${getEncodedBallotId(
 							ballot
 						)}`}
 					>

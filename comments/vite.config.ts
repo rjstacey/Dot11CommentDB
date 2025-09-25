@@ -28,7 +28,7 @@ export default defineConfig(({ command, mode }) => {
 							"redux-persist",
 							"@redux-offline/redux-offline",
 						],
-						luxon: ["luxon"],
+						//luxon: ["luxon"],
 						//editor: ["lexical"],
 						common: ["@common"],
 						store: ["./src/store"],

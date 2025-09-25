@@ -9,7 +9,6 @@ import {
 	selectBallotIds,
 	selectBallotEntities,
 } from "@/store/ballots";
-import { DateTime } from "luxon";
 import { createSelector } from "@reduxjs/toolkit";
 import { RootState } from "@/store";
 
@@ -26,14 +25,14 @@ const selectPrevBallot = createSelector(
 					b.Type === ballot.Type &&
 					b.groupId === ballot.groupId &&
 					b.Project === ballot.Project &&
-					DateTime.fromISO(b.Start!) <
-						DateTime.fromISO(ballot.Start!) &&
+					new Date(b.Start!).getTime() <
+						new Date(ballot.Start!).getTime() &&
 					b.id !== ballot.id
 			)
 			.sort(
 				(b1, b2) =>
-					DateTime.fromISO(b1.Start!).valueOf() -
-					DateTime.fromISO(b2.Start!).valueOf()
+					new Date(b1.Start!).getTime() -
+					new Date(b2.Start!).getTime()
 			);
 		if (prevBallots.length > 0) return prevBallots[prevBallots.length - 1];
 	}

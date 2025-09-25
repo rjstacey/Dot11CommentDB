@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 
-import { getBallotId, Ballot } from "@/store/ballots";
+import { getEncodedBallotId, Ballot } from "@/store/ballots";
 
 export function BallotComments({ ballot }: { ballot: Ballot }) {
 	const comments = ballot.Comments;
@@ -8,5 +8,5 @@ export function BallotComments({ ballot }: { ballot: Ballot }) {
 		comments && comments.Count > 0
 			? `${comments.CommentIDMin}-${comments.CommentIDMax} (${comments.Count})`
 			: "None";
-	return <Link to={`../comments/${getBallotId(ballot)}`}>{str}</Link>;
+	return <Link to={`../comments/${getEncodedBallotId(ballot)}`}>{str}</Link>;
 }

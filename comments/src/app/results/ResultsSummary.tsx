@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Container, DropdownButton, Button } from "react-bootstrap";
+import { Container, Row, Col, DropdownButton, Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 
@@ -200,11 +200,21 @@ const saResultsRenderer: (Label | ResultRender)[] = saHeaderRenderer
 		{ value: overallPassStr, style: (b) => passFailStyle(overallPass(b)) },
 	]);
 
+const ccHeaderRenderer: (Label | ResultRender)[] = [
+	{ value: getBallotId, style: () => ({ textAlign: "center" }) },
+];
+
+const ccResultsRenderer: (Label | ResultRender)[] = ccHeaderRenderer
+	.concat(basicsRenderer)
+	.concat([
+		"Result",
+		{ label: "Comments:", value: (b) => b.Comments?.Count || 0 },
+	]);
+
 function longSummaryHtml(ballots: Ballot[]) {
-	const renderer =
-		ballots[0].Type === BallotType.SA
-			? saResultsRenderer
-			: wgResultsRenderer;
+	let renderer = ccResultsRenderer;
+	if (ballots[0].Type === BallotType.SA) renderer = saResultsRenderer;
+	else if (ballots[0].Type === BallotType.WG) renderer = wgResultsRenderer;
 	const rows = renderer.map((r) => {
 		if (typeof r === "string") {
 			const style: React.CSSProperties = {
@@ -257,10 +267,9 @@ function longSummaryHtml(ballots: Ballot[]) {
 }
 
 function LongSummary({ ballots }: { ballots: Ballot[] }) {
-	const renderer =
-		ballots[0].Type === BallotType.SA
-			? saResultsRenderer
-			: wgResultsRenderer;
+	let renderer = ccResultsRenderer;
+	if (ballots[0].Type === BallotType.SA) renderer = saResultsRenderer;
+	else if (ballots[0].Type === BallotType.WG) renderer = wgResultsRenderer;
 	const labelCol = renderer.map((r, y) => {
 		let gridColumn: string = "1";
 		let s: string | undefined;
@@ -304,15 +313,18 @@ function LongSummary({ ballots }: { ballots: Ballot[] }) {
 	});
 
 	const html = longSummaryHtml(ballots);
-	console.log(html);
 
 	return (
 		<Container className={styles.container}>
-			<Button
-				variant="outline-secondary"
-				className="bi-copy ms-auto"
-				onClick={() => copyHtmlToClipboard(html)}
-			/>
+			<Row>
+				<Col className="d-flex justify-content-end">
+					<Button
+						variant="outline-secondary"
+						className="bi-copy"
+						onClick={() => copyHtmlToClipboard(html)}
+					/>
+				</Col>
+			</Row>
 			<div
 				className={styles.grid}
 				style={{

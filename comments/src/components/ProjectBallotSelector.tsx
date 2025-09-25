@@ -6,6 +6,7 @@ import { Select } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	getBallotId,
+	getEncodedBallotId,
 	setCurrentGroupProject,
 	setCurrentBallot_id,
 	selectBallotsState,
@@ -122,14 +123,14 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 
 	const handleProjectChange = async (groupProject: GroupProject) => {
 		const ballot = await dispatch(setCurrentGroupProject(groupProject));
-		const ballotId = ballot ? getBallotId(ballot) : undefined;
-		navigate(ballotId || "");
+		const ballotId = ballot ? getEncodedBallotId(ballot) : "";
+		navigate(ballotId);
 	};
 
 	const handleBallotChange = async (value: number | null) => {
 		const ballot = await dispatch(setCurrentBallot_id(value));
-		const ballotId = ballot ? getBallotId(ballot) : undefined;
-		navigate(ballotId || "");
+		const ballotId = ballot ? getEncodedBallotId(ballot) : "";
+		navigate(ballotId);
 	};
 
 	return (
