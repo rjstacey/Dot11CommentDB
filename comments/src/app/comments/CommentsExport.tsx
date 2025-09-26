@@ -171,7 +171,7 @@ function CommentsExportDropdown({
 				</Col>
 			</Row>
 			<Form.Group as={Row} controlId="spreadsheet-file" className="mb-2">
-				<Form.Label>Spreadsheet file:</Form.Label>
+				<Form.Label>Update existing spreadsheet file:</Form.Label>
 				<Col>
 					<Form.Control
 						type="file"
@@ -186,7 +186,11 @@ function CommentsExportDropdown({
 					</Form.Control.Feedback>
 					{format !== "myproject" && (
 						<Form.Text>
-							Optionally select a spreadsheet file to update
+							Optionally select a spreadsheet file to update,
+							e.g., a previous version with sheets for title and
+							revision history. If selected, the comments will
+							replace existing sheets or be appended as a new
+							sheets.
 						</Form.Text>
 					)}
 				</Col>
@@ -199,7 +203,7 @@ function CommentsExportDropdown({
 						title='Delete sheets (except for the "Title" and "Revision History" sheets).'
 						checked={!appendSheets}
 						onChange={() => setAppendSheets(false)}
-						label="Replace sheets (except Title and Revision History"
+						label="Delete sheets (except Title and Revision History) and then append"
 					/>
 					<Form.Check
 						type="radio"
@@ -207,7 +211,7 @@ function CommentsExportDropdown({
 						title="Replace existing sheets with same name or append as new sheets."
 						checked={Boolean(appendSheets)}
 						onChange={() => setAppendSheets(true)}
-						label="Append as new sheets"
+						label="Replace or append as new sheets but don't delete existing sheets."
 					/>
 				</Form.Group>
 			)}
