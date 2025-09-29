@@ -120,6 +120,10 @@ router.use("/:groupName/epolls", parseGroupName, epolls); // Access to ePolls ba
 
 async function parseBallot_id(req: Request, res: Response, next: NextFunction) {
 	const ballot_id = Number(req.params.ballot_id);
+	if (isNaN(ballot_id))
+		return res
+			.status(404)
+			.send("path parameter ballot_id not a number");
 	const ballot = await getBallot(ballot_id);
 	if (!ballot)
 		return next(new NotFoundError(`Ballot ${ballot_id} does not exist`));
@@ -140,10 +144,10 @@ async function parseBallot_id(req: Request, res: Response, next: NextFunction) {
 	next();
 }
 
-router.use("/voters/:ballot_id(\\d+)", parseBallot_id, voters); // Ballot voters
-router.use("/results/:ballot_id(\\d+)", parseBallot_id, results); // Ballot results
-router.use("/comments/:ballot_id(\\d+)", parseBallot_id, comments); // Ballot comments
-router.use("/resolutions/:ballot_id(\\d+)", parseBallot_id, resolutions); // Comment resolutions
-router.use("/commentHistory/:ballot_id(\\d+)", parseBallot_id, commentHistory); // Comment change history
+router.use("/voters/:ballot_id", parseBallot_id, voters); // Ballot voters
+router.use("/results/:ballot_id", parseBallot_id, results); // Ballot results
+router.use("/comments/:ballot_id", parseBallot_id, comments); // Ballot comments
+router.use("/resolutions/:ballot_id", parseBallot_id, resolutions); // Comment resolutions
+router.use("/commentHistory/:ballot_id", parseBallot_id, commentHistory); // Comment change history
 
 export default router;

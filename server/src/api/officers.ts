@@ -78,7 +78,7 @@ async function removeMany(req: Request, res: Response, next: NextFunction) {
 
 const router = Router();
 router
-	.all("*", validatePermissions)
+	.all(/(.*)/, validatePermissions)
 	.route("/")
 	.get(get)
 	.post(addMany)

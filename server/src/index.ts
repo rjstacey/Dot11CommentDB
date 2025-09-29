@@ -129,7 +129,7 @@ function initExpressApp() {
 	if (process.env.NODE_ENV === "development") app.use(requestLog);
 
 	// Default is to expire immediately
-	app.all("*", (req, res, next) => {
+	app.all(/(.*)/, (req, res, next) => {
 		res.setHeader("Cache-Control", "max-age=0");
 		next();
 	});
@@ -170,16 +170,16 @@ function initExpressApp() {
 	app.get("/logout", (req, res) =>
 		res.sendFile(path.join(__dirname, devdir, "auth/logout.html"))
 	);
-	app.get("/comments*", (req, res) =>
+	app.get("/comments", (req, res) =>
 		res.sendFile(path.join(__dirname, devdir, "comments/index.html"))
 	);
-	app.get("/membership*", (req, res) =>
+	app.get("/membership", (req, res) =>
 		res.sendFile(path.join(__dirname, devdir, "membership/index.html"))
 	);
-	app.get("/meetings*", (req, res) =>
+	app.get("/meetings", (req, res) =>
 		res.sendFile(path.join(__dirname, devdir, "meetings/index.html"))
 	);
-	app.get("/polling*", (req, res) =>
+	app.get("/polling", (req, res) =>
 		res.sendFile(path.join(__dirname, devdir, "polling/index.html"))
 	);
 	app.get("/", (req, res) =>

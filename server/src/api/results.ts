@@ -126,7 +126,7 @@ function getExport(req: Request, res: Response, next: NextFunction) {
 const upload = Multer();
 const router = Router();
 
-router.all("*", validatePermissions);
+router.all(/(.*)/, validatePermissions);
 router
 	.get("/export", getExport)
 	.post("/import", postImport)

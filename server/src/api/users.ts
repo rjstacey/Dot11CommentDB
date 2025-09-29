@@ -20,6 +20,6 @@ function get(req: Request, res: Response, next: NextFunction) {
 }
 
 const router = Router();
-router.all("*", validatePermissions).get("/", get);
+router.all(/(.*)/, validatePermissions).get("/", get);
 
 export default router;

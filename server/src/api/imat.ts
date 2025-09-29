@@ -89,6 +89,10 @@ async function getMeetings(req: Request, res: Response, next: NextFunction) {
 async function getBreakouts(req: Request, res: Response, next: NextFunction) {
 	const { user, params } = req;
 	const imatMeetingId = Number(params.imatMeetingId);
+	if (isNaN(imatMeetingId))
+		return res
+			.status(404)
+			.send("path parameter imatMeetingId not a number");
 	try {
 		const data = await getImatBreakouts(user, imatMeetingId);
 		res.json(data);
@@ -100,6 +104,10 @@ async function getBreakouts(req: Request, res: Response, next: NextFunction) {
 async function addBreakouts(req: Request, res: Response, next: NextFunction) {
 	const { user, params, body } = req;
 	const imatMeetingId = Number(params.imatMeetingId);
+	if (isNaN(imatMeetingId))
+		return res
+			.status(404)
+			.send("path parameter imatMeetingId not a number");
 	try {
 		const breakouts = breakoutCreatesSchema.parse(body);
 		const data = await addImatBreakouts(user, imatMeetingId, breakouts);
@@ -116,6 +124,10 @@ async function updateBreakouts(
 ) {
 	const { user, params, body } = req;
 	const imatMeetingId = Number(params.imatMeetingId);
+	if (isNaN(imatMeetingId))
+		return res
+			.status(404)
+			.send("path parameter imatMeetingId not a number");
 	try {
 		const breakouts = breakoutUpdatesSchema.parse(body);
 		const data = await updateImatBreakouts(user, imatMeetingId, breakouts);
@@ -132,6 +144,10 @@ async function removeBreakouts(
 ) {
 	const { user, params, body } = req;
 	const imatMeetingId = Number(params.imatMeetingId);
+	if (isNaN(imatMeetingId))
+		return res
+			.status(404)
+			.send("path parameter imatMeetingId not a number");
 	try {
 		const ids = breakoutIdsSchema.parse(body);
 		const data = await deleteImatBreakouts(user, imatMeetingId, ids);
@@ -148,6 +164,10 @@ async function getMeetingAttendance(
 ) {
 	const { user, params } = req;
 	const imatMeetingId = Number(params.imatMeetingId);
+	if (isNaN(imatMeetingId))
+		return res
+			.status(404)
+			.send("path parameter imatMeetingId not a number");
 	try {
 		const data = await getImatMeetingAttendance(user, imatMeetingId);
 		res.json(data);
@@ -164,6 +184,10 @@ async function getMeetingAttendanceSummary(
 	const { user, group, params, query } = req;
 	try {
 		const imatMeetingId = Number(params.imatMeetingId);
+		if (isNaN(imatMeetingId))
+			return res
+				.status(404)
+				.send("path parameter imatMeetingId not a number");
 		const useDaily = query.useDaily !== "false";
 		const getAttendance = useDaily
 			? getImatMeetingDailyAttendance
@@ -182,7 +206,15 @@ async function getBreakoutAttendance(
 ) {
 	const { user, params } = req;
 	const imatMeetingId = Number(params.imatMeetingId);
+	if (isNaN(imatMeetingId))
+		return res
+			.status(404)
+			.send("path parameter imatMeetingId not a number");
 	const imatBreakoutId = Number(params.imatBreakoutId);
+	if (isNaN(imatBreakoutId))
+		return res
+			.status(404)
+			.send("path parameter imatBreakoutId not a number");
 	try {
 		const data = await getImatBreakoutAttendance(
 			user,
@@ -199,20 +231,14 @@ const router = Router();
 router
 	.get("/committees", getCommittees)
 	.get("/meetings", getMeetings)
-	.route("/breakouts/:imatMeetingId(\\d+)")
+	.route("/breakouts/:imatMeetingId")
 	.get(getBreakouts)
 	.post(addBreakouts)
 	.put(updateBreakouts)
 	.delete(removeBreakouts);
 router
-	.get("/attendance/:imatMeetingId(\\d+)", getMeetingAttendance)
-	.get(
-		"/attendance/:imatMeetingId(\\d+)/:imatBreakoutId(\\d+)",
-		getBreakoutAttendance
-	)
-	.get(
-		"/attendance/:imatMeetingId(\\d+)/summary",
-		getMeetingAttendanceSummary
-	);
+	.get("/attendance/:imatMeetingId", getMeetingAttendance)
+	.get("/attendance/:imatMeetingId/:imatBreakoutId", getBreakoutAttendance)
+	.get("/attendance/:imatMeetingId/summary", getMeetingAttendanceSummary);
 
 export default router;

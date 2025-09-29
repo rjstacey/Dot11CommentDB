@@ -138,7 +138,7 @@ function postMembersnapshot(req: Request, res: Response, next: NextFunction) {
 const upload = Multer();
 const router = Router();
 
-router.all("*", validatePermissions);
+router.all(/(.*)/, validatePermissions);
 router.route("/").get(get).patch(updateMany).post(addMany).delete(removeMany);
 router
 	.get("/export", getExport)

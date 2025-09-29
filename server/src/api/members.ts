@@ -196,6 +196,8 @@ async function contactEmails_updateOne(
 ) {
 	const group = req.group!;
 	const id = Number(req.params.id);
+	if (isNaN(id))
+		return res.status(404).send("path parameter id not a number");
 	const entry = req.body;
 	try {
 		if (typeof entry !== "object")
@@ -379,7 +381,7 @@ const router = Router();
 const upload = Multer();
 
 router
-	.all("*", validatePermissions)
+	.all(/(.*)/, validatePermissions)
 	.get("/user", getUser)
 	.post("/upload/:format", upload.single("File"), postUpload)
 	.post("/MyProjectRoster", upload.single("File"), postMyProjectRoster)
@@ -393,16 +395,16 @@ router
 
 router.route("/").get(get).post(addMany).patch(updateMany).delete(removeMany);
 
-router.route("/:id(\\d+)").patch(updateOne);
+router.route("/:id").patch(updateOne);
 
 router
-	.route("/:id(\\d+)/StatusChangeHistory")
+	.route("/:id/StatusChangeHistory")
 	.put(statusChangeHistory_addMany)
 	.patch(statusChangeHistory_updateMany)
 	.delete(statusChangeHistory_removeMany);
 
 router
-	.route("/:id(\\d+)/ContactEmails")
+	.route("/:id/ContactEmails")
 	.post(contactEmails_addOne)
 	.patch(contactEmails_updateOne)
 	.delete(contactEmails_removeOne);

@@ -81,7 +81,7 @@ async function removeMany(req: Request, res: Response, next: NextFunction) {
 }
 
 const router = Router();
-router.all("*", validatePermissions);
+router.all(/(.*)/, validatePermissions);
 router
 	.route("/")
 	.get(getAll)

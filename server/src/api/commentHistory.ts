@@ -21,6 +21,8 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 
 async function get(req: Request, res: Response, next: NextFunction) {
 	const comment_id = Number(req.params.comment_id);
+	if (isNaN(comment_id))
+		return res.status(404).send("path parameter comment_id not a number");
 	try {
 		const data = await getCommentHistory(comment_id);
 		res.json(data);
@@ -30,6 +32,6 @@ async function get(req: Request, res: Response, next: NextFunction) {
 }
 
 const router = Router();
-router.all("*", validatePermissions).get("/:comment_id(\\d+)", get);
+router.all(/(.*)/, validatePermissions).get("/:comment_id", get);
 
 export default router;

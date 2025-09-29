@@ -90,6 +90,8 @@ async function updateAccount(req: Request, res: Response, next: NextFunction) {
 	const user = req.user;
 	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
+	if (isNaN(accountId))
+		return res.status(404).send("path parameter accountId not a number");
 	try {
 		const changes = calendarAccountChangeSchema.parse(req.body);
 		const data = await updateCalendarAccount(
@@ -109,6 +111,8 @@ function revokeAccountAuth(req: Request, res: Response, next: NextFunction) {
 	const user = req.user;
 	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
+	if (isNaN(accountId))
+		return res.status(404).send("path parameter accountId not a number");
 	try {
 		const data = revokeAuthCalendarAccount(req, user, groupId, accountId);
 		res.json(data);
@@ -120,6 +124,8 @@ function revokeAccountAuth(req: Request, res: Response, next: NextFunction) {
 function removeAccount(req: Request, res: Response, next: NextFunction) {
 	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
+	if (isNaN(accountId))
+		return res.status(404).send("path parameter accountId not a number");
 	try {
 		const data = deleteCalendarAccount(groupId, accountId);
 		res.json(data);
@@ -130,13 +136,13 @@ function removeAccount(req: Request, res: Response, next: NextFunction) {
 
 const router = Router();
 router
-	.all("*", validatePermissions)
+	.all(/(.*)/, validatePermissions)
 	.route("/accounts")
 	.get(getAccounts)
 	.post(addAccount);
 router
-	.patch("/accounts/:accountId(\\d+)", updateAccount)
-	.patch("/accounts/:accountId(\\d+)/revoke", revokeAccountAuth)
-	.delete("/accounts/:accountId(\\d+)", removeAccount);
+	.patch("/accounts/:accountId", updateAccount)
+	.patch("/accounts/:accountId/revoke", revokeAccountAuth)
+	.delete("/accounts/:accountId", removeAccount);
 
 export default router;

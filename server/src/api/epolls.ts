@@ -36,7 +36,7 @@ async function getAll(req: Request, res: Response, next: NextFunction) {
 }
 
 const router = Router();
-router.all("*", validatePermissions);
+router.all(/(.*)/, validatePermissions);
 router.get("/", getAll);
 
 export default router;

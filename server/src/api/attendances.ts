@@ -43,6 +43,8 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 async function getForSession(req: Request, res: Response, next: NextFunction) {
 	const groupId = req.group!.id;
 	const session_id = Number(req.params.session_id);
+	if (isNaN(session_id))
+		return res.status(404).send("path parameter session_id not a number");
 	try {
 		const data = await getAttendances({ groupId, session_id });
 		res.json(data);
@@ -55,6 +57,8 @@ async function getForMinutes(req: Request, res: Response, next: NextFunction) {
 	const user = req.user;
 	const group = req.group!;
 	const session_id = Number(req.params.session_id);
+	if (isNaN(session_id))
+		return res.status(404).send("path parameter session_id not a number");
 	try {
 		await exportAttendancesForMinutes(user, group, session_id, res);
 		res.end();
@@ -67,6 +71,8 @@ async function importAll(req: Request, res: Response, next: NextFunction) {
 	const user = req.user;
 	const group = req.group!;
 	const session_id = Number(req.params.session_id);
+	if (isNaN(session_id))
+		return res.status(404).send("path parameter session_id not a number");
 	const { use } = req.query;
 	const useDaily =
 		typeof use === "string" && use.toLowerCase().startsWith("daily");
@@ -86,6 +92,8 @@ async function uploadRegistrationRequest(
 	const user = req.user;
 	const group = req.group!;
 	const session_id = Number(req.params.session_id);
+	if (isNaN(session_id))
+		return res.status(404).send("path parameter session_id not a number");
 	try {
 		const data = await uploadRegistration(
 			user,
@@ -146,12 +154,12 @@ async function removeMany(req: Request, res: Response, next: NextFunction) {
 const upload = Multer();
 const router = Router();
 router
-	.all("*", validatePermissions)
-	.get("/:session_id(\\d+)", getForSession)
-	.get("/:session_id(\\d+)/exportForMinutes", getForMinutes)
-	.post("/:session_id(\\d+)/import", importAll)
+	.all(/(.*)/, validatePermissions)
+	.get("/:session_id", getForSession)
+	.get("/:session_id/exportForMinutes", getForMinutes)
+	.post("/:session_id/import", importAll)
 	.post(
-		"/:session_id(\\d+)/uploadRegistration",
+		"/:session_id/uploadRegistration",
 		upload.single("file"),
 		uploadRegistrationRequest
 	);

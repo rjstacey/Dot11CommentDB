@@ -20,6 +20,6 @@ function get802WorldSchedule(req: Request, res: Response, next: NextFunction) {
 }
 
 const router = Router();
-router.get("*", get802WorldSchedule);
+router.get(/(.*)/, get802WorldSchedule);
 
 export default router;

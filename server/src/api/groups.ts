@@ -60,7 +60,7 @@ async function updateMany(req: Request, res: Response, next: NextFunction) {
 }
 
 const router = Router();
-router.get("/:parentName?", get);
+router.get(["/", "/:parentName"], get);
 router.route("/").post(addMany).patch(updateMany).delete(removeMany);
 
 export default router;
