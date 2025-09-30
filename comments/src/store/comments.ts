@@ -32,6 +32,7 @@ import {
 	CommentsExportParams,
 	CommentsExportFormat,
 	CommentsExportStyle,
+	AdHocStatus,
 } from "@schemas/comments";
 import {
 	Resolution,
@@ -59,8 +60,14 @@ export type {
 	CommentsExportFormat,
 	CommentsExportStyle,
 };
+export { AdHocStatus };
 
-export type CommentResolutionChange = CommentChange & ResolutionChange;
+export type CommentResolutionChange = CommentChange &
+	ResolutionChange & { ResolutionCount?: number };
+export type CommentResolutionUpdate = {
+	id: EntityId;
+	changes: CommentResolutionChange;
+};
 
 const mustSatisfyOptions = [
 	{ value: 0, label: "No" },
@@ -119,6 +126,8 @@ function getCID(b: Ballot | undefined, c: CommentResolution) {
 export const commentStatusOrder = [
 	"",
 	"Assigned",
+	"More work required",
+	"Submission required",
 	"Resolution drafted",
 	"Ready for motion",
 	"Resolution approved",
@@ -136,6 +145,10 @@ export function getCommentStatus(c: CommentResolution) {
 	if (c.ApprovedByMotion) Status = "Resolution approved";
 	else if (c.ReadyForMotion) Status = "Ready for motion";
 	else if (c.ResnStatus) Status = "Resolution drafted";
+	else if (c.AdHocStatus === AdHocStatus.SubmissionRequired)
+		Status = "Submission required";
+	else if (c.AdHocStatus === AdHocStatus.MoreWorkRequired)
+		Status = "More work required";
 	else if (c.AssigneeName) Status = "Assigned";
 	return Status;
 }
@@ -195,7 +208,7 @@ function getResolutionCountUpdates(
 	entities: Dictionary<CommentResolution>,
 	comment_ids: number[]
 ) {
-	const updates: Update<CommentResolution>[] = [];
+	const updates: CommentResolutionUpdate[] = [];
 	for (const comment_id of comment_ids) {
 		const comments: CommentResolution[] = [];
 		for (const id of ids) {
@@ -483,15 +496,15 @@ export const updateComments =
 		const { ids, entities, ballot_id } = selectCommentsState(state);
 		const lastModified = selectCommentsLastModified(state);
 
-		const localUpdates: Update<CommentResolution>[] = [],
-			rollbackUpdates: Update<CommentResolution>[] = [];
+		const localUpdates: CommentResolutionUpdate[] = [],
+			rollbackUpdates: CommentResolutionUpdate[] = [];
 		for (const id of ids) {
 			const c = entities[id]!;
 			const comment_id = c.comment_id;
 			const u = updates.find((u) => u.id === comment_id);
 			if (u) {
 				localUpdates.push({ id, changes: u.changes });
-				const changes: Partial<CommentResolution> = {};
+				const changes: CommentResolutionChange = {};
 				for (const key of Object.keys(
 					u.changes
 				) as (keyof CommentResolution)[]) {

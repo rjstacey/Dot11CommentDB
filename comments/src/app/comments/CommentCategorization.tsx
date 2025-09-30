@@ -6,6 +6,7 @@ import {
 	setUiProperties,
 	selectCommentsState,
 	type Comment,
+	AdHocStatus,
 } from "@/store/comments";
 
 import { AdHocSelect } from "./AdHocSelect";
@@ -90,6 +91,80 @@ export const CommentGroup = ({
 	</Form.Group>
 );
 
+function CommentAdHocStatus({
+	comment,
+	updateComment = () => {},
+	readOnly,
+}: {
+	comment: Multiple<CommentEditable>;
+	updateComment?: (changes: Partial<Comment>) => void;
+	readOnly?: boolean;
+}) {
+	function changeAdHocStatus(status: AdHocStatus | null) {
+		updateComment({ AdHocStatus: status });
+	}
+
+	const isIndeterminate = isMultiple(comment.AdHocStatus);
+
+	return (
+		<>
+			<Row>
+				<Col xs="auto">
+					<Form.Check
+						id="more-work-required"
+						name="MoreWorkRequired"
+						value={AdHocStatus.MoreWorkRequired}
+						ref={(ref) =>
+							ref && (ref.indeterminate = isIndeterminate)
+						}
+						checked={
+							comment.AdHocStatus === AdHocStatus.MoreWorkRequired
+						}
+						onChange={(e) =>
+							changeAdHocStatus(
+								e.target.checked
+									? AdHocStatus.MoreWorkRequired
+									: null
+							)
+						}
+						label="More work required"
+						readOnly={readOnly}
+						className={readOnly ? "pe-none" : undefined}
+						tabIndex={readOnly ? -1 : undefined}
+					/>
+				</Col>
+			</Row>
+			<Row>
+				<Col xs="auto">
+					<Form.Check
+						id="submission-required"
+						name="SubmissionRequired"
+						value={AdHocStatus.SubmissionRequired}
+						ref={(ref) =>
+							ref && (ref.indeterminate = isIndeterminate)
+						}
+						checked={
+							comment.AdHocStatus ===
+							AdHocStatus.SubmissionRequired
+						}
+						onChange={(e) =>
+							changeAdHocStatus(
+								e.target.checked
+									? AdHocStatus.SubmissionRequired
+									: null
+							)
+						}
+						label="Submission required"
+						readOnly={readOnly}
+						className={readOnly ? "pe-none" : undefined}
+						tabIndex={readOnly ? -1 : undefined}
+					/>
+				</Col>
+			</Row>
+		</>
+	);
+}
+
 const commentNotesId = "comment-notes";
 const commentNotesLabel = (
 	<Form.Label as="span" htmlFor={commentNotesId}>
@@ -106,13 +181,22 @@ function CommentNotesInternal({
 	readOnly?: boolean;
 }) {
 	return (
-		<Editor
-			id={commentNotesId}
-			value={isMultiple(comment.Notes) ? "" : comment.Notes}
-			onChange={(value) => updateComment({ Notes: value })}
-			placeholder={isMultiple(comment.Notes) ? MULTIPLE_STR : BLANK_STR}
-			readOnly={readOnly}
-		/>
+		<div className={styles.editingContainer}>
+			<CommentAdHocStatus
+				comment={comment}
+				updateComment={updateComment}
+				readOnly={readOnly}
+			/>
+			<Editor
+				id={commentNotesId}
+				value={isMultiple(comment.Notes) ? "" : comment.Notes}
+				onChange={(value) => updateComment({ Notes: value })}
+				placeholder={
+					isMultiple(comment.Notes) ? MULTIPLE_STR : BLANK_STR
+				}
+				readOnly={readOnly}
+			/>
+		</div>
 	);
 }
 

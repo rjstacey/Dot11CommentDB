@@ -4,9 +4,10 @@
 import ExcelJS from "exceljs";
 import { isCorrectSpreadsheetHeader } from "../utils/index.js";
 import type { Ballot } from "@schemas/ballots.js";
-import type {
-	CommentResolution,
-	CommentsExportStyle,
+import {
+	getCommentStatus,
+	type CommentResolution,
+	type CommentsExportStyle,
 } from "@schemas/comments.js";
 import type { User } from "./users.js";
 import type { Response } from "express";
@@ -82,12 +83,7 @@ function getPage(v: ExcelJS.CellValue, c: Partial<CommentResolution>) {
 }
 
 function setStatus(b: Ballot, c: CommentResolution, cell: ExcelJS.Cell) {
-	let Status = "";
-	if (c.ApprovedByMotion) Status = "Resolution approved";
-	else if (c.ReadyForMotion) Status = "Ready for motion";
-	else if (c.ResnStatus) Status = "Resolution drafted";
-	else if (c.AssigneeName) Status = "Assigned";
-	cell.value = Status;
+	cell.value = getCommentStatus(c);
 }
 
 const getResnStatus: ColGet = (v, c) => {
@@ -756,7 +752,7 @@ function toHtml(value: string | null | undefined) {
 const getColRef = (n: number) =>
 	n
 		? getColRef(Math.floor((n - 1) / 26)) +
-			String.fromCharCode(65 + ((n - 1) % 26))
+		  String.fromCharCode(65 + ((n - 1) % 26))
 		: "";
 
 function addResolutionFormatting(

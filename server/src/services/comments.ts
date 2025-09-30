@@ -21,10 +21,12 @@ import type {
 } from "@schemas/comments.js";
 import { Ballot, CommentsSummary } from "@schemas/ballots.js";
 
+const commentResolutionsView = "commentResolutions2";
+
 // prettier-ignore
 const createViewCommentResolutionsSQL =
-	"DROP VIEW IF EXISTS commentResolutions; " +
-	"CREATE VIEW commentResolutions AS " +
+	`DROP VIEW IF EXISTS ${commentResolutionsView}; ` +
+	`CREATE VIEW ${commentResolutionsView} AS ` +
 	"SELECT " +
 		"c.ballot_id AS ballot_id, " +
 		"c.id AS comment_id, " +
@@ -56,6 +58,7 @@ const createViewCommentResolutionsSQL =
 		'COALESCE(c.AdHoc, "") AS AdHoc, ' +
 		'COALESCE(c.CommentGroup, "") AS CommentGroup, ' +
 		"c.Notes AS Notes, " +
+		"c.AdHocStatus AS AdHocStatus, " +
 		"r.AssigneeSAPIN AS AssigneeSAPIN, " +
 		'COALESCE(m1.Name, r.AssigneeName, "") AS AssigneeName, ' +
 		"r.ResnStatus AS ResnStatus, " +
@@ -76,8 +79,15 @@ const createViewCommentResolutionsSQL =
 		"LEFT JOIN users m1 ON (r.AssigneeSAPIN = m1.SAPIN) " +
 		"LEFT JOIN users m2 ON (IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) = m2.SAPIN) "
 
-export function init() {
-	return db.query(createViewCommentResolutionsSQL);
+export async function init() {
+	const sql =
+		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="comments" and column_name = "AdHocStatus";';
+	const rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
+	if (rows.length === 0)
+		db.query(
+			"ALTER TABLE comments ADD COLUMN AdHocStatus TINYINT default NULL after Notes;"
+		);
+	await db.query(createViewCommentResolutionsSQL);
 }
 
 type Arrayed<T> = { [K in keyof T]: T[K] | Array<T[K]> };
@@ -122,7 +132,7 @@ export function selectComments(
 	const conditions1 = constraints1 ? getConditions(constraints1) : [];
 	const conditions2 = constraints2 ? getConditions(constraints2) : [];
 
-	let sql = "SELECT * FROM commentResolutions";
+	let sql = `SELECT * FROM ${commentResolutionsView}`;
 	if (conditions1.length > 0 || conditions2.length > 0) {
 		sql += " WHERE ";
 		if (conditions1.length > 0 && conditions2.length > 0)

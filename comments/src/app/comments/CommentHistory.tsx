@@ -113,7 +113,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 			</Row>
 		);
 
-	if ("Notes" in changes)
+	if ("AdHocStatus" in changes || "Notes" in changes)
 		body.push(
 			<CommentNotesRow
 				key="commentNotes"

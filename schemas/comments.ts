@@ -6,6 +6,12 @@ import { commentsSummarySchema } from "./ballots.js";
 const categoryTypeSchema = z.enum(["T", "E", "G"]);
 export type CategoryType = z.infer<typeof categoryTypeSchema>;
 
+export enum AdHocStatus {
+	MoreWorkRequired = 1,
+	SubmissionRequired = 2,
+}
+export const adHocStatusSchema = z.nativeEnum(AdHocStatus);
+
 export const commentSchema = z.object({
 	id: z.number(),
 	ballot_id: z.number(),
@@ -26,6 +32,7 @@ export const commentSchema = z.object({
 	AdHocGroupId: groupIdSchema.nullable(),
 	AdHoc: z.string(),
 	Notes: z.string().nullable(),
+	AdHocStatus: adHocStatusSchema.nullable(),
 	CommentGroup: z.string(),
 	ProposedChange: z.string(),
 	LastModifiedBy: z.number().nullable(),
@@ -56,6 +63,7 @@ export const commentChangeSchema = commentSchema
 		AdHocGroupId: true,
 		CommentGroup: true,
 		Notes: true,
+		AdHocStatus: true,
 	})
 	.partial();
 
@@ -116,3 +124,28 @@ export const uploadCommentsResponseSchema = z.object({
 export type UploadCommentsResponse = z.infer<
 	typeof uploadCommentsResponseSchema
 >;
+
+export const commentStatusOrder = [
+	"",
+	"Assigned",
+	"More work required",
+	"Submission required",
+	"Resolution drafted",
+	"Ready for motion",
+	"Resolution approved",
+] as const;
+
+export type CommentStatusType = (typeof commentStatusOrder)[number];
+
+export function getCommentStatus(c: CommentResolution) {
+	let Status: CommentStatusType = "";
+	if (c.ApprovedByMotion) Status = "Resolution approved";
+	else if (c.ReadyForMotion) Status = "Ready for motion";
+	else if (c.ResnStatus) Status = "Resolution drafted";
+	else if (c.AdHocStatus === AdHocStatus.SubmissionRequired)
+		Status = "Submission required";
+	else if (c.AdHocStatus === AdHocStatus.MoreWorkRequired)
+		Status = "More work required";
+	else if (c.AssigneeName) Status = "Assigned";
+	return Status;
+}
