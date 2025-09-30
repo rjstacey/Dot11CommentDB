@@ -209,6 +209,29 @@ export const selectGroupParents = createSelector(
 	}
 );
 
+export const selectGroupHeirarchy = createSelector(
+	(state: RootState, groupId: string) => groupId,
+	selectGroupEntities,
+	(groupId, entities) => {
+		const hierarchy: Group[] = [];
+		const group = entities[groupId];
+		if (group) {
+			for (const g of Object.values(entities)) {
+				if (g && g.status > 0 && g.parent_id === groupId)
+					hierarchy.push(g);
+			}
+			hierarchy.push(group);
+			let parentId = group.parent_id;
+			while (parentId) {
+				const parent = entities[parentId];
+				if (parent) hierarchy.push(parent);
+				parentId = parent ? parent.parent_id : null;
+			}
+		}
+		return hierarchy;
+	}
+);
+
 export const selectGroup = (state: RootState, groupId: string) =>
 	selectGroupsState(state).entities[groupId];
 

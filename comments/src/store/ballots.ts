@@ -32,18 +32,17 @@ export const BallotType = {
 	CC: 0, // comment collection
 	WG: 1, // WG ballot
 	SA: 2, // SA ballot
-	//Motion: 5, // motion
 };
 
 export type SyncedBallot = Ballot & {
 	GroupName: string;
+	GroupActive: boolean;
 };
 
 export const BallotTypeLabels = {
 	[BallotType.CC]: "CC",
 	[BallotType.WG]: "LB",
 	[BallotType.SA]: "SA",
-	//[BallotType.Motion]: "Motion",
 };
 
 export const BallotTypeOptions = Object.values(BallotType).map((v) => ({
@@ -55,6 +54,7 @@ export const renderBallotType = (type: number) =>
 
 export const fields = {
 	GroupName: { label: "Group" },
+	GroupActive: { label: "Active" },
 	Project: { label: "Project" },
 	Type: {
 		label: "Type",
@@ -108,7 +108,7 @@ export function getBallotId(ballot: Ballot) {
 export const getEncodedBallotId = (ballot: Ballot) =>
 	encodeURIComponent(getBallotId(ballot));
 
-export function getField(entity: Ballot, dataKey: string) {
+export function getField(entity: SyncedBallot, dataKey: string) {
 	if (dataKey === "Stage") {
 		if (entity.Type === BallotType.SA || entity.Type === BallotType.WG) {
 			return entity.stage === 0 ? "Initial" : `Recirc ${entity.stage}`;
@@ -118,7 +118,10 @@ export function getField(entity: Ballot, dataKey: string) {
 	if (dataKey === "BallotID") {
 		return getBallotId(entity);
 	}
-	return entity[dataKey as keyof Ballot];
+	if (dataKey === "GroupActive") {
+		return entity.GroupActive ? "Yes" : "No";
+	}
+	return entity[dataKey as keyof SyncedBallot];
 }
 
 export type GroupProject = {
@@ -131,6 +134,7 @@ type ExtraState = {
 	lastLoad: string | null;
 	currentGroupProject: GroupProject;
 	currentBallot_id: number | null;
+	chooseFromActiveGroups?: boolean;
 };
 
 const initialState: ExtraState = {
@@ -138,6 +142,7 @@ const initialState: ExtraState = {
 	lastLoad: null,
 	currentGroupProject: { groupId: null, project: null },
 	currentBallot_id: null,
+	chooseFromActiveGroups: true,
 };
 
 const sortComparer = (b1: Ballot, b2: Ballot) => {
@@ -167,6 +172,9 @@ const slice = createAppTableDataSlice({
 			state.currentBallot_id = ballot ? ballot.id : null;
 			state.currentGroupProject.groupId = groupId;
 			state.currentGroupProject.project = project;
+		},
+		setChooseFromActiveGroups(state, action: PayloadAction<boolean>) {
+			state.chooseFromActiveGroups = action.payload;
 		},
 	},
 	extraReducers: (builder, dataAdapter) => {
@@ -226,13 +234,14 @@ const {
 	setCurrentBallot_id: setCurrentBallotIdLocal,
 	setUiProperties,
 	setSelected: setSelectedBallots,
+	setChooseFromActiveGroups,
 } = slice.actions;
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
 export const clearBallots = createAction(dataSet + "/clear");
 
-export { setUiProperties, setSelectedBallots };
+export { setUiProperties, setSelectedBallots, setChooseFromActiveGroups };
 
 /* Selectors */
 export const selectBallotsState = (state: RootState) => state[dataSet];
@@ -257,6 +266,8 @@ export const selectCurrentBallotID = (state: RootState) => {
 	const ballot = entities[currentBallot_id]!;
 	return ballot ? getBallotId(ballot) : undefined;
 };
+export const selectChooseFromActiveGroups = (state: RootState) =>
+	selectBallotsState(state).chooseFromActiveGroups;
 
 export const selectBallots = createSelector(
 	selectBallotIds,
@@ -305,11 +316,17 @@ const selectSyncedBallotEntities = createSelector(
 		const syncedEntities: Record<EntityId, SyncedBallot> = {};
 		ids.forEach((id) => {
 			const ballot = entities[id]!;
-			const GroupName =
-				(ballot.groupId &&
-					(groupEntities[ballot.groupId]?.name || "Unknown")) ||
-				"(Blank)";
-			syncedEntities[id] = { ...ballot, GroupName };
+			const entity = {
+				...ballot,
+				GroupName: "Unknown",
+				GroupActive: false,
+			};
+			const group = groupEntities[ballot.groupId];
+			if (group) {
+				entity.GroupName = group.name;
+				entity.GroupActive = group.status > 0;
+			}
+			syncedEntities[id] = entity;
 		});
 		return syncedEntities;
 	}
@@ -334,9 +351,11 @@ export const selectGroupProjectOptions = createSelector(
 	selectGroups,
 	selectBallotIds,
 	selectBallotEntities,
-	(groups, ballotIds, ballotEntities) => {
+	selectChooseFromActiveGroups,
+	(groups, ballotIds, ballotEntities, chooseFromActiveGroups) => {
 		const options: GroupProjectOption[] = [];
 		groups.forEach((group) => {
+			if (chooseFromActiveGroups && !group.status) return;
 			if (group.project)
 				options.push({
 					groupId: group.id,
@@ -356,6 +375,7 @@ export const selectGroupProjectOptions = createSelector(
 				const group = groups.find(
 					(group) => group.id === ballot.groupId
 				);
+				if (chooseFromActiveGroups && group && !group.status) return;
 				const label =
 					(group?.name || "Unknown") + " / " + ballot.Project;
 				options.push({

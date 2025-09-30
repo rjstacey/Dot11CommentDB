@@ -172,6 +172,16 @@ export const tableColumns: ColumnProperties[] = [
 		flexGrow: 1,
 	},
 	{
+		key: "GroupActive",
+		label: "Active",
+		width: 70,
+		flexShrink: 1,
+		flexGrow: 1,
+		cellRenderer: ({ rowData: ballot }) => (
+			<span>{ballot.GroupActive ? "Yes" : "No"}</span>
+		),
+	},
+	{
 		key: "Project",
 		label: "Project",
 		width: 100,

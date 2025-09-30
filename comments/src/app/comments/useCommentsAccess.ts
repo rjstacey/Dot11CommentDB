@@ -26,7 +26,7 @@ export function useCommentsAccess(comments: CommentResolution[]) {
 					: undefined;
 				if (group) {
 					const access =
-						group.permissions.comments || AccessLevel.none;
+						group.permissionsRaw?.comments || AccessLevel.none;
 					if (access >= AccessLevel.rw) return true;
 				}
 				return false;

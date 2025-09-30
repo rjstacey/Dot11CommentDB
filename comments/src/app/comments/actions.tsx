@@ -1,3 +1,4 @@
+import React from "react";
 import { Row, Col, Button } from "react-bootstrap";
 import { SplitTableButtonGroup } from "@common";
 
@@ -15,6 +16,7 @@ import {
 import { selectIsOnline } from "@/store/offline";
 
 import ProjectBallotSelector from "@/components/ProjectBallotSelector";
+import { RoleSelect } from "./RoleSelect";
 import { tableColumns } from "./tableColumns";
 import { refresh } from "./loader";
 
@@ -41,6 +43,7 @@ function CommentsActions() {
 						<CommentsExport disabled={!isOnline} />
 					</>
 				)}
+				<RoleSelect />
 				<CommentsCopy />
 				<Button
 					variant="outline-secondary"

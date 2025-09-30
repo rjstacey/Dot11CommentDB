@@ -19,7 +19,7 @@ import {
 	BallotType,
 	Ballot,
 } from "./ballots";
-import { selectGroupPermissions } from "./groups";
+import { selectGroup } from "./groups";
 import { Effect, offlineFetch } from "./offline";
 import {
 	Comment,
@@ -213,6 +213,7 @@ function getResolutionCountUpdates(
 const initialState = {
 	ballot_id: null as number | null,
 	lastLoad: null as string | null,
+	roleGroupId: null as string | null,
 };
 
 const dataSet = "comments";
@@ -225,7 +226,11 @@ const slice = createAppTableDataSlice({
 	fields,
 	sortComparer,
 	initialState,
-	reducers: {},
+	reducers: {
+		setRoleGroupId(state, action: { payload: string | null }) {
+			state.roleGroupId = action.payload;
+		},
+	},
 	extraReducers: (builder, dataAdapter) => {
 		builder
 			.addMatcher(
@@ -235,6 +240,7 @@ const slice = createAppTableDataSlice({
 					if (ballot_id !== state.ballot_id) {
 						dataAdapter.removeAll(state);
 						state.valid = false;
+						state.roleGroupId = null;
 					}
 					state.ballot_id = ballot_id;
 					state.lastLoad = new Date().toISOString();
@@ -321,6 +327,7 @@ const {
 	removeMany: localRemoveMany,
 	setSelected,
 	setUiProperties,
+	setRoleGroupId,
 } = slice.actions;
 
 // Overload getPending() with one that sets ballot_id
@@ -338,7 +345,7 @@ const removeManyRollback = createAction<CommentResolution[]>(
 	dataSet + "/removeManyRollback"
 );
 
-export { setUiProperties };
+export { setUiProperties, setRoleGroupId };
 
 /*
  * Selectors
@@ -355,15 +362,25 @@ export const selectCommentEntities = (state: RootState) =>
 	selectCommentsState(state).entities;
 export const selectCommentsBallot_id = (state: RootState) =>
 	selectCommentsState(state).ballot_id;
+export const selectRoleGroupId = (state: RootState) =>
+	selectCommentsState(state).roleGroupId;
+
+export const selectCommentsBallot = (state: RootState) => {
+	const ballot_id = selectCommentsBallot_id(state);
+	return ballot_id ? selectBallot(state, ballot_id) : undefined;
+};
 
 export const selectCommentsAccess = (state: RootState) => {
-	const { ballot_id } = selectCommentsState(state);
-	const ballot = ballot_id ? selectBallot(state, ballot_id) : undefined;
-	return (
-		(ballot?.groupId &&
-			selectGroupPermissions(state, ballot.groupId).comments) ||
-		AccessLevel.none
-	);
+	const roleGroupId = selectRoleGroupId(state);
+	const ballot = selectCommentsBallot(state);
+	if (roleGroupId) {
+		const group = selectGroup(state, roleGroupId);
+		// if the role is for a the ballot group or parent of ballot group, use the group permissions
+		if (group && ballot && group.parent_id !== ballot.groupId) {
+			return group.permissionsRaw?.comments || AccessLevel.ro;
+		}
+	}
+	return AccessLevel.ro;
 };
 
 const selectCommentsLastModified = createSelector(

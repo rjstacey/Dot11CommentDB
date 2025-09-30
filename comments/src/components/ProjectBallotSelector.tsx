@@ -1,4 +1,5 @@
 import React from "react";
+import { FormCheck } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router";
 
 import { Select } from "@common";
@@ -17,10 +18,28 @@ import {
 	selectCurrentGroupProject,
 	BallotType,
 	getStage,
+	selectChooseFromActiveGroups,
+	setChooseFromActiveGroups,
 } from "@/store/ballots";
 import { selectIsOnline } from "@/store/offline";
 
 import styles from "./ProjectBallotSelector.module.css";
+
+function ActiveGroupsCheck() {
+	const dispatch = useAppDispatch();
+	const activeOnly = useAppSelector(selectChooseFromActiveGroups);
+	const toggleActiveOnly = () =>
+		dispatch(setChooseFromActiveGroups(!activeOnly));
+	return (
+		<div onClick={(e) => e.stopPropagation()} className="p-2">
+			<FormCheck
+				checked={activeOnly}
+				onChange={toggleActiveOnly}
+				label="Active groups"
+			/>
+		</div>
+	);
+}
 
 function ProjectSelect({
 	value,
@@ -50,6 +69,7 @@ function ProjectSelect({
 			onChange={handleChange}
 			options={options}
 			loading={loading}
+			extraRenderer={() => <ActiveGroupsCheck />}
 			{...props}
 		/>
 	);
@@ -139,7 +159,7 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 				<label htmlFor="project-select">Project:</label>
 				<ProjectSelect
 					id="project-select"
-					style={{ minWidth: 150, marginRight: 20 }}
+					style={{ minWidth: 250, marginRight: 20 }}
 					value={groupProject}
 					onChange={handleProjectChange}
 					loading={loading && !valid}

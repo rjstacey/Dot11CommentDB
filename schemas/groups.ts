@@ -26,6 +26,7 @@ export const groupSchema = z.object({
 	symbol: z.string().nullable(),
 	project: z.string().nullable(),
 	permissions: z.record(z.number()),
+	permissionsRaw: z.record(z.number()).optional(),
 	officerSAPINs: z.number().array(),
 });
 export const groupsSchema = z.array(groupSchema);
@@ -61,9 +62,10 @@ export const groupCreateSchema = groupSchema
 			.partial()
 	);
 export const groupCreatesSchema = z.array(groupCreateSchema);
+export const groupChangesSchema = groupCreateSchema.partial();
 export const groupUpdateSchema = z.object({
 	id: groupIdSchema,
-	changes: groupSchema.partial(),
+	changes: groupChangesSchema,
 });
 export const groupUpdatesSchema = z.array(groupUpdateSchema);
 export const groupIdsSchema = z.array(groupIdSchema);

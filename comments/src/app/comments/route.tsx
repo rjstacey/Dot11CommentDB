@@ -11,6 +11,7 @@ const route: RouteObject = {
 		{
 			index: true,
 			loader: indexLoader,
+			element: null,
 		},
 		{
 			path: ":ballotId",

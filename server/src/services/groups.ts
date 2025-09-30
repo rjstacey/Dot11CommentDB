@@ -197,12 +197,14 @@ export async function getGroups(user: User, query?: GroupsQuery) {
 	}
 
 	// Roll up group user permissions
-	for (const group of groups)
+	for (const group of groups) {
+		group.permissionsRaw = getGroupUserPermissions(user, group);
 		group.permissions = rollupGroupUserPermissions(
 			user,
 			group,
 			groupEntities
 		);
+	}
 
 	return groups;
 }
