@@ -231,6 +231,7 @@ export async function getGroupHierarchy(
 	groups = [];
 	let group: Group | undefined = groupEntities[id];
 	do {
+		group.permissionsRaw = getGroupUserPermissions(user, group);
 		// Roll up group user permissions
 		group.permissions = rollupGroupUserPermissions(
 			user,
