@@ -129,31 +129,41 @@ function Dropdown<T extends ItemType>({
 		/>
 	);
 
-	return options.length === 0 ? (
-		props.noDataRenderer({ props, state, methods })
-	) : (
-		<List
-			ref={listRef}
-			height={maxHeight}
-			width="auto"
-			itemCount={options.length}
-			itemSize={getItemHeight}
-			estimatedItemSize={props.estimatedItemHeight}
-			itemKey={itemKey}
-			innerElementType={innerEl}
-		>
-			{({ index, style }) => (
-				<ItemWrapper
-					index={index}
-					style={style}
-					item={options[index]}
-					setHeight={(height: number) => setItemHeight(index, height)}
-					props={props}
-					methods={methods}
-					state={state}
-				/>
-			)}
-		</List>
+	const list =
+		options.length === 0 ? (
+			props.noDataRenderer({ props, state, methods })
+		) : (
+			<List
+				ref={listRef}
+				height={maxHeight}
+				width="auto"
+				itemCount={options.length}
+				itemSize={getItemHeight}
+				estimatedItemSize={props.estimatedItemHeight}
+				itemKey={itemKey}
+				innerElementType={innerEl}
+			>
+				{({ index, style }) => (
+					<ItemWrapper
+						index={index}
+						style={style}
+						item={options[index]}
+						setHeight={(height: number) =>
+							setItemHeight(index, height)
+						}
+						props={props}
+						methods={methods}
+						state={state}
+					/>
+				)}
+			</List>
+		);
+
+	return (
+		<>
+			{props.extraRenderer({ props, state, methods })}
+			{list}
+		</>
 	);
 }
 

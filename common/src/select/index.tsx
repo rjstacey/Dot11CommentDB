@@ -180,6 +180,7 @@ type SelectDefaultProps<T> = {
 	dropdownRenderer: (props: SelectRendererProps<T>) => React.ReactNode;
 
 	/* Dropdown children */
+	extraRenderer: (props: SelectRendererProps<T>) => React.ReactNode;
 	addItemRenderer: (props: SelectItemRendererProps<T>) => React.ReactNode;
 	itemRenderer: (props: SelectItemRendererProps<T>) => React.ReactNode;
 	noDataRenderer: (props: SelectRendererProps<T>) => React.ReactNode;
@@ -266,7 +267,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 		const { props, state } = this;
 
 		if (
-			prevProps.options !== props.options ||
+			//prevProps.options !== props.options ||
 			prevProps.keepSelectedInList !== props.keepSelectedInList ||
 			prevProps.sortBy !== props.sortBy ||
 			prevProps.disabled !== props.disabled
@@ -743,6 +744,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 		dropdownRenderer: (props) => <Dropdown {...props} />,
 
 		/* Dropdown children */
+		extraRenderer: () => null,
 		addItemRenderer: defaultAddItemRenderer,
 		itemRenderer: defaultItemRenderer,
 		noDataRenderer: ({ props }) => <NoData label={props.noDataLabel} />,
