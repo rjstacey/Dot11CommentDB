@@ -40,10 +40,10 @@ function ResultsExportForm({
 			onSubmit={handleSubmit}
 			className="p-3"
 		>
-			<Row>
-				<p>Export results for:</p>
+			<Row className="mb-3">
+				<Col>Export results for:</Col>
 			</Row>
-			<Row>
+			<Row className="mb-3">
 				<Col>
 					<Form.Check
 						id="for-ballot"
@@ -51,7 +51,7 @@ function ResultsExportForm({
 						title={ballotId}
 						checked={!forProject}
 						onChange={() => setForProject(!forProject)}
-						label={"This ballot " + ballotId}
+						label={"Ballot " + ballotId}
 					/>
 					<Form.Check
 						id="for-ballot-series"
@@ -59,7 +59,7 @@ function ResultsExportForm({
 						title={ballot.Project}
 						checked={forProject}
 						onChange={() => setForProject(!forProject)}
-						label={"This project " + ballot.Project}
+						label={"Ballot series " + ballot.Project}
 					/>
 				</Col>
 			</Row>
@@ -67,7 +67,7 @@ function ResultsExportForm({
 				<Col className="d-flex justify-content-end">
 					<Button type="submit">
 						{busy && <Spinner size="sm" className="me-2" />}
-						Upload
+						Export
 					</Button>
 				</Col>
 			</Row>
