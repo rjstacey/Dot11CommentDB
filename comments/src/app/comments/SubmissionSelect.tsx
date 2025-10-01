@@ -61,7 +61,7 @@ export const renderSubmission = (
 	const href = submissionHref(groupName, submission);
 	if (href) {
 		return (
-			<a style={{ pointerEvents: "unset" }} href={href}>
+			<a style={{ pointerEvents: "auto" }} href={href}>
 				{submission}
 			</a>
 		);
@@ -89,7 +89,7 @@ const selectFieldValues = createSelector(
 export function SubmissionSelect({
 	value,
 	onChange,
-	...otherProps
+	...props
 }: {
 	value: string;
 	onChange: (value: string) => void;
@@ -125,7 +125,7 @@ export function SubmissionSelect({
 			selectItemRenderer={({ item }) =>
 				renderSubmission(groupName, item.label)
 			}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
