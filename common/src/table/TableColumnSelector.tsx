@@ -108,8 +108,12 @@ function ColumnSelectorDropdown({
 
 const ColumnSelector = (props: ColumnSelectorProps) => (
 	<Dropdown align="end" title="Configure table">
-		<Dropdown.Toggle split variant="outline-secondary">
-			<i className="bi-layout-three-columns me-2" />
+		<Dropdown.Toggle
+			split
+			variant="outline-secondary"
+			className="bi-layout-three-columns"
+		>
+			{" Columns "}
 		</Dropdown.Toggle>
 		<ColumnSelectorDropdown {...props} />
 	</Dropdown>

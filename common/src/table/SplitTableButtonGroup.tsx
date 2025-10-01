@@ -21,7 +21,6 @@ export function SplitTableButtonGroup({
 } & React.ComponentProps<typeof Col>) {
 	return (
 		<Col className="d-flex align-items-center gap-2" {...props}>
-			<div>Table view</div>
 			<TableViewSelector selectors={selectors} actions={actions} />
 			<TableColumnSelector
 				columns={columns}

@@ -9,17 +9,15 @@ import type {
 
 import ColumnResizer, { DraggableEventHandler } from "./ColumnResizer";
 
-interface SplitPanelButtonProps {
-	title?: string;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
-}
-
 export function SplitPanelButton({
 	title,
 	selectors,
 	actions,
-}: SplitPanelButtonProps) {
+}: {
+	title?: string;
+	selectors: AppTableDataSelectors;
+	actions: AppTableDataActions;
+}) {
 	const dispatch = useDispatch();
 	const { isSplit } = useSelector(selectors.selectCurrentPanelConfig);
 	const toggleIsSplit = () =>
@@ -32,7 +30,9 @@ export function SplitPanelButton({
 			title={title || "Show detail"}
 			active={isSplit}
 			onClick={toggleIsSplit}
-		/>
+		>
+			{" Detail"}
+		</Button>
 	);
 }
 
