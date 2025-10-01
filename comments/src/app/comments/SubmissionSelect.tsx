@@ -13,15 +13,15 @@ import {
 import { selectBallotsState } from "@/store/ballots";
 
 /*
- * Render submission. If it looks like a DCN then link to mentor.
+ * If it looks like a DCN then link to mentor.
  * gg-yy-nnnn-rr or yy-nnnn-rr or gg-yy-nnnn"r"rr or yy-nnnn"r"rr
  */
-export const renderSubmission = (
+export const submissionHref = (
 	groupName: string | null,
 	submission: string | null
 ) => {
-	if (!submission) return "";
-	if (!groupName) return submission;
+	if (!submission) return null;
+	if (!groupName) return null;
 	let gg: string | null = null,
 		yy: string | null = null,
 		nnnn: string | null = null,
@@ -46,7 +46,20 @@ export const renderSubmission = (
 		}
 	}
 	if (gg && yy && nnnn && rr) {
-		const href = `https://mentor.ieee.org/${groupName}/dcn/${yy}/${gg}-${yy}-${nnnn}-${rr}`;
+		return `https://mentor.ieee.org/${groupName}/dcn/${yy}/${gg}-${yy}-${nnnn}-${rr}`;
+	}
+	return null;
+};
+
+/*
+ * Render submission
+ */
+export const renderSubmission = (
+	groupName: string | null,
+	submission: string | null
+) => {
+	const href = submissionHref(groupName, submission);
+	if (href) {
 		return (
 			<a style={{ pointerEvents: "unset" }} href={href}>
 				{submission}
