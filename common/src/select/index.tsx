@@ -482,6 +482,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 	};
 
 	onClick: React.MouseEventHandler = (event) => {
+		if (event.detail === 0) return; // Ignore click from keyboard
 		const { props, state } = this;
 		if (!props.disabled && !props.readOnly && !props.keepOpen) {
 			event.preventDefault();
