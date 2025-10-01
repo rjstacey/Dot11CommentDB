@@ -164,7 +164,7 @@ function CommentDetail() {
 	}
 
 	return (
-		<Container fluid>
+		<Container fluid="lg">
 			<Row>
 				<Col className="d-flex justify-content-end gap-2">
 					{actionElements}

@@ -161,6 +161,7 @@ export function ResolutionApprovalRow({
 				</Col>
 				<Col>
 					<Form.Control
+						style={{ maxWidth: "12em" }}
 						type="search"
 						name="ApprovedByMotion"
 						value={value}
