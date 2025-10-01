@@ -19,8 +19,8 @@ import {
 import {
 	ResolutionAssigneeRow,
 	ResolutionSubmissionRow,
-	ResolutionApprovalRow,
-} from "./ResolutionAssigneeMotionRow";
+} from "./ResolutionAssigneeRow";
+import { ResolutionApprovalRow } from "./ResolutionApprovalRow";
 import { ResolutionRow } from "./ResolutionRow";
 import { EditingNotesRow } from "./EditingNotes";
 
@@ -168,19 +168,19 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 			/>
 		);
 
-	if ("ReadyForMotion" in changes || "ApprovedByMotion" in changes)
+	if ("ResnStatus" in changes || "Resolution" in changes)
 		body.push(
-			<ResolutionApprovalRow
-				key="approval"
+			<ResolutionRow
+				key="resolution"
 				resolution={updatedResolution}
 				readOnly
 			/>
 		);
 
-	if ("ResnStatus" in changes || "Resolution" in changes)
+	if ("ReadyForMotion" in changes || "ApprovedByMotion" in changes)
 		body.push(
-			<ResolutionRow
-				key="resolution"
+			<ResolutionApprovalRow
+				key="approval"
 				resolution={updatedResolution}
 				readOnly
 			/>

@@ -2,8 +2,9 @@ import { Multiple } from "@common";
 
 import type { Resolution, ResolutionChange } from "@/store/comments";
 import { AccessLevel } from "@/store/user";
-import { ResolutionAssigneeMotionRow } from "./ResolutionAssigneeMotionRow";
+import { ResolutionAssigneeRow } from "./ResolutionAssigneeRow";
 import { ResolutionRow } from "./ResolutionRow";
+import { ResolutionApprovalRow } from "./ResolutionApprovalRow";
 
 export type ResolutionEditable = Required<
 	Omit<ResolutionChange, "ResolutionID">
@@ -13,25 +14,29 @@ export function ResolutionEdit({
 	resolution,
 	updateResolution,
 	readOnly,
-	commentsAccess = AccessLevel.none,
+	commentsAccess,
 }: {
 	resolution: Multiple<ResolutionEditable>;
 	updateResolution: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
-	commentsAccess?: number;
+	commentsAccess: number;
 }) {
 	return (
 		<>
-			<ResolutionAssigneeMotionRow
+			<ResolutionAssigneeRow
 				resolution={resolution}
 				updateResolution={updateResolution}
 				readOnly={readOnly}
-				commentsAccess={commentsAccess}
 			/>
 			<ResolutionRow
 				resolution={resolution}
 				updateResolution={updateResolution}
 				readOnly={readOnly}
+			/>
+			<ResolutionApprovalRow
+				resolution={resolution}
+				updateResolution={updateResolution}
+				readOnly={readOnly || commentsAccess <= AccessLevel.ro}
 			/>
 		</>
 	);
