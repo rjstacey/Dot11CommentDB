@@ -33,6 +33,9 @@ import {
 	CommentsExportFormat,
 	CommentsExportStyle,
 	AdHocStatus,
+	commentStatusOrder,
+	getCommentStatus,
+	//CommentStatusType,
 } from "@schemas/comments";
 import {
 	Resolution,
@@ -60,7 +63,7 @@ export type {
 	CommentsExportFormat,
 	CommentsExportStyle,
 };
-export { AdHocStatus };
+export { AdHocStatus, commentStatusOrder, getCommentStatus };
 
 export type CommentResolutionChange = CommentChange &
 	ResolutionChange & { ResolutionCount?: number };
@@ -123,35 +126,10 @@ function getCID(b: Ballot | undefined, c: CommentResolution) {
 	return CID;
 }
 
-export const commentStatusOrder = [
-	"",
-	"Assigned",
-	"More work required",
-	"Submission required",
-	"Resolution drafted",
-	"Ready for motion",
-	"Resolution approved",
-] as const;
-
 const commentStatusOptions = commentStatusOrder.map((value) => ({
 	value,
 	label: value ? value : "(Blank)",
 }));
-
-export type CommentStatusType = (typeof commentStatusOrder)[number];
-
-export function getCommentStatus(c: CommentResolution) {
-	let Status: CommentStatusType = "";
-	if (c.ApprovedByMotion) Status = "Resolution approved";
-	else if (c.ReadyForMotion) Status = "Ready for motion";
-	else if (c.ResnStatus) Status = "Resolution drafted";
-	else if (c.AdHocStatus === AdHocStatus.SubmissionRequired)
-		Status = "Submission required";
-	else if (c.AdHocStatus === AdHocStatus.MoreWorkRequired)
-		Status = "More work required";
-	else if (c.AssigneeName) Status = "Assigned";
-	return Status;
-}
 
 export const fields: Fields = {
 	CID: { label: "CID", type: FieldType.STRING },

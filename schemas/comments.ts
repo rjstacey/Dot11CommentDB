@@ -137,7 +137,7 @@ export const commentStatusOrder = [
 
 export type CommentStatusType = (typeof commentStatusOrder)[number];
 
-export function getCommentStatus(c: CommentResolution) {
+export function getCommentStatus(c: CommentResolution): CommentStatusType {
 	let Status: CommentStatusType = "";
 	if (c.ApprovedByMotion) Status = "Resolution approved";
 	else if (c.ReadyForMotion) Status = "Ready for motion";
