@@ -18,6 +18,7 @@ import {
 } from "@/store/comments";
 import { AccessLevel } from "@/store/user";
 
+import { RoleSelect } from "./RoleSelect";
 import { useCommentsAccess } from "./useCommentsAccess";
 
 function renderAccess(access: number) {
@@ -166,6 +167,9 @@ function CommentDetail() {
 	return (
 		<Container fluid="lg">
 			<Row>
+				<Col xs="auto">
+					<RoleSelect />
+				</Col>
 				<Col className="d-flex justify-content-end gap-2">
 					{actionElements}
 				</Col>

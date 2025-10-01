@@ -32,10 +32,12 @@ export function RoleSelect() {
 
 	const option = options.find((o) => o.value === roleGroupId) ?? options[0];
 
+	if (options.length <= 1) return null;
+
 	return (
 		<DropdownButton
 			align="end"
-			variant="light"
+			variant="outline-primary"
 			title={"Role: " + option.label}
 			disabled={options.length <= 1}
 		>

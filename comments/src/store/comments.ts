@@ -204,7 +204,7 @@ function getResolutionCountUpdates(
 const initialState = {
 	ballot_id: null as number | null,
 	lastLoad: null as string | null,
-	roleGroupId: null as string | null,
+	roleGroupId: undefined as string | null | undefined,
 };
 
 const dataSet = "comments";
@@ -231,7 +231,7 @@ const slice = createAppTableDataSlice({
 					if (ballot_id !== state.ballot_id) {
 						dataAdapter.removeAll(state);
 						state.valid = false;
-						state.roleGroupId = null;
+						state.roleGroupId = undefined;
 					}
 					state.ballot_id = ballot_id;
 					state.lastLoad = new Date().toISOString();
@@ -362,6 +362,15 @@ export const selectCommentsBallot = (state: RootState) => {
 };
 
 export const selectCommentsAccess = (state: RootState) => {
+	const ballot = selectCommentsBallot(state);
+	if (ballot) {
+		const group = selectGroup(state, ballot.groupId);
+		return group?.permissions.comments || AccessLevel.ro;
+	}
+	return AccessLevel.ro;
+};
+
+export const selectCommentsRoleAccess = (state: RootState) => {
 	const roleGroupId = selectRoleGroupId(state);
 	const ballot = selectCommentsBallot(state);
 	if (roleGroupId) {
@@ -434,6 +443,12 @@ export const loadComments =
 			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ ballot_id }));
+		// Default role groupId is the ballot group
+		console.log(selectRoleGroupId(getState()));
+		if (selectRoleGroupId(getState()) === undefined) {
+			const ballot = selectBallot(state, ballot_id);
+			dispatch(setRoleGroupId(ballot?.groupId || null));
+		}
 		const url = `${baseCommentsUrl}/${ballot_id}`;
 		loading = true;
 		loadingPromise = fetcher
