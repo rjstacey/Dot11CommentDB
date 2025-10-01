@@ -102,29 +102,55 @@ const getEditStatus: ColGet = (v, c) => {
 	}
 };
 
+/*
+ * Render submission. If it looks like a DCN then link to mentor.
+ * gg-yy-nnnn-rr or yy-nnnn-rr or gg-yy-nnnn"r"rr or yy-nnnn"r"rr
+ */
+export const submissionHref = (
+	groupName: string | null,
+	submission: string | null
+) => {
+	if (!submission) return null;
+	if (!groupName) return null;
+	let gg: string | null = null,
+		yy: string | null = null,
+		nnnn: string | null = null,
+		rr: string | null = null,
+		m: RegExpMatchArray | null;
+	m = groupName.match(/.\d{1,2}$/);
+	if (m) gg = ("0" + m[0].slice(1)).slice(-2);
+	// gg-yy-nnnn-rr or gg-yy-nnnn"r"rr
+	m = submission.match(/^(\d{1,2})-(\d{2})-(\d{1,4})[r-](\d{1,2})/);
+	if (m) {
+		gg = ("0" + m[1]).slice(-2);
+		yy = ("0" + m[2]).slice(-2);
+		nnnn = ("000" + m[3]).slice(-4);
+		rr = ("0" + m[4]).slice(-2);
+	} else {
+		// yy-nnnn-rr or yy-nnnn"r"rr or yy/nnnn"r"rr
+		m = submission.match(/^(\d{2})[-/](\d{1,4})[r-](\d{1,2})/);
+		if (m) {
+			yy = ("0" + m[1]).slice(-2);
+			nnnn = ("0000" + m[2]).slice(-4);
+			rr = ("0" + m[3]).slice(-2);
+		}
+	}
+	if (gg && yy && nnnn && rr) {
+		return `https://mentor.ieee.org/${groupName}/dcn/${yy}/${gg}-${yy}-${nnnn}-${rr}`;
+	}
+	return null;
+};
+
 const setSubmission: ColSet = (b, c, cell) => {
 	cell.value = "";
-	if (c.Submission) {
-		let text = c.Submission;
-		let gg = "11";
-		let m = text.match(/^(\d{1,2})-/);
-		if (m) {
-			gg = ("0" + m[1]).slice(-2);
-			text = text.replace(/^\d{1,2}-/, "");
-		}
-		m = text.match(/(\d{2})\/(\d{1,4})r(\d+)/);
-		if (m) {
-			const yy = ("0" + m[1]).slice(-2);
-			const nnnn = ("0000" + m[2]).slice(-4);
-			const rr = ("0" + m[3]).slice(-2);
-			const hyperlink = `https://mentor.ieee.org/802.11/dcn/${yy}/${gg}-${yy}-${nnnn}-${rr}`;
-			cell.value = {
-				text: c.Submission,
-				hyperlink,
-				tooltip: hyperlink,
-			};
-			cell.style.font = { color: { argb: "7f0011e0" }, underline: true };
-		}
+	const hyperlink = submissionHref("802.11", c.Submission);
+	if (hyperlink) {
+		cell.value = {
+			text: c.Submission,
+			hyperlink,
+			tooltip: hyperlink,
+		};
+		cell.style.font = { color: { argb: "7f0011e0" }, underline: true };
 	}
 };
 
