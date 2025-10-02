@@ -82,12 +82,11 @@ function SortComponent({
 	);
 
 	return (
-		<Form.Group
-			as={Row}
-			className="d-flex justify-content-between align-items-center mb-3"
-		>
-			<Form.Label column>Sort:</Form.Label>
-			<Col className="d-flex gap-2">
+		<Form.Group as={Row} className="align-items-center mb-3">
+			<Col>
+				<Form.Label as="span">Sort:</Form.Label>
+			</Col>
+			<Col className="d-flex justify-content-end gap-2">
 				<Button
 					variant="outline-secondary"
 					onClick={(e) =>
@@ -360,11 +359,11 @@ function FilterComponent({
 
 	return (
 		<>
-			<Form.Group as={Row} className="mb-3">
-				<Form.Label as="span" column className="label">
-					Filter:
-				</Form.Label>
-				<Col className="d-flex gap-2">
+			<Form.Group as={Row} className="align-items-center mb-3">
+				<Col>
+					<Form.Label as="span">Filter:</Form.Label>
+				</Col>
+				<Col className="d-flex justify-content-end gap-2">
 					<Button
 						variant="outline-secondary"
 						onClick={filterSelected}
@@ -392,17 +391,18 @@ function FilterComponent({
 					actions={actions}
 				/>
 			)}
-			<Form.Group as={Row}>
-				<Form.Label visuallyHidden>Filter search</Form.Label>
-				<Form.Control
-					id="filter-search"
-					type="search"
-					value={search}
-					ref={inputRef}
-					onChange={(e) => setSearch(e.target.value)}
-					onKeyDown={onInputKey}
-					placeholder="Search..."
-				/>
+			<Form.Group as={Row} controlId="filter-search">
+				<Col>
+					<Form.Label visuallyHidden>Filter search</Form.Label>
+					<Form.Control
+						type="search"
+						value={search}
+						ref={inputRef}
+						onChange={(e) => setSearch(e.target.value)}
+						onKeyDown={onInputKey}
+						placeholder="Search..."
+					/>
+				</Col>
 			</Form.Group>
 
 			<List
@@ -506,7 +506,10 @@ function AppTableHeaderCell({
 	);
 
 	const dropdownMenu = (
-		<Dropdown.Menu className={styles["header-dropdown"]}>
+		<Dropdown.Menu
+			className={styles["header-dropdown"]}
+			style={{ width: column.dropdownWidth || "unset" }}
+		>
 			<Form className="p-3">
 				{sort && (
 					<SortComponent

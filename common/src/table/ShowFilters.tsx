@@ -23,11 +23,7 @@ const ActiveFilter = ({
 }) => (
 	<div className={styles["filter-container"]} role="listitem">
 		{children && <span className={styles["filter-item"]}>{children}</span>}
-		<i
-			className="action-icon bi-x"
-			style={{ minWidth: 16 }}
-			onClick={remove}
-		/>
+		<i className="icon action bi-x" onClick={remove} />
 	</div>
 );
 
@@ -91,9 +87,9 @@ function renderActiveFilters({
 	}
 	if (elements.length > 2) {
 		elements.push(
-			<label key="clear_all_label" className={styles["filter-label"]}>
+			<span key="clear_all_label" className={styles["filter-label"]}>
 				Clear All:
-			</label>
+			</span>
 		);
 		elements.push(
 			<ActiveFilter key="clear_all" remove={clearAllFilters} />

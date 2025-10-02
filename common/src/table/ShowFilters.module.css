@@ -8,22 +8,22 @@
 	display: flex;
 	flex-direction: row;
 	height: 22px;
-	max-width: 200px;
+	max-width: 300px;
 	margin: 3px 3px 3px 0;
 	background: #0074d9;
 	color: #fff;
 	border-radius: 3px;
 	align-items: center;
-}
 
-.filter-container:hover {
-	opacity: 0.9;
+	&:hover {
+		opacity: 0.9;
+	}
 }
 
 .filter-item {
 	color: #fff;
 	line-height: 21px;
-	padding: 0 0 0 5px;
+	padding-right: 5px;
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;

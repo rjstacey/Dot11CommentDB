@@ -264,7 +264,8 @@ const renderHeaderCellStacked3 = (props: HeaderCellRendererProps) => (
 		<HeaderSubcomponent
 			{...props}
 			dataKey="CommentGroup"
-			label="Comment Group" /*dropdownWidth={300}*/
+			label="Comment Group"
+			/*dropdownWidth={300}*/
 		/>
 	</>
 );
@@ -406,6 +407,7 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 		flexShrink: 1,
 		headerRenderer: renderHeaderCellStacked3,
 		cellRenderer: renderDataCellStacked3,
+		dropdownWidth: 300,
 	},
 	{ key: "AdHoc", ...fields.AdHoc, width: 100, flexGrow: 1, flexShrink: 1 },
 	{
