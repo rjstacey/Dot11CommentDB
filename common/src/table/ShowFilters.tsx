@@ -67,9 +67,9 @@ function renderActiveFilters({
 		const { comps, options } = filter;
 		if (comps.length > 0) {
 			elements.push(
-				<label key={dataKey} className={styles["filter-label"]}>
+				<span key={dataKey} className={styles["filter-label"]}>
 					{label + ":"}
-				</label>
+				</span>
 			);
 			comps.forEach((comp, i) => {
 				const o = options?.find((o) => o.value === comp.value);
