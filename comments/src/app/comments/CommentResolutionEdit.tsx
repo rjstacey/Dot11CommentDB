@@ -48,10 +48,10 @@ function CidAndStatusRow({ comments }: { comments: CommentResolution[] }) {
 	const cidsStr = cids.join(", ");
 	const cidsLabel = cids.length > 1 ? "CIDs:" : "CID:";
 	return (
-		<Row className="align-items-center mb-2">
-			<Form.Label as="span" column xs="auto">
-				{cidsLabel}
-			</Form.Label>
+		<Row className="align-items-center mt-2 mb-2">
+			<Col xs="auto">
+				<Form.Label as="span">{cidsLabel}</Form.Label>
+			</Col>
 			<Col>
 				<div>{cidsStr}</div>
 			</Col>
