@@ -8,18 +8,10 @@ export function BallotsSubmenu(props: React.ComponentProps<typeof Col>) {
 	return (
 		<Col className="align-items-center" {...props}>
 			<Nav variant="underline">
-				<Nav.Link
-					as={Link}
-					to={epollsShown ? ".." : "."}
-					active={!epollsShown}
-				>
+				<Nav.Link as={Link} to="../ballots" active={!epollsShown}>
 					Ballots
 				</Nav.Link>
-				<Nav.Link
-					as={Link}
-					to={epollsShown ? "." : "epolls"}
-					active={epollsShown}
-				>
+				<Nav.Link as={Link} to="../epolls" active={epollsShown}>
 					ePolls
 				</Nav.Link>
 			</Nav>

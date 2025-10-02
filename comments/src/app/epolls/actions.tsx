@@ -10,7 +10,7 @@ import {
 	epollsActions,
 } from "@/store/epolls";
 
-import { BallotsSubmenu } from "../submenu";
+import { BallotsSubmenu } from "../ballots/submenu";
 import { tableColumns } from "./tableColumns";
 
 function EpollsActions() {

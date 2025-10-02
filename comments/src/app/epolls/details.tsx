@@ -18,8 +18,8 @@ import {
 import { AccessLevel } from "@/store/user";
 
 import ShowAccess from "@/components/ShowAccess";
-import { BallotAddForm } from "../BallotAddForm";
-import { BallotEditForm } from "../BallotEditForm";
+import { BallotAddForm } from "../ballots/BallotAddForm";
+import { BallotEditForm } from "../ballots/BallotEditForm";
 
 const defaultBallot: Ballot = {
 	groupId: "",

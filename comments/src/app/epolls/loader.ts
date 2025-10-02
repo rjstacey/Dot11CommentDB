@@ -4,7 +4,7 @@ import { store } from "@/store";
 import { selectIsOnline } from "@/store/offline";
 import { loadEpolls } from "@/store/epolls";
 
-import { rootLoader } from "../../rootLoader";
+import { rootLoader } from "../rootLoader";
 
 export const loader: LoaderFunction = async (args) => {
 	await rootLoader(args);

@@ -4,6 +4,7 @@ import AppLayout from "./layout";
 import AppErrorPage from "./errorPage";
 import RootMain from "./root";
 import ballotsRoute from "./ballots/route";
+import epollsRoute from "./epolls/route";
 import votersRoute from "./voters/route";
 import resultsRoute from "./results/route";
 import commentsRoute from "./comments/route";
@@ -36,6 +37,10 @@ export const routes: RouteObject[] = [
 					{
 						path: "ballots",
 						...ballotsRoute,
+					},
+					{
+						path: "epolls",
+						...epollsRoute,
 					},
 					{
 						path: "voters",
