@@ -444,7 +444,6 @@ export const loadComments =
 		}
 		dispatch(getPending({ ballot_id }));
 		// Default role groupId is the ballot group
-		console.log(selectRoleGroupId(getState()));
 		if (selectRoleGroupId(getState()) === undefined) {
 			const ballot = selectBallot(state, ballot_id);
 			dispatch(setRoleGroupId(ballot?.groupId || null));
