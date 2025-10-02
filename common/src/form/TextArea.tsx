@@ -1,6 +1,5 @@
 import * as React from "react";
 import ExpandingTextArea from "react-expanding-textarea";
-import styles from "./form.module.css";
 
 const TextArea = React.forwardRef<
 	HTMLTextAreaElement,
@@ -8,7 +7,7 @@ const TextArea = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<ExpandingTextArea
 		ref={ref}
-		className={styles.textarea + (className ? " " + className : "")}
+		className={"form-control" + (className ? " " + className : "")}
 		{...props}
 	/>
 ));

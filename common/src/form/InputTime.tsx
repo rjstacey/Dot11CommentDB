@@ -83,19 +83,5 @@ function isValidTime(value: string) {
 	}
 	return false;
 }
-/*
-function validateTime(props: object, propName: string, componentName: string) {
-	const value = props[propName];
-	if (value && typeof value === "string" && !isValidTime(value))
-		return new Error(
-			`Invalid prop ${propName} supplied to ${componentName}. Expect empty string or string in form 'HH:MM'.`
-		);
-}
 
-InputTime.propTypes = {
-	value: validateTime,
-	onChange: PropTypes.func,
-	placeholder: PropTypes.string,
-};
-*/
 export default InputTime;

@@ -1,5 +1,4 @@
 import * as React from "react";
-import { ActionIcon } from "../icons";
 import Calendar from "../calendar";
 import TextArea from "./TextArea";
 import { Dropdown } from "react-bootstrap";
@@ -49,19 +48,6 @@ function toDatesStr(dates: Array<string>) {
 	return list.join(", ");
 }
 
-type InputDatesProps = {
-	id?: string;
-	className?: string;
-	style?: React.CSSProperties;
-	value?: Array<string>;
-	onChange?: (value: Array<string>) => void;
-	disabled?: boolean;
-	multi?: boolean;
-	dual?: boolean;
-	disablePast?: boolean;
-	placeholder?: string;
-};
-
 function InputDates({
 	id,
 	className,
@@ -73,7 +59,18 @@ function InputDates({
 	dual,
 	disablePast,
 	placeholder,
-}: InputDatesProps) {
+}: {
+	id?: string;
+	className?: string;
+	style?: React.CSSProperties;
+	value?: Array<string>;
+	onChange?: (value: Array<string>) => void;
+	disabled?: boolean;
+	multi?: boolean;
+	dual?: boolean;
+	disablePast?: boolean;
+	placeholder?: string;
+}) {
 	const [uncontrolledValue, setUncontrolledValue] = React.useState<
 		Array<string>
 	>([]);
@@ -188,28 +185,5 @@ function InputDates({
 		</div>
 	);
 }
-
-/*
-function validateISODate(
-	props: object,
-	propName: string,
-	componentName: string
-) {
-	const value = props[propName];
-	if (value && /%d{4}-%d{2}-%d{2}/.test(value))
-		return new Error(
-			`Invalid prop ${propName} supplied to ${componentName}. Expect string in form 'YYYY-MM-DD'.`
-		);
-}
-
-InputDates.propTypes = {
-	value: validateISODate,
-	onChange: PropTypes.func,
-	disabled: PropTypes.bool,
-	multi: PropTypes.bool,
-	dual: PropTypes.bool,
-	disablePast: PropTypes.bool,
-};
-*/
 
 export default InputDates;
