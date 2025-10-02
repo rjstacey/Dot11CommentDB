@@ -92,7 +92,7 @@ export function ResolutionSubmissionRow({
 	);
 }
 
-export function ResolutionAssigneeMotionRow({
+export function ResolutionAssigneeSubmissionRow({
 	resolution,
 	updateResolution,
 	readOnly,

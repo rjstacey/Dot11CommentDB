@@ -27,26 +27,23 @@ export const submissionHref = (
 		nnnn: string | null = null,
 		rr: string | null = null,
 		m: RegExpMatchArray | null;
-	m = groupName.match(/.\d{1,2}$/);
+	// default group comes from groupName
+	m = groupName.match(/\.\d{1,2}$/);
 	if (m) gg = ("0" + m[0].slice(1)).slice(-2);
-	// gg-yy-nnnn-rr or gg-yy-nnnn"r"rr
-	m = submission.match(/^(\d{1,2})-(\d{2})-(\d{1,4})[r-](\d{1,2})/);
+	// gg-yy-nnnn-rr or gg-yy-nnnn"r"rr or yy-nnnn-rr or yy-nnnn"r"rr or yy-nnnn
+	m = submission.match(
+		/^((\d{1,2})-){0,1}(\d{2})[-/](\d{1,4})([r-](\d{1,2}))*$/
+	);
 	if (m) {
-		gg = ("0" + m[1]).slice(-2);
-		yy = ("0" + m[2]).slice(-2);
-		nnnn = ("000" + m[3]).slice(-4);
-		rr = ("0" + m[4]).slice(-2);
-	} else {
-		// yy-nnnn-rr or yy-nnnn"r"rr or yy/nnnn"r"rr
-		m = submission.match(/^(\d{2})[-/](\d{1,4})[r-](\d{1,2})/);
-		if (m) {
-			yy = ("0" + m[1]).slice(-2);
-			nnnn = ("0000" + m[2]).slice(-4);
-			rr = ("0" + m[3]).slice(-2);
-		}
+		if (m[2]) gg = ("0" + m[2]).slice(-2);
+		yy = ("0" + m[3]).slice(-2);
+		nnnn = ("000" + m[4]).slice(-4);
+		if (m[6]) rr = ("0" + m[6]).slice(-2);
 	}
-	if (gg && yy && nnnn && rr) {
-		return `https://mentor.ieee.org/${groupName}/dcn/${yy}/${gg}-${yy}-${nnnn}-${rr}`;
+	if (gg && yy && nnnn) {
+		let dcn = `${gg}-${yy}-${nnnn}`;
+		if (rr) dcn += `-${rr}`;
+		return `https://mentor.ieee.org/${groupName}/dcn/${yy}/${dcn}`;
 	}
 	return null;
 };

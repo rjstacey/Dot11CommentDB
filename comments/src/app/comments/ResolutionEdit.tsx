@@ -2,7 +2,7 @@ import { Multiple } from "@common";
 
 import type { Resolution, ResolutionChange } from "@/store/comments";
 import { AccessLevel } from "@/store/user";
-import { ResolutionAssigneeRow } from "./ResolutionAssigneeRow";
+import { ResolutionAssigneeSubmissionRow } from "./ResolutionAssigneeRow";
 import { ResolutionRow } from "./ResolutionRow";
 import { ResolutionApprovalRow } from "./ResolutionApprovalRow";
 
@@ -23,7 +23,7 @@ export function ResolutionEdit({
 }) {
 	return (
 		<>
-			<ResolutionAssigneeRow
+			<ResolutionAssigneeSubmissionRow
 				resolution={resolution}
 				updateResolution={updateResolution}
 				readOnly={readOnly}
