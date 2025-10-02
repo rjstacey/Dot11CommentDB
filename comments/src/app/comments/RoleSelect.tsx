@@ -36,7 +36,7 @@ export function RoleSelect() {
 
 	return (
 		<DropdownButton
-			align="end"
+			align="start"
 			variant="outline-primary"
 			title={"Role: " + option.label}
 			disabled={options.length <= 1}
