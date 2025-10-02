@@ -6,6 +6,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { updateResults, type Result, type ResultChange } from "@/store/results";
 import { Ballot } from "@/store/ballots";
 import { SelectVote } from "./SelectVote";
+import { MemberSelect } from "../voters/MemberSelect";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 export function ResultEditForm({
@@ -55,17 +56,23 @@ export function ResultEditForm({
 		setBusy(false);
 	}
 
-	const memberStr = result
-		? `${result.SAPIN} ${result.Name} (${result.Affiliation})`
-		: "";
-
 	let className = "p-3";
 	if (readOnly) className += " pe-none";
 
 	return (
 		<Form onSubmit={handleSubmit} className={className}>
 			<Row className="mb-3">
-				<h3>{memberStr}</h3>
+				<Form.Label column htmlFor="result-name">
+					Name:
+				</Form.Label>
+				<Col>
+					<MemberSelect
+						id="result-name"
+						value={result.SAPIN!}
+						onChange={() => {}}
+						readOnly
+					/>
+				</Col>
 			</Row>
 			<Form.Group as={Row} className="mb-3">
 				<Form.Label column htmlFor="result-vote">
@@ -87,7 +94,7 @@ export function ResultEditForm({
 				<Col xs={12}>
 					<TextArea
 						style={{ width: "100%" }}
-						id="result-notes"
+						id="results-notes"
 						rows={2}
 						value={state.notes || ""}
 						onChange={(e) => change({ notes: e.target.value })}
