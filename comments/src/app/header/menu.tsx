@@ -6,9 +6,11 @@ import { useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";
 import { selectTopLevelGroupByName } from "@/store/groups";
 import { selectCurrentBallotID } from "@/store/ballots";
+import { selectCommentsSearchParams } from "@/store/comments";
 
+type MenuPath = { pathname: string; search?: string };
 type MenuItem = {
-	link: string;
+	to: MenuPath;
 	label: string;
 };
 
@@ -19,6 +21,7 @@ function useMenuLinks() {
 	);
 	let ballotId = useAppSelector(selectCurrentBallotID);
 	if (ballotId) ballotId = encodeURIComponent(ballotId);
+	const commentsSearchParams = useAppSelector(selectCommentsSearchParams);
 
 	// Only display links for which the user has permissions
 	// Replace params with the current setting
@@ -32,42 +35,54 @@ function useMenuLinks() {
 		const resultsAccess = group.permissions.results || AccessLevel.none;
 		const commentsAccess = group.permissions.comments || AccessLevel.none;
 
+		let pathname: string;
+
 		if (ballotsAccess >= AccessLevel.admin) {
+			pathname = `/${group.name}/ballots`;
 			menu.push({
-				link: `/${group.name}/ballots`,
+				to: { pathname },
 				label: "Ballots",
 			});
+			pathname = `/${group.name}/voters`;
+			if (ballotId) pathname += `/${ballotId}`;
 			menu.push({
-				link:
-					`/${group.name}/voters` + (ballotId ? `/${ballotId}` : ""),
+				to: { pathname },
 				label: "Voters",
 			});
 		}
 
 		if (resultsAccess >= AccessLevel.ro) {
+			pathname = `/${group.name}/results`;
+			if (ballotId) pathname += `/${ballotId}`;
 			menu.push({
-				link:
-					`/${group.name}/results` + (ballotId ? `/${ballotId}` : ""),
+				to: { pathname },
 				label: "Results",
 			});
 		}
 
 		if (commentsAccess >= AccessLevel.ro) {
+			pathname = `/${group.name}/comments`;
+			let search: string | undefined;
+			if (ballotId) {
+				pathname += `/${ballotId}`;
+				if (commentsSearchParams.size > 0)
+					search = "?" + commentsSearchParams.toString();
+			}
 			menu.push({
-				link:
-					`/${group.name}/comments` +
-					(ballotId ? `/${ballotId}` : ""),
+				to: { pathname, search },
 				label: "Comments",
 			});
+
+			pathname = `/${group.name}/reports`;
+			if (ballotId) pathname += `/${ballotId}`;
 			menu.push({
-				link:
-					`/${group.name}/reports` + (ballotId ? `/${ballotId}` : ""),
+				to: { pathname },
 				label: "Reports",
 			});
 		}
 
 		return menu;
-	}, [group, ballotId]);
+	}, [group, ballotId, commentsSearchParams]);
 }
 
 function AppNavLink({
@@ -75,11 +90,11 @@ function AppNavLink({
 	eventKey,
 	children,
 }: {
-	to: string;
+	to: MenuPath;
 	eventKey?: string;
 	children?: React.ReactNode;
 }) {
-	const active = useMatch(to);
+	const active = useMatch(to.pathname);
 	return (
 		<Nav.Link
 			as={NavLink}
@@ -96,10 +111,10 @@ function AppNavLinkActive({
 	to,
 	children,
 }: {
-	to: string;
+	to: MenuPath;
 	children?: React.ReactNode;
 }) {
-	const active = useMatch(to);
+	const active = useMatch(to.pathname);
 	if (!active) return null;
 	return (
 		<Nav.Link as={NavLink} to={to}>
@@ -127,14 +142,14 @@ export function Menu() {
 	if (document.title !== title) document.title = title;
 
 	const menu = useMenuLinks();
-	const menuItems = menu.map((item) => (
-		<AppNavLink key={item.link} to={item.link} eventKey={item.link}>
+	const menuItems = menu.map((item, i) => (
+		<AppNavLink key={i} to={item.to} eventKey={i.toString()}>
 			{item.label}
 		</AppNavLink>
 	));
 
-	const activeMenuItem = menu.map((item) => (
-		<AppNavLinkActive key={item.link} to={item.link}>
+	const activeMenuItem = menu.map((item, i) => (
+		<AppNavLinkActive key={i} to={item.to}>
 			{item.label}
 		</AppNavLinkActive>
 	));

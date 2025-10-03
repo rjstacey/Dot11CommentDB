@@ -9,7 +9,14 @@ import {
 	setCurrentBallot_id,
 	selectCurrentBallot_id,
 } from "@/store/ballots";
-import { clearComments, loadComments } from "@/store/comments";
+import {
+	clearComments,
+	loadComments,
+	selectCommentsState,
+	setSelected,
+	setPanelIsSplit,
+} from "@/store/comments";
+import { shallowEqualArrays } from "shallow-equal";
 
 import { rootLoader } from "../rootLoader";
 
@@ -51,5 +58,24 @@ export const ballotIdLoader: LoaderFunction = async (args) => {
 		dispatch(clearComments());
 		throw new Error(`Ballot ${ballotId} not found`);
 	}
-	return null;
+};
+
+export const commentsLoader: LoaderFunction = async (args) => {
+	await ballotIdLoader(args);
+
+	const { dispatch, getState } = store;
+
+	const url = new URL(args.request.url);
+	const detail = url.searchParams.get("detail") === "1";
+	dispatch(setPanelIsSplit({ isSplit: detail }));
+
+	const cids = url.searchParams.getAll("cid");
+	const { ids, entities, selected } = selectCommentsState(getState());
+	const newSelected: string[] = [];
+	for (const id of ids) {
+		const entity = entities[id]!;
+		if (cids.includes(entity.CID)) newSelected.push(id as string);
+	}
+	if (!shallowEqualArrays(selected, newSelected))
+		dispatch(setSelected(newSelected));
 };

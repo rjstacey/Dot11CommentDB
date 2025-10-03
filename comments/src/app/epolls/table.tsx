@@ -3,7 +3,7 @@ import { AppTable, SplitPanel, Panel } from "@common";
 import { epollsSelectors, epollsActions } from "@/store/epolls";
 
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
-import { EpollsDetail } from "./details";
+import { EpollsDetail } from "./detail";
 
 function EpollsTable() {
 	return (

@@ -1,3 +1,5 @@
+import React from "react";
+import { useSearchParams } from "react-router";
 import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
@@ -8,7 +10,13 @@ import {
 } from "@common";
 
 import CommentDetail from "./detail";
-import { fields, commentsSelectors, commentsActions } from "@/store/comments";
+import { useAppSelector } from "@/store/hooks";
+import {
+	fields,
+	commentsSelectors,
+	commentsActions,
+	selectCommentsSearchParams,
+} from "@/store/comments";
 
 import {
 	tableColumns,
@@ -17,6 +25,14 @@ import {
 } from "./tableColumns";
 
 function CommentsTable() {
+	const [, setSearch] = useSearchParams();
+	const commentsSearchParams = useAppSelector(selectCommentsSearchParams);
+
+	React.useEffect(() => {
+		console.log("CommentsTable: setSearch", commentsSearchParams);
+		setSearch(commentsSearchParams, { replace: true });
+	}, [commentsSearchParams]);
+
 	return (
 		<>
 			<Row className="w-100">

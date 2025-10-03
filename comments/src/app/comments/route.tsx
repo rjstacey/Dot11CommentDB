@@ -3,7 +3,7 @@ import { RouteObject } from "react-router";
 import AppError from "../errorPage";
 import CommentsLayout from "./layout";
 import CommentsTable from "./table";
-import { indexLoader, ballotIdLoader } from "./loader";
+import { indexLoader, commentsLoader } from "./loader";
 
 const route: RouteObject = {
 	element: <CommentsLayout />,
@@ -15,7 +15,7 @@ const route: RouteObject = {
 		},
 		{
 			path: ":ballotId",
-			loader: ballotIdLoader,
+			loader: commentsLoader,
 			element: <CommentsTable />,
 			errorElement: <AppError />,
 		},

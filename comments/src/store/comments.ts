@@ -319,6 +319,7 @@ const {
 	setSelected,
 	setUiProperties,
 	setRoleGroupId,
+	setPanelIsSplit,
 } = slice.actions;
 
 // Overload getPending() with one that sets ballot_id
@@ -336,7 +337,7 @@ const removeManyRollback = createAction<CommentResolution[]>(
 	dataSet + "/removeManyRollback"
 );
 
-export { setUiProperties, setRoleGroupId };
+export { setSelected, setUiProperties, setRoleGroupId, setPanelIsSplit };
 
 /*
  * Selectors
@@ -422,6 +423,26 @@ export const commentsSelectors = getAppTableDataSelectors(selectCommentsState, {
 	selectEntities: selectSyncedCommentEntities,
 	getField,
 });
+
+export const selectCommentsSearchParams = createSelector(
+	(state: RootState) => selectCommentsState(state).selected,
+	selectCommentEntities,
+	(state: RootState) =>
+		commentsSelectors.selectCurrentPanelConfig(state).isSplit,
+	(selected, entities, isSplit) => {
+		const searchParams = new URLSearchParams();
+		if (isSplit) searchParams.append("detail", "1");
+		selected
+			.map((id) => {
+				const entity = entities[id];
+				return entity ? entity.CID : null;
+			})
+			.forEach((cid) => {
+				if (cid) searchParams.append("cid", cid);
+			});
+		return searchParams;
+	}
+);
 
 /*
  * Thunk actions
