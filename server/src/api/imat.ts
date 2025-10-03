@@ -238,7 +238,7 @@ router
 	.delete(removeBreakouts);
 router
 	.get("/attendance/:imatMeetingId", getMeetingAttendance)
-	.get("/attendance/:imatMeetingId/:imatBreakoutId", getBreakoutAttendance)
-	.get("/attendance/:imatMeetingId/summary", getMeetingAttendanceSummary);
+	.get("/attendance/:imatMeetingId/summary", getMeetingAttendanceSummary)
+	.get("/attendance/:imatMeetingId/:imatBreakoutId", getBreakoutAttendance);
 
 export default router;
