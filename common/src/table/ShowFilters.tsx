@@ -54,12 +54,15 @@ function renderActiveFilters({
 }) {
 	let elements: React.ReactNode[] = [];
 	for (const [dataKey, filter] of Object.entries(filters)) {
-		if (dataKey === globalFilterKey) continue;
-		if (!fields[dataKey]) {
+		//if (dataKey === globalFilterKey) continue;
+		if (dataKey !== globalFilterKey && !fields[dataKey]) {
 			console.warn(`${dataKey} not present in fields`);
 			continue;
 		}
-		const { label, dataRenderer } = fields[dataKey];
+		const { label, dataRenderer } =
+			dataKey !== globalFilterKey
+				? fields[dataKey]
+				: { label: "Search", dataRenderer: undefined };
 		const { comps, options } = filter;
 		if (comps.length > 0) {
 			elements.push(
@@ -98,21 +101,19 @@ function renderActiveFilters({
 	return elements;
 }
 
-type ShowFiltersProps = {
-	className?: string;
-	style?: React.CSSProperties;
-	fields: Fields;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
-};
-
 function ShowFilters({
 	className,
 	style,
 	fields,
 	selectors,
 	actions,
-}: ShowFiltersProps) {
+}: {
+	className?: string;
+	style?: React.CSSProperties;
+	fields: Fields;
+	selectors: AppTableDataSelectors;
+	actions: AppTableDataActions;
+}) {
 	const dispatch = useDispatch();
 
 	const totalRows = useSelector(selectors.selectIds).length;

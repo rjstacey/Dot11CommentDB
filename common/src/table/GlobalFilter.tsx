@@ -54,9 +54,13 @@ function GlobalFilter({
 				} catch (err) {}
 			}
 		}
-		dispatch(
-			actions.setFilter({ dataKey: globalFilterKey, comps: [comp] })
-		);
+		if (newValue) {
+			dispatch(
+				actions.setFilter({ dataKey: globalFilterKey, comps: [comp] })
+			);
+		} else {
+			dispatch(actions.clearFilter({ dataKey: globalFilterKey }));
+		}
 	};
 
 	return (

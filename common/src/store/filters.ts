@@ -58,13 +58,13 @@ const cmpPage = (d: number | null, val: string) => {
 		: Math.round(d) === n;
 };
 
-const cmpContains = (d: any, val: string) => {
+const cmpContains = (d: unknown, val: string) => {
 	if (typeof d === "number") d = d.toString();
 	if (typeof d !== "string") return false;
 	return d.toLocaleLowerCase().includes(val.toLowerCase());
 };
 
-type CmpFunc = (d: any) => boolean;
+type CmpFunc = (d: unknown) => boolean;
 
 export function getCompFunc(comp: FilterComp): CmpFunc {
 	const { value, operation } = comp;
@@ -72,35 +72,37 @@ export function getCompFunc(comp: FilterComp): CmpFunc {
 
 	switch (operation) {
 		case CompOp.EQ:
-			return (d: any) => d == value; // eslint-disable-line
+			return (d: unknown) => d == value; // eslint-disable-line
 		case CompOp.GT:
-			return (d: any) => d > value;
+			return (d: unknown) => (d as number) > value;
 		case CompOp.LT:
-			return (d: any) => d < value;
+			return (d: unknown) => (d as number) < value;
 		case CompOp.GTEQ:
-			return (d: any) => d >= value;
+			return (d: unknown) => (d as number) >= value;
 		case CompOp.LTEQ:
-			return (d: any) => d <= value;
+			return (d: unknown) => (d as number) <= value;
 		case CompOp.NOTEQ:
-			return (d: any) => d != value; // eslint-disable-line
+			return (d: unknown) => d != value; // eslint-disable-line
 		case CompOp.BLANK:
-			return (d: any) => d === null || d === "";
+			return (d: unknown) => d === null || d === "";
 		case CompOp.NOTBLANK:
-			return (d: any) => d !== null && d !== "";
+			return (d: unknown) => d !== null && d !== "";
 		case CompOp.REGEX:
 			parts = value.split("/");
-			if (value[0] === "/" && parts.length > 2 && parts[0]) {
+			if (value[0] === "/" && parts.length > 2 && parts[1]) {
 				try {
 					regex = new RegExp(parts[1], parts[2]);
 				} catch (err) {}
 			}
-			return regex ? regex.test : () => false;
+			if (regex)
+				return (d: unknown) => typeof d === "string" && regex!.test(d);
+			return () => false;
 		case CompOp.CONTAINS:
-			return (d: any) => cmpContains(d, value);
+			return (d: unknown) => cmpContains(d, value);
 		case CompOp.CLAUSE:
-			return (d: any) => cmpClause(d, value);
+			return (d: unknown) => cmpClause(d as string | null, value);
 		case CompOp.PAGE:
-			return (d: any) => cmpPage(d, value);
+			return (d: unknown) => cmpPage(d as number | null, value);
 		default:
 			console.error(`Unexpected comp operation ${operation}`);
 			return () => false;
