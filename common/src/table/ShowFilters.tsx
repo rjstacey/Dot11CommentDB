@@ -54,15 +54,19 @@ function renderActiveFilters({
 }) {
 	let elements: React.ReactNode[] = [];
 	for (const [dataKey, filter] of Object.entries(filters)) {
-		//if (dataKey === globalFilterKey) continue;
-		if (dataKey !== globalFilterKey && !fields[dataKey]) {
-			console.warn(`${dataKey} not present in fields`);
-			continue;
+		let label: string | undefined,
+			dataRenderer: ((d: unknown) => string | number) | undefined;
+		if (dataKey === globalFilterKey) {
+			label = "Search";
+		} else {
+			const field = fields[dataKey];
+			if (!field) {
+				console.warn(`${dataKey} not present in fields`);
+				continue;
+			}
+			label = field.label;
+			dataRenderer = field.dataRenderer;
 		}
-		const { label, dataRenderer } =
-			dataKey !== globalFilterKey
-				? fields[dataKey]
-				: { label: "Search", dataRenderer: undefined };
 		const { comps, options } = filter;
 		if (comps.length > 0) {
 			elements.push(
