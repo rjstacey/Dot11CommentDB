@@ -7,10 +7,16 @@ function renderAccess(access: number) {
 	return "none";
 }
 
-function ShowAccess({ access }: { access: number }) {
+export function ShowAccess({ access }: { access: number | number[] }) {
+	let s: string;
+	if (Array.isArray(access)) {
+		s = access.map((a) => renderAccess(a)).join(" / ");
+	} else {
+		s = renderAccess(access);
+	}
 	return (
 		<div className="d-flex justify-content-end" style={{ opacity: 0.5 }}>
-			{renderAccess(access)}
+			{s}
 		</div>
 	);
 }

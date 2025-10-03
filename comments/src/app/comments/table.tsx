@@ -7,7 +7,7 @@ import {
 	GlobalFilter,
 } from "@common";
 
-import CommentDetail from "./CommentDetail";
+import CommentDetail from "./detail";
 import { fields, commentsSelectors, commentsActions } from "@/store/comments";
 
 import {

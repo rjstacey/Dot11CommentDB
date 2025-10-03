@@ -20,13 +20,7 @@ import { AccessLevel } from "@/store/user";
 
 import { RoleSelect } from "./RoleSelect";
 import { useCommentsAccess } from "./useCommentsAccess";
-
-function renderAccess(access: number) {
-	if (access === AccessLevel.admin) return "admin";
-	if (access === AccessLevel.rw) return "rw";
-	if (access === AccessLevel.ro) return "ro";
-	return "none";
-}
+import { ShowAccess } from "@/components/ShowAccess";
 
 const Placeholder = (props: React.ComponentProps<"span">) => (
 	<div className="details-panel-placeholder">
@@ -175,16 +169,7 @@ function CommentDetail() {
 				</Col>
 			</Row>
 			<div className="main">{content}</div>
-			<Row style={{ justifyContent: "flex-end", opacity: 0.5 }}>
-				<Col
-					className="d-flex justify-content-end"
-					style={{ opacity: 0.5 }}
-				>
-					{`${renderAccess(commentsAccess)} / ${renderAccess(
-						resolutionsAccess
-					)}`}
-				</Col>
-			</Row>
+			<ShowAccess access={[commentsAccess, resolutionsAccess]} />
 		</Container>
 	);
 }
