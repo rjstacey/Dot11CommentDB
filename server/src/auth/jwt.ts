@@ -57,7 +57,8 @@ export const authorize: RequestHandler = async (req, res, next) => {
 		next();
 	} catch (error) {
 		//console.log(error);
-		res.status(403).send(error);
+		const msg = error instanceof Error ? error.message : "Forbidden";
+		res.status(403).send(msg);
 	}
 };
 
