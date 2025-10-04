@@ -101,6 +101,7 @@ export function SelectFontSize({ disabled }: { disabled: boolean }) {
 
 	return (
 		<Select
+			id="font-size-selector"
 			style={{ width: 115 }}
 			aria-label="Font Size Options"
 			options={fontSizeOptions}

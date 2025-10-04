@@ -205,12 +205,15 @@ export function GroupEntryForm({
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3" controlId="group.color">
-				<Form.Label as="span" column>
-					Color:
-				</Form.Label>
+			<Form.Group as={Row} className="mb-3">
+				<Col>
+					<Form.Label as="span" htmlFor="group.color">
+						Color:
+					</Form.Label>
+				</Col>
 				<Col xs={12} md={8}>
 					<ColorPicker
+						id="group.color"
 						value={isMultiple(entry.color) ? "" : entry.color || ""}
 						onChange={(value) => change({ color: value })}
 						readOnly={readOnly || entry.type === "r"}
@@ -243,14 +246,13 @@ export function GroupEntryForm({
 				</Form.Group>
 			)}
 			{entry.type && ["c", "wg", "tg"].includes(entry.type) && (
-				<Form.Group
-					as={Row}
-					className="mb-3"
-					controlId="group.imat_committee"
-				>
-					<Form.Label column>IMAT committee:</Form.Label>
+				<Form.Group as={Row} className="mb-3">
+					<Form.Label column htmlFor="group.imat_committee">
+						IMAT committee:
+					</Form.Label>
 					<Col xs={8}>
 						<ImatCommitteeSelector
+							id="group.imat_committee"
 							style={{ maxWidth: 200 }}
 							value={
 								isMultiple(entry.symbol)

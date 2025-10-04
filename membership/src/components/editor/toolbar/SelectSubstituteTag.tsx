@@ -102,6 +102,7 @@ export function SelectSubstituteTag({
 
 	return (
 		<Select
+			id="substitute-tag-selector"
 			style={{ width: 150 }}
 			aria-label="Substitution tag options"
 			placeholder="Insert tag..."

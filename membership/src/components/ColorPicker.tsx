@@ -47,17 +47,23 @@ function ColorCircle({
 }
 
 export function ColorPicker({
+	id,
 	value,
 	onChange,
 	readOnly,
 }: {
+	id?: string;
 	value: string;
 	onChange: (value: string) => void;
 	readOnly?: boolean;
 }) {
 	return (
 		<>
-			<div className={css["color-picker"]}>
+			<div
+				className={css["color-picker"]}
+				aria-label="Color picker"
+				id={id}
+			>
 				{colors.map((color) => (
 					<ColorCircle
 						key={color}

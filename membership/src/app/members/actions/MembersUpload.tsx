@@ -70,8 +70,10 @@ function MembersUploadForm({ close }: { close: () => void }) {
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} controlId="fileInput" className="mb-3">
-				<Form.Label column>Spreadsheet:</Form.Label>
-				<Col sm={6}>
+				<Form.Label column xs="auto">
+					Spreadsheet:
+				</Form.Label>
+				<Col sm={12}>
 					<Form.Control
 						type="file"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

@@ -94,9 +94,9 @@ function AttendanceInfo({
 	return (
 		<>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label as="span" column>
-					Registration:
-				</Form.Label>
+				<Col>
+					<Form.Label as="span">Registration:</Form.Label>
+				</Col>
 				<Col xs={12} md={8}>
 					<Form.Check
 						id="isregistered"
@@ -123,9 +123,9 @@ function AttendanceInfo({
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label as="span" column>
-					Attendance percentage:
-				</Form.Label>
+				<Col>
+					<Form.Label as="span">Attendance percentage:</Form.Label>
+				</Col>
 				<Col xs={12} md={8}>
 					{renderAttendancePercentage(
 						attendance.AttendancePercentage
@@ -133,9 +133,9 @@ function AttendanceInfo({
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label as="span" column>
-					Attendance override:
-				</Form.Label>
+				<Col>
+					<Form.Label as="span">Attendance override:</Form.Label>
+				</Col>
 				<Col xs={12} md={8}>
 					<Form.Check
 						id="didattend"

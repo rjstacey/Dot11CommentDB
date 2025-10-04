@@ -213,6 +213,7 @@ function SelectEmailTemplate({
 	}
 	return (
 		<Select
+			id="select-email-template"
 			values={values}
 			options={options}
 			loading={loading}

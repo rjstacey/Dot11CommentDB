@@ -9,12 +9,14 @@ import { selectWorkingGroup } from "@/store/groups";
 function MemberSelector({
 	value, // value is SAPIN
 	onChange,
-	readOnly,
+	...props
 }: {
 	value: number;
 	onChange: (value: number) => void;
-	readOnly?: boolean;
-}) {
+} & Pick<
+	React.ComponentProps<typeof Select>,
+	"id" | "style" | "placeholder" | "readOnly" | "disabled"
+>) {
 	const workingGroup = useAppSelector(selectWorkingGroup);
 	const options = useAppSelector(
 		workingGroup && workingGroup.type === "r"
@@ -35,8 +37,7 @@ function MemberSelector({
 			clearable
 			valueField="SAPIN"
 			labelField="Name"
-			readOnly={readOnly}
-			portal={document.querySelector("#root")}
+			{...props}
 		/>
 	);
 }

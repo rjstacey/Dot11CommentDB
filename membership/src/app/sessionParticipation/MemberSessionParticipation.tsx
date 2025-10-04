@@ -196,6 +196,7 @@ export function MemberSessionParticipation({
 			if (col.key === "IsRegistered") {
 				renderCell = (entry) => (
 					<FormCheck
+						id={"is-registered-" + entry.session_id}
 						checked={entry.IsRegistered}
 						onChange={(e) =>
 							update(entry.session_id, {
@@ -209,6 +210,7 @@ export function MemberSessionParticipation({
 			if (col.key === "InPerson") {
 				renderCell = (entry) => (
 					<FormCheck
+						id={"in-person-" + entry.session_id}
 						checked={entry.InPerson}
 						onChange={(e) =>
 							update(entry.session_id, {
@@ -222,6 +224,7 @@ export function MemberSessionParticipation({
 			if (col.key === "DidAttend") {
 				renderCell = (entry) => (
 					<FormCheck
+						id={"did-attend-" + entry.session_id}
 						checked={entry.DidAttend}
 						onChange={(e) =>
 							update(entry.session_id, {
@@ -235,6 +238,7 @@ export function MemberSessionParticipation({
 			if (col.key === "DidNotAttend") {
 				renderCell = (entry) => (
 					<FormCheck
+						id={"did-not-attend-" + entry.session_id}
 						checked={entry.DidNotAttend}
 						onChange={(e) =>
 							update(entry.session_id, {
@@ -248,6 +252,7 @@ export function MemberSessionParticipation({
 			if (col.key === "Notes") {
 				renderCell = (entry) => (
 					<FormControl
+						id={"notes-" + entry.session_id}
 						type="text"
 						value={entry.Notes || ""}
 						onChange={(e) =>

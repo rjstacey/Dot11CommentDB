@@ -37,12 +37,14 @@ function selectItemRenderer({
 function MemberEmailSelector({
 	value,
 	onChange,
-	readOnly,
+	...props
 }: {
 	value: string;
 	onChange: (value: string) => void;
-	readOnly?: boolean;
-}) {
+} & Pick<
+	React.ComponentProps<typeof Select>,
+	"id" | "style" | "placeholder" | "readOnly" | "disabled"
+>) {
 	const members = useAppSelector(selectActiveMembers);
 	const options: EntryOption[] = React.useMemo(
 		() =>
@@ -100,7 +102,7 @@ function MemberEmailSelector({
 			labelField="Name"
 			itemRenderer={itemRenderer}
 			multiSelectItemRenderer={selectItemRenderer}
-			readOnly={readOnly}
+			{...props}
 		/>
 	);
 }
@@ -121,8 +123,9 @@ function RecipientsEditor({
 	if (showCc || email.cc) {
 		ccLine = (
 			<div className={css.recipientsContainer}>
-				<label>Cc:</label>
+				<span>Cc:</span>
 				<MemberEmailSelector
+					id="email-cc-selector"
 					value={email.cc || ""}
 					onChange={(cc) => onChange({ cc })}
 					readOnly={readOnly}
@@ -135,8 +138,9 @@ function RecipientsEditor({
 	if (showBcc || email.bcc) {
 		bccLine = (
 			<div className={css.recipientsContainer}>
-				<label>Bcc:</label>
+				<span>Bcc:</span>
 				<MemberEmailSelector
+					id="email-bcc-selector"
 					value={email.bcc || ""}
 					onChange={(bcc) => onChange({ bcc })}
 					readOnly={readOnly}
@@ -157,7 +161,7 @@ function RecipientsEditor({
 		: [];
 	const toLine = (
 		<div className={css.recipientsContainer}>
-			<label>To:</label>
+			<span>To:</span>
 			{toAddresses.map((item) => {
 				const title = item.Name
 					? `${item.Name} <${item.Email}>`

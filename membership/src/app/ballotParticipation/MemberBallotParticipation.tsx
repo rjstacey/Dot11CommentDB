@@ -143,6 +143,7 @@ function MemberBallotParticipation({
 			if (col.key === "excused") {
 				renderCell = (entry) => (
 					<FormCheck
+						id={"excused-" + entry.series_id}
 						checked={entry.excused}
 						onChange={(e) =>
 							update(entry.series_id, {

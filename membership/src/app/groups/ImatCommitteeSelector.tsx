@@ -12,14 +12,14 @@ function ImatCommitteeSelector({
 	value,
 	onChange,
 	type,
-	...otherProps
+	...props
 }: {
 	value: string | null;
 	onChange: (value: string | null) => void;
 	type?: ImatCommitteeType;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"style" | "placeholder" | "readOnly"
+	"id" | "style" | "placeholder" | "readOnly" | "disabled"
 >) {
 	let options = useAppSelector(selectImatCommittees);
 	if (type) options = options.filter((o) => o.type === type);
@@ -40,7 +40,7 @@ function ImatCommitteeSelector({
 			clearable
 			valueField="symbol"
 			labelField="shortName"
-			{...otherProps}
+			{...props}
 		/>
 	);
 }

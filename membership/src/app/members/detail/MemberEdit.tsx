@@ -298,9 +298,9 @@ export function MemberBasicInfo({
 					controlId="dateAdded"
 					className="d-flex align-items-center"
 				>
-					<Form.Label as="span" column xs={5}>
-						Date added:
-					</Form.Label>
+					<Col>
+						<Form.Label as="span">Date added:</Form.Label>
+					</Col>
 					<Col>
 						<Form.Control as="div">
 							{renderDate(member.DateAdded)}
@@ -564,9 +564,12 @@ export function MemberEntryForm({
 		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
 			{action === "add" && !basicOnly && (
 				<Form.Group as={Row}>
-					<Form.Label column>Add existing IEEE member:</Form.Label>
+					<Form.Label column htmlFor="add-existing-ieee-member">
+						Add existing IEEE member:
+					</Form.Label>
 					<Col xs="auto">
 						<IeeeMemberSelector
+							id="add-existing-ieee-member"
 							value={member.SAPIN as number}
 							onChange={(sapin) => setMember(sapin)}
 						/>

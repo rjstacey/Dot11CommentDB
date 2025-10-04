@@ -13,6 +13,7 @@ function SubjectEditor({
 	return (
 		<div className={css.subjectContainer}>
 			<input
+				id="subject-editor"
 				type="text"
 				value={value}
 				onChange={(e) => {

@@ -54,20 +54,26 @@ function MemberStatusChangeForm({
 					/>
 				</Col>
 			</FormGroup>
-			<FormGroup as={Row} controlId="oldStatus" className="mb-2">
-				<FormLabel column>Old status:</FormLabel>
+			<FormGroup as={Row} className="mb-2">
+				<FormLabel column htmlFor="oldStatus">
+					Old status:
+				</FormLabel>
 				<Col>
 					<StatusSelector
+						id="oldStatus"
 						value={entry.OldStatus}
 						onChange={(value) => change({ OldStatus: value })}
 						placeholder={BLANK_STR}
 					/>
 				</Col>
 			</FormGroup>
-			<FormGroup as={Row} controlId="newStatus" className="mb-2">
-				<FormLabel column>New status:</FormLabel>
+			<FormGroup as={Row} className="mb-2">
+				<FormLabel column htmlFor="newStatus">
+					New status:
+				</FormLabel>
 				<Col>
 					<StatusSelector
+						id="newStatus"
 						value={entry.NewStatus}
 						onChange={(value) => change({ NewStatus: value })}
 						placeholder={BLANK_STR}
@@ -221,9 +227,10 @@ export function MemberStatus({
 	return (
 		<div>
 			<Row>
-				<FormGroup as={Col} controlId="status">
-					<FormLabel>Status:</FormLabel>
+				<FormGroup as={Col}>
+					<FormLabel htmlFor="status">Status:</FormLabel>
 					<StatusSelector
+						id="status"
 						style={{
 							flexBasis: 200,
 							...hasChangesStyle(member, saved, "Status"),

@@ -100,6 +100,7 @@ export function SelectAlignment({ disabled }: { disabled: boolean }) {
 
 	return (
 		<Select
+			id="alignment-selector"
 			style={{ width: 60 }}
 			aria-label="Alignment Options"
 			options={alignmentOptions}

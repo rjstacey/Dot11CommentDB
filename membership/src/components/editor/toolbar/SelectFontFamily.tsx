@@ -86,6 +86,7 @@ export function SelectFontFamily({ disabled }: { disabled: boolean }) {
 
 	return (
 		<Select
+			id="font-family-selector"
 			style={{ width: 180 }}
 			aria-label="Font Options"
 			options={fontFamilyOptions}

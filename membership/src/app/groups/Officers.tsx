@@ -1,5 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { Form, Row, Button } from "react-bootstrap";
+import { Form, Row, Col, Button } from "react-bootstrap";
 
 import { OfficerId, Officer } from "@/store/officers";
 
@@ -61,6 +61,7 @@ function Officers({
 		if (col.key === "position") {
 			col.renderCell = (entry: Officer) => (
 				<OfficerPositionSelector
+					id={`officer-position-${entry.id}`}
 					value={entry.position}
 					onChange={(position: string) =>
 						updateOne(entry.id, { position })
@@ -72,6 +73,7 @@ function Officers({
 		} else if (col.key === "member") {
 			col.renderCell = (entry: Officer) => (
 				<MemberSelector
+					id={`officer-member-${entry.id}`}
 					value={entry.sapin}
 					onChange={(sapin: number) => updateOne(entry.id, { sapin })}
 					readOnly={readOnly}
@@ -80,6 +82,7 @@ function Officers({
 		} else if (col.key === "action") {
 			col.renderCell = (entry: Officer) => (
 				<Button
+					id={`officer-remove-${entry.id}`}
 					variant="outline-danger"
 					className="bi-trash"
 					onClick={() => removeOne(entry.id)}
@@ -87,6 +90,7 @@ function Officers({
 			);
 			col.label = (
 				<Button
+					id="officer-add"
 					variant="outline-primary"
 					className="bi-plus-lg"
 					onClick={addOne}
@@ -98,9 +102,10 @@ function Officers({
 
 	return (
 		<Form.Group as={Row} className="mb-3">
-			<Form.Label as="span" column>
-				Officers:
-			</Form.Label>
+			<Col>
+				<Form.Label as="span">Officers:</Form.Label>
+			</Col>
+
 			<Table columns={columns} values={officers} />
 		</Form.Group>
 	);
