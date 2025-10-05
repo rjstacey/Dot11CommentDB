@@ -9,14 +9,20 @@ export function GroupSelector({
 	value,
 	onChange,
 	types,
-	...otherProps
+	...props
 }: {
 	value: string;
 	onChange: (value: string) => void;
 	types?: string[];
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
+	| "readOnly"
+	| "disabled"
+	| "id"
+	| "placeholder"
+	| "className"
+	| "style"
+	| "isInvalid"
 >) {
 	let groups = useAppSelector(selectGroups);
 	if (types) groups = groups.filter((group) => types.includes(group.type!));
@@ -39,7 +45,7 @@ export function GroupSelector({
 			valueField="id"
 			labelField="name"
 			portal={document.querySelector("#root")}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }

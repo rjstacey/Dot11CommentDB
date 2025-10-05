@@ -117,10 +117,18 @@ function SessionBasics({
 
 	const nameMinWidthCh = Math.max(session.name.length, 24);
 
+	const formGroupClassName = "mb-3" + (readOnly ? " pe-none" : "");
+
 	return (
 		<>
-			<Form.Group as={Row} className="mb-3" controlId="session-number">
-				<Form.Label column>Session number:</Form.Label>
+			<Form.Group
+				as={Row}
+				className={formGroupClassName}
+				controlId="session-number"
+			>
+				<Col>
+					<Form.Label>Session number:</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<Form.Control
 						type="number"
@@ -143,17 +151,23 @@ function SessionBasics({
 									: null,
 							})
 						}
-						disabled={readOnly}
 						min={1}
 						step={0.1}
 						autoComplete="none"
+						readOnly={readOnly}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3" controlId="session-name">
-				<Form.Label column>Session name:</Form.Label>
+			<Form.Group as={Row} className={formGroupClassName}>
+				<Col>
+					<Form.Label htmlFor="session-name">
+						Session name:
+					</Form.Label>
+				</Col>
 				<Col>
 					<TextArea
+						id="session-name"
 						style={{ width: `${nameMinWidthCh}ch` }}
 						name="Name"
 						value={isMultiple(session.name) ? "" : session.name}
@@ -161,15 +175,21 @@ function SessionBasics({
 							isMultiple(session.name) ? MULTIPLE_STR : BLANK_STR
 						}
 						onChange={(e) => handleChange({ name: e.target.value })}
-						disabled={readOnly}
 						autoComplete="none"
+						readOnly={readOnly}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3" controlId="session-type">
-				<Form.Label column>Session type:</Form.Label>
+			<Form.Group as={Row} className={formGroupClassName}>
+				<Col>
+					<Form.Label htmlFor="session-type">
+						Session type:
+					</Form.Label>
+				</Col>
 				<Col>
 					<SessionTypeSelector
+						id="session-type"
 						value={
 							!session.type || isMultiple(session.type)
 								? null
@@ -180,14 +200,13 @@ function SessionBasics({
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group
-				as={Row}
-				className="mb-3"
-				controlId="session-organizing-group"
-			>
-				<Form.Label column>Organizing group:</Form.Label>
+			<Form.Group as={Row} className={formGroupClassName}>
+				<Form.Label column htmlFor="session-organizing-group">
+					Organizing group:
+				</Form.Label>
 				<Col>
 					<GroupParentsSelector
+						id="session-organizing-group"
 						value={
 							isMultiple(session.groupId) ? null : session.groupId
 						}
@@ -196,10 +215,13 @@ function SessionBasics({
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3" controlId="session-start">
-				<Form.Label column>Start:</Form.Label>
+			<Form.Group as={Row} className={formGroupClassName}>
+				<Col>
+					<Form.Label htmlFor="session-start">Start:</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<Form.Control
+						id="session-start"
 						type="date"
 						value={
 							isMultiple(session.startDate)
@@ -214,14 +236,18 @@ function SessionBasics({
 								? MULTIPLE_STR
 								: BLANK_STR
 						}
-						disabled={readOnly}
+						readOnly={readOnly}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3" controlId="session-end">
-				<Form.Label column>End:</Form.Label>
+			<Form.Group as={Row} className={formGroupClassName}>
+				<Col>
+					<Form.Label htmlFor="session-end">End:</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<Form.Control
+						id="session-end"
 						type="date"
 						value={
 							isMultiple(session.endDate) ? "" : session.endDate
@@ -234,14 +260,20 @@ function SessionBasics({
 								? MULTIPLE_STR
 								: BLANK_STR
 						}
-						disabled={readOnly}
+						readOnly={readOnly}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3" controlId="session-timezone">
-				<Form.Label column>Time zone:</Form.Label>
+			<Form.Group as={Row} className={formGroupClassName}>
+				<Col>
+					<Form.Label htmlFor="session-timezone">
+						Time zone:
+					</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<TimeZoneSelector
+						id="session-timezone"
 						style={{ width: 250 }}
 						value={
 							isMultiple(session.timezone) ? "" : session.timezone
@@ -256,14 +288,15 @@ function SessionBasics({
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group
-				as={Row}
-				className="mb-3"
-				controlId="session-imat-meeting"
-			>
-				<Form.Label column>IMAT meeting:</Form.Label>
+			<Form.Group as={Row} className={formGroupClassName}>
+				<Col>
+					<Form.Label htmlFor="session-imat-meeting">
+						IMAT meeting:
+					</Form.Label>
+				</Col>
 				<Col>
 					<ImatMeetingSelector
+						id="session-imat-meeting"
 						value={
 							isMultiple(session.imatMeetingId)
 								? null

@@ -88,7 +88,11 @@ function TeleconMeetingTime({
 								: undefined
 						}
 						readOnly={readOnly}
+						isInvalid={!entry.timezone}
 					/>
+					<Form.Control.Feedback type="invalid">
+						{"Enter time zone"}
+					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3" controlId="meeting-dates">
@@ -105,7 +109,11 @@ function TeleconMeetingTime({
 							isMultiple(entry.dates) ? MULTIPLE_STR : undefined
 						}
 						disabled={readOnly}
+						//isInvalid={entry.dates.length === 0}
 					/>
+					<Form.Control.Feedback type="invalid">
+						{"Enter date(s)"}
+					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
 			<Form.Group
@@ -126,7 +134,11 @@ function TeleconMeetingTime({
 								: undefined
 						}
 						disabled={readOnly}
+						isInvalid={!entry.startTime}
 					/>
+					<Form.Control.Feedback type="invalid">
+						{"Enter start time"}
+					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3" controlId="meeting-duration">
@@ -251,14 +263,15 @@ function SessionMeetingTime({
 }) {
 	return (
 		<>
-			<Form.Group
-				as={Row}
-				className="mb-3"
-				controlId="meeting-session-day"
-			>
-				<Form.Label column>Session day:</Form.Label>
+			<Form.Group as={Row} className="mb-3">
+				<Col>
+					<Form.Label htmlFor="meeting-session-day">
+						Session day:
+					</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<SessionDateSelector
+						id="meeting-session-day"
 						value={entry.dates.length === 1 ? entry.dates[0] : ""}
 						onChange={(date) =>
 							changeEntry({ dates: date ? [date] : [] })
@@ -270,14 +283,15 @@ function SessionMeetingTime({
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group
-				as={Row}
-				className="mb-3"
-				controlId="meeting-start-slot"
-			>
-				<Form.Label column>Start slot:</Form.Label>
+			<Form.Group as={Row} className="mb-3">
+				<Col>
+					<Form.Label htmlFor="meeting-start-slot">
+						Start slot:
+					</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<TimeslotSelector
+						id="meeting-start-slot"
 						value={
 							isMultiple(entry.startSlotId)
 								? null
@@ -293,14 +307,15 @@ function SessionMeetingTime({
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group
-				as={Row}
-				className="mb-3"
-				controlId="meeting-start-time"
-			>
-				<Form.Label column>Start time:</Form.Label>
+			<Form.Group as={Row} className="mb-3">
+				<Col>
+					<Form.Label htmlFor="meeting-start-time">
+						Start time:
+					</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<InputTime
+						id="meeting-start-time"
 						value={
 							isMultiple(entry.startTime) ? "" : entry.startTime
 						}
@@ -314,10 +329,15 @@ function SessionMeetingTime({
 					/>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3" controlId="meeting-end-time">
-				<Form.Label column>End time:</Form.Label>
+			<Form.Group as={Row} className="mb-3">
+				<Col>
+					<Form.Label htmlFor="meeting-end-time">
+						End time:
+					</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<InputTime
+						id="meeting-end-time"
 						value={isMultiple(entry.endTime) ? "" : entry.endTime}
 						onChange={(endTime) => changeEntry({ endTime })}
 						placeholder={
@@ -416,23 +436,32 @@ export function MeetingEntryForm({
 
 	return (
 		<Form onSubmit={submitForm} className="p-3">
-			<Form.Group as={Row} className="mb-3" controlId="meeting-cancel">
-				<Col className="d-flex justify-content-end align-items-center">
-					<Button
-						variant="outline-danger"
-						active={
-							!isMultiple(entry.isCancelled) && entry.isCancelled
-						}
-						onClick={() =>
-							handleChange({ isCancelled: !entry.isCancelled })
-						}
-						disabled={isMultiple(entry.isCancelled) || readOnly}
-						title="Mark the meeting as cancelled"
-					>
-						{entry.isCancelled ? "Cancelled" : "Cancel Meeting"}
-					</Button>
-				</Col>
-			</Form.Group>
+			{action === "update" && (
+				<Form.Group
+					as={Row}
+					className="mb-3"
+					controlId="meeting-cancel"
+				>
+					<Col className="d-flex justify-content-end align-items-center">
+						<Button
+							variant="outline-danger"
+							active={
+								!isMultiple(entry.isCancelled) &&
+								entry.isCancelled
+							}
+							onClick={() =>
+								handleChange({
+									isCancelled: !entry.isCancelled,
+								})
+							}
+							disabled={isMultiple(entry.isCancelled) || readOnly}
+							title="Mark the meeting as cancelled"
+						>
+							{entry.isCancelled ? "Cancelled" : "Cancel Meeting"}
+						</Button>
+					</Col>
+				</Form.Group>
+			)}
 			<Form.Group as={Row} className="mb-3">
 				<Form.Label htmlFor="meeting-subgroup" column>
 					Subgroup:
@@ -455,13 +484,20 @@ export function MeetingEntryForm({
 								: BLANK_STR
 						}
 						readOnly={readOnly}
+						isInvalid={!entry.organizationId}
 					/>
+					<Form.Control.Feedback type="invalid">
+						{"Enter subgroup"}
+					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3" controlId="meeting-summary">
-				<Form.Label column>Summary:</Form.Label>
+			<Form.Group as={Row} className="mb-3">
+				<Col>
+					<Form.Label htmlFor="meeting-summary">Summary:</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<Form.Control
+						id="meeting-summary"
 						type="search"
 						style={{ width: 200 }}
 						value={
@@ -541,14 +577,15 @@ export function MeetingEntryForm({
 				</Form.Group>
 			)}
 			{!isSession && (
-				<Form.Group
-					as={Row}
-					className="mb-3"
-					controlId="meeting-includes-motions"
-				>
-					<Form.Label column>Agenda includes motions:</Form.Label>
+				<Form.Group as={Row} className="mb-3">
+					<Col>
+						<Form.Label htmlFor="meeting-includes-motions">
+							Agenda includes motions:
+						</Form.Label>
+					</Col>
 					<Col xs="auto">
 						<Form.Check
+							id="meeting-includes-motions"
 							type="checkbox"
 							checked={
 								isMultiple(entry.hasMotions)
@@ -571,14 +608,15 @@ export function MeetingEntryForm({
 					</Col>
 				</Form.Group>
 			)}
-			<Form.Group
-				as={Row}
-				className="mb-3"
-				controlId="meeting-imat-meeting"
-			>
-				<Form.Label column>IMAT meeting:</Form.Label>
+			<Form.Group as={Row} className="mb-3">
+				<Col>
+					<Form.Label htmlFor="meeting-imat-meeting">
+						IMAT meeting:
+					</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<ImatMeetingSelector
+						id="meeting-imat-meeting"
 						value={
 							isMultiple(entry.imatMeetingId)
 								? null
@@ -613,8 +651,12 @@ export function MeetingEntryForm({
 				/>
 			) : null}
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label column>Calendar:</Form.Label>
-				<Col htmlFor="meeting-calendar" xs="auto">
+				<Col>
+					<Form.Label htmlFor="meeting-calendar">
+						Calendar:
+					</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<CalendarAccountSelector
 						id="meeting-calendar"
 						value={

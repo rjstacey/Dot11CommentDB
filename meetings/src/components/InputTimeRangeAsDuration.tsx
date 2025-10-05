@@ -55,7 +55,7 @@ type TimeRange = {
 function InputTimeRangeAsDuration({
 	entry,
 	changeEntry,
-	...otherProps
+	...props
 }: {
 	entry: TimeRange;
 	changeEntry: (changes: Partial<TimeRange>) => void;
@@ -94,7 +94,7 @@ function InputTimeRangeAsDuration({
 			type="search"
 			value={duration}
 			onChange={(e) => handleSetDuration(e.target.value)}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }

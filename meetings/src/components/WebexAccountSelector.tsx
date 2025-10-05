@@ -11,7 +11,13 @@ function WebexAccountSelector({
 	onChange: (value: number | null) => void;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
+	| "readOnly"
+	| "disabled"
+	| "id"
+	| "placeholder"
+	| "className"
+	| "style"
+	| "isInvalid"
 >) {
 	const options = useAppSelector(selectWebexAccounts);
 	const values = options.filter((o) => o.id === value);

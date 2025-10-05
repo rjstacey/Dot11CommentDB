@@ -97,7 +97,9 @@ function RoomDetails({
 						onChange={(e) =>
 							updateRoom(entry.id, { name: e.target.value })
 						}
-						disabled={readOnly}
+						readOnly={readOnly}
+						className={readOnly ? "pe-none" : undefined}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				);
 			} else if (col.key === "description") {
@@ -113,7 +115,9 @@ function RoomDetails({
 								description: e.target.value,
 							})
 						}
-						disabled={readOnly}
+						readOnly={readOnly}
+						className={readOnly ? "pe-none" : undefined}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				);
 			} else if (col.key === "action") {
@@ -149,10 +153,14 @@ function RoomDetails({
 					variant="light"
 					className="bi-plus-lg"
 					onClick={() => addRoom(defaultEntry)}
+					disabled={readOnly}
 				>
 					{" Add Room"}
 				</Button>
-				<RawSessionSelector onChange={importRoomsFromSession} />
+				<RawSessionSelector
+					onChange={importRoomsFromSession}
+					disabled={readOnly}
+				/>
 			</div>
 
 			<Table columns={columns} values={rooms} />

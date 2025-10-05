@@ -65,18 +65,22 @@ function TimeslotDetails({
 			if (col.key === "name") {
 				col.renderCell = (entry) => (
 					<FormControl
+						id={`timeslot-name-${entry.id}`}
 						style={{ width: "10rem" }}
 						type="search"
 						value={entry.name}
 						onChange={(e) =>
 							updateTimeslot(entry.id, { name: e.target.value })
 						}
-						disabled={readOnly}
+						readOnly={readOnly}
+						className={readOnly ? "pe-none" : undefined}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				);
 			} else if (col.key === "startTime") {
 				col.renderCell = (entry) => (
 					<FormControl
+						id={`timeslot-start-${entry.id}`}
 						//style={{ width: "6rem" }}
 						type="time"
 						value={entry.startTime}
@@ -85,12 +89,15 @@ function TimeslotDetails({
 								startTime: e.target.value,
 							})
 						}
-						disabled={readOnly}
+						readOnly={readOnly}
+						className={readOnly ? "pe-none" : undefined}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				);
 			} else if (col.key === "endTime") {
 				col.renderCell = (entry) => (
 					<FormControl
+						id={`timeslot-end-${entry.id}`}
 						//style={{ width: "6rem" }}
 						type="time"
 						value={entry.endTime}
@@ -99,14 +106,18 @@ function TimeslotDetails({
 								endTime: e.target.value,
 							})
 						}
-						disabled={readOnly}
+						readOnly={readOnly}
+						className={readOnly ? "pe-none" : undefined}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				);
 			} else if (col.key === "action") {
 				col.renderCell = (entry) => (
 					<button
+						id={`timeslot-remove-${entry.id}`}
 						className="bi-trash icon action"
 						onClick={() => removeTimeslot(entry.id)}
+						disabled={readOnly}
 					/>
 				);
 			}
@@ -123,10 +134,14 @@ function TimeslotDetails({
 					variant="light"
 					className="bi-plus-lg"
 					onClick={() => addTimeslot(defaultEntry)}
+					disabled={readOnly}
 				>
 					{" Add Timeslot"}
 				</Button>
-				<RawSessionSelector onChange={importTimeslotsFromSession} />
+				<RawSessionSelector
+					onChange={importTimeslotsFromSession}
+					disabled={readOnly}
+				/>
 			</div>
 			<Table columns={columns} values={timeslots} />
 		</>

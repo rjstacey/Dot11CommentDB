@@ -4,7 +4,7 @@ import { DateTime } from "luxon";
 import { Button, Form, Row, Col } from "react-bootstrap";
 import type { Dictionary } from "@reduxjs/toolkit";
 
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import { selectUserMeetingsAccess } from "@/store/meetings";
 
 import {
@@ -14,7 +14,6 @@ import {
 	deepMergeTagMultiple,
 	isMultiple,
 	Select,
-	setError,
 	Multiple,
 } from "@common";
 
@@ -146,7 +145,13 @@ function SlotSelector({
 	isStart?: boolean;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"readOnly" | "disabled" | "id" | "className" | "style" | "placeholder"
+	| "readOnly"
+	| "disabled"
+	| "id"
+	| "className"
+	| "style"
+	| "placeholder"
+	| "isInvalid"
 >) {
 	const { timeslots } = useAppSelector(selectBreakoutsState);
 	const options = timeslots.map((s) => ({
@@ -233,13 +238,19 @@ function SessionDaySelector({
 function GroupIdSelector({
 	value,
 	onChange,
-	...otherProps
+	...props
 }: {
 	value: number | null;
 	onChange: (value: number) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof ImatCommitteeSelector>,
-	"value" | "onChange"
+	| "id"
+	| "readOnly"
+	| "disabled"
+	| "className"
+	| "style"
+	| "placeholder"
+	| "isInvalid"
 >) {
 	const { committees } = useAppSelector(selectBreakoutsState);
 	const committee = committees.find((c) => c.id === value);
@@ -251,7 +262,7 @@ function GroupIdSelector({
 		<ImatCommitteeSelector
 			value={committee ? committee.symbol : ""}
 			onChange={handleChange}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
@@ -311,79 +322,75 @@ export function BreakoutCredit({
 }) {
 	return (
 		<>
-			<Row>
-				<Form.Label column>Credit:</Form.Label>
-				<Col
-					style={{
-						display: "flex",
-						justifyContent: "space-between",
-					}}
-				>
-					<div style={{ margin: "0 5px" }}>
-						<Form.Check
-							type="radio"
-							id="extra"
-							value="Extra"
-							checked={entry.credit === "Extra"}
-							//indeterminate={isMultiple(entry.credit).toString()}
-							onChange={(e) =>
-								changeEntry({ credit: e.target.value })
-							}
-							disabled={readOnly}
-							label="Extra"
-						/>
-					</div>
-					<div style={{ margin: "0 5px" }}>
-						<input
-							type="radio"
-							id="normal"
-							value="Normal"
-							checked={entry.credit === "Normal"}
-							//indeterminate={isMultiple(entry.credit).toString()}
-							onChange={(e) =>
-								changeEntry({ credit: e.target.value })
-							}
-							disabled={readOnly}
-						/>
-						<label htmlFor="normal">Normal</label>
-					</div>
-					<div style={{ margin: "0 5px" }}>
-						<input
-							type="radio"
-							id="other"
-							value="Other"
-							checked={entry.credit === "Other"}
-							//indeterminate={isMultiple(entry.credit).toString()}
-							onChange={(e) =>
-								changeEntry({ credit: e.target.value })
-							}
-							disabled={readOnly}
-						/>
-						<label htmlFor="other">Other</label>
-					</div>
-					<div style={{ margin: "0 5px" }}>
-						<input
-							type="radio"
-							id="zero"
-							value="Zero"
-							checked={entry.credit === "Zero"}
-							//indeterminate={isMultiple(entry.credit).toString()}
-							onChange={(e) =>
-								changeEntry({ credit: e.target.value })
-							}
-							disabled={readOnly}
-						/>
-						<label htmlFor="zero">Zero</label>
-					</div>
+			<Row className="mb-3">
+				<Col>
+					<Form.Label as="span">Credit:</Form.Label>
+				</Col>
+				<Col xs="auto" className="d-flex">
+					<Form.Check
+						className="me-3"
+						type="radio"
+						id="extra"
+						value="Extra"
+						checked={entry.credit === "Extra"}
+						//indeterminate={isMultiple(entry.credit).toString()}
+						onChange={(e) =>
+							changeEntry({ credit: e.target.value })
+						}
+						readOnly={readOnly}
+						label="Extra"
+					/>
+					<Form.Check
+						className="me-3"
+						type="radio"
+						id="normal"
+						value="Normal"
+						checked={entry.credit === "Normal"}
+						//indeterminate={isMultiple(entry.credit).toString()}
+						onChange={(e) =>
+							changeEntry({ credit: e.target.value })
+						}
+						readOnly={readOnly}
+						label="Normal"
+					/>
+					<Form.Check
+						className="me-3"
+						type="radio"
+						id="other"
+						value="Other"
+						checked={entry.credit === "Other"}
+						//indeterminate={isMultiple(entry.credit).toString()}
+						onChange={(e) =>
+							changeEntry({ credit: e.target.value })
+						}
+						readOnly={readOnly}
+						label="Other"
+					/>
+					<Form.Check
+						className="me-3"
+						type="radio"
+						id="zero"
+						value="Zero"
+						checked={entry.credit === "Zero"}
+						//indeterminate={isMultiple(entry.credit).toString()}
+						onChange={(e) =>
+							changeEntry({ credit: e.target.value })
+						}
+						readOnly={readOnly}
+						label="Zero"
+					/>
 				</Col>
 			</Row>
-			<Row>
-				<Form.Label column>
-					Other credit (numerator/denominator):
-				</Form.Label>
+			<Row className="align-items-center mb-3">
 				<Col>
+					<Form.Label as="span">
+						Other credit (numerator / denominator):
+					</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<Form.Control
 						type="text"
+						name="numerator"
 						htmlSize={4}
 						value={
 							isMultiple(entry.creditOverrideNumerator)
@@ -402,9 +409,14 @@ export function BreakoutCredit({
 								: undefined
 						}
 					/>
-					<label>/</label>
+				</Col>
+				<Col xs="auto">
+					<span>/</span>
+				</Col>
+				<Col xs="auto">
 					<Form.Control
 						type="text"
+						name="denominator"
 						htmlSize={4}
 						value={
 							isMultiple(entry.creditOverrideDenominator)
@@ -447,31 +459,26 @@ function BreakoutEntryForm({
 	busy?: boolean;
 	readOnly?: boolean;
 }) {
-	const dispatch = useAppDispatch();
+	const formRef = React.useRef<HTMLFormElement>(null);
+	const [formValid, setFormValid] = React.useState(false);
 	const { timeslots } = useAppSelector(selectBreakoutsState);
 
-	let errMsg: string | undefined;
-	if (!entry.name) errMsg = "Enter breakout name";
-	else if (!entry.groupId) errMsg = "Select group";
-	else if (!entry.startSlotId) errMsg = "Select start slot";
+	React.useLayoutEffect(() => {
+		let valid = true;
+		if (
+			!entry.name ||
+			!entry.groupId ||
+			!entry.startSlotId ||
+			!entry.endSlotId
+		)
+			valid = false;
+		if (formValid !== valid) setFormValid(valid);
+	}, [entry]);
 
-	let submitForm, cancelForm, submitLabel;
-	if (submit) {
-		if (action === "add") {
-			submitLabel = "Add";
-		} else {
-			submitLabel = "Update";
-		}
-		submitForm = (e: React.ChangeEvent<HTMLFormElement>) => {
-			e.preventDefault();
-			if (errMsg) {
-				dispatch(setError("Fix error", errMsg));
-				return;
-			}
-			submit();
-		};
-		cancelForm = cancel;
-	}
+	const submitForm = (e: React.ChangeEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		submit?.();
+	};
 
 	function handleChange(changes: BreakoutEntryChanges) {
 		changes = { ...changes };
@@ -495,11 +502,16 @@ function BreakoutEntryForm({
 	}
 
 	return (
-		<Form onSubmit={submitForm}>
-			<Row>
-				<Form.Label column>Meeting name:</Form.Label>
+		<Form ref={formRef} noValidate validated onSubmit={submitForm}>
+			<Form.Group as={Row} className="align-items-center mb-3">
 				<Col>
+					<Form.Label htmlFor="meeting-name">
+						Meeting name:
+					</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<Form.Control
+						id="meeting-name"
 						type="text"
 						value={isMultiple(entry.name) ? "" : entry.name}
 						onChange={(e) => handleChange({ name: e.target.value })}
@@ -507,26 +519,40 @@ function BreakoutEntryForm({
 							isMultiple(entry.name) ? MULTIPLE_STR : BLANK_STR
 						}
 						readOnly={readOnly}
+						isInvalid={!entry.name}
 					/>
+					<Form.Control.Feedback type="invalid">
+						Enter meeting name
+					</Form.Control.Feedback>
 				</Col>
-			</Row>
-			<Row>
-				<Form.Label column>Group:</Form.Label>
+			</Form.Group>
+			<Row className="mb-3">
 				<Col>
+					<Form.Label htmlFor="group-id">Group:</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<GroupIdSelector
+						id="group-id"
 						value={isMultiple(entry.groupId) ? null : entry.groupId}
 						onChange={(groupId) => handleChange({ groupId })}
 						placeholder={
 							isMultiple(entry.groupId) ? MULTIPLE_STR : undefined
 						}
 						readOnly={readOnly}
+						isInvalid={!entry.groupId}
 					/>
+					<Form.Control.Feedback type="invalid">
+						Select group
+					</Form.Control.Feedback>
 				</Col>
 			</Row>
-			<Row>
-				<Form.Label column>Session day:</Form.Label>
+			<Row className="mb-3">
 				<Col>
+					<Form.Label htmlFor="session-day">Session day:</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<SessionDaySelector
+						id="session-day"
 						value={isMultiple(entry.day) ? null : entry.day}
 						onChange={(day) => handleChange({ day })}
 						placeholder={
@@ -536,10 +562,13 @@ function BreakoutEntryForm({
 					/>
 				</Col>
 			</Row>
-			<Row>
-				<Form.Label column>Start slot:</Form.Label>
+			<Row className="mb-3">
 				<Col>
+					<Form.Label htmlFor="start-slot">Start slot:</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<StartSlotSelector
+						id="start-slot"
 						value={
 							isMultiple(entry.startSlotId)
 								? null
@@ -554,13 +583,22 @@ function BreakoutEntryForm({
 								: undefined
 						}
 						readOnly={readOnly}
+						isInvalid={!entry.startSlotId}
 					/>
+					<Form.Control.Feedback type="invalid">
+						Select start slot
+					</Form.Control.Feedback>
 				</Col>
 			</Row>
-			<Row>
-				<Form.Label column>Override start time:</Form.Label>
+			<Row className="mb-3">
 				<Col>
+					<Form.Label htmlFor="start-time">
+						Override start time:
+					</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<Form.Control
+						id="start-time"
 						type="time"
 						value={
 							isMultiple(entry.startTime) ? "" : entry.startTime
@@ -577,10 +615,13 @@ function BreakoutEntryForm({
 					/>
 				</Col>
 			</Row>
-			<Row>
-				<Form.Label column>End slot:</Form.Label>
+			<Row className="mb-3">
 				<Col>
+					<Form.Label htmlFor="end-slot">End slot:</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<EndSlotSelector
+						id="end-slot"
 						value={
 							isMultiple(entry.endSlotId) ? null : entry.endSlotId
 						}
@@ -591,13 +632,22 @@ function BreakoutEntryForm({
 								: undefined
 						}
 						readOnly={readOnly}
+						isInvalid={!entry.endSlotId}
 					/>
+					<Form.Control.Feedback type="invalid">
+						Select end slot
+					</Form.Control.Feedback>
 				</Col>
 			</Row>
-			<Row>
-				<Form.Label>Override start time:</Form.Label>
+			<Row className="mb-3">
 				<Col>
+					<Form.Label htmlFor="end-time">
+						Override end time:
+					</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<Form.Control
+						id="end-time"
 						type="time"
 						value={isMultiple(entry.endTime) ? "" : entry.endTime}
 						onChange={(e) =>
@@ -612,10 +662,13 @@ function BreakoutEntryForm({
 					/>
 				</Col>
 			</Row>
-			<Row>
-				<Form.Label column>Location/room:</Form.Label>
+			<Row className="mb-3">
 				<Col>
+					<Form.Label htmlFor="location">Location/room:</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<Form.Control
+						id="location"
 						type="text"
 						value={isMultiple(entry.location) ? "" : entry.location}
 						onChange={(e) =>
@@ -635,10 +688,13 @@ function BreakoutEntryForm({
 				changeEntry={handleChange}
 				readOnly={readOnly}
 			/>
-			<Row>
-				<Form.Label column>Facilitator:</Form.Label>
+			<Row className="mb-3">
+				<Col>
+					<Form.Label htmlFor="facilitator">Facilitator:</Form.Label>
+				</Col>
 				<Col>
 					<Form.Control
+						id="facilitator"
 						type="text"
 						value={
 							isMultiple(entry.facilitator)
@@ -653,14 +709,19 @@ function BreakoutEntryForm({
 								? MULTIPLE_STR
 								: BLANK_STR
 						}
-						disabled={readOnly}
+						readOnly={readOnly}
 					/>
 				</Col>
 			</Row>
-			<Row>
-				<Form.Label column>Associate with meeting:</Form.Label>
+			<Row className="mb-3">
 				<Col>
+					<Form.Label htmlFor="associate-with-meeting">
+						Associate with meeting:
+					</Form.Label>
+				</Col>
+				<Col xs="auto">
 					<AssociatedMeetingSelector
+						id="associate-with-meeting"
 						value={
 							isMultiple(entry.meetingId) ? null : entry.meetingId
 						}
@@ -674,7 +735,13 @@ function BreakoutEntryForm({
 					/>
 				</Col>
 			</Row>
-			<SubmitCancelRow submitLabel={submitLabel} cancel={cancelForm} />
+			{submit && (
+				<SubmitCancelRow
+					submitLabel={action === "add" ? "Add" : "Update"}
+					cancel={cancel}
+					disabled={!formValid}
+				/>
+			)}
 		</Form>
 	);
 }
@@ -988,37 +1055,43 @@ class BreakoutDetails extends React.Component<
 		const readOnly = access <= AccessLevel.ro;
 
 		const actionButtons = (
-			<div>
+			<div className="d-flex gap-2">
 				<Button
-					variant="outline-secondary"
+					variant="outline-primary"
 					className="bi-cloud-download"
 					title="Import as meeting"
 					disabled={loading || busy || readOnly}
 					onClick={this.clickImport}
-				/>
+				>
+					{" Import as meeting"}
+				</Button>
 				<Button
-					variant="outline-secondary"
+					variant="outline-primary"
 					className="bi-plus-lg"
 					title="Add breakout"
 					disabled={loading || busy || readOnly}
 					active={action === "add"}
 					onClick={this.clickAdd}
-				/>
+				>
+					{" Add breakout"}
+				</Button>
 				<Button
-					variant="outline-secondary"
+					variant="outline-primary"
 					className="bi-trash"
 					title="Delete breakout"
 					disabled={
 						loading || breakouts.length === 0 || busy || readOnly
 					}
 					onClick={this.clickDelete}
-				/>
+				>
+					{" Delete breakout"}
+				</Button>
 			</div>
 		);
 
 		return (
 			<>
-				<div className="header">
+				<div className="header mb-3">
 					<h3 className="title">{title}</h3>
 					{actionButtons}
 				</div>

@@ -59,6 +59,7 @@ function SelectAllMeetings({ style }: { style?: React.CSSProperties }) {
 			}}
 		>
 			<FormCheck
+				id="clear-all"
 				title={
 					allSelected
 						? "Clear all"
@@ -169,6 +170,7 @@ function TimeslotContent({
 		<div className="slot" style={style}>
 			<span style={{ width: "100%" }}>
 				<FormCheck
+					id={`slot-select-${id}`}
 					style={{ float: "right" }}
 					checked={selectedSlots.includes(id)}
 					onChange={() => dispatch(toggleSelectedSlots([id]))}

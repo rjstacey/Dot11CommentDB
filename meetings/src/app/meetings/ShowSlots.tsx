@@ -57,7 +57,7 @@ function ShowSelectedSlots({
 			}
 		>
 			<div className="label">
-				<label>Slots:</label>
+				<span>Slots:</span>
 				<span>{elements.length}</span>
 			</div>
 			<div className="content">

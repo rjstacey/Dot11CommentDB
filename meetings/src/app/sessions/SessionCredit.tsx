@@ -232,6 +232,7 @@ function SessionCredit({
 				<CreditTotals defaultCredits={defaultCredits} />
 				<RawSessionSelector
 					onChange={importDefaultCreditsFromSession}
+					disabled={readOnly}
 				/>
 			</div>
 			<CreditGrid nCol={dates.length} nRow={timeslots.length}>

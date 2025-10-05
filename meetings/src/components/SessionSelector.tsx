@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button, Dropdown } from "react-bootstrap";
+import { DropdownButton, DropdownItem } from "react-bootstrap";
 import { Select, displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -64,66 +64,25 @@ function SessionSelector({
 	);
 }
 
-export function RawSessionSelector2({
-	onChange,
-}: {
-	onChange: (value: number) => void;
-}) {
-	const { loading, valid, ids, entities } =
-		useAppSelector(selectSessionsState);
-	const options = React.useMemo(
-		() => ids.map((id) => entities[id]!),
-		[entities, ids]
-	);
-	const handleChange = (values: typeof options) =>
-		onChange(values.length > 0 ? values[0].id : 0);
-	return (
-		<Select
-			style={{ border: "none", padding: 0, width: "unset" }}
-			options={options}
-			values={[]}
-			loading={loading && !valid}
-			onChange={handleChange}
-			itemRenderer={renderSession}
-			selectItemRenderer={renderSession}
-			valueField="id"
-			labelField="name"
-			placeholder=""
-			searchable={false}
-			handle={false}
-			dropdownWidth={300}
-			dropdownAlign="right"
-			contentRenderer={() => (
-				<Button variant="light" className="bi-cloud-upload" />
-			)}
-		/>
-	);
-}
-
 export function RawSessionSelector({
 	onChange,
+	...props
 }: {
 	onChange: (value: number) => void;
-}) {
+} & Pick<React.ComponentProps<typeof DropdownButton>, "id" | "disabled">) {
 	const { ids, entities } = useAppSelector(selectSessionsState);
 	const options = React.useMemo(
 		() => ids.map((id) => entities[id]!),
 		[entities, ids]
 	);
 	return (
-		<Dropdown>
-			<Dropdown.Toggle variant="light">Import from...</Dropdown.Toggle>
-			<Dropdown.Menu className={styles.menu}>
-				{options.map((item) => (
-					<Dropdown.Item
-						key={item.id}
-						onClick={() => onChange(item.id)}
-					>
-						{renderSession({ item })}
-					</Dropdown.Item>
-				))}
-			</Dropdown.Menu>
-		</Dropdown>
+		<DropdownButton variant="light" title="Import from..." {...props}>
+			{options.map((item) => (
+				<DropdownItem key={item.id} onClick={() => onChange(item.id)}>
+					{renderSession({ item })}
+				</DropdownItem>
+			))}
+		</DropdownButton>
 	);
 }
 

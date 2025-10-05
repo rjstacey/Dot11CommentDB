@@ -2,7 +2,7 @@ import * as React from "react";
 import { connect, ConnectedProps } from "react-redux";
 import { DateTime } from "luxon";
 
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import { Container, Row, Col, Form, Button } from "react-bootstrap";
 import {
 	Select,
@@ -13,7 +13,6 @@ import {
 	isMultiple,
 	MULTIPLE,
 	Multiple,
-	setError,
 	InputTime,
 } from "@common";
 
@@ -93,7 +92,11 @@ export function WebexMeetingAccount({
 						isMultiple(entry.accountId) ? MULTIPLE_STR : undefined
 					}
 					readOnly={readOnly}
+					isInvalid={!entry.accountId}
 				/>
+				<Form.Control.Feedback type="invalid">
+					Select a Webex account
+				</Form.Control.Feedback>
 			</Col>
 		</Form.Group>
 	);
@@ -194,10 +197,13 @@ function WebexMeetingTitleDateTimeEdit({
 }) {
 	return (
 		<>
-			<Form.Group as={Row} controlId="title" className="mb-3">
-				<Form.Label column>Title:</Form.Label>
+			<Form.Group as={Row} className="mb-3">
+				<Col>
+					<Form.Label htmlFor="title">Title:</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<Form.Control
+						id="title"
 						type="text"
 						value={isMultiple(entry.title) ? "" : entry.title}
 						onChange={(e) => changeEntry({ title: e.target.value })}
@@ -205,13 +211,19 @@ function WebexMeetingTitleDateTimeEdit({
 							isMultiple(entry.title) ? MULTIPLE_STR : BLANK_STR
 						}
 						readOnly={readOnly}
+						isInvalid={!entry.title}
 					/>
+					<Form.Control.Feedback type="invalid">
+						Enter meeting title
+					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label column htmlFor="meeting-timezone">
-					Time zone:
-				</Form.Label>
+				<Col>
+					<Form.Label htmlFor="meeting-timezone">
+						Time zone:
+					</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<TimeZoneSelector
 						id="meeting-timezone"
@@ -228,11 +240,17 @@ function WebexMeetingTitleDateTimeEdit({
 								: undefined
 						}
 						readOnly={readOnly}
+						isInvalid={!entry.timezone}
 					/>
+					<Form.Control.Feedback type="invalid">
+						Enter time zone
+					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} controlId="meeting-date" className="mb-3">
-				<Form.Label column>Date:</Form.Label>
+				<Col>
+					<Form.Label>Date:</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<Form.Control
 						type="date"
@@ -242,13 +260,17 @@ function WebexMeetingTitleDateTimeEdit({
 							isMultiple(entry.date) ? MULTIPLE_STR : undefined
 						}
 						disabled={readOnly}
+						isInvalid={!entry.date}
 					/>
+					<Form.Control.Feedback type="invalid">
+						Enter date.
+					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label htmlFor="meeting-time" column>
-					Start time:
-				</Form.Label>
+				<Col>
+					<Form.Label htmlFor="meeting-time">Start time:</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<InputTime
 						id="meeting-time"
@@ -262,13 +284,19 @@ function WebexMeetingTitleDateTimeEdit({
 								: undefined
 						}
 						disabled={readOnly}
+						isInvalid={!entry.startTime}
 					/>
+					<Form.Control.Feedback type="invalid">
+						Enter start time
+					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label column htmlFor="meeting-duration">
-					Duration:
-				</Form.Label>
+				<Col>
+					<Form.Label htmlFor="meeting-duration">
+						Duration:
+					</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<InputTimeRangeAsDuration
 						id="meeting-duration"
@@ -286,7 +314,11 @@ function WebexMeetingTitleDateTimeEdit({
 								? MULTIPLE_STR
 								: undefined
 						}
+						isInvalid={!entry.endTime}
 					/>
+					<Form.Control.Feedback type="invalid">
+						Enter duration
+					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
 		</>
@@ -305,9 +337,14 @@ function WebexMeetingAudioOptionsEdit({
 	return (
 		<>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label column>Allow unmute self:</Form.Label>
+				<Col>
+					<Form.Label htmlFor="allow-unmute-self">
+						Allow unmute self:
+					</Form.Label>
+				</Col>
 				<Col xs="auto" className="me-4">
 					<Form.Check
+						id="allow-unmute-self"
 						checked={
 							isMultiple(entry.allowAttendeeToUnmuteSelf)
 								? false
@@ -329,9 +366,14 @@ function WebexMeetingAudioOptionsEdit({
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label column>Mute attendee on entry:</Form.Label>
+				<Col>
+					<Form.Label htmlFor="mute-attendee-on-entry">
+						Mute attendee on entry:
+					</Form.Label>
+				</Col>
 				<Col xs="auto" className="me-4">
 					<Form.Check
+						id="mute-attendee-on-entry"
 						checked={
 							isMultiple(entry.muteAttendeeUponEntry)
 								? false
@@ -353,9 +395,14 @@ function WebexMeetingAudioOptionsEdit({
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label column>Entry and exit tone:</Form.Label>
+				<Col>
+					<Form.Label htmlFor="entry-and-exit-tone">
+						Entry and exit tone:
+					</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<SelectEntryAndExitTone
+						id="entry-and-exit-tone"
 						value={
 							isMultiple(entry.entryAndExitTone)
 								? null
@@ -538,11 +585,14 @@ export function WebexMeetingParamsEdit({
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
-				<Form.Label qw="span" column>
-					Join before host (minutes):
-				</Form.Label>
+				<Col>
+					<Form.Label as="span" htmlFor="join-before-host-enabled">
+						Join before host (minutes):
+					</Form.Label>
+				</Col>
 				<Col xs="auto" className="d-flex align-items-center">
 					<Form.Check
+						id="join-before-host-enabled"
 						className="me-4"
 						checked={
 							isMultiple(entry.enabledJoinBeforeHost)
@@ -563,6 +613,7 @@ export function WebexMeetingParamsEdit({
 						disabled={readOnly}
 					/>
 					<SelectJoinBeforeHostMinutes
+						id="join-before-host-minutes"
 						value={
 							isMultiple(entry.joinBeforeHostMinutes)
 								? null
@@ -581,7 +632,11 @@ export function WebexMeetingParamsEdit({
 				</Col>
 			</Form.Group>
 			<Row className="mb-3">
-				<Form.Label column>Connect audio before host:</Form.Label>
+				<Col>
+					<Form.Label htmlFor="audio-before-host">
+						Connect audio before host:
+					</Form.Label>
+				</Col>
 				<Col xs="auto" className="me-4">
 					<Form.Check
 						id="audio-before-host"
@@ -672,37 +727,28 @@ function WebexMeetingEntryForm({
 	cancel?: () => void;
 	readOnly?: boolean;
 }) {
-	const dispatch = useAppDispatch();
+	const [formValid, setFormValid] = React.useState(false);
 
-	let submitForm,
-		submitLabel,
-		errMsg = "";
-	if (submit) {
-		if (!entry.date) errMsg = "Date not set";
-		else if (!entry.startTime) errMsg = "Start time not set";
-		else if (!entry.endTime) errMsg = "Duration not set";
-		else if (!entry.timezone) errMsg = "Time zone not set";
-		else if (!entry.accountId)
-			errMsg = "Must select Webex account to schedule webex meeting";
+	React.useLayoutEffect(() => {
+		let valid = true;
+		if (
+			!entry.date ||
+			!entry.startTime ||
+			!entry.endTime ||
+			!entry.timezone ||
+			!entry.accountId
+		)
+			valid = false;
+		if (formValid !== valid) setFormValid(valid);
+	}, [entry]);
 
-		if (action === "add") {
-			submitLabel = "Add";
-		} else {
-			submitLabel = "Update";
-		}
-
-		submitForm = (e: React.ChangeEvent<HTMLFormElement>) => {
-			e.preventDefault();
-			if (errMsg) {
-				dispatch(setError("Fix error", errMsg));
-				return;
-			}
-			submit();
-		};
+	function submitForm(e: React.ChangeEvent<HTMLFormElement>) {
+		e.preventDefault();
+		submit?.();
 	}
 
 	return (
-		<Form onSubmit={submitForm} className="p-3">
+		<Form noValidate onSubmit={submitForm} className="p-3">
 			<WebexMeetingAccount
 				entry={entry}
 				changeEntry={changeEntry}
@@ -742,7 +788,13 @@ function WebexMeetingEntryForm({
 					/>
 				</Col>
 			</Row>
-			<SubmitCancelRow submitLabel={submitLabel} cancel={cancel} />
+			{submit && (
+				<SubmitCancelRow
+					submitLabel={action === "add" ? "Add" : "Update"}
+					cancel={cancel}
+					disabled={!formValid}
+				/>
+			)}
 		</Form>
 	);
 }
@@ -1017,14 +1069,18 @@ class WebexMeetingDetail extends React.Component<
 					title="Add Webex meeting"
 					disabled={loading || readOnly}
 					onClick={this.clickAdd}
-				/>
+				>
+					{" Add"}
+				</Button>
 				<Button
 					variant="outline-primary"
 					className="bi-trash"
 					title="Delete webex meeting"
 					disabled={loading || webexMeetings.length === 0 || readOnly}
 					onClick={this.clickDelete}
-				/>
+				>
+					{" Delete"}
+				</Button>
 			</Col>
 		);
 

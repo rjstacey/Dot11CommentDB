@@ -13,6 +13,11 @@ export function SubmitCancelRow({
 }) {
 	return (
 		<Row className="mt-4">
+			<Col xs={6} className="d-flex justify-content-center">
+				<Button type="submit" disabled={disabled}>
+					{submitLabel}
+				</Button>
+			</Col>
 			{cancel && (
 				<Col xs={6} className="d-flex justify-content-center">
 					<Button variant="secondary" type="button" onClick={cancel}>
@@ -20,11 +25,6 @@ export function SubmitCancelRow({
 					</Button>
 				</Col>
 			)}
-			<Col xs={6} className="d-flex justify-content-center">
-				<Button type="submit" disabled={disabled}>
-					{submitLabel}
-				</Button>
-			</Col>
 		</Row>
 	);
 }

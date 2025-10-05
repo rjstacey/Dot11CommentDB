@@ -77,3 +77,40 @@ div#root {
 .table-container.centered-rows .AppTable__headerRow {
 	align-items: center;
 }
+
+.was-validated {
+	& .form-control {
+		&:valid {
+			border-color: var(--bs-border-color);
+			background-image: none;
+			padding-right: unset;
+		}
+		&:valid:focus {
+			box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+		}
+	}
+
+	& .form-check-input {
+		&:valid {
+			border-color: var(--bs-border-color);
+		}
+
+		&:valid:checked {
+			background-color: #0d6efd;
+			border-color: #0d6efd;
+		}
+
+		&:valid:focus {
+			box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+		}
+
+		&:valid ~ .form-check-label {
+			color: unset;
+		}
+	}
+}
+
+.has-changes,
+.form-control.has-changes:focus {
+	background-color: rgb(255, 255, 126);
+}

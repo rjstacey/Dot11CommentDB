@@ -487,7 +487,9 @@ class MeetingDetails extends React.Component<
 						meetings.length === 0 || loading || busy || readOnly
 					}
 					onClick={this.clickSync}
-				/>
+				>
+					{" Sync"}
+				</Button>
 				<Button
 					variant="outline-primary"
 					className="bi-plus-lg"
@@ -497,7 +499,9 @@ class MeetingDetails extends React.Component<
 					}
 					active={action === "add-by-date"}
 					onClick={this.clickAdd}
-				/>
+				>
+					{" Add"}
+				</Button>
 				<Button
 					variant="outline-primary"
 					className="bi-trash"
@@ -506,7 +510,9 @@ class MeetingDetails extends React.Component<
 						meetings.length === 0 || loading || busy || readOnly
 					}
 					onClick={this.clickDelete}
-				/>
+				>
+					{" Delete"}
+				</Button>
 			</Col>
 		);
 

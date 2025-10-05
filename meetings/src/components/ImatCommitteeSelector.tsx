@@ -7,13 +7,19 @@ import { selectImatCommmittees } from "@/store/imatBreakouts";
 function ImatCommitteeSelector({
 	value,
 	onChange,
-	...otherProps
+	...props
 }: {
 	value: string | null;
 	onChange: (value: string | null) => void;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
+	| "readOnly"
+	| "disabled"
+	| "id"
+	| "placeholder"
+	| "className"
+	| "style"
+	| "isInvalid"
 >) {
 	const options = useAppSelector(selectImatCommmittees);
 	const values = options.filter((o) => o.symbol === value);
@@ -31,7 +37,7 @@ function ImatCommitteeSelector({
 			clearable
 			valueField="symbol"
 			labelField="shortName"
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
