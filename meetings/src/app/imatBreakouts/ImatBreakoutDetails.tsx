@@ -858,7 +858,9 @@ class BreakoutDetails extends React.Component<
 				busy: false,
 			};
 		} else {
-			const breakouts = selected.map((id) => entities[id]!);
+			const breakouts = selected
+				.map((id) => entities[id]!)
+				.filter(Boolean);
 			const entry = breakouts.reduce(
 				(entry, breakout) => deepMergeTagMultiple(entry, breakout),
 				{}
