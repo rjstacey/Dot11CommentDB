@@ -509,14 +509,18 @@ class SessionDetail extends React.Component<
 								disabled={disableButtons}
 								active={uiProperties.editEnabled || readOnly}
 								onClick={this.handleToggleEditEnabled}
-							/>
+							>
+								{" Edit"}
+							</Button>
 							<Button
 								variant="outline-primary"
 								className="bi-plus-lg"
 								title="Add a session"
 								disabled={!uiProperties.editEnabled}
 								onClick={this.add}
-							/>
+							>
+								{" Add"}
+							</Button>
 							<Button
 								variant="outline-primary"
 								className="bi-trash"
@@ -527,7 +531,9 @@ class SessionDetail extends React.Component<
 									readOnly
 								}
 								onClick={this.handleRemoveSelected}
-							/>
+							>
+								{" Delete"}
+							</Button>
 						</>
 					)}
 				</div>
