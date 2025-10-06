@@ -1,11 +1,10 @@
 import * as React from "react";
 import { DateTime } from "luxon";
-import { EntityId, Dictionary } from "@reduxjs/toolkit";
+import { EntityId, Dictionary, createSelector } from "@reduxjs/toolkit";
 import { useParams } from "react-router";
 
 import { Form, Spinner, Tab, Tabs, DropdownButton } from "react-bootstrap";
 
-import type { RootState } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectUser, type User } from "@/store/user";
 import {
@@ -14,7 +13,7 @@ import {
 	type SyncedMeeting,
 } from "@/store/meetings";
 import { selectOfficersState, type Officer } from "@/store/officers";
-import { selectMember, type UserMember } from "@/store/members";
+import { selectMemberEntities, type UserMember } from "@/store/members";
 import { selectGroupsState, selectGroups } from "@/store/groups";
 import { WebexMeeting, displayMeetingNumber } from "@/store/webexMeetings";
 import { sendEmails, type Email } from "@/store/emailActions";
@@ -91,8 +90,12 @@ const genEmailAddress = (m: UserMember | User) => `${m.Name} <${m.Email}>`;
 const genEmailToList = (officers: UserMember[]) =>
 	officers.map(genEmailAddress);
 
-function selectOfficers(state: RootState, groupId: EntityId) {
-	const { ids, entities } = selectOfficersState(state);
+function selectOfficers(
+	ids: EntityId[],
+	entities: Dictionary<Officer>,
+	memberEntities: Dictionary<UserMember>,
+	groupId: EntityId
+) {
 	const validPositions = ["Chair", "Vice chair", "Secretary"];
 
 	function officerCompare(o1: Officer, o2: Officer) {
@@ -109,83 +112,88 @@ function selectOfficers(state: RootState, groupId: EntityId) {
 				validPositions.indexOf(o.position) >= 0
 		)
 		.sort(officerCompare)
-		.map((o) => selectMember(state, o.sapin))
-		.filter((o) => !!o) as UserMember[];
+		.map((o) => memberEntities[o.sapin])
+		.filter(Boolean) as UserMember[];
 
 	return officers;
 }
 
-function selectMeetingsGroups(state: RootState) {
-	const groups = selectGroups(state);
-	const meetingEntities = selectSyncedMeetingEntities(state);
-	const meetingIds = selectMeetingIds(state);
+const selectMeetingsGroups = createSelector(
+	selectGroups,
+	selectSyncedMeetingEntities,
+	selectMeetingIds,
+	(groups, meetingEntities, meetingIds) => {
+		const groupIds = new Set<EntityId>();
+		for (const id of meetingIds) {
+			const m = meetingEntities[id]!;
+			if (
+				DateTime.fromISO(m.start) >= DateTime.now() &&
+				m.webexMeetingId &&
+				m.organizationId
+			)
+				groupIds.add(m.organizationId);
+		}
 
-	const groupIds = new Set<EntityId>();
-	for (const id of meetingIds) {
-		const m = meetingEntities[id]!;
-		if (
-			DateTime.fromISO(m.start) >= DateTime.now() &&
-			m.webexMeetingId &&
-			m.organizationId
-		)
-			groupIds.add(m.organizationId);
+		return groups.filter((g) => groupIds.has(g.id));
 	}
+);
 
-	return groups.filter((g) => groupIds.has(g.id));
-}
+function useGroupEmails(groupIds: EntityId[]) {
+	const groupEntities = useAppSelector(selectGroupsState).entities;
+	const meetingIds = useAppSelector(selectMeetingIds);
+	const meetingEntities = useAppSelector(selectSyncedMeetingEntities);
+	const user = useAppSelector(selectUser);
+	const { ids, entities } = useAppSelector(selectOfficersState);
+	const memberEntities = useAppSelector(selectMemberEntities);
 
-function selectEmails(state: RootState, groupIds: EntityId[]) {
-	const { entities: groupEntities } = selectGroupsState(state);
-	const meetingEntities = selectSyncedMeetingEntities(state);
-	const meetingIds = selectMeetingIds(state);
-	const user = selectUser(state)!;
+	return React.useMemo(() => {
+		const emails: Dictionary<Email> = {};
+		for (const id of groupIds) {
+			const group = groupEntities[id]!;
 
-	const emails: Dictionary<Email> = {};
-	for (const id of groupIds) {
-		const group = groupEntities[id]!;
+			const meetings = meetingIds
+				.map((id) => meetingEntities[id]!)
+				.filter(
+					(m) =>
+						m.organizationId === id &&
+						DateTime.fromISO(m.start) >= DateTime.now() &&
+						m.webexMeetingId
+				);
+			const tableHtml = genTable(meetings);
 
-		const meetings = meetingIds
-			.map((id) => meetingEntities[id]!)
-			.filter(
-				(m) =>
-					m.organizationId === id &&
-					DateTime.fromISO(m.start) >= DateTime.now() &&
-					m.webexMeetingId
-			);
-		const tableHtml = genTable(meetings);
+			const officers = selectOfficers(ids, entities, memberEntities, id);
 
-		const officers = selectOfficers(state, id);
-
-		const email: Email = {
-			Destination: {
-				CcAddresses: [genEmailAddress(user)],
-				ToAddresses: genEmailToList(officers),
-			},
-			Message: {
-				Subject: {
-					Charset: "UTF-8",
-					Data: `${group.name} host keys`,
+			const email: Email = {
+				Destination: {
+					CcAddresses: [genEmailAddress(user)],
+					ToAddresses: genEmailToList(officers),
 				},
-				Body: {
-					Html: {
+				Message: {
+					Subject: {
 						Charset: "UTF-8",
-						Data: genEmailBody(user, officers, tableHtml),
+						Data: `${group.name} host keys`,
 					},
-					Text: {
-						Charset: "UTF-8",
-						Data: genEmailBody(user, officers, tableHtml)
-							.replace("<br>", "\n")
-							.replace(/<[^>]*>/g, ""),
+					Body: {
+						Html: {
+							Charset: "UTF-8",
+							Data: genEmailBody(user, officers, tableHtml),
+						},
+						Text: {
+							Charset: "UTF-8",
+							Data: genEmailBody(user, officers, tableHtml)
+								.replace("<br>", "\n")
+								.replace(/<[^>]*>/g, ""),
+						},
 					},
 				},
-			},
-			ReplyToAddresses: [genEmailAddress(user)],
-		};
+				ReplyToAddresses: [genEmailAddress(user)],
+			};
 
-		emails[group.name] = email;
-	}
+			emails[group.name] = email;
+		}
 
-	return emails;
+		return emails;
+	}, [groupIds, groupEntities, meetingIds, meetingEntities, user]);
 }
 
 function MeetingsEmail({ close }: { close: () => void }) {
@@ -193,9 +201,7 @@ function MeetingsEmail({ close }: { close: () => void }) {
 	const { groupName } = useParams();
 	const groups = useAppSelector(selectMeetingsGroups);
 	const [selectedGroups, setSelectedGroups] = React.useState<string[]>([]);
-	const emails = useAppSelector((state) =>
-		selectEmails(state, selectedGroups)
-	);
+	const emails = useGroupEmails(selectedGroups);
 	const [busy, setBusy] = React.useState(false);
 
 	const handleSelectGroup: React.ChangeEventHandler<HTMLInputElement> = (
@@ -222,6 +228,7 @@ function MeetingsEmail({ close }: { close: () => void }) {
 		<Form
 			onSubmit={send}
 			style={{ minWidth: "600px", maxHeight: "80vh", overflow: "auto" }}
+			className="p-3"
 		>
 			<h3>Email host keys</h3>
 			{busy && <Spinner size="sm" />}
