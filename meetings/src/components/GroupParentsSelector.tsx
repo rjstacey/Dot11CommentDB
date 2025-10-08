@@ -8,13 +8,19 @@ import { selectGroupParents } from "@/store/groups";
 export function GroupParentsSelector({
 	value,
 	onChange,
-	...otherProps
+	...props
 }: {
 	value: string | null;
 	onChange: (value: string | null) => void;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
+	| "readOnly"
+	| "disabled"
+	| "id"
+	| "placeholder"
+	| "className"
+	| "style"
+	| "isInvalid"
 >) {
 	const groups = useAppSelector(selectGroupParents);
 
@@ -30,7 +36,7 @@ export function GroupParentsSelector({
 			options={groups}
 			valueField="id"
 			labelField="name"
-			{...otherProps}
+			{...props}
 		/>
 	);
 }

@@ -5,6 +5,7 @@ import { EntityId } from "@reduxjs/toolkit";
 import { useAppSelector } from "@/store/hooks";
 import {
 	Session,
+	SessionCreate,
 	Timeslot,
 	selectSessionEntities,
 	getCredit,
@@ -88,7 +89,7 @@ const GridCell: React.FC<{
 	/>
 );
 
-function sessionDates(session?: Session) {
+function sessionDates(session?: SessionCreate) {
 	let dates: string[] = [];
 	if (session) {
 		const start = DateTime.fromISO(session.startDate);
@@ -147,6 +148,7 @@ const CreditButton: React.FC<{
 }> = function ({ credit, style, ...otherProps }) {
 	return (
 		<button
+			type="button"
 			style={{
 				...style,
 				width: "100%",
@@ -162,10 +164,12 @@ const CreditButton: React.FC<{
 function SessionCredit({
 	session,
 	updateSession,
+	original,
 	readOnly,
 }: {
-	session: Session;
+	session: SessionCreate;
 	updateSession: (changes: Partial<Session>) => void;
+	original?: SessionCreate;
 	readOnly?: boolean;
 }) {
 	const entities = useAppSelector(selectSessionEntities);
@@ -226,6 +230,11 @@ function SessionCredit({
 		updateSession({ defaultCredits: credits });
 	}
 
+	const className =
+		original && defaultCredits !== original.defaultCredits
+			? "has-changes"
+			: undefined;
+
 	return (
 		<>
 			<div className="d-flex justify-content-between align-items-center p-2">
@@ -235,7 +244,11 @@ function SessionCredit({
 					disabled={readOnly}
 				/>
 			</div>
-			<CreditGrid nCol={dates.length} nRow={timeslots.length}>
+			<CreditGrid
+				nCol={dates.length}
+				nRow={timeslots.length}
+				className={className}
+			>
 				{dates.map((date, x) => (
 					<GridColumnLabel
 						key={date}

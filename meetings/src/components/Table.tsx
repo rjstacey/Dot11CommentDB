@@ -41,10 +41,12 @@ export function EditTable({
 	columns,
 	values,
 	rowId,
+	className,
 }: {
 	columns: TableColumn[] /** Column definitions */;
 	values: { [X: string]: unknown }[];
 	rowId?: string;
+	className?: string;
 }) {
 	const gridTemplateColumns = columns
 		.map((col) => col.gridTemplate || "auto")
@@ -66,7 +68,7 @@ export function EditTable({
 				rowId
 					? (entry[
 							rowId
-						] as any) /*eslint-disable-line @typescript-eslint/no-explicit-any*/
+					  ] as any) /*eslint-disable-line @typescript-eslint/no-explicit-any*/
 					: i
 			}
 		>
@@ -81,7 +83,10 @@ export function EditTable({
 	));
 
 	return (
-		<table className={styles.table} style={{ gridTemplateColumns }}>
+		<table
+			className={styles.table + (className ? ` ${className}` : "")}
+			style={{ gridTemplateColumns }}
+		>
 			<thead>{header}</thead>
 			<tbody>{rows.length > 0 ? rows : tableEmpty}</tbody>
 		</table>

@@ -23,10 +23,12 @@ const defaultEntry: Omit<Timeslot, "id"> = {
 function TimeslotDetails({
 	timeslots,
 	setTimeslots,
+	original,
 	readOnly,
 }: {
 	timeslots: Timeslot[];
 	setTimeslots: (timeslots: Timeslot[]) => void;
+	original?: Timeslot[];
 	readOnly?: boolean;
 }) {
 	const entities = useAppSelector(selectSessionEntities);
@@ -127,6 +129,9 @@ function TimeslotDetails({
 		return columns;
 	}, [setTimeslots, timeslots, entities, readOnly]);
 
+	const className =
+		original && timeslots !== original ? "has-changes" : undefined;
+
 	return (
 		<>
 			<div className="d-flex justify-content-end align-items-center gap-2 p-2">
@@ -143,7 +148,7 @@ function TimeslotDetails({
 					disabled={readOnly}
 				/>
 			</div>
-			<Table columns={columns} values={timeslots} />
+			<Table columns={columns} values={timeslots} className={className} />
 		</>
 	);
 }

@@ -22,10 +22,12 @@ const defaultEntry = { name: "", description: "" };
 function RoomDetails({
 	rooms,
 	setRooms,
+	original,
 	readOnly,
 }: {
 	rooms: Room[];
 	setRooms: (rooms: Room[]) => void;
+	original?: Room[];
 	readOnly?: boolean;
 }) {
 	const entities = useAppSelector(selectSessionEntities);
@@ -146,6 +148,9 @@ function RoomDetails({
 		return columns;
 	}, [setRooms, rooms, entities, readOnly]);
 
+	const className =
+		original && rooms !== original ? "has-changes" : undefined;
+
 	return (
 		<>
 			<div className="d-flex justify-content-end align-items-center gap-2 p-2">
@@ -163,7 +168,7 @@ function RoomDetails({
 				/>
 			</div>
 
-			<Table columns={columns} values={rooms} />
+			<Table columns={columns} values={rooms} className={className} />
 		</>
 	);
 }

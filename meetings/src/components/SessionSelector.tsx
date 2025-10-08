@@ -1,5 +1,5 @@
 import * as React from "react";
-import { DropdownButton, DropdownItem } from "react-bootstrap";
+import { Dropdown, DropdownItem } from "react-bootstrap";
 import { Select, displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -35,7 +35,7 @@ function SessionSelector({
 	onChange: (value: number | null) => void;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"readOnly" | "disabled" | "id" | "style"
+	"readOnly" | "disabled" | "id" | "style" | "isInvalid"
 >) {
 	const { loading, valid } = useAppSelector(selectSessionsState);
 	const options = useAppSelector(selectSessions);
@@ -56,7 +56,6 @@ function SessionSelector({
 			clearable
 			itemRenderer={renderSession}
 			selectItemRenderer={renderSession}
-			//portal={document.querySelector("#root")}
 			valueField="id"
 			labelField="name"
 			{...props}
@@ -66,23 +65,35 @@ function SessionSelector({
 
 export function RawSessionSelector({
 	onChange,
+	disabled,
 	...props
 }: {
 	onChange: (value: number) => void;
-} & Pick<React.ComponentProps<typeof DropdownButton>, "id" | "disabled">) {
+	disabled?: boolean;
+} & Pick<React.ComponentProps<typeof Dropdown>, "id">) {
 	const { ids, entities } = useAppSelector(selectSessionsState);
 	const options = React.useMemo(
 		() => ids.map((id) => entities[id]!),
 		[entities, ids]
 	);
 	return (
-		<DropdownButton variant="light" title="Import from..." {...props}>
-			{options.map((item) => (
-				<DropdownItem key={item.id} onClick={() => onChange(item.id)}>
-					{renderSession({ item })}
-				</DropdownItem>
-			))}
-		</DropdownButton>
+		<Dropdown {...props}>
+			<Dropdown.Toggle variant="light" disabled={disabled}>
+				{"Import from..."}
+			</Dropdown.Toggle>
+			<Dropdown.Menu
+				style={{ maxWidth: 300, maxHeight: 300, overflow: "auto" }}
+			>
+				{options.map((item) => (
+					<DropdownItem
+						key={item.id}
+						onClick={() => onChange(item.id)}
+					>
+						{renderSession({ item })}
+					</DropdownItem>
+				))}
+			</Dropdown.Menu>
+		</Dropdown>
 	);
 }
 
