@@ -131,7 +131,11 @@ export const selectRecentSessions = createSelector(
 			today.getDate()
 		);
 		return sessions
-			.filter((s) => new Date(s.startDate) < today)
+			.filter(
+				(s) =>
+					new Date(s.startDate) < today &&
+					(s.type === "p" || s.type == "i")
+			)
 			.slice(0, 8);
 	}
 );
