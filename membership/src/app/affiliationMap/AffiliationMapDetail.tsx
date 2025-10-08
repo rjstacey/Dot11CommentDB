@@ -219,14 +219,18 @@ function GroupDetail() {
 						disabled={loading || readOnly}
 						active={state.action === "add"}
 						onClick={clickAdd}
-					/>
+					>
+						{" Add"}
+					</Button>
 					<Button
 						variant="outline-danger"
 						className="bi-trash"
 						title="Delete map"
 						disabled={loading || selected.length === 0 || readOnly}
 						onClick={clickDelete}
-					/>
+					>
+						{" Delete"}
+					</Button>
 				</div>
 			</div>
 			{state.action === null ? (
