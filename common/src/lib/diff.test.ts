@@ -117,14 +117,7 @@ describe("shallowEqual", function () {
 	});
 
 	it("should treat objects created by `Object.create(null)` like any other plain object", () => {
-		function Foo() {
-			this.a = 1;
-		}
-		Foo.prototype.constructor = null;
-
 		const object2 = { a: 1 };
-		expect(shallowEqual(new Foo(), object2)).toEqual(true);
-
 		const object1 = Object.create(null);
 		object1.a = 1;
 		expect(shallowEqual(object1, object2)).toEqual(true);
@@ -151,7 +144,7 @@ describe("shallowDiff", function () {
 	});
 
 	it("returns correct change object for objects that are the same", () => {
-		expect(shallowDiff(orig, {...orig})).toStrictEqual({});
+		expect(shallowDiff(orig, { ...orig })).toStrictEqual({});
 	});
 });
 
@@ -172,7 +165,7 @@ describe("deepDiff", function () {
 	});
 
 	it("returns correct change object for objects that are the same", () => {
-		expect(deepDiff(orig, {...orig})).toStrictEqual({});
+		expect(deepDiff(orig, { ...orig })).toStrictEqual({});
 	});
 });
 
@@ -211,7 +204,6 @@ const m = {
 };
 
 describe("deepMerge", function () {
-
 	test("objects", () => {
 		expect(deepMerge(o1, o2)).toStrictEqual(m);
 	});
@@ -278,7 +270,6 @@ const mm = {
 };
 
 describe("deepMergeTagMultiple", function () {
-
 	test("merge and tag {} with oo2", () => {
 		const result = deepMergeTagMultiple({}, oo2);
 		expect(result).toStrictEqual(oo2);

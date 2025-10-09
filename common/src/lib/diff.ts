@@ -76,9 +76,12 @@ export function deepDiff(original: any, modified: any): any {
 		);
 		return result.find((v: any) => v !== undefined) ? result : undefined;
 	}
-	const changes = {};
+	const changes: Record<any, any> = {};
 	for (const key in modified) {
-		const change = deepDiff(original[key], modified[key]);
+		const change = deepDiff(
+			original[key as keyof typeof original],
+			modified[key as keyof typeof modified]
+		);
 		if (
 			change !== undefined &&
 			(!isObject(change) ||
@@ -122,14 +125,22 @@ export function deepMerge(obj1: any, obj2: any): any {
 	// collect values present in obj1 but not obj2
 	result = Object.keys(obj1).reduce(
 		(result, key) =>
-			key in obj2 ? result : { ...result, [key]: obj1[key] },
+			key in obj2
+				? result
+				: { ...result, [key]: obj1[key as keyof typeof obj1] },
 		result
 	);
 	// merge values in obj2
 	result = Object.keys(obj2).reduce(
 		(result, key) => ({
 			...result,
-			[key]: key in obj1 ? deepMerge(obj1[key], obj2[key]) : obj2[key],
+			[key]:
+				key in obj1
+					? deepMerge(
+							obj1[key as keyof typeof obj1],
+							obj2[key as keyof typeof obj2]
+					  )
+					: obj2[key as keyof typeof obj2],
 		}),
 		result
 	);
@@ -171,7 +182,9 @@ export function deepMergeTagMultiple(obj1: any, obj2: any) {
 	// collect values present in obj1 but not obj2
 	result = Object.keys(obj1).reduce(
 		(result, key) =>
-			key in obj2 ? result : { ...result, [key]: obj1[key] },
+			key in obj2
+				? result
+				: { ...result, [key]: obj1[key as keyof typeof obj1] },
 		result
 	);
 	// merge values in obj2
@@ -180,8 +193,11 @@ export function deepMergeTagMultiple(obj1: any, obj2: any) {
 			...result,
 			[key]:
 				key in obj1
-					? deepMergeTagMultiple(obj1[key], obj2[key])
-					: obj2[key],
+					? deepMergeTagMultiple(
+							obj1[key as keyof typeof obj1],
+							obj2[key as keyof typeof obj2]
+					  )
+					: obj2[key as keyof typeof obj2],
 		}),
 		result
 	);
