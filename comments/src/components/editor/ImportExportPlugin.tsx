@@ -39,9 +39,7 @@ function InportExportPlugin({
 			const newValue = $getRoot().getTextContent()
 				? $generateHtmlFromNodes(editor)
 				: "";
-			if (newValue !== value) {
-				onChange(newValue);
-			}
+			if (newValue != value) onChange(newValue);
 		});
 	});
 
