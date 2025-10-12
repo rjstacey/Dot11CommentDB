@@ -109,6 +109,7 @@ function convertBreakoutToMeetingEntry(
 		//webexMeeting: {accountId: null},
 		imatMeetingId: imatMeeting.id,
 		imatBreakoutId: breakout.id,
+		imatGracePeriod: 0,
 		sessionId: session.id,
 		roomId: 0,
 	};

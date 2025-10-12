@@ -1,6 +1,6 @@
 import * as React from "react";
 import { connect, ConnectedProps } from "react-redux";
-import { Row, Col, Button, Container } from "react-bootstrap";
+import { Row, Col, Button, Container, Spinner } from "react-bootstrap";
 import {
 	ConfirmModal,
 	deepDiff,
@@ -242,6 +242,7 @@ class MeetingDetails extends React.Component<
 			entry.calendarEventId = null;
 			entry.imatMeetingId = session ? session.imatMeetingId : null;
 			entry.imatBreakoutId = null;
+			entry.imatGracePeriod = 10;
 			entry.webexMeeting = {
 				...defaultWebexMeeting,
 				meetingOptions: defaultWebexMeeting.meetingOptions!,
@@ -479,6 +480,12 @@ class MeetingDetails extends React.Component<
 				xs="auto"
 				className="d-flex justify-content-end align-items-center gap-2"
 			>
+				<Spinner
+					animation="border"
+					role="status"
+					size="sm"
+					hidden={!busy}
+				/>
 				<Button
 					variant="outline-primary"
 					className="bi-cloud-upload"

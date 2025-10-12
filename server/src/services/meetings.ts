@@ -51,26 +51,42 @@ import type {
 	MeetingsUpdateResponse,
 } from "@schemas/meetings.js";
 
+const meetingsView = "meetingsView";
+const createMeetingsViewSQL = `
+	DROP VIEW IF EXISTS ${meetingsView};
+	CREATE VIEW ${meetingsView} AS
+		SELECT
+			m.id as id,
+			BIN_TO_UUID(organizationId) AS organizationId,
+			summary,
+			DATE_FORMAT(start, "%Y-%m-%dT%TZ") AS start,
+			DATE_FORMAT(end, "%Y-%m-%dT%TZ") AS end,
+			timezone,
+			location,
+			isCancelled, hasMotions,
+			webexAccountId, webexMeetingId,
+			calendarAccountId, calendarEventId,
+			imatMeetingId, imatBreakoutId, imatGracePeriod,
+			m.sessionId,
+			m.roomId,
+			r.name as roomName
+		FROM meetings m
+		LEFT JOIN rooms r ON r.id=m.roomId AND r.sessionId=m.sessionId
+`;
+
+export async function init() {
+	const sql =
+		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="meetings" and column_name = "imatGracePeriod";';
+	const rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
+	if (rows.length === 0)
+		db.query(
+			"ALTER TABLE meetings ADD COLUMN imatGracePeriod INT default 0 after imatBreakoutId;"
+		);
+	await db.query(createMeetingsViewSQL);
+}
+
 function selectMeetingsSql(constraints: MeetingsQuery) {
-	// prettier-ignore
-	let sql =
-		"SELECT " +
-			"m.id as id, " +
-			"BIN_TO_UUID(organizationId) AS organizationId, " +
-			"summary, " +
-			'DATE_FORMAT(start, "%Y-%m-%dT%TZ") AS start, ' +
-			'DATE_FORMAT(end, "%Y-%m-%dT%TZ") AS end, ' +
-			"timezone, " +
-			"location, " +
-			"isCancelled, hasMotions, " +
-			"webexAccountId, webexMeetingId, " +
-			"calendarAccountId, calendarEventId, " +
-			"imatMeetingId, imatBreakoutId, " +
-			"m.sessionId, " +
-			"m.roomId, " +
-			"r.name as roomName " +
-		"FROM meetings m " +
-		"LEFT JOIN rooms r ON r.id=m.roomId AND r.sessionId=m.sessionId";
+	let sql = `SELECT * FROM ${meetingsView} m`;
 
 	const { groupId, sessionId, fromDate, toDate, timezone, ...rest } =
 		constraints;
@@ -114,17 +130,10 @@ function selectMeetingsSql(constraints: MeetingsQuery) {
 	if (Object.entries(rest).length) {
 		wheres = wheres.concat(
 			Object.entries(rest).map(([key, value]) =>
-				key === "organizationId"
-					? db.format(
-							Array.isArray(value)
-								? "BIN_TO_UUID(m.??) IN (?)"
-								: "m.??=UUID_TO_BIN(?)",
-							[key, value]
-						)
-					: db.format(
-							Array.isArray(value) ? "m.?? IN (?)" : "m.??=?",
-							[key, value]
-						)
+				db.format(Array.isArray(value) ? "m.?? IN (?)" : "m.??=?", [
+					key,
+					value,
+				])
 			)
 		);
 	}
@@ -134,12 +143,11 @@ function selectMeetingsSql(constraints: MeetingsQuery) {
 	return sql;
 }
 
-/*
+/**
  * Get meetings.
  *
- * @constraints:object One or more constraints.
- *
- * Returns an array of meeting objects that meet the constraints.
+ * @param constraints An object with one or more constraints.
+ * @returns An array of meeting objects that meet the constraints.
  */
 async function selectMeetings(constraints: MeetingsQuery) {
 	if (constraints.groupId && !constraints.organizationId) {
@@ -153,13 +161,12 @@ async function selectMeetings(constraints: MeetingsQuery) {
 	return db.query({ sql, dateStrings: true }) as Promise<Meeting[]>;
 }
 
-/*
+/**
  * Get a list of meetings and Webex meetings.
  *
- * @constraints?:object 	One or more constraints.
- *
- * Returns an object with shape {meetings, webexMeetings} where @meetings is array of meetings that meet the
- * constraints and @webexMeetings is an array of Webex meetings referenced by the meetings.
+ * @param constraints An object with one or more constraints.
+ * @returns An object with shape `{meetings, webexMeetings}` where `meetings` is array of meetings that meet the
+ * constraints and `webexMeetings` is an array of Webex meetings referenced by the meetings.
  */
 export async function getMeetings(
 	user: User,
@@ -205,12 +212,11 @@ export async function getMeetings(
 	return { meetings, webexMeetings };
 }
 
-/*
+/**
  * Convert a meeting change object to SET SQL for a table UPDATE or INSERT.
  *
- * @e:object 	The meeting change object.
- *
- * Returns an escaped SQL SET string, e.g., '`hasMotions`=1, `location`="Bar"'
+ * @param e The meeting change object.
+ * @returns An escaped SQL SET string, e.g., '`hasMotions`=1, `location`="Bar"'
  */
 function meetingToSetSql(e: MeetingChange) {
 	const entry: Record<string, string | number | boolean | null | undefined> =
@@ -228,6 +234,7 @@ function meetingToSetSql(e: MeetingChange) {
 			calendarEventId: e.calendarEventId,
 			imatMeetingId: e.imatMeetingId,
 			imatBreakoutId: e.imatBreakoutId,
+			imatGracePeriod: e.imatGracePeriod,
 		};
 
 	if (typeof e.timezone !== "undefined") {
@@ -285,6 +292,7 @@ function meetingToWebexMeeting(meeting: MeetingCreate) {
 		timezone,
 		integrationTags: [meeting.organizationId],
 		id: meeting.webexMeetingId || "",
+		sendEmail: false,
 	};
 	//console.log('to webex meeting', meeting, webexMeeting)
 	return webexMeeting;
@@ -531,6 +539,37 @@ function meetingToCalendarEvent(
 	};
 }
 
+/** Generate a list of meetings where the IMAT entry might be affected by the grace period on the current meeting */
+async function meetingsAffectedByGracePeriod(meeting: Meeting | MeetingCreate) {
+	const affectedMeetings: Meeting[] = [];
+
+	if (!meeting.imatMeetingId || !meeting.imatGracePeriod)
+		return affectedMeetings;
+
+	const meetings = await selectMeetings({
+		imatMeetingId: meeting.imatMeetingId,
+	});
+
+	const start = DateTime.fromISO(meeting.start).minus({
+		minutes: meeting.imatGracePeriod,
+	});
+	const end = DateTime.fromISO(meeting.end).plus({
+		minutes: meeting.imatGracePeriod,
+	});
+	meetings.forEach((m) => {
+		if ("id" in meeting && m.id === meeting.id) return; // skip self
+		let mStart = DateTime.fromISO(m.start);
+		if (m.imatGracePeriod)
+			mStart = mStart.minus({ minutes: m.imatGracePeriod });
+		let mEnd = DateTime.fromISO(m.end);
+		if (m.imatGracePeriod) mEnd = mEnd.plus({ minutes: m.imatGracePeriod });
+		if ((start > mStart && start < mEnd) || (end > mStart && end < mEnd))
+			affectedMeetings.push(m);
+	});
+
+	return affectedMeetings;
+}
+
 /**
  * Add a meeting, including adding webex, calendar and imat entries (if needed).
  *
@@ -587,6 +626,25 @@ async function addMeeting(user: User, meetingToAdd: MeetingCreate) {
 				session,
 				meeting,
 				webexMeeting
+			);
+		}
+
+		/* Update the IMAT entries for meetings that might be affected by the grace period */
+		const affectedMeetings = await meetingsAffectedByGracePeriod(meeting);
+		for (const m of affectedMeetings) {
+			let mWebexMeeting: WebexMeeting | undefined;
+			if (m.webexAccountId && m.webexMeetingId) {
+				mWebexMeeting = await getWebexMeeting(
+					m.webexAccountId,
+					m.webexMeetingId,
+					m.timezone
+				);
+			}
+			await updateImatBreakoutFromMeeting(
+				user,
+				session,
+				m,
+				mWebexMeeting
 			);
 		}
 	}
@@ -768,8 +826,9 @@ async function meetingMakeWebexUpdates(
 							webexMeetingParams
 						)
 					) {
-						webexMeeting =
-							await updateWebexMeeting(webexMeetingParams);
+						webexMeeting = await updateWebexMeeting(
+							webexMeetingParams
+						);
 					}
 				} catch (error) {
 					if (!(error instanceof NotFoundError)) throw error;
@@ -883,7 +942,30 @@ async function meetingMakeImatBreakoutUpdates(
 		}
 	}
 
-	return breakout;
+	const affectedBreakouts: Breakout[] = [];
+	if (breakout) {
+		/* Update the IMAT entries for meetings that might be affected by the grace period */
+		const affectedMeetings = await meetingsAffectedByGracePeriod(meeting);
+		for (const m of affectedMeetings) {
+			let mWebexMeeting: WebexMeeting | undefined;
+			if (m.webexAccountId && m.webexMeetingId) {
+				mWebexMeeting = await getWebexMeeting(
+					m.webexAccountId,
+					m.webexMeetingId,
+					m.timezone
+				);
+			}
+			const b = await updateImatBreakoutFromMeeting(
+				user,
+				session,
+				m,
+				mWebexMeeting
+			);
+			affectedBreakouts.push(b);
+		}
+	}
+
+	return { breakout, affectedBreakouts };
 }
 
 async function meetingMakeCalendarUpdates(
@@ -1014,13 +1096,14 @@ export async function updateMeeting(
 	session = await session; // do webex update while we wait for session
 
 	/* Make IMAT breakout changes */
-	const breakout = await meetingMakeImatBreakoutUpdates(
-		user,
-		meeting,
-		changesIn,
-		session,
-		webexMeeting
-	);
+	const { breakout, affectedBreakouts } =
+		await meetingMakeImatBreakoutUpdates(
+			user,
+			meeting,
+			changesIn,
+			session,
+			webexMeeting
+		);
 	if (breakout && meeting.imatBreakoutId !== breakout.id)
 		changes.imatBreakoutId = breakout.id;
 	if (!breakout && meeting.imatBreakoutId) changes.imatBreakoutId = null;
@@ -1049,7 +1132,7 @@ export async function updateMeeting(
 		[meeting] = await selectMeetings({ id });
 	}
 
-	return { meeting, webexMeeting, breakout };
+	return { meeting, webexMeeting, breakout, affectedBreakouts };
 }
 
 /**
@@ -1070,14 +1153,19 @@ export async function updateMeetings(
 	);
 
 	const meetings: Meeting[] = [],
-		webexMeetings: WebexMeeting[] = [],
-		breakouts: Breakout[] = [];
+		webexMeetings: WebexMeeting[] = [];
 
+	const breakoutEntities: Record<number, Breakout> = {};
 	entries.forEach((entry) => {
 		meetings.push(entry.meeting);
 		if (entry.webexMeeting) webexMeetings.push(entry.webexMeeting);
-		if (entry.breakout) breakouts.push(entry.breakout);
+		if (entry.breakout)
+			breakoutEntities[entry.breakout.id] = entry.breakout;
+		for (const b of entry.affectedBreakouts) {
+			breakoutEntities[b.id] = b;
+		}
 	});
+	const breakouts = Object.values(breakoutEntities);
 
 	return { meetings, webexMeetings, breakouts };
 }
@@ -1117,8 +1205,9 @@ export async function deleteMeetings(
 		"FROM meetings WHERE id IN (?);",
 		[ids]
 	);
-	const entries =
-		await db.query<(RowDataPacket & DeleteMeetingSelect)[]>(sql);
+	const entries = await db.query<(RowDataPacket & DeleteMeetingSelect)[]>(
+		sql
+	);
 	for (const entry of entries) {
 		if (entry.webexAccountId && entry.webexMeetingId) {
 			try {

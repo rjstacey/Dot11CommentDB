@@ -26,6 +26,7 @@ export const meetingSchema = z.object({
 	calendarEventId: z.string().nullable(),
 	imatMeetingId: z.number().nullable(),
 	imatBreakoutId: z.number().nullable(),
+	imatGracePeriod: z.number(),
 	sessionId: z.number(),
 	roomId: z.number().nullable(),
 	roomName: z.string().nullable().optional(),
@@ -42,6 +43,7 @@ export const meetingsQuerySchema = z
 		toDate: z.string().date(),
 		timezone: z.string(),
 		organizationId: z.union([z.string(), z.string().array()]),
+		imatMeetingId: z.number(),
 	})
 	.partial();
 

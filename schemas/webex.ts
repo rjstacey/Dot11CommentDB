@@ -268,6 +268,7 @@ export const webexPersonSchema = z.object({
 	userName: z.string(), // Email address
 	orgId: z.string(),
 });
+export type WebexPerson = z.infer<typeof webexPersonSchema>;
 
 export const webexMeetingPreferencesSchema = z.object({
 	audio: webexAudioPreferencesSchema,

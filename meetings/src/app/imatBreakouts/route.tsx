@@ -19,7 +19,7 @@ export function refresh() {
 	const { groupName, imatMeetingId } = selectBreakoutsState(getState());
 	if (!groupName) throw Error("Refresh error; no groupName");
 	dispatch(loadImatMeetings(groupName, true));
-	if (imatMeetingId) dispatch(loadBreakouts(groupName, imatMeetingId));
+	if (imatMeetingId) dispatch(loadBreakouts(groupName, imatMeetingId, true));
 }
 
 const imatBreakoutsLoader: LoaderFunction = async (args) => {

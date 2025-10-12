@@ -2,7 +2,7 @@
  * imat.ieee.org HTML scraping
  */
 import PropTypes from "prop-types";
-import { DateTime } from "luxon";
+import { DateTime, Duration } from "luxon";
 import { load as cheerioLoad } from "cheerio";
 import type { AxiosError } from "axios";
 
@@ -1121,6 +1121,86 @@ async function meetingToBreakout(
 	return breakoutOut;
 }
 
+/** Convert breakout start to a datetime */
+function breakoutStart(
+	imatMeeting: ImatMeeting,
+	timeslots: ImatTimeslot[],
+	breakout: BreakoutCreate
+) {
+	const startSlot =
+		timeslots.find((t) => t.id === breakout.startSlotId) || timeslots[0];
+	const t = breakout.startTime || startSlot.startTime;
+	const [hh, mm] = t.split(":");
+	return DateTime.fromISO(imatMeeting.start)
+		.plus(Duration.fromObject({ days: breakout.day }))
+		.set({ hour: Number(hh), minute: Number(mm) });
+}
+
+/** Convert breakout end to a datetime */
+function breakoutEnd(
+	imatMeeting: ImatMeeting,
+	timeslots: ImatTimeslot[],
+	breakout: BreakoutCreate
+) {
+	const endSlot =
+		timeslots.find((t) => t.id === breakout.endSlotId) || timeslots[0];
+	const t = breakout.endTime || endSlot.endTime;
+	const [hh, mm] = t.split(":");
+	return DateTime.fromISO(imatMeeting.start)
+		.plus(Duration.fromObject({ days: breakout.day }))
+		.set({ hour: Number(hh), minute: Number(mm) });
+}
+
+/** Determine if a datetime value overlaps with a breakout period. A datetime that lies on a breakout boundary (start or end) does not count. */
+function datetimeHasBreakoutOverlap(
+	imatMeeting: ImatMeeting,
+	timeslots: ImatTimeslot[],
+	breakouts: Breakout[],
+	datetime: DateTime
+) {
+	for (const b of breakouts) {
+		const bStart = breakoutStart(imatMeeting, timeslots, b);
+		const bEnd = breakoutEnd(imatMeeting, timeslots, b);
+		if (datetime > bStart && datetime < bEnd) return true;
+	}
+	return false;
+}
+
+/** Add grace period provided the new time does not overlap with another breakout */
+function breakoutAddGracePeriod<B extends BreakoutCreate>(
+	imatMeeting: ImatMeeting,
+	timeslots: ImatTimeslot[],
+	breakouts: Breakout[],
+	breakout: B,
+	gracePeriod: number
+): B {
+	let start = breakoutStart(imatMeeting, timeslots, breakout);
+	start = start.minus({ minute: gracePeriod });
+	let dayStart = DateTime.fromISO(imatMeeting.start).plus({
+		days: breakout.day,
+	});
+	if (
+		start >= dayStart && // Don't start before the start of the day
+		!datetimeHasBreakoutOverlap(imatMeeting, timeslots, breakouts, start)
+	) {
+		const h = ("0" + start.get("hour")).slice(-2);
+		const m = ("0" + start.get("minute")).slice(-2);
+		breakout = { ...breakout, startTime: `${h}:${m}` };
+	}
+	let end = breakoutEnd(imatMeeting, timeslots, breakout);
+	end = end.plus({ minute: gracePeriod });
+	dayStart = dayStart.plus({ days: 1 });
+	if (
+		end <= dayStart && // Don't extend beyond the end of the day
+		!datetimeHasBreakoutOverlap(imatMeeting, timeslots, breakouts, end)
+	) {
+		const h = ("0" + end.get("hour")).slice(-2);
+		const m = ("0" + end.get("minute")).slice(-2);
+		breakout = { ...breakout, endTime: `${h}:${m}` };
+	}
+	return breakout;
+}
+
 export async function addImatBreakoutFromMeeting(
 	user: User,
 	session: Session | undefined,
@@ -1131,10 +1211,10 @@ export async function addImatBreakoutFromMeeting(
 	if (typeof imatMeetingId !== "number")
 		throw new TypeError("IMAT meeting ID not specified");
 
-	const { imatMeeting, timeslots, committees, pageCommittees } =
+	const { imatMeeting, breakouts, timeslots, committees, pageCommittees } =
 		await getImatBreakoutsInternal(user, imatMeetingId);
 
-	const breakout = await meetingToBreakout(
+	let breakout: BreakoutCreate = await meetingToBreakout(
 		user,
 		imatMeeting,
 		timeslots,
@@ -1143,6 +1223,17 @@ export async function addImatBreakoutFromMeeting(
 		meeting,
 		webexMeeting
 	);
+
+	if (meeting.imatGracePeriod) {
+		breakout = breakoutAddGracePeriod(
+			imatMeeting,
+			timeslots,
+			breakouts,
+			breakout,
+			meeting.imatGracePeriod
+		);
+	}
+
 	const breakoutOut = await addImatBreakout(
 		user,
 		imatMeeting,
@@ -1150,6 +1241,7 @@ export async function addImatBreakoutFromMeeting(
 		pageCommittees,
 		breakout
 	);
+
 	if (breakout.credit === "Other") {
 		/* The "add new meeting" form does not support credit override; we need an update to handle that */
 		breakoutOut.credit = breakout.credit;
@@ -1158,6 +1250,7 @@ export async function addImatBreakoutFromMeeting(
 			breakout.creditOverrideDenominator;
 		await updateImatBreakout(user, imatMeeting, breakoutOut);
 	}
+
 	return breakoutOut;
 }
 
@@ -1192,23 +1285,31 @@ export async function updateImatBreakoutFromMeeting(
 		webexMeeting,
 		breakout
 	);
-	const updatedBreakout: BreakoutUpdate = {
+	let updatedBreakout: BreakoutUpdate = {
 		...updatedBreakout_,
 		id: imatBreakoutId,
 		editContext: breakout.editContext,
 		editGroupId: breakout.editGroupId,
 	};
 
+	if (meeting.imatGracePeriod) {
+		updatedBreakout = breakoutAddGracePeriod(
+			imatMeeting,
+			timeslots,
+			breakouts,
+			updatedBreakout,
+			meeting.imatGracePeriod
+		);
+	}
+
 	const startSlot = timeslots.find(
 		(s) => s.id === updatedBreakout.startSlotId
 	)!;
 	const endSlot = timeslots.find((s) => s.id === updatedBreakout.endSlotId)!;
-	const committee = committees.find(
-		(c) => c.symbol === updatedBreakout.symbol
-	)!;
+
 	const doUpdate =
 		breakout.name !== updatedBreakout.name ||
-		breakout.groupShortName !== committee.shortName ||
+		breakout.groupId !== updatedBreakout.groupId ||
 		breakout.day !== updatedBreakout.day ||
 		breakout.location !== updatedBreakout.location ||
 		//breakout.facilitator !== updatedBreakout.facilitator ||
@@ -1224,7 +1325,9 @@ export async function updateImatBreakoutFromMeeting(
 			(updatedBreakout.startTime || startSlot.startTime) ||
 		breakout.endTime !== (updatedBreakout.endTime || endSlot.endTime);
 
+	console.log("IMAT breakout update " + (doUpdate ? "needed" : "not needed"));
 	if (doUpdate) {
+		console.log(breakout, updatedBreakout);
 		await updateImatBreakout(user, imatMeeting, updatedBreakout);
 		breakout = {
 			...updatedBreakout,
@@ -1232,8 +1335,6 @@ export async function updateImatBreakoutFromMeeting(
 			end: "",
 		};
 	}
-
-	console.log("IMAT breakout update " + (doUpdate ? "needed" : "not needed"));
 
 	return breakout;
 }
