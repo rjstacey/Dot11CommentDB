@@ -41,15 +41,23 @@ type ResultRender = {
 	style?: Style;
 };
 
-const ballotDate = (d: string | null) =>
-	d
-		? new Date(d).toLocaleString("en-US", {
-				year: "numeric",
-				month: "numeric",
-				day: "numeric",
-				timeZone: "America/New_York",
-		  })
-		: "-";
+function ballotDate(d: string | null) {
+	if (!d) return "-";
+	const date = new Date(d);
+	const format = Intl.DateTimeFormat("en-GB", {
+		year: "numeric",
+		month: "numeric",
+		day: "numeric",
+		timeZone: "America/New_York",
+	}); // DD/MM/YYYY
+	const parts = format
+		.formatToParts(date)
+		.map((p) => p.value)
+		.filter((n) => !isNaN(Number(n)))
+		.reverse()
+		.join("-"); // YYYY-MM-DD
+	return parts;
+}
 
 const ballotDuration = (b: Ballot) => {
 	if (b.Start && b.End) {
