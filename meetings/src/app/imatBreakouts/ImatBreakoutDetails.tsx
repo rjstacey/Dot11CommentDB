@@ -1,7 +1,7 @@
 import * as React from "react";
 import { connect, ConnectedProps } from "react-redux";
 import { DateTime } from "luxon";
-import { Button, Form, Row, Col } from "react-bootstrap";
+import { Button, Form, Container, Row, Col, Spinner } from "react-bootstrap";
 import type { Dictionary } from "@reduxjs/toolkit";
 
 import { useAppSelector } from "@/store/hooks";
@@ -1058,7 +1058,13 @@ class BreakoutDetails extends React.Component<
 		const readOnly = access <= AccessLevel.ro;
 
 		const actionButtons = (
-			<div className="d-flex gap-2">
+			<Col xs="auto" className="d-flex align-items-center gap-2">
+				<Spinner
+					animation="border"
+					role="status"
+					size="sm"
+					hidden={!busy && !loading}
+				/>
 				<Button
 					variant="outline-primary"
 					className="bi-cloud-download"
@@ -1089,15 +1095,17 @@ class BreakoutDetails extends React.Component<
 				>
 					{" Delete breakout"}
 				</Button>
-			</div>
+			</Col>
 		);
 
 		return (
-			<>
-				<div className="header mb-3">
-					<h3 className="title">{title}</h3>
+			<Container fluid>
+				<Row className="mb-3">
+					<Col>
+						<h3 className="title">{title}</h3>
+					</Col>
 					{actionButtons}
-				</div>
+				</Row>
 				{notAvailableStr ? (
 					<div className="placeholder">{notAvailableStr}</div>
 				) : action === "import" ? (
@@ -1120,7 +1128,7 @@ class BreakoutDetails extends React.Component<
 						readOnly={readOnly}
 					/>
 				)}
-			</>
+			</Container>
 		);
 	}
 }

@@ -3,7 +3,7 @@ import { connect, ConnectedProps } from "react-redux";
 import { DateTime } from "luxon";
 
 import { useAppSelector } from "@/store/hooks";
-import { Container, Row, Col, Form, Button } from "react-bootstrap";
+import { Container, Row, Col, Form, Button, Spinner } from "react-bootstrap";
 import {
 	Select,
 	ConfirmModal,
@@ -1063,6 +1063,12 @@ class WebexMeetingDetail extends React.Component<
 				xs="auto"
 				className="d-flex justify-content-end align-items-center gap-2"
 			>
+				<Spinner
+					animation="border"
+					role="status"
+					size="sm"
+					hidden={!busy && !loading}
+				/>
 				<Button
 					variant="outline-primary"
 					className="bi-plus-lg"

@@ -484,7 +484,7 @@ class MeetingDetails extends React.Component<
 					animation="border"
 					role="status"
 					size="sm"
-					hidden={!busy}
+					hidden={!busy && !loading}
 				/>
 				<Button
 					variant="outline-primary"
