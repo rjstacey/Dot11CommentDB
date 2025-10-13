@@ -180,12 +180,8 @@ export async function getImatMeetings(user: User): Promise<ImatMeeting[]> {
 	const { ieeeClient } = user;
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
-	const response = await ieeeClient.getAsBuffer(`/${user.Email}/meeting.csv`);
-	if (response.headers.get("content-type") !== "text/csv")
-		throw new AuthError("Not logged in");
-
-	const meetings = await parseMeetingsCsv(response.data);
-	//console.log(meetings)
+	const data = await ieeeClient.getCsv(`/${user.Email}/meeting.csv`);
+	const meetings = await parseMeetingsCsv(data);
 	return meetings;
 }
 
@@ -318,22 +314,19 @@ export async function getImatCommittees(user: User, group: Group) {
 	const { ieeeClient } = user;
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
-	const response = await ieeeClient
-		.getAsBuffer(`/${group.name}/committees.csv`)
-		.catch((error) => {
-			if (error instanceof ForbiddenError) {
-				// Improve the message
-				throw new ForbiddenError(
-					"You do not have permission to retrieve IMAT committees"
-				);
-			}
-			throw error;
-		});
-	if (response.headers.get("content-type") !== "text/csv")
-		throw new AuthError("Not logged in");
-
-	const committees = await parseImatCommitteesCsv(response.data);
-	//console.log(committees)
+	let buffer: Buffer;
+	try {
+		buffer = await ieeeClient.getCsv(`/${group.name}/committees.csv`);
+	} catch (error) {
+		if (error instanceof ForbiddenError) {
+			// Improve the message
+			throw new ForbiddenError(
+				"You do not have permission to retrieve IMAT committees"
+			);
+		}
+		throw error;
+	}
+	const committees = await parseImatCommitteesCsv(buffer);
 	return committees;
 }
 
@@ -591,17 +584,15 @@ export async function getImatBreakoutsInternal(
 	//console.log(imatMeeting);
 
 	const url1 = `/${imatMeeting.organizerId}/meeting-detail?p=${imatMeetingId}`;
-	const response1 = await ieeeClient.get(url1);
-	const { pageBreakouts } = parseSessionDetailPage(response1.data);
+	const page1 = await ieeeClient.getHtml(url1);
+	const { pageBreakouts } = parseSessionDetailPage(page1);
 
-	const response2 = await ieeeClient.getAsBuffer(`/802.11/committees.csv`);
-	if (response2.headers.get("content-type") !== "text/csv")
-		throw new AuthError("Not logged in");
-	const csvCommittees = await parseImatCommitteesCsv(response2.data);
+	const buffer = await ieeeClient.getCsv(`/802.11/committees.csv`);
+	const csvCommittees = await parseImatCommitteesCsv(buffer);
 
 	const url2 = `/${imatMeeting.organizerId}/breakout?p=${imatMeetingId}`;
-	const response3 = await ieeeClient.get(url2);
-	const { timeslots, pageCommittees } = parseAddMeetingPage(response3.data);
+	const page2 = await ieeeClient.getHtml(url2);
+	const { timeslots, pageCommittees } = parseAddMeetingPage(page2);
 
 	/* The committees in the committees.csv file do not have the same ID as that used
 	 * for the committee options in the "Add a new meeting" form. The committee options
@@ -707,20 +698,20 @@ async function addImatBreakout(
 	};
 
 	const url = `/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`;
-	const response = await ieeeClient!.post(url, params);
+	const page = await ieeeClient!.postForm(url, params);
 	//console.log(response)
 
 	if (
-		response.data.search(
+		page.search(
 			/<title>IEEE Standards Association - Event detail<\/title>/
 		) === -1
 	) {
-		const m = response.data.match(/<div class="field_err">(.*)<\/div>/);
+		const m = page.match(/<div class="field_err">(.*)<\/div>/);
 		throw new Error(m ? m[1] : "An unexpected error occured");
 	}
 
 	/* From the response, find the breakout we just added */
-	const { pageBreakouts } = parseSessionDetailPage(response.data);
+	const { pageBreakouts } = parseSessionDetailPage(page);
 
 	/* Override the timeslots from session detail page; the user may not have permission to modify the timeslots
 	 * and thus might not get the slot ID. */
@@ -784,8 +775,8 @@ export async function addImatBreakouts(
 	//console.log(imatMeeting);
 
 	const url = `/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`;
-	const response = await ieeeClient.get(url);
-	const { timeslots, pageCommittees } = parseAddMeetingPage(response.data);
+	const page = await ieeeClient.getHtml(url);
+	const { timeslots, pageCommittees } = parseAddMeetingPage(page);
 
 	breakouts = await Promise.all(
 		breakouts.map((breakout) =>
@@ -813,8 +804,8 @@ export async function deleteImatBreakouts(
 	const imatMeeting = await getImatMeeting(user, imatMeetingId);
 
 	const url = `/${imatMeeting.organizerId}/meeting-detail?p=${imatMeetingId}`;
-	const response = await ieeeClient.get(url);
-	const { pageBreakouts } = parseSessionDetailPage(response.data);
+	const page = await ieeeClient.getHtml(url);
+	const { pageBreakouts } = parseSessionDetailPage(page);
 
 	const breakoutsToDelete = ids.map((id) => {
 		const b = pageBreakouts.find((b) => b.id === id);
@@ -833,7 +824,7 @@ export async function deleteImatBreakouts(
 	pageBreakouts.forEach((b) => (params["f5_" + b.formIndex] = b.id));
 	breakoutsToDelete.forEach((b) => (params["f1_" + b.formIndex] = "on"));
 
-	await ieeeClient.post(url, params);
+	await ieeeClient.postForm(url, params);
 
 	return ids.length;
 }
@@ -871,19 +862,19 @@ async function updateImatBreakout(
 	//console.log(params)
 
 	const url = `/${breakout.editGroupId}/breakout-edit?t=${breakout.id}&p=${imatMeeting.id}`;
-	const response = await user.ieeeClient!.post(url, params);
+	const data = await user.ieeeClient!.postForm(url, params);
 
 	if (
-		response.data.search(
+		data.search(
 			/<title>IEEE Standards Association - Event detail<\/title>/
 		) === -1
 	) {
-		const m = /<div class="field_err">(.*)<\/div>/.exec(response.data);
+		const m = /<div class="field_err">(.*)<\/div>/.exec(data);
 		throw new Error(m ? m[1] : "An unexpected error occured");
 	}
 
 	/* From the response, find the breakout we just updated */
-	const { pageBreakouts } = parseSessionDetailPage(response.data);
+	const { pageBreakouts } = parseSessionDetailPage(data);
 	//console.log(breakouts);
 
 	const b = pageBreakouts.find((b) => breakout.id === b.id);
@@ -904,8 +895,8 @@ export async function updateImatBreakouts(
 	//console.log(imatMeeting);
 
 	const url = `/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`;
-	const response = await ieeeClient.get(url);
-	const { timeslots, pageCommittees } = parseAddMeetingPage(response.data);
+	const data = await ieeeClient.getHtml(url);
+	const { timeslots, pageCommittees } = parseAddMeetingPage(data);
 
 	const pageBreakouts = await Promise.all(
 		breakouts.map((breakout) =>
@@ -1356,8 +1347,8 @@ export async function getImatBreakoutAttendance(
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
 	const url = `/802.11/breakout-members?t=${breakoutId}&p=${imatMeetingId}`;
-	const { data } = await ieeeClient.get(url);
-	const $ = cheerioLoad(data);
+	const page = await ieeeClient.getHtml(url);
+	const $ = cheerioLoad(page);
 
 	const title = $("div.title").html() || "";
 	if (title === "Sign In") throw new AuthError("Not logged in");
@@ -1438,11 +1429,8 @@ export async function getImatMeetingAttendance(
 	const imatMeeting = await getImatMeeting(user, imatMeetingId);
 
 	const url = `/${imatMeeting.organizerId}/meeting-members.csv?p=${imatMeetingId}`;
-	const response = await ieeeClient.getAsBuffer(url);
-	if (response.headers.get("content-type") !== "text/csv")
-		throw new AuthError("Not logged in");
-
-	return parseImatMeetingAttendance(response.data, imatMeeting);
+	const data = await ieeeClient.getCsv(url);
+	return parseImatMeetingAttendance(data, imatMeeting);
 }
 
 const attendanceSummaryHeader = [
@@ -1502,11 +1490,8 @@ async function getImatMeetingAttendanceSummaryByDate(
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
 	const url = `/${groupName}/attendance-summary.csv?b=${start}&d=${end}`;
-	const response = await ieeeClient.getAsBuffer(url);
-	if (response.headers.get("content-type") !== "text/csv")
-		throw new AuthError("Not logged in");
-
-	return parseImatMeetingAttendanceSummary(response.data);
+	const data = await ieeeClient.getCsv(url);
+	return parseImatMeetingAttendanceSummary(data);
 }
 
 /**
@@ -1678,9 +1663,6 @@ export async function getImatMeetingDailyAttendance(
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
 	const url = `/${group.name}/daily-attendance.csv?p=${imatMeetingId}`;
-	const response = await ieeeClient.getAsBuffer(url);
-	if (response.headers.get("content-type") !== "text/csv")
-		throw new AuthError("Not logged in");
-
-	return parseImatMeetingDailyAttendance(response.data);
+	const data = await ieeeClient.getCsv(url);
+	return parseImatMeetingDailyAttendance(data);
 }

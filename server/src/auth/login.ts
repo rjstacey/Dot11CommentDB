@@ -3,7 +3,7 @@ import { IeeeClient } from "../utils/index.js";
 import { selectUser, getUser, setUser, delUser } from "../services/users.js";
 import { verify, token } from "./jwt.js";
 import { AccessLevel } from "./access.js";
-
+/*
 const loginUrl = "/pub/login";
 const logoutUrl = "/pub/logout";
 
@@ -67,7 +67,7 @@ async function login(
 	//}
 
 	// Add an interceptor that will login again if a request returns the login page
-	/*ieeeClient.interceptors.response.use((response) => {
+	/ *ieeeClient.interceptors.response.use((response) => {
 		if (response.headers["content-type"] !== "text/html") return response;
 		const responseType = response.request.responseType;
 		let text: string;
@@ -99,14 +99,11 @@ async function login(
 			return ieeeClient.post(loginUrl, loginForm);
 		}
 		return response;
-	});*/
+	});* /
 
 	return { SAPIN, Name, Email: username };
 }
-
-export function logout(ieeeClient: IeeeClient) {
-	return ieeeClient.get(logoutUrl);
-}
+*/
 
 /*
  * login API
@@ -133,9 +130,7 @@ router
 			const { username, password } = req.body;
 
 			const ieeeClient = new IeeeClient();
-
-			const { SAPIN, Name, Email } = await login(
-				ieeeClient,
+			const { SAPIN, Name, Email } = await ieeeClient.login(
 				username,
 				password
 			);
@@ -162,7 +157,8 @@ router
 			const userId = Number(verify(req));
 			const user = await getUser(userId);
 			if (user) {
-				if (user.ieeeClient) logout(user.ieeeClient);
+				const { ieeeClient } = user;
+				if (ieeeClient) ieeeClient.logout();
 				delUser(user.SAPIN);
 			}
 			res.json({ user: null });

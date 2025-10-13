@@ -434,20 +434,18 @@ export async function importEpollResults(
 	const { ieeeClient } = user;
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
-	const [response1, response2] = await Promise.all([
-		ieeeClient.getAsBuffer(
+	const [buffer, page] = await Promise.all([
+		ieeeClient.getCsv(
 			`https://mentor.ieee.org/${workingGroup.name}/poll-results.csv?p=${ballot.EpollNum}`
 		),
-		ieeeClient.get(
+		ieeeClient.getHtml(
 			`https://mentor.ieee.org/${workingGroup.name}/poll-status?p=${ballot.EpollNum}`
 		),
 	]);
 
-	if (response1.headers.get("content-type") !== "text/csv")
-		throw new AuthError("Not logged in");
-	const file = { originalname: "poll-results.csv", buffer: response1.data };
+	const file = { originalname: "poll-results.csv", buffer };
 	const pollResults = await parseEpollResults(file);
-	const pollResults2 = parseEpollResultsHtml(response2.data);
+	const pollResults2 = parseEpollResultsHtml(page);
 
 	// Update poll results with Name and Affiliation from HTML (not present in .csv)
 	const results: Omit<ResultDB, "id" | "ballot_id" | "Notes">[] =

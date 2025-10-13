@@ -70,7 +70,7 @@ export async function getEpolls(
 		console.log("get epolls n=", n);
 
 		const url = `https://mentor.ieee.org/${groupName}/polls/closed?n=${page}`;
-		const { data } = await ieeeClient!.get(url);
+		const data = await ieeeClient!.getHtml(url);
 		console.log(data.slice(0, 100));
 
 		const epollsPage = parseClosedEpollsPage(data);
