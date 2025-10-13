@@ -4,7 +4,6 @@
 import PropTypes from "prop-types";
 import { DateTime, Duration } from "luxon";
 import { load as cheerioLoad } from "cheerio";
-import type { AxiosError } from "axios";
 
 import type { User } from "./users.js";
 
@@ -321,13 +320,14 @@ export async function getImatCommittees(user: User, group: Group) {
 
 	const response = await ieeeClient
 		.getAsBuffer(`/${group.name}/committees.csv`)
-		.catch((err: AxiosError) => {
-			if (err.response && err.response.status === 403) {
+		.catch((error) => {
+			if (error instanceof ForbiddenError) {
+				// Improve the message
 				throw new ForbiddenError(
 					"You do not have permission to retrieve IMAT committees"
 				);
 			}
-			throw err;
+			throw error;
 		});
 	if (response.headers.get("content-type") !== "text/csv")
 		throw new AuthError("Not logged in");
