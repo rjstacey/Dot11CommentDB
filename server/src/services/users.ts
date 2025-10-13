@@ -1,6 +1,5 @@
 import { IeeeClient } from "../utils/ieeeClient.js";
 import db from "../utils/database.js";
-//import type { AxiosInstance } from "axios";
 
 export type User = {
 	SAPIN: number;

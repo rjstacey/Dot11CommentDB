@@ -2,7 +2,6 @@ import { DateTime } from "luxon";
 import { Request } from "express";
 import { NotFoundError } from "../utils/index.js";
 
-//import axios, { AxiosError, AxiosInstance } from "axios";
 import { WebexClient, WebexAuthParams } from "../utils/webexClient.js";
 import type { User } from "./users.js";
 import type {
