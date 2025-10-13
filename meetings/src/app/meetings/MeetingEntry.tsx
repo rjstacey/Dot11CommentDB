@@ -13,7 +13,7 @@ import {
 import { selectGroupEntities } from "@/store/groups";
 
 import TimeZoneSelector from "@/components/TimeZoneSelector";
-import GroupSelector from "@/components/GroupSelector";
+import { SubgroupSelector } from "@/components/SubgroupSelector";
 import CalendarAccountSelector from "@/components/CalendarAccountSelector";
 import ImatMeetingSelector from "@/components/ImatMeetingSelector";
 
@@ -514,7 +514,7 @@ export function MeetingEntryForm({
 					Subgroup:
 				</Form.Label>
 				<Col xs="auto">
-					<GroupSelector
+					<SubgroupSelector
 						id="meeting-subgroup"
 						style={{ minWidth: 200 }}
 						value={

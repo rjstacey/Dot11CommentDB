@@ -156,18 +156,13 @@ export const selectTopLevelGroup = (state: RootState) => {
 export const selectTopLevelGroupName = (state: RootState) =>
 	selectTopLevelGroup(state)?.name || "";
 
-export const selectWorkingGroupIds = createSelector(
+export const selectSubgroupIds = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
 	selectTopLevelGroupId,
 	(ids, entities, topLevelGroupId) => {
-		if (topLevelGroupId) {
-			const parent = entities[topLevelGroupId];
-			if (parent && (parent.type === "r" || parent.type === "c")) {
-				ids = ids.filter((id) =>
-					["r", "c", "wg"].includes(entities[id]!.type!)
-				);
-			}
+		const parent = topLevelGroupId ? entities[topLevelGroupId] : undefined;
+		if (parent && parent.type === "wg") {
 			function isWorkingGroupDescendent(id: EntityId) {
 				if (id === topLevelGroupId) return true;
 				let g: Group | undefined = entities[id]!;
@@ -175,22 +170,21 @@ export const selectWorkingGroupIds = createSelector(
 					if (g.parent_id === topLevelGroupId) return true; // id is descendent of ownerGroupId
 					g = g.parent_id ? entities[g.parent_id] : undefined;
 				} while (g);
-				return false; // id is not an descendent of ownerGroupId
+				return false; // id is not an descendent of topLevelGroupId
 			}
 			return ids.filter(isWorkingGroupDescendent);
 		} else {
-			return ids.filter((id) => {
-				const g = entities[id]!;
-				return g.type === "c" || g.type === "wg";
-			});
+			return ids.filter((id) =>
+				["r", "c", "wg"].includes(entities[id]!.type!)
+			);
 		}
 	}
 );
 
-export const selectGroups = createSelector(
-	selectWorkingGroupIds,
+export const selectActiveSubgroupIds = createSelector(
+	selectSubgroupIds,
 	selectGroupEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.filter((id) => entities[id]!.status > 0)
 );
 
 export const selectGroupParents = createSelector(
