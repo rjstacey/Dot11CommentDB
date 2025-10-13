@@ -1,7 +1,7 @@
-import axios from "axios";
 import { OAuth2Client, Credentials } from "google-auth-library";
 // Google Calendar: https://developers.google.com/calendar/api/v3/reference/calendars
 import { google, calendar_v3 } from "googleapis";
+import qs from "node:querystring";
 import { Request } from "express";
 import { User } from "./users.js";
 
@@ -381,9 +381,15 @@ export async function revokeAuthCalendarAccount(
 	if (oauthAccount.authParams) {
 		const token = oauthAccount.authParams.access_token;
 		try {
-			await axios.post(calendarRevokeUrl, {
-				token,
-			});
+			const options = {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
+				body: qs.stringify({ token }),
+			};
+			// Revoke token
+			await fetch(calendarRevokeUrl, options);
 		} catch (error) {
 			console.log("revoke calendar token error:", error);
 		}
