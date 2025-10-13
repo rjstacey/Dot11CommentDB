@@ -92,3 +92,11 @@
 	position: absolute;
 	width: 100%;
 }
+
+.meetings-email {
+	& tr,
+	& td,
+	& th {
+		border-width: 1px;
+	}
+}

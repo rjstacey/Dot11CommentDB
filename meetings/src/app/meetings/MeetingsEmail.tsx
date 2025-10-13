@@ -11,6 +11,7 @@ import {
 	DropdownButton,
 	Row,
 	Col,
+	Container,
 } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -27,6 +28,8 @@ import { WebexMeeting, displayMeetingNumber } from "@/store/webexMeetings";
 import { sendEmails, type Email } from "@/store/emailActions";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
+
+import styles from "./meetings.module.css";
 
 function displayDateTime(entity: WebexMeeting, timezone: string) {
 	const start = DateTime.fromISO(entity.start, { zone: timezone });
@@ -247,11 +250,13 @@ function MeetingsEmail({ close }: { close: () => void }) {
 		<Form
 			onSubmit={send}
 			style={{ minWidth: "900px", maxHeight: "80vh", overflow: "auto" }}
-			className="p-3"
+			className={styles["meetings-email"] + " p-3"}
 		>
 			<Row className="mb-3">
 				<Col>
-					<h3>Email host keys</h3>
+					<h3 className="title">
+						Select subgroups to receive host keys
+					</h3>
 				</Col>
 				<Col xs="auto">
 					<Spinner size="sm" hidden={!busy} />
@@ -269,7 +274,8 @@ function MeetingsEmail({ close }: { close: () => void }) {
 							eventKey={groupId}
 							title={tabTitle(groupId)}
 						>
-							<div
+							<Container
+								className="mt-3 mb-3"
 								dangerouslySetInnerHTML={{
 									__html,
 								}}
