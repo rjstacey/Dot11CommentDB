@@ -66,8 +66,8 @@ function Breakouts() {
 				<AppTable
 					fixed
 					columns={tableColumns}
-					headerHeight={46}
-					estimatedRowHeight={56}
+					headerHeight={52}
+					estimatedRowHeight={48}
 					rowGetter={breakoutsRowGetter}
 					defaultTablesConfig={defaultTablesConfig}
 					selectors={imatBreakoutsSelectors}

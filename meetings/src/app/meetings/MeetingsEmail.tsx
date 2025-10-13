@@ -3,7 +3,15 @@ import { DateTime } from "luxon";
 import { EntityId, Dictionary, createSelector } from "@reduxjs/toolkit";
 import { useParams } from "react-router";
 
-import { Form, Spinner, Tab, Tabs, DropdownButton } from "react-bootstrap";
+import {
+	Form,
+	Spinner,
+	Tab,
+	Tabs,
+	DropdownButton,
+	Row,
+	Col,
+} from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectUser, type User } from "@/store/user";
@@ -14,11 +22,10 @@ import {
 } from "@/store/meetings";
 import { selectOfficersState, type Officer } from "@/store/officers";
 import { selectMemberEntities, type UserMember } from "@/store/members";
-import { selectGroupsState, selectGroups } from "@/store/groups";
+import { selectGroupEntities } from "@/store/groups";
 import { WebexMeeting, displayMeetingNumber } from "@/store/webexMeetings";
 import { sendEmails, type Email } from "@/store/emailActions";
 
-import styles from "./meetings.module.css";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 function displayDateTime(entity: WebexMeeting, timezone: string) {
@@ -118,28 +125,27 @@ function selectOfficers(
 	return officers;
 }
 
-const selectMeetingsGroups = createSelector(
-	selectGroups,
-	selectSyncedMeetingEntities,
+const selectMeetingsGroupIds = createSelector(
 	selectMeetingIds,
-	(groups, meetingEntities, meetingIds) => {
+	selectSyncedMeetingEntities,
+	(meetingIds, meetingEntities) => {
 		const groupIds = new Set<EntityId>();
 		for (const id of meetingIds) {
 			const m = meetingEntities[id]!;
 			if (
-				DateTime.fromISO(m.start) >= DateTime.now() &&
+				DateTime.fromISO(m.end) >= DateTime.now() &&
 				m.webexMeetingId &&
 				m.organizationId
 			)
 				groupIds.add(m.organizationId);
 		}
 
-		return groups.filter((g) => groupIds.has(g.id));
+		return Array.from(groupIds);
 	}
 );
 
 function useGroupEmails(groupIds: EntityId[]) {
-	const groupEntities = useAppSelector(selectGroupsState).entities;
+	const groupEntities = useAppSelector(selectGroupEntities);
 	const meetingIds = useAppSelector(selectMeetingIds);
 	const meetingEntities = useAppSelector(selectSyncedMeetingEntities);
 	const user = useAppSelector(selectUser);
@@ -147,7 +153,7 @@ function useGroupEmails(groupIds: EntityId[]) {
 	const memberEntities = useAppSelector(selectMemberEntities);
 
 	return React.useMemo(() => {
-		const emails: Dictionary<Email> = {};
+		const emailEntities: Dictionary<Email> = {};
 		for (const id of groupIds) {
 			const group = groupEntities[id]!;
 
@@ -189,79 +195,94 @@ function useGroupEmails(groupIds: EntityId[]) {
 				ReplyToAddresses: [genEmailAddress(user)],
 			};
 
-			emails[group.name] = email;
+			emailEntities[id] = email;
 		}
 
-		return emails;
+		return emailEntities;
 	}, [groupIds, groupEntities, meetingIds, meetingEntities, user]);
 }
 
 function MeetingsEmail({ close }: { close: () => void }) {
 	const dispatch = useAppDispatch();
 	const { groupName } = useParams();
-	const groups = useAppSelector(selectMeetingsGroups);
-	const [selectedGroups, setSelectedGroups] = React.useState<string[]>([]);
-	const emails = useGroupEmails(selectedGroups);
+	const groupEntities = useAppSelector(selectGroupEntities);
+	const groupIds = useAppSelector(selectMeetingsGroupIds);
+	const [selectedGroupIds, setSelectedGroupIds] = React.useState<EntityId[]>(
+		[]
+	);
+	const emailEntities = useGroupEmails(groupIds);
 	const [busy, setBusy] = React.useState(false);
 
-	const handleSelectGroup: React.ChangeEventHandler<HTMLInputElement> = (
-		e
-	) => {
-		let selected = selectedGroups;
+	function handleSelectGroup(e: React.ChangeEvent<HTMLInputElement>) {
+		let selected = selectedGroupIds;
 		if (!e.target.checked)
 			selected = selected.filter((id) => id !== e.target.value);
 		else selected = [...selected, e.target.value];
-		setSelectedGroups(selected);
-	};
+		setSelectedGroupIds(selected);
+	}
 
 	async function send(e: React.ChangeEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
-		await dispatch(
-			sendEmails(groupName!, Object.values(emails) as Email[])
-		);
+		const emails = selectedGroupIds.map((id) => emailEntities[id]!);
+		await dispatch(sendEmails(groupName!, emails));
 		setBusy(false);
 		close();
+	}
+
+	function tabTitle(id: EntityId) {
+		return (
+			<div key={id} style={{ display: "flex", alignItems: "center" }}>
+				<Form.Check
+					value={id}
+					onChange={handleSelectGroup}
+					checked={selectedGroupIds.includes(id)}
+					label={groupEntities[id]?.name}
+				/>
+			</div>
+		);
 	}
 
 	return (
 		<Form
 			onSubmit={send}
-			style={{ minWidth: "600px", maxHeight: "80vh", overflow: "auto" }}
+			style={{ minWidth: "900px", maxHeight: "80vh", overflow: "auto" }}
 			className="p-3"
 		>
-			<h3>Email host keys</h3>
-			{busy && <Spinner size="sm" />}
-			<div
-				className={styles["meetings-email-grid"]}
-				//style={{ gridTemplateRows: `repeat(${nRows}, 1fr)` }}
-			>
-				{groups.map((g) => (
-					<div
-						key={g.id}
-						style={{ display: "flex", alignItems: "center" }}
-					>
-						<Form.Check
-							value={g.id}
-							onChange={handleSelectGroup}
-							checked={selectedGroups.includes(g.id)}
-							label={g.name}
-						/>
-					</div>
-				))}
-			</div>
-			<Tabs>
-				{Object.entries(emails).map(([key, email]) => (
-					<Tab key={key} title={key}>
-						<div
-							dangerouslySetInnerHTML={{
-								__html: email!.Message.Body.Html!.Data,
-							}}
-						/>
-					</Tab>
-				))}
+			<Row className="mb-3">
+				<Col>
+					<h3>Email host keys</h3>
+				</Col>
+				<Col xs="auto">
+					<Spinner size="sm" hidden={!busy} />
+				</Col>
+			</Row>
+			<Tabs defaultActiveKey={groupIds[0]}>
+				{groupIds.map((groupId) => {
+					const email = emailEntities[groupId];
+					const __html =
+						email?.Message.Body.Html?.Data ||
+						`Error: Email for ${groupId} missing`;
+					return (
+						<Tab
+							key={groupId}
+							eventKey={groupId}
+							title={tabTitle(groupId)}
+						>
+							<div
+								dangerouslySetInnerHTML={{
+									__html,
+								}}
+							/>
+						</Tab>
+					);
+				})}
 			</Tabs>
-			<SubmitCancelRow submitLabel="Send" cancel={close} />
+			<SubmitCancelRow
+				submitLabel="Send"
+				cancel={close}
+				disabled={selectedGroupIds.length === 0}
+			/>
 		</Form>
 	);
 }

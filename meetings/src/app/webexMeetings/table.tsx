@@ -46,8 +46,8 @@ function WebexMeetings() {
 					<AppTable
 						defaultTablesConfig={defaultTablesConfig}
 						columns={tableColumns}
-						headerHeight={46}
-						estimatedRowHeight={36}
+						headerHeight={52}
+						estimatedRowHeight={44}
 						rowGetter={webexMeetingsRowGetter}
 						selectors={webexMeetingsSelectors}
 						actions={webexMeetingsActions}
