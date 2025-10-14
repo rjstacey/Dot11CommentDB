@@ -424,7 +424,7 @@ export const commentsSelectors = getAppTableDataSelectors(selectCommentsState, {
 	getField,
 });
 
-export const selectCommentsSearchParams = createSelector(
+export const selectCommentsSearch = createSelector(
 	(state: RootState) => selectCommentsState(state).selected,
 	selectCommentEntities,
 	(state: RootState) =>
@@ -440,7 +440,7 @@ export const selectCommentsSearchParams = createSelector(
 			.forEach((cid) => {
 				if (cid) searchParams.append("cid", cid);
 			});
-		return searchParams;
+		return searchParams.toString();
 	}
 );
 

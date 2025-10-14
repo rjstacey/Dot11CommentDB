@@ -1,5 +1,5 @@
 import React from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
@@ -15,8 +15,9 @@ import {
 	fields,
 	commentsSelectors,
 	commentsActions,
-	selectCommentsSearchParams,
+	selectCommentsSearch,
 } from "@/store/comments";
+import { selectCurrentBallotID } from "@/store/ballots";
 
 import {
 	tableColumns,
@@ -25,13 +26,20 @@ import {
 } from "./tableColumns";
 
 function CommentsTable() {
-	const [, setSearch] = useSearchParams();
-	const commentsSearchParams = useAppSelector(selectCommentsSearchParams);
+	const navigate = useNavigate();
+	const search = useAppSelector(selectCommentsSearch);
+	const ballotId = useAppSelector(selectCurrentBallotID);
 
 	React.useEffect(() => {
-		console.log("CommentsTable: setSearch", commentsSearchParams);
-		setSearch(commentsSearchParams, { replace: true });
-	}, [commentsSearchParams]);
+		console.log("set search");
+		navigate(
+			{
+				pathname: "../" + (ballotId || ""),
+				search,
+			},
+			{ replace: true }
+		);
+	}, [search]);
 
 	return (
 		<>

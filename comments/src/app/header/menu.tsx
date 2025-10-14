@@ -6,7 +6,7 @@ import { useAppSelector } from "@/store/hooks";
 import { AccessLevel } from "@/store/user";
 import { selectTopLevelGroupByName } from "@/store/groups";
 import { selectCurrentBallotID } from "@/store/ballots";
-import { selectCommentsSearchParams } from "@/store/comments";
+import { selectCommentsSearch } from "@/store/comments";
 
 type MenuPath = { pathname: string; search?: string };
 type MenuItem = {
@@ -21,7 +21,7 @@ function useMenuLinks() {
 	);
 	let ballotId = useAppSelector(selectCurrentBallotID);
 	if (ballotId) ballotId = encodeURIComponent(ballotId);
-	const commentsSearchParams = useAppSelector(selectCommentsSearchParams);
+	const commentsSearch = useAppSelector(selectCommentsSearch);
 
 	// Only display links for which the user has permissions
 	// Replace params with the current setting
@@ -65,8 +65,7 @@ function useMenuLinks() {
 			let search: string | undefined;
 			if (ballotId) {
 				pathname += `/${ballotId}`;
-				if (commentsSearchParams.size > 0)
-					search = "?" + commentsSearchParams.toString();
+				if (commentsSearch) search = "?" + commentsSearch.toString();
 			}
 			menu.push({
 				to: { pathname, search },
@@ -82,7 +81,7 @@ function useMenuLinks() {
 		}
 
 		return menu;
-	}, [group, ballotId, commentsSearchParams]);
+	}, [group, ballotId, commentsSearch]);
 }
 
 function AppNavLink({

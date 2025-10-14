@@ -12,11 +12,7 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { AccessLevel } from "./user";
-import {
-	selectGroupEntities,
-	selectGroups,
-	selectTopLevelGroupByName,
-} from "./groups";
+import { selectGroupEntities, selectTopLevelGroupByName } from "./groups";
 
 import {
 	Ballot,
@@ -348,34 +344,25 @@ export type GroupProjectOption = GroupProject & {
 
 /* Generate project list from the ballot pool */
 export const selectGroupProjectOptions = createSelector(
-	selectGroups,
 	selectBallotIds,
 	selectBallotEntities,
+	selectGroupEntities,
 	selectChooseFromActiveGroups,
-	(groups, ballotIds, ballotEntities, chooseFromActiveGroups) => {
+	(ballotIds, ballotEntities, groupEntities, chooseFromActiveGroups) => {
 		const options: GroupProjectOption[] = [];
-		groups.forEach((group) => {
-			if (chooseFromActiveGroups && !group.status) return;
-			if (group.project)
-				options.push({
-					groupId: group.id,
-					project: group.project,
-					label: group.name + " / " + group.project,
-				});
-		});
 		ballotIds.forEach((id) => {
 			const ballot = ballotEntities[id]!;
-			if (
-				!options.find(
-					(o) =>
-						o.groupId === ballot.groupId &&
-						o.project === ballot.Project
+			const group = groupEntities[ballot.groupId];
+			if (group) {
+				if (chooseFromActiveGroups && !group.status) return;
+				if (
+					options.find(
+						(o) =>
+							o.groupId === ballot.groupId &&
+							o.project === ballot.Project
+					)
 				)
-			) {
-				const group = groups.find(
-					(group) => group.id === ballot.groupId
-				);
-				if (chooseFromActiveGroups && group && !group.status) return;
+					return;
 				const label =
 					(group?.name || "Unknown") + " / " + ballot.Project;
 				options.push({
