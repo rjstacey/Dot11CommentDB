@@ -2,7 +2,7 @@ import { Dropdown } from "react-bootstrap";
 
 import { loginAndReturn } from "@common";
 
-import { resetStore } from "@/store";
+import { resetStore, persistor } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectUser, setUser } from "@/store/user";
 
@@ -11,9 +11,10 @@ import pkg from "../../../package.json";
 export function AccountDropdown() {
 	const dispatch = useAppDispatch();
 	const user = useAppSelector(selectUser);
-	const reload = () => {
+	const reload = async () => {
 		dispatch(resetStore());
 		dispatch(setUser(user));
+		await persistor.flush();
 		window.location.reload();
 	};
 
