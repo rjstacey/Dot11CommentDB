@@ -1,11 +1,16 @@
+import { useParams } from "react-router";
 import { Row, Col, Button } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { refresh } from "../comments/loader";
 import { selectIsOnline } from "@/store/offline";
 import ProjectBallotSelector from "@/components/ProjectBallotSelector";
+import { useReportData } from "./reportData";
+import { renderTableToClipboard } from "./clipboard";
 
-function ReportsActions({ onCopy }: { onCopy: () => void }) {
+function ReportsActions() {
 	const isOnline = useAppSelector(selectIsOnline);
+	const { report } = useParams();
+	const data = useReportData(report);
 
 	return (
 		<Row className="w-100 justify-content-between align-items-center">
@@ -16,7 +21,7 @@ function ReportsActions({ onCopy }: { onCopy: () => void }) {
 				<Button
 					variant="outline-secondary"
 					className="bi-copy"
-					onClick={onCopy}
+					onClick={() => renderTableToClipboard(data)}
 				/>
 				<Button
 					variant="outline-secondary"

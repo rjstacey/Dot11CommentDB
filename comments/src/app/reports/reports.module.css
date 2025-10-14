@@ -1,6 +1,5 @@
 .table {
 	display: grid;
-	/* grid-template-columns: ${(props) => `repeat(${props.nCol}, auto)`};*/
 	border-spacing: 1px;
 	max-height: 100%;
 	overflow: auto;
@@ -56,7 +55,6 @@
 
 .table :global td.empty {
 	grid-column: 1 / -1;
-	/* colspan: 0;*/
 	color: gray;
 	font-style: italic;
 }

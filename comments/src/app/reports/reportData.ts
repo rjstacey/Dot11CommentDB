@@ -146,20 +146,30 @@ function commentsByAdHocAndCommentGroup(comments: CommentResolution[]) {
 	return data;
 }
 
-const commentsReport = {
-	"Comments by Commenter": commentsByCommenter,
-	"Comments by Assignee": commentsByAssignee,
-	"Comments by Assignee and Comment Group": commentsByAssigneeAndCommentGroup,
-	"Comments by Ad-Hoc and Comment Group": commentsByAdHocAndCommentGroup,
+export const commentReports = {
+	"comments-by-commenter": {
+		label: "Comments by Commenter",
+		genData: commentsByCommenter,
+	},
+	"comments-by-assignee": {
+		label: "Comments by Assignee",
+		genData: commentsByAssignee,
+	},
+	"comments-by-assignee-and-comment-group": {
+		label: "Comments by Assignee and Comment Group",
+		genData: commentsByAssigneeAndCommentGroup,
+	},
+	"comments-by-ad-hoc-and-comment-group": {
+		label: "Comments by Ad-Hoc and Comment Group",
+		genData: commentsByAdHocAndCommentGroup,
+	},
 } as const;
-export type Report = keyof typeof commentsReport;
-export const reports = Object.keys(commentsReport) as Report[];
 
-export function useReportData(report: Report | null) {
+export function useReportData(report: string | undefined) {
 	const ids = useAppSelector(selectCommentIds);
 	const entities = useAppSelector(selectSyncedCommentEntities);
 
-	const data: Counts[] = React.useMemo(() => {
+	return React.useMemo(() => {
 		if (!report) return [];
 		const comments = ids.map((id) => {
 			const c = entities[id]!;
@@ -168,8 +178,8 @@ export function useReportData(report: Report | null) {
 				Status: getCommentStatus(c),
 			};
 		});
-		return commentsReport[report](comments);
+		const r = report as keyof typeof commentReports;
+		const entry = commentReports[r];
+		return entry ? entry.genData(comments) : [];
 	}, [ids, entities, report]);
-
-	return data;
 }
