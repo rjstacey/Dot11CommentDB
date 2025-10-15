@@ -31,14 +31,8 @@ function CommentsTable() {
 	const ballotId = useAppSelector(selectCurrentBallotID);
 
 	React.useEffect(() => {
-		console.log("set search");
-		navigate(
-			{
-				pathname: "../" + (ballotId || ""),
-				search,
-			},
-			{ replace: true }
-		);
+		const pathname = "../" + encodeURIComponent(ballotId || "");
+		navigate({ pathname, search }, { replace: true });
 	}, [search]);
 
 	return (
