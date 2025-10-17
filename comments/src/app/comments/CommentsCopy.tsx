@@ -14,12 +14,28 @@ function copyHtmlToClipboard(html: string) {
 	}
 }
 
+function escape(text: string) {
+	return text
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#039;");
+}
+
+function p(d: string) {
+	const blocks = d.split("\n");
+	return blocks.length > 1
+		? blocks.map((d) => (d ? `<p>${d}</p>` : "")).join("")
+		: d;
+}
+const td = (d: string) => `<td>${p(escape(d))}</td>`;
+const th = (d: string) => `<th>${d}</th>`;
+
 function setClipboard(
 	ids: EntityId[],
 	comments: Dictionary<CommentResolution>
 ) {
-	const td = (d: string) => `<td>${d}</td>`;
-	const th = (d: string) => `<th>${d}</th>`;
 	const header = `
 		<tr>
 			${th("CID")}
