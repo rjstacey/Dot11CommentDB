@@ -11,7 +11,7 @@ import {
 	ChangeableColumnProperties,
 } from "@common";
 
-import { renderMBS, renderCommenter, renderCategory } from "./CommentBasics";
+import { CommentMBS, renderCommenter, CommentCategory } from "./CommentBasics";
 import { renderSubmission } from "./SubmissionSelect";
 import { useAppSelector } from "@/store/hooks";
 import { selectBallotsState } from "@/store/ballots";
@@ -214,10 +214,10 @@ const renderDataCellStacked1 = ({
 					{rowData.CID /*getCID(rowData)*/}
 				</DataSubcomponent>
 				<DataSubcomponent width={40}>
-					{renderCategory(rowData)}
+					<CommentCategory comment={rowData} />
 				</DataSubcomponent>
 				<DataSubcomponent width={30}>
-					{renderMBS(rowData)}
+					<CommentMBS comment={rowData} />
 				</DataSubcomponent>
 			</FlexRow>
 			<FlexRow>
@@ -361,8 +361,9 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 		width: 36,
 		flexGrow: 1,
 		flexShrink: 0,
-		cellRenderer: ({ rowData }: { rowData: CommentResolution }) =>
-			renderMBS(rowData),
+		cellRenderer: ({ rowData }: { rowData: CommentResolution }) => (
+			<CommentMBS comment={rowData} />
+		),
 	},
 	{
 		key: "Category",

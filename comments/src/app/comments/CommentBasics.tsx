@@ -14,32 +14,35 @@ const ShowMultiple = (props: React.ComponentProps<"span">) => (
 	</span>
 );
 
-export function renderMBS({
-	MustSatisfy: mbs,
+export function CommentMBS({
+	comment,
+	style,
+	...props
 }: {
-	MustSatisfy: Multiple<Comment>["MustSatisfy"];
-}) {
-	if (isMultiple(mbs)) {
-		return null;
-	}
+	comment: { MustSatisfy: Multiple<Comment>["MustSatisfy"] };
+	style?: React.CSSProperties;
+} & React.ComponentProps<"span">) {
+	const { MustSatisfy: mbs } = comment;
+	if (isMultiple(mbs) || !mbs) return null;
 	return (
 		<span
 			style={{
+				...style,
 				color: "red",
 				fontSize: "smaller",
 				fontWeight: "bold",
 			}}
+			{...props}
 		>
-			{mbs ? "MBS" : ""}
+			{"MBS"}
 		</span>
 	);
 }
 
 export function renderCommenter(comment: Multiple<CommentEditable>) {
 	const commenter = comment.CommenterName;
-	if (isMultiple(commenter)) {
-		return <ShowMultiple />;
-	}
+	if (isMultiple(commenter)) return <ShowMultiple />;
+
 	let vote: JSX.Element | null = null;
 	if (comment.Vote === "Approve") {
 		vote = <i className="icon icon-vote-yes ms-2" />;
@@ -54,15 +57,15 @@ export function renderCommenter(comment: Multiple<CommentEditable>) {
 	);
 }
 
-export function renderCategory({
-	Category: cat,
+export function CommentCategory({
+	comment,
+	...props
 }: {
-	Category: Multiple<Comment>["Category"];
-}) {
-	if (isMultiple(cat)) {
-		return <ShowMultiple />;
-	}
-	return <span>{categoryMap[cat]}</span>;
+	comment: { Category: Multiple<Comment>["Category"] };
+} & React.ComponentProps<"span">) {
+	const { Category: cat } = comment;
+	if (isMultiple(cat)) return <ShowMultiple />;
+	return <span {...props}>{categoryMap[cat]}</span>;
 }
 
 const renderTextBlock = (value: string) => {
@@ -217,9 +220,8 @@ export function CommentBasics({
 			<Row className="mb-2">
 				<Col>
 					<Form.Label as="span">Category: </Form.Label>
-					{renderCategory(comment)}
-					<>&nbsp;&nbsp;</>
-					{renderMBS(comment)}
+					<CommentCategory comment={comment} />
+					<CommentMBS comment={comment} className="ms-2" />
 				</Col>
 			</Row>
 			<Row className="mb-2">
