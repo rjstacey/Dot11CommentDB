@@ -1,6 +1,6 @@
 import React from "react";
 import { FormCheck } from "react-bootstrap";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 
 import { Select } from "@common";
 
@@ -120,6 +120,7 @@ function BallotSelect({
 }
 
 function BallotSelector({ readOnly }: { readOnly?: boolean }) {
+	const location = useLocation();
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
 
@@ -144,13 +145,17 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 	const handleProjectChange = async (groupProject: GroupProject) => {
 		const ballot = await dispatch(setCurrentGroupProject(groupProject));
 		const ballotId = ballot ? getEncodedBallotId(ballot) : "";
-		navigate(ballotId);
+		const search = new URLSearchParams(location.search);
+		search.delete("cid");
+		navigate({ pathname: ballotId, search: search.toString() });
 	};
 
 	const handleBallotChange = async (value: number | null) => {
 		const ballot = await dispatch(setCurrentBallot_id(value));
 		const ballotId = ballot ? getEncodedBallotId(ballot) : "";
-		navigate(ballotId);
+		const search = new URLSearchParams(location.search);
+		search.delete("cid");
+		navigate({ pathname: ballotId, search: search.toString() });
 	};
 
 	return (

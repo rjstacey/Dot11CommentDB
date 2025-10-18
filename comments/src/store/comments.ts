@@ -132,7 +132,7 @@ const commentStatusOptions = commentStatusOrder.map((value) => ({
 }));
 
 export const fields: Fields = {
-	CID: { label: "CID", type: FieldType.STRING },
+	CID: { label: "CID", type: FieldType.NUMERIC },
 	CommenterName: { label: "Commenter" },
 	Vote: { label: "Vote" },
 	MustSatisfy: {
@@ -474,10 +474,12 @@ export const loadComments =
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: unknown) => {
+				if (selectCommentsBallot_id(getState()) !== ballot_id) return;
 				const comments = commentResolutionsSchema.parse(response);
 				dispatch(getSuccess(comments));
 			})
 			.catch((error: unknown) => {
+				if (selectCommentsBallot_id(getState()) !== ballot_id) return;
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

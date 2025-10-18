@@ -189,12 +189,14 @@ export const loadResults =
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: unknown) => {
+				if (selectResultsBallot_id(getState()) !== ballot_id) return;
 				const { ballots, results } =
 					getResultsResponseSchema.parse(response);
 				dispatch(getSuccess(results));
 				dispatch(updateBallotsLocal(ballots));
 			})
 			.catch((error: unknown) => {
+				if (selectResultsBallot_id(getState()) !== ballot_id) return;
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

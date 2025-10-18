@@ -128,10 +128,12 @@ export const loadVoters =
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: unknown) => {
+				if (selectVotersBallot_id(getState()) !== ballot_id) return;
 				const voters = votersSchema.parse(response);
 				dispatch(getSuccess(voters));
 			})
 			.catch((error: unknown) => {
+				if (selectVotersBallot_id(getState()) !== ballot_id) return;
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})
