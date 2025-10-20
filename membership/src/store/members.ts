@@ -529,7 +529,7 @@ export const exportMembers =
 		const search = new URLSearchParams();
 		if (query?.status) {
 			if (Array.isArray(query.status))
-				query.status.forEach((s) => search.append("status[]", s));
+				query.status.forEach((s) => search.append("status", s));
 			else search.append("status", query.status);
 		}
 		if (query?.format) search.append("format", query.format);
