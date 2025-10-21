@@ -276,9 +276,7 @@ export const uploadResults =
 	async (dispatch, getState) => {
 		const url = `${baseUrl}/${ballot_id}/upload`;
 		try {
-			const response = await fetcher.postMultipart(url, {
-				ResultsFile: file,
-			});
+			const response = await fetcher.postFile(url, file);
 			const { ballots, results } =
 				getResultsResponseSchema.parse(response);
 			dispatch(updateBallotsLocal(ballots));

@@ -10,6 +10,8 @@ import {
 	ResolutionChange,
 } from "@schemas/resolutions.js";
 import type { Resolution } from "@schemas/resolutions.js";
+import { RowDataPacket } from "mysql2";
+import { NotFoundError } from "src/utils/error.js";
 
 const commentChangeFields = Object.keys(commentChangeSchema.shape);
 const resolutionChangeFields = Object.keys(resolutionChangeSchema.shape);
@@ -166,12 +168,18 @@ const getCommentsHistorySql = `
 `;
 
 export async function getCommentHistory(comment_id: number) {
-	const sql =
-		db.format(getCommentsHistorySql, [comment_id]) +
-		db.format("SELECT * FROM comments WHERE id=?;", [comment_id]);
-	const results = (await db.query(sql)) as [CommentHistoryEvent[], Comment[]];
-
-	const [commentsHistory, comments] = results;
+	const [commentsHistory, comments] = await Promise.all([
+		db.query<(RowDataPacket & CommentHistoryEvent)[]>(
+			getCommentsHistorySql,
+			[comment_id]
+		),
+		db.query<(RowDataPacket & Comment)[]>(
+			"SELECT * FROM comments WHERE id=?;",
+			[comment_id]
+		),
+	]);
+	if (comments.length === 0)
+		throw new NotFoundError(`Comment id=${comment_id} not found`);
 
 	let comment = comments[0];
 	const resolutionEntities: Record<string, Resolution> = {};

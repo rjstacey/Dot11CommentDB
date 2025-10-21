@@ -167,7 +167,7 @@ export const votersFromSpreadsheet =
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}/upload`;
 		try {
-			const response = await fetcher.postMultipart(url, { File: file });
+			const response = await fetcher.postFile(url, file);
 			const { voters, ballots } = votersResponseSchema.parse(response);
 			dispatch(getSuccess(voters));
 			if (ballots) dispatch(updateBallotsLocal(ballots));

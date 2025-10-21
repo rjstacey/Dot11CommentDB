@@ -690,7 +690,7 @@ export async function parseCommentsSpreadsheet(
 	sheetName: string
 ) {
 	const workbook = new ExcelJS.Workbook();
-	await workbook.xlsx.load(buffer);
+	await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
 	const worksheet = workbook.getWorksheet(sheetName);
 	if (!worksheet) {
@@ -973,12 +973,13 @@ async function genCommentsSpreadsheet(
 	appendSheets: boolean,
 	ballot: Ballot,
 	comments: CommentResolution[],
-	file: { buffer: Buffer } | undefined,
+	buffer: Buffer | undefined,
 	res: Response
 ) {
 	const workbook = new ExcelJS.Workbook();
-	if (file) {
-		await workbook.xlsx.load(file.buffer).catch((error) => {
+	if (buffer) {
+		const b: ExcelJS.Buffer = buffer as unknown as ExcelJS.Buffer;
+		await workbook.xlsx.load(b).catch((error) => {
 			throw new TypeError("Invalid workbook: " + error);
 		});
 
@@ -1037,7 +1038,7 @@ export async function exportCommentsSpreadsheet(
 	isLegacy: boolean,
 	style: CommentsExportStyle,
 	appendSheets: boolean,
-	file: { buffer: Buffer } | undefined,
+	buffer: Buffer | undefined,
 	res: Response
 ) {
 	const comments = await getComments(ballot.id);
@@ -1050,7 +1051,7 @@ export async function exportCommentsSpreadsheet(
 		appendSheets,
 		ballot,
 		comments,
-		file,
+		buffer,
 		res
 	);
 }

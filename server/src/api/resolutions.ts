@@ -1,47 +1,17 @@
 /*
  * Resolutions API
- *
- * POST /
- *		Add resolutions.
- *		Body is an object with parameters:
- *			entities:array
- *			ballot_id:				Identifies the ballot
- *			modifiedSince:string 	Datetime in ISO format
- *		Returns an array of resolution objects that is the complete list of resolutions for the comments affected.
- *
- * PATCH /
- *		Update resolutions.
- *		Body is an object with parameters:
- *			entities:object
- *			ballot_id:any 			Identifies the ballot
- *			modifiedSince:string 	Datetime in ISO format
- *		Returns resulutions that were modified after modifiedSince.
- *
- * DELETE / ({ids, ballot_id, modifiedSince})
- *		Delete resolutions.
- *		Body is an object with parameters:
- *			ids:array 			An array of ballot identifiers
- *
- * POST /resolutions/{ballotId}/upload (resolutionFile, params)
- *		URL parameters:
- *			ballotId:any 	Identifies the ballot
- *		Multipart body:
- *			resolutionFile:	the resolution spreadsheet
- *			params: JSON object with parameters:
- *				toUpdate:array
- *				matchAlgorithm:string
- *				matchUpdate:string
- *				sheetName:string		The sheet name with the resolutions
- *		Update existing and add missing resolutions from spreadsheet.
  */
 import { Request, Response, NextFunction, Router } from "express";
-import Multer from "multer";
-import { ForbiddenError, isPlainObject } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "../utils/index.js";
 import { AccessLevel } from "../auth/access.js";
 import {
 	commentResolutionQuerySchema,
 	CommentResolutionQuery,
 } from "@schemas/comments.js";
+import {
+	resolutionsUploadParamsSchema,
+	type ResolutionsUploadParams,
+} from "@schemas/uploadResolutions.js";
 import {
 	ResolutionCreate,
 	ResolutionUpdate,
@@ -54,25 +24,19 @@ import {
 	updateResolutions,
 	deleteResolutions,
 } from "../services/resolutions.js";
-import {
-	toUpdateOptions,
-	matchAlgoOptions,
-	matchUpdateOptions,
-	FieldToUpdate,
-	MatchAlgo,
-	MatchUpdate,
-	uploadResolutions,
-} from "../services/uploadResolutions.js";
+import { uploadResolutions } from "../services/uploadResolutions.js";
 
 function addMany(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
 	// Need at least read-only privileges at the ballot level to add a resolution. Check for comment level privileges later.
-	if (access < AccessLevel.ro)
-		return next(
+	if (access < AccessLevel.ro) {
+		next(
 			new ForbiddenError(
 				"Need at least read-only privileges at the ballot level to add a resolution"
 			)
 		);
+		return;
+	}
 	const ballot_id = req.ballot!.id;
 	let query: CommentResolutionQuery;
 	try {
@@ -154,27 +118,35 @@ function removeMany(req: Request, res: Response, next: NextFunction) {
 
 function uploadMany(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
-	if (access < AccessLevel.rw)
-		return next(
+	if (access < AccessLevel.rw) {
+		next(
 			new ForbiddenError(
 				"Need at least read-write privileges at the ballot level to upload resolutions"
 			)
 		);
+		return;
+	}
 	const ballot_id = req.ballot!.id;
-	if (typeof req.body.params !== "string" || !req.file)
-		return next(
-			new TypeError(
-				"Bad body; expected multipart with file in ResolutionsFile and JSON in params"
-			)
-		);
 
-	let params: unknown;
+	let params: ResolutionsUploadParams;
 	try {
-		params = JSON.parse(req.body.params);
-		validateUploadParams(params);
+		params = resolutionsUploadParamsSchema.parse(req.query);
 	} catch (error) {
 		return next(error);
 	}
+	if (!Array.isArray(params.toUpdate)) params.toUpdate = [params.toUpdate];
+
+	if (!req.body) {
+		next(new BadRequestError("Missing file"));
+		return;
+	}
+	let filename = "";
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) filename = m[1];
+	}
+
 	uploadResolutions(
 		req.user,
 		ballot_id,
@@ -182,58 +154,16 @@ function uploadMany(req: Request, res: Response, next: NextFunction) {
 		params.matchAlgorithm,
 		params.matchUpdate,
 		params.sheetName,
-		req.file
+		filename,
+		req.body
 	)
 		.then((data) => res.json(data))
 		.catch(next);
 }
 
-const upload = Multer();
 const router = Router();
-
-const validToUpdate = (toUpdate: unknown): toUpdate is FieldToUpdate[] =>
-	Array.isArray(toUpdate) &&
-	toUpdate.every((f) => toUpdateOptions.includes(f));
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const validMatchAlgo = (o: any): o is MatchAlgo => matchAlgoOptions.includes(o);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const validMatchUpdate = (f: any): f is MatchUpdate =>
-	matchUpdateOptions.includes(f);
-
-function validateUploadParams(params: unknown): asserts params is {
-	toUpdate: FieldToUpdate[];
-	matchAlgorithm: MatchAlgo;
-	matchUpdate: MatchUpdate;
-	sheetName: string;
-} {
-	if (!isPlainObject(params))
-		throw new TypeError(
-			"Bad body; extected params to be object with shape {toUpdate, matchAlgorithm, matchUpdate, sheetName}"
-		);
-	if (!validToUpdate(params.toUpdate))
-		throw new TypeError(
-			`Bad body; expected toUpdate to be an array that is a subset of [${toUpdateOptions.join(
-				", "
-			)}].`
-		);
-	if (!validMatchAlgo(params.matchAlgorithm))
-		throw new TypeError(
-			`Bad body; expected matchAlgorithm to be one of ${matchAlgoOptions.join(
-				", "
-			)}.`
-		);
-	if (!validMatchUpdate(params.matchUpdate))
-		throw new TypeError(
-			`Bad body; expected matchUpdate to be one of ${matchUpdateOptions.join(
-				", "
-			)}.`
-		);
-	if (typeof params.sheetName !== "string")
-		throw new TypeError("Bad body; expected sheetName to be a string.");
-}
-
 router
-	.post("/upload", upload.single("ResolutionsFile"), uploadMany)
+	.post("/upload", uploadMany)
 	.route("/")
 	.post(addMany)
 	.patch(updateMany)

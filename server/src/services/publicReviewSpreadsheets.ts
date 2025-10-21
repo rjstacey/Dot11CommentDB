@@ -54,9 +54,15 @@ function parsePublicReviewComment(c: string[]) {
 
 export async function parsePublicReviewComments(
 	startCommentId: number,
-	file: Express.Multer.File
+	filename: string,
+	buffer: Buffer
 ) {
-	const rows = await parseSpreadsheet(file, publicReviewCommentsHeader, 3);
+	const rows = await parseSpreadsheet(
+		filename,
+		buffer,
+		publicReviewCommentsHeader,
+		3
+	);
 
 	// Parse each row and assign CommentID
 	return rows.map((c, i) => {

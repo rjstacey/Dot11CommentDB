@@ -48,6 +48,7 @@ import {
 import {
 	uploadResolutionsResponseSchema,
 	UploadResolutionsResponse,
+	ResolutionsUploadParams,
 } from "@schemas/uploadResolutions";
 
 export type {
@@ -572,12 +573,9 @@ export const uploadComments =
 	(ballot_id: number, file: File): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseCommentsUrl}/${ballot_id}/upload`;
-		const params = {
-			params: JSON.stringify({ startCommentId: 1 }),
-			CommentsFile: file,
-		};
+		const params = { startCommentId: 1 };
 		try {
-			const response = await fetcher.postMultipart(url, params);
+			const response = await fetcher.postFile(url, file, params);
 			const { comments, ballot } =
 				uploadCommentsResponseSchema.parse(response);
 			dispatch(updateBallotsLocal([ballot]));
@@ -592,12 +590,9 @@ export const uploadUserComments =
 	(ballot_id: number, sapin: number, file: File): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseCommentsUrl}/${ballot_id}/userUpload`;
-		const params = {
-			params: JSON.stringify({ SAPIN: sapin }),
-			CommentsFile: file,
-		};
+		const params = { SAPIN: sapin };
 		try {
-			const response = await fetcher.postMultipart(url, params);
+			const response = await fetcher.postFile(url, file, params);
 			const { comments, ballot } =
 				uploadCommentsResponseSchema.parse(response);
 			dispatch(updateBallotsLocal([ballot]));
@@ -612,11 +607,8 @@ export const uploadPublicReviewComments =
 	(ballot_id: number, file: File): AppThunk =>
 	async (dispatch, getState) => {
 		const url = `${baseCommentsUrl}/${ballot_id}/publicReviewUpload`;
-		const params = {
-			CommentsFile: file,
-		};
 		try {
-			const response = await fetcher.postMultipart(url, params);
+			const response = await fetcher.postFile(url, file);
 			const { comments, ballot } =
 				uploadCommentsResponseSchema.parse(response);
 			dispatch(updateBallotsLocal([ballot]));
@@ -886,18 +878,16 @@ export const uploadResolutions =
 	): AppThunk<UploadResult | undefined> =>
 	async (dispatch) => {
 		const url = `${baseResolutionsUrl}/${ballot_id}/upload`;
-		const parts = {
-			params: JSON.stringify({
-				toUpdate,
-				matchAlgorithm,
-				matchUpdate,
-				sheetName,
-			}),
-			ResolutionsFile: file,
+		const params: ResolutionsUploadParams = {
+			toUpdate,
+			matchAlgorithm,
+			matchUpdate,
+			sheetName,
 		};
+		console.log(params);
 		let r: UploadResolutionsResponse;
 		try {
-			const response = await fetcher.postMultipart(url, parts);
+			const response = await fetcher.postFile(url, file, params);
 			r = uploadResolutionsResponseSchema.parse(response);
 		} catch (error) {
 			dispatch(setError("Unable to upload resolutions", error));
@@ -932,12 +922,10 @@ export const exportCommentsSpreadsheet =
 			style,
 			appendSheets: appendSheets ? "true" : "false",
 		};
-		const url =
-			`${baseCommentsUrl}/${ballot_id}/export?` +
-			new URLSearchParams(params);
+		const url = `${baseCommentsUrl}/${ballot_id}/export`;
 		try {
-			await fetcher.postForFile(url, {}, file);
+			await fetcher.patchFile(url, file, params);
 		} catch (error) {
-			dispatch(setError("POST " + url, error));
+			dispatch(setError("PATCH " + url, error));
 		}
 	};

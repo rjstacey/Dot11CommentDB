@@ -218,14 +218,9 @@ export const updateMyProjectRoster =
 			dispatch(setError("Unable to import roster", "Group not selected"));
 			return;
 		}
-		let url = `/api/${groupName}/members/MyProjectRoster`;
-		const search = new URLSearchParams();
-		Object.entries(options).forEach(([key, value]) => {
-			if (value) search.set(key, value.toString());
-		});
-		if (search.size > 0) url += "?" + search.toString();
+		const url = `/api/${groupName}/members/MyProjectRoster`;
 		try {
-			await fetcher.patchFile(url, file);
+			await fetcher.patchFile(url, file, options);
 		} catch (error) {
 			dispatch(setError("Unable to get file", error));
 		}

@@ -17,7 +17,10 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 		const access = req.group.permissions.ballots || AccessLevel.none;
 		const grant = access >= AccessLevel.admin;
 
-		if (grant) return next();
+		if (grant) {
+			next();
+			return;
+		}
 		throw new ForbiddenError();
 	} catch (error) {
 		next(error);

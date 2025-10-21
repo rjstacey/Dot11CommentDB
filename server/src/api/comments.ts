@@ -1,66 +1,8 @@
 /*
  * Comments API
- *
- * For the comments routes, req includes the following
- *   ballot: Ballot	- The ballot associated with the comments
- *   group?: Group - The group associated with the ballot (if configured)
- *   workingGroup?: Group - The working group associated with the ballot (if configure)
- *
- * GET /?modifiedSince
- *		Get list of comments for given ballot
- *		Query paramters:
- *			modifiedSince?: string - Optional ISO datetime.
- *		Return an array with all comments for a given ballot. If the modifiedSince parameter is provided, then returns comments for the given ballot
- *		that were modified after the modifiedSince timestamp.
- *
- * PATCH /?modifiedSince
- *		Update comments for a given ballot
- *		Query paramters:
- *			modifiedSince?: string - Optional ISO datetime
- *		Body is object with parameters:
- *			updates:array 			Array of objects with shape {id:any, changes:object}
- *			ballot_id				The ballot identifier
- *			modifiedSince:string 	Optional. Datetime in ISO format.
- *		Returns an array of comment resolution objects that were updated. If the modifiedSince parameter is provided, then additionally returns
- *		comment for the given ballot that were modified after the modifiedSince timestamp.
- *
- * DELETE /
- *		Delete all comments (and resolutions) for a given ballot
- *
- * PATCH /startCommentId
- *		Renumber comments
- *		Body is object with parameters:
- *			startCommentID: number 	The number to begin comment numbering from
- *		Returns an array of comment resolution objects that is the complete list of comment resolutions for the given ballot.
- *
- * POST /import
- * 		Replace existing comments (if any) with comments imported from an ePoll ballot. The associated ballot must have an ePoll number configured.
- *		Returns an array of comment resolution objects that is the complete list of comment resolutions for the identified ballot.
- *
- * POST /upload
- *		Replace existing comments (if any) with comments from a file
- *		Multipart body parameters:
- *			The spreadsheet file
- *			params - a JSON object {startCommentId?: number}
- *		The format of the spreadsheet file is determined by the ballot type.
- *		For an SA ballot, the file is MyProject format.
- *		For WG ballot, the file is ePoll comments .csv file.
- *		Returns an array of comment resolution objects that is the complete list of comment resolutions for the identified ballot.
- *
- * POST /export?format
- *		Export comments for the given ballot in specified format.
- *		Query parameters:
- *			format: 'myproject' | 'legacy' | 'modern' -- format for the exported spreadsheet
- *		Multipart body parameters:
- *			spreadsheet file - optional for @format == 'legacy' and @format == 'modern', mandatory for @format == 'myproject'
- *			params - JSON object with shape style: string}
- *		If the spreadsheet is provided, then the spreadsheet is updated with the resolutions
- *		Returns an array of resolution objects that is the complete list of resolutions for the identified ballot.
- *
  */
 import { Request, Response, NextFunction, Router } from "express";
-import Multer from "multer";
-import { ForbiddenError } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "../utils/index.js";
 import { AccessLevel } from "../auth/access.js";
 import {
 	getComments,
@@ -90,19 +32,22 @@ import {
 function patchStartCommentId(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
 	// Need admin privileges to change CIDs
-	if (access < AccessLevel.admin)
-		return next(
+	if (access < AccessLevel.admin) {
+		next(
 			new ForbiddenError(
 				"Need admin privileges at the ballot level to change CIDs"
 			)
 		);
+		return;
+	}
 
 	const ballot_id = req.ballot!.id;
 	let uploadParams: CommentsUploadParams;
 	try {
 		uploadParams = commentsUploadParamsSchema.parse(req.body);
 	} catch (error) {
-		return next(error);
+		next(error);
+		return;
 	}
 	const startCommentId = uploadParams.startCommentId || 1;
 
@@ -114,23 +59,24 @@ function patchStartCommentId(req: Request, res: Response, next: NextFunction) {
 function postImport(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
 	// Need admin privileges for import
-	if (access < AccessLevel.admin)
-		return next(
+	if (access < AccessLevel.admin) {
+		next(
 			new ForbiddenError(
 				"Need admin privileges at the ballot level to import comments"
 			)
 		);
+		return;
+	}
 
-	const ballot = req.ballot!;
-	let uploadParams: CommentsUploadParams;
+	let params: CommentsUploadParams;
 	try {
-		uploadParams = commentsUploadParamsSchema.parse(req.body);
+		params = commentsUploadParamsSchema.parse(req.body);
 	} catch (error) {
 		return next(error);
 	}
-	const startCommentId = uploadParams.startCommentId || 1;
+	const startCommentId = params.startCommentId || 1;
 
-	importEpollComments(req.user, ballot, startCommentId)
+	importEpollComments(req.user, req.ballot!, startCommentId)
 		.then((data) => res.json(data))
 		.catch(next);
 }
@@ -138,31 +84,36 @@ function postImport(req: Request, res: Response, next: NextFunction) {
 function postUpload(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
 	// Need admin privileges for upload
-	if (access < AccessLevel.admin)
-		return next(
+	if (access < AccessLevel.admin) {
+		next(
 			new ForbiddenError(
 				"Need admin privileges at the ballot level to upload comments"
 			)
 		);
-
-	let uploadParams: CommentsUploadParams;
-	try {
-		if (typeof req.body.params !== "string")
-			throw new TypeError(
-				"Bad multipart body; expected part params to contain JSON string"
-			);
-		uploadParams = commentsUploadParamsSchema.parse(
-			JSON.parse(req.body.params)
-		);
-	} catch (error) {
-		return next(error);
+		return;
 	}
-	const startCommentId = uploadParams.startCommentId || 1;
 
-	if (!req.file)
-		return next(new TypeError("Bad multipart body; missing file"));
+	let params: CommentsUploadParams;
+	try {
+		params = commentsUploadParamsSchema.parse(req.query);
+	} catch (error) {
+		next(error);
+		return;
+	}
+	const startCommentId = params.startCommentId || 1;
 
-	uploadComments(req.user, req.ballot!, startCommentId, req.file)
+	if (!req.body) {
+		next(new TypeError("Missing file"));
+		return;
+	}
+	let filename = "";
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) filename = m[1];
+	}
+
+	uploadComments(req.user, req.ballot!, startCommentId, filename, req.body)
 		.then((data) => res.json(data))
 		.catch(next);
 }
@@ -170,30 +121,35 @@ function postUpload(req: Request, res: Response, next: NextFunction) {
 function postUserUpload(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
 	// Need admin privileges for upload
-	if (access < AccessLevel.admin)
-		return next(
+	if (access < AccessLevel.admin) {
+		next(
 			new ForbiddenError(
 				"Need admin privileges at the ballot level to upload comments"
 			)
 		);
+		return;
+	}
 
 	let params: CommentsUploadUserParams;
 	try {
-		if (typeof req.body.params !== "string")
-			throw new TypeError(
-				"Bad multipart body; expected part params to contain JSON string"
-			);
-		params = commentsUploadUserParamsSchema.parse(
-			JSON.parse(req.body.params)
-		);
+		params = commentsUploadUserParamsSchema.parse(req.query);
 	} catch (error) {
-		return next(error);
+		next(error);
+		return;
 	}
 
-	if (!req.file)
-		return next(new TypeError("Bad multipart body; missing file"));
+	if (!req.body) {
+		next(new BadRequestError("Missing file"));
+		return;
+	}
+	let filename = "";
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) filename = m[1];
+	}
 
-	uploadUserComments(req.user, req.ballot!, params.SAPIN, req.file)
+	uploadUserComments(req.user, req.ballot!, params.SAPIN, filename, req.body)
 		.then((data) => res.json(data))
 		.catch(next);
 }
@@ -205,42 +161,58 @@ function postPublicReviewUpload(
 ) {
 	const access = req.permissions?.comments || AccessLevel.none;
 	// Need admin privileges for upload
-	if (access < AccessLevel.admin)
-		return next(
+	if (access < AccessLevel.admin) {
+		next(
 			new ForbiddenError(
 				"Need admin privileges at the ballot level to upload comments"
 			)
 		);
+		return;
+	}
 
-	if (!req.file)
-		return next(new TypeError("Bad multipart body; missing file"));
+	if (!req.body) {
+		next(new BadRequestError("Missing file"));
+		return;
+	}
+	let filename = "";
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) filename = m[1];
+	}
 
-	uploadPublicReviewComments(req.user, req.ballot!, req.file)
+	uploadPublicReviewComments(req.user, req.ballot!, filename, req.body)
 		.then((data) => res.json(data))
 		.catch(next);
 }
 
-function postExport(req: Request, res: Response, next: NextFunction) {
+function patchExport(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
-	if (access < AccessLevel.ro)
-		return next(
+	if (access < AccessLevel.ro) {
+		next(
 			new ForbiddenError(
 				"Need at least read-only privileges at the ballot level to export comments"
 			)
 		);
+		return;
+	}
 
 	let params: CommentsExportParams;
 	try {
 		params = commentsExportParamsSchema.parse(req.query);
 	} catch (error) {
-		return next(error);
+		next(error);
+		return;
 	}
 
 	if (params.format === "myproject") {
-		if (!req.file) return next(new TypeError("Missing file"));
-		exportResolutionsForMyProject(req.ballot!.id, req.file, res)
+		if (!req.body) {
+			next(new BadRequestError("Missing file"));
+			return;
+		}
+		exportResolutionsForMyProject(req.ballot!.id, req.body, res)
 			.then(() => res.end())
-			.catch((err) => next(err));
+			.catch(next);
 	} else {
 		const isLegacy = params.format === "legacy";
 		const style = params.style || "AllComments";
@@ -251,28 +223,31 @@ function postExport(req: Request, res: Response, next: NextFunction) {
 			isLegacy,
 			style,
 			appendSheets,
-			req.file,
+			req.body,
 			res
 		)
 			.then(() => res.end())
-			.catch((err) => next(err));
+			.catch(next);
 	}
 }
 
 function getAll(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
-	if (access < AccessLevel.ro)
-		return next(
+	if (access < AccessLevel.ro) {
+		next(
 			new ForbiddenError(
 				"Need at least read-only privileges at the ballot level to get comments"
 			)
 		);
+		return;
+	}
 
 	let query: CommentResolutionQuery;
 	try {
 		query = commentResolutionQuerySchema.parse(req.query);
 	} catch (error) {
-		return next(error);
+		next(error);
+		return;
 	}
 	getComments(req.ballot!.id, query.modifiedSince)
 		.then((data) => res.json(data))
@@ -282,25 +257,29 @@ function getAll(req: Request, res: Response, next: NextFunction) {
 function updateMany(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
 	// Need at least read-only privileges to update comments; check for comment level privileges later
-	if (access < AccessLevel.ro)
-		return next(
+	if (access < AccessLevel.ro) {
+		next(
 			new ForbiddenError(
 				"Need at least read-only privileges at the ballot level to update comments"
 			)
 		);
+		return;
+	}
 
 	let query: CommentResolutionQuery;
 	try {
 		query = commentResolutionQuerySchema.parse(req.query);
 	} catch (error) {
-		return next(error);
+		next(error);
+		return;
 	}
 
 	let updates: CommentUpdate[];
 	try {
 		updates = commentUpdatesSchema.parse(req.body);
 	} catch (error) {
-		return next(error);
+		next(error);
+		return;
 	}
 
 	updateComments(
@@ -317,31 +296,28 @@ function updateMany(req: Request, res: Response, next: NextFunction) {
 function removeAll(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;
 	// Need admin privileges to delete comments
-	if (access < AccessLevel.admin)
-		return next(
+	if (access < AccessLevel.admin) {
+		next(
 			new ForbiddenError(
 				"Need admin privileges at the ballot level to delete comments"
 			)
 		);
+		return;
+	}
 
 	deleteComments(req.user, req.ballot!.id)
 		.then((data) => res.json(data))
 		.catch(next);
 }
 
-const upload = Multer();
 const router = Router();
 router
 	.patch("/startCommentId", patchStartCommentId)
 	.post("/import", postImport)
-	.post("/userUpload", upload.single("CommentsFile"), postUserUpload)
-	.post(
-		"/publicReviewUpload",
-		upload.single("CommentsFile"),
-		postPublicReviewUpload
-	)
-	.post("/upload", upload.single("CommentsFile"), postUpload)
-	.post("/export", upload.single("file"), postExport);
+	.post("/userUpload", postUserUpload)
+	.post("/publicReviewUpload", postPublicReviewUpload)
+	.post("/upload", postUpload)
+	.patch("/export", patchExport);
 
 router.route("/").get(getAll).patch(updateMany).delete(removeAll);
 

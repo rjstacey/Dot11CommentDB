@@ -40,12 +40,12 @@ export const commentSchema = z.object({
 });
 
 export const commentsUploadParamsSchema = z.object({
-	startCommentId: z.number().optional(),
+	startCommentId: z.coerce.number().optional(),
 });
 export type CommentsUploadParams = z.infer<typeof commentsUploadParamsSchema>;
 
 export const commentsUploadUserParamsSchema = z.object({
-	SAPIN: z.number(),
+	SAPIN: z.coerce.number(),
 });
 export type CommentsUploadUserParams = z.infer<
 	typeof commentsUploadUserParamsSchema

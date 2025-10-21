@@ -39,19 +39,6 @@ export function validateSpreadsheetHeader(
 		);
 }
 
-/** Rudementary file info; basic info from Express.Multer.File */
-export type BasicFile = {
-	originalname: string;
-	buffer: Buffer;
-};
-
-function bufferToArrayBuffer(buffer: Buffer) {
-	return buffer.buffer.slice(
-		buffer.byteOffset,
-		buffer.byteOffset + buffer.byteLength
-	) as ArrayBuffer;
-}
-
 /**
  * Parse a spreadsheet in .xlsx or .csv format.
  *
@@ -62,16 +49,17 @@ function bufferToArrayBuffer(buffer: Buffer) {
  * @returns An array of arrays (rows and columns of table) where each entry is a string.
  */
 export async function parseSpreadsheet(
-	file: BasicFile,
+	filename: string,
+	buffer: Buffer,
 	expectedHeader: readonly (string | RegExp)[],
 	headerRowIndex = 0,
 	numberColumns = 0
 ) {
 	let rows: string[][]; // an array of arrays
-	if (file.originalname.search(/\.xlsx$/i) >= 0) {
+	if (filename.search(/\.xlsx$/i) >= 0) {
 		const workbook = new ExcelJS.Workbook();
 		try {
-			await workbook.xlsx.load(bufferToArrayBuffer(file.buffer));
+			await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 		} catch (error) {
 			throw TypeError("Invalid workbook: " + error);
 		}
@@ -87,8 +75,8 @@ export async function parseSpreadsheet(
 						)
 				);
 		});
-	} else if (file.originalname.search(/\.csv$/i) >= 0) {
-		rows = await csvParse(file.buffer, {
+	} else if (filename.search(/\.csv$/i) >= 0) {
+		rows = await csvParse(buffer, {
 			columns: false,
 			bom: true,
 			encoding: "latin1",

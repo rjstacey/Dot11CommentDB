@@ -396,8 +396,11 @@ export async function importEpollComments(
 	const buffer = await user.ieeeClient.getCsv(
 		`https://mentor.ieee.org/802.11/poll-comments.csv?p=${ballot.EpollNum}`
 	);
-	const file = { originalname: "poll-comments.csv", buffer };
-	const comments = await parseEpollComments(startCommentId, file);
+	const comments = await parseEpollComments(
+		startCommentId,
+		"poll-comments.csv",
+		buffer
+	);
 	//console.log(comments[0])
 
 	return replaceComments(user, ballot.id, comments);
@@ -413,13 +416,18 @@ export async function uploadComments(
 	user: User,
 	ballot: Ballot,
 	startCommentId: number,
-	file: Express.Multer.File
+	filename: string,
+	buffer: Buffer
 ) {
 	let comments: Partial<Comment>[];
 	if (ballot.Type === BallotType.SA) {
-		comments = await parseMyProjectComments(startCommentId, file);
+		comments = await parseMyProjectComments(
+			startCommentId,
+			filename,
+			buffer
+		);
 	} else {
-		comments = await parseEpollComments(startCommentId, file);
+		comments = await parseEpollComments(startCommentId, filename, buffer);
 	}
 	return replaceComments(user, ballot.id, comments);
 }
@@ -449,7 +457,8 @@ export async function uploadUserComments(
 	user: User,
 	ballot: Ballot,
 	sapin: number,
-	file: Express.Multer.File
+	filename: string,
+	buffer: Buffer
 ) {
 	const commenter = await selectUser({ SAPIN: sapin });
 	if (!commenter) throw new NotFoundError(`User SAPIN=${sapin} not found`);
@@ -462,7 +471,8 @@ export async function uploadUserComments(
 		commenter,
 		startCommentId,
 		startIndex,
-		file
+		filename,
+		buffer
 	);
 
 	return insertComments(user, ballot.id, comments);
@@ -474,14 +484,16 @@ export async function uploadUserComments(
 export async function uploadPublicReviewComments(
 	user: User,
 	ballot: Ballot,
-	file: Express.Multer.File
+	filename: string,
+	buffer: Buffer
 ) {
 	const { MaxCommentId } = await getHighestIndexes(ballot.id);
 	const startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
 
 	const comments: CommentCreate[] = await parsePublicReviewComments(
 		startCommentId,
-		file
+		filename,
+		buffer
 	);
 	return insertComments(user, ballot.id, comments);
 }

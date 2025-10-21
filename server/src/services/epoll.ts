@@ -4,7 +4,7 @@
 
 import { DateTime } from "luxon";
 import { load as cheerioLoad } from "cheerio";
-import { AuthError, parseSpreadsheet, BasicFile } from "../utils/index.js";
+import { AuthError, parseSpreadsheet } from "../utils/index.js";
 
 import type { User } from "./users.js";
 import { Epoll } from "@schemas/epolls.js";
@@ -191,10 +191,12 @@ function parseEpollComment(cid: number, c: string[]): EpollComment | null {
 
 export async function parseEpollComments(
 	startCommentId: number,
-	file: { originalname: string; buffer: Buffer }
+	filename: string,
+	buffer: Buffer
 ): Promise<EpollComment[]> {
 	const rows = await parseSpreadsheet(
-		file,
+		filename,
+		buffer,
 		epollCommentsHeader,
 		0,
 		epollCommentsHeader.length + 2
@@ -259,9 +261,15 @@ export async function parseEpollUserComments(
 	user: User,
 	startCommentId: number,
 	startIndex: number,
-	file: BasicFile
+	filename: string,
+	buffer: Buffer
 ): Promise<EpollComment[]> {
-	const rows = await parseSpreadsheet(file, epollUserCommentsHeader, 3);
+	const rows = await parseSpreadsheet(
+		filename,
+		buffer,
+		epollUserCommentsHeader,
+		3
+	);
 
 	return rows.map((row, index) =>
 		parseUserComment(user, startCommentId + index, startIndex + index, row)
@@ -277,9 +285,10 @@ type EpollResult = {
 };
 
 export async function parseEpollResults(
-	file: BasicFile
+	filename: string,
+	buffer: Buffer
 ): Promise<EpollResult[]> {
-	const rows = await parseSpreadsheet(file, epollResultsHeader);
+	const rows = await parseSpreadsheet(filename, buffer, epollResultsHeader);
 
 	return rows.map((c) => ({
 		SAPIN: Number(c[0]),

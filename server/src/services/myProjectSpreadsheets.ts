@@ -86,9 +86,16 @@ function parseMyProjectComment(c: string[]) {
 
 export async function parseMyProjectComments(
 	startCommentId: number,
-	file: Express.Multer.File
+	filename: string,
+	buffer: Buffer
 ) {
-	const rows = await parseSpreadsheet(file, myProjectCommentsHeader, 0, 26);
+	const rows = await parseSpreadsheet(
+		filename,
+		buffer,
+		myProjectCommentsHeader,
+		0,
+		26
+	);
 
 	// Parse each row and assign CommentID
 	return rows.map(parseMyProjectComment);
@@ -110,7 +117,7 @@ async function myProjectAddResolutions(
 ) {
 	const workbook = new ExcelJS.Workbook();
 	try {
-		await workbook.xlsx.load(buffer);
+		await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 	} catch (err) {
 		throw new TypeError("Invalid workbook: " + err);
 	}
@@ -152,7 +159,7 @@ async function myProjectAddResolutions(
 
 export async function exportResolutionsForMyProject(
 	ballot_id: number,
-	file: { buffer: Buffer },
+	buffer: Buffer,
 	res: Response
 ) {
 	const comments = (await getComments(ballot_id)).filter(
@@ -160,7 +167,7 @@ export async function exportResolutionsForMyProject(
 	);
 
 	res.attachment("comments_resolved.xlsx");
-	return myProjectAddResolutions(file.buffer, comments, res);
+	return myProjectAddResolutions(buffer, comments, res);
 }
 
 /**
@@ -175,8 +182,13 @@ const myProjectResultsHeader = [
 	"Comments",
 ] as const;
 
-export async function parseMyProjectResults(file: Express.Multer.File) {
-	const rows = await parseSpreadsheet(file, myProjectResultsHeader, 1);
+export async function parseMyProjectResults(filename: string, buffer: Buffer) {
+	const rows = await parseSpreadsheet(
+		filename,
+		buffer,
+		myProjectResultsHeader,
+		1
+	);
 
 	const results = rows.map((c) => {
 		const result: Partial<Result> = {
@@ -315,7 +327,7 @@ function parseRosterEntry(u: string[]) {
 
 export async function parseMyProjectRosterSpreadsheet(buffer: Buffer) {
 	const workbook = new ExcelJS.Workbook();
-	await workbook.xlsx.load(buffer);
+	await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
 	const rows: string[][] = [];
 	workbook.getWorksheet(1)?.eachRow((row) => {
@@ -371,12 +383,12 @@ export async function genMyProjectRosterSpreadsheet(
 export async function updateMyProjectRoster(
 	user: User,
 	members: Member[],
-	buffer: Buffer,
 	options: UpdateRosterOptions,
+	buffer: Buffer,
 	res: Response
 ) {
 	let workbook = new ExcelJS.Workbook();
-	await workbook.xlsx.load(buffer);
+	await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
 	let ws = workbook.worksheets[0];
 	if (!ws) throw new Error("Roster file has no worksheets");

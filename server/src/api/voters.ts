@@ -2,8 +2,11 @@
  * Voters API
  */
 import { Request, Response, NextFunction, Router } from "express";
-import Multer from "multer";
-import { ForbiddenError, NotFoundError } from "../utils/index.js";
+import {
+	BadRequestError,
+	ForbiddenError,
+	NotFoundError,
+} from "../utils/index.js";
 import { AccessLevel } from "../auth/access.js";
 import { selectWorkingGroup } from "../services/groups.js";
 import {
@@ -27,11 +30,20 @@ import {
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.voters || AccessLevel.none;
-	if (req.method === "GET" && access >= AccessLevel.ro) return next();
-	if (req.method === "PATCH" && access >= AccessLevel.rw) return next();
-	if (access >= AccessLevel.admin) return next();
+	if (req.method === "GET" && access >= AccessLevel.ro) {
+		next();
+		return;
+	}
+	if (req.method === "PATCH" && access >= AccessLevel.rw) {
+		next();
+		return;
+	}
+	if (access >= AccessLevel.admin) {
+		next();
+		return;
+	}
 
-	next(new ForbiddenError("Insufficient karma"));
+	next(new ForbiddenError());
 }
 
 function get(req: Request, res: Response, next: NextFunction) {
@@ -43,19 +55,22 @@ function get(req: Request, res: Response, next: NextFunction) {
 
 function addMany(req: Request, res: Response, next: NextFunction) {
 	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup)
-		return next(
+	if (!workingGroup) {
+		next(
 			new NotFoundError(
 				`Can't find working group for ${req.groups![0].id}`
 			)
 		);
+		return;
+	}
 
 	const ballot = req.ballot!;
 	let voters: VoterCreate[];
 	try {
 		voters = voterCreatesSchema.parse(req.body);
 	} catch (error) {
-		return next(error);
+		next(error);
+		return;
 	}
 	addVoters(workingGroup.id, ballot.id, voters)
 		.then((data) => res.json(data))
@@ -64,17 +79,20 @@ function addMany(req: Request, res: Response, next: NextFunction) {
 
 function updateMany(req: Request, res: Response, next: NextFunction) {
 	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup)
-		return next(
+	if (!workingGroup) {
+		next(
 			new NotFoundError(
 				`Can't find working group for ${req.groups![0].id}`
 			)
 		);
+		return;
+	}
 	let updates: VoterUpdate[];
 	try {
 		updates = voterUpdatesSchema.parse(req.body);
 	} catch (error) {
-		return next(error);
+		next(error);
+		return;
 	}
 	updateVoters(workingGroup.id, updates)
 		.then((data) => res.json(data))
@@ -99,16 +117,29 @@ function getExport(req: Request, res: Response, next: NextFunction) {
 
 function postUpload(req: Request, res: Response, next: NextFunction) {
 	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup)
-		return next(
+	if (!workingGroup) {
+		next(
 			new NotFoundError(
 				`Can't find working group for ${req.groups![0].id}`
 			)
 		);
+		return;
+	}
 
 	const ballot = req.ballot!;
-	if (!req.file) return next(new TypeError("Missing file"));
-	uploadVoters(workingGroup.id, ballot.id, req.file)
+
+	if (!req.body) {
+		next(new BadRequestError("Missing file"));
+		return;
+	}
+	let filename = "";
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) filename = m[1];
+	}
+
+	uploadVoters(workingGroup.id, ballot.id, filename, req.body)
 		.then((data) => res.json(data))
 		.catch(next);
 }
@@ -116,12 +147,14 @@ function postUpload(req: Request, res: Response, next: NextFunction) {
 function postMembersnapshot(req: Request, res: Response, next: NextFunction) {
 	const user = req.user;
 	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup)
-		return next(
+	if (!workingGroup) {
+		next(
 			new NotFoundError(
 				`Can't find working group for ${req.groups![0].id}`
 			)
 		);
+		return;
+	}
 
 	const ballot = req.ballot!;
 	let params: VoterMemberSnapshotParams;
@@ -135,14 +168,13 @@ function postMembersnapshot(req: Request, res: Response, next: NextFunction) {
 		.catch(next);
 }
 
-const upload = Multer();
 const router = Router();
 
 router.all(/(.*)/, validatePermissions);
 router.route("/").get(get).patch(updateMany).post(addMany).delete(removeMany);
 router
 	.get("/export", getExport)
-	.post("/upload", upload.single("File"), postUpload)
+	.post("/upload", postUpload)
 	.post("/membersSnapshot", postMembersnapshot);
 
 export default router;

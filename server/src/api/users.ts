@@ -4,13 +4,18 @@ import { ForbiddenError } from "../utils/index.js";
 import { getUsers } from "../services/members.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	if (!req.group) return next(new Error("Group not set"));
+	if (!req.group) {
+		next(new Error("Group not set"));
+		return;
+	}
 
 	const access = req.group.permissions.users || AccessLevel.none;
-	console.log(req.group);
-	if (access >= AccessLevel.ro) return next();
+	if (access >= AccessLevel.ro) {
+		next();
+		return;
+	}
 
-	next(new ForbiddenError("Insufficient karma"));
+	next(new ForbiddenError());
 }
 
 function get(req: Request, res: Response, next: NextFunction) {

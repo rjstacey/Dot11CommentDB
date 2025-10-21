@@ -936,7 +936,8 @@ function isUploadFormat(format: any): format is UploadFormat {
 export async function uploadMembers(
 	groupId: string,
 	format: string,
-	file: { buffer: Buffer }
+	filename: string,
+	buffer: Buffer
 ) {
 	format = format.toLocaleLowerCase();
 	if (!isUploadFormat(format))
@@ -944,22 +945,23 @@ export async function uploadMembers(
 			"Invalid format; expected one of " + uploadFormats.join(", ")
 		);
 
-	if (format === "members") await uploadDatabaseMembers(groupId, file.buffer);
+	if (format === "members") await uploadDatabaseMembers(groupId, buffer);
 	else if (format === "sapins")
-		await uploadDatabaseMemberSAPINs(groupId, file.buffer);
+		await uploadDatabaseMemberSAPINs(groupId, buffer);
 	else if (format === "emails")
-		await uploadDatabaseMemberEmails(groupId, file.buffer);
+		await uploadDatabaseMemberEmails(groupId, buffer);
 	else if (format === "history")
-		await uploadDatabaseMemberHistory(groupId, file.buffer);
+		await uploadDatabaseMemberHistory(groupId, buffer);
 
 	return getMembers({ groupId });
 }
 
 export async function importMyProjectRoster(
 	groupId: string,
-	file: { buffer: Buffer }
+	filename: string,
+	buffer: Buffer
 ) {
-	let roster = await parseMyProjectRosterSpreadsheet(file.buffer);
+	let roster = await parseMyProjectRosterSpreadsheet(buffer);
 	roster = roster.filter(
 		(u) =>
 			typeof u.SAPIN === "number" &&
@@ -1043,8 +1045,9 @@ export async function exportMyProjectRoster(
 export async function updateMyProjectRosterWithMemberStatus(
 	user: User,
 	groupId: string,
-	file: { buffer: Buffer },
 	options: UpdateRosterOptions,
+	fileanme: string,
+	buffer: Buffer,
 	res: Response
 ) {
 	const members = await getMembers({
@@ -1059,7 +1062,7 @@ export async function updateMyProjectRosterWithMemberStatus(
 		],
 	});
 
-	return updateMyProjectRoster(user, members, file.buffer, options, res);
+	return updateMyProjectRoster(user, members, options, buffer, res);
 }
 
 function memberToPublicEntry(m: Member) {

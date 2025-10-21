@@ -52,6 +52,12 @@ function MultipleErrorForm({ errors }: { errors: ErrorMsg[] }) {
 			</div>
 		);
 
+	const detail = error.detail.split("\n").map((s, i) => (
+		<>
+			<span key={i}>{s.replace(/ /g, "\u00A0")}</span>
+			<br />
+		</>
+	));
 	return (
 		<>
 			<Modal.Header className="flex-column">
@@ -64,10 +70,7 @@ function MultipleErrorForm({ errors }: { errors: ErrorMsg[] }) {
 					</div>
 				)}
 			</Modal.Header>
-			<Modal.Body>
-				{error.detail &&
-					error.detail.split("\n").map((s, i) => <p key={i}>{s}</p>)}
-			</Modal.Body>
+			<Modal.Body>{detail}</Modal.Body>
 			<Modal.Footer className="justify-content-between">
 				{dismissActions}
 			</Modal.Footer>

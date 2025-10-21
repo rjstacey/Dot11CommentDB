@@ -22,7 +22,10 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 		const access = group.permissions.members || AccessLevel.none;
 		const grant = access >= AccessLevel.admin;
 
-		if (grant) return next();
+		if (grant) {
+			next();
+			return;
+		}
 
 		throw new ForbiddenError();
 	} catch (error) {

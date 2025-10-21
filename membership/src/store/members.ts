@@ -1,7 +1,8 @@
 import { createSelector, createAction } from "@reduxjs/toolkit";
 import type { Dictionary, EntityId, Action } from "@reduxjs/toolkit";
 
-import { fetcher, displayDate } from "@common";
+import { displayDate } from "@common";
+import { fetcher } from "@common";
 import {
 	setError,
 	createAppTableDataSlice,

@@ -233,13 +233,14 @@ export async function uploadRegistration(
 	user: User,
 	group: Group,
 	session_id: number,
-	file: { originalname: string; buffer: Buffer }
+	filename: string,
+	buffer: Buffer
 ) {
 	const [session] = await getSessions({ id: session_id });
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
-	const registrations = await parseRegistrationSpreadsheet(file);
+	const registrations = await parseRegistrationSpreadsheet(filename, buffer);
 
 	const queries: string[] = [];
 	const e = { InPerson: false, IsRegistered: false };

@@ -30,7 +30,10 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 			((req.method === "POST" || req.method === "DELETE") &&
 				access >= AccessLevel.admin);
 
-		if (grant) return next();
+		if (grant) {
+			next();
+			return;
+		}
 
 		throw new ForbiddenError();
 	} catch (error) {

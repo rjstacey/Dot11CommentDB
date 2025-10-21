@@ -3,7 +3,12 @@ import jwt from "jsonwebtoken";
 import type { RequestHandler, Request } from "express";
 
 import { getUser } from "../services/users.js";
-import { AuthError } from "../utils/index.js";
+import {
+	AuthError,
+	BadRequestError,
+	ForbiddenError,
+	NotFoundError,
+} from "../utils/index.js";
 
 const secret = process.env.NODE_ENV === "development" ? "secret" : uuidv4();
 
@@ -31,7 +36,7 @@ export const verify = (req: Request) => {
 	try {
 		return jwt.verify(token, secret);
 	} catch {
-		throw new Error("Bad token");
+		throw new BadRequestError("Bad token");
 	}
 };
 
@@ -48,17 +53,21 @@ export const authorize: RequestHandler = async (req, res, next) => {
 			userId = Number(jwt.verify(token, secret));
 		} catch {
 			console.warn("unauthorized");
-			res.status(401).send("Unauthorized");
+			next(new AuthError());
 			return;
 		}
 		const user = await getUser(userId);
-		if (!user) throw new Error("Unknown user");
+		if (!user) {
+			next(new NotFoundError("Unknown user"));
+			return;
+		}
 		req.user = user;
 		next();
 	} catch (error) {
 		//console.log(error);
-		const msg = error instanceof Error ? error.message : "Forbidden";
-		res.status(403).send(msg);
+		let msg: string | undefined;
+		if (error instanceof Error) msg = error.message;
+		next(new ForbiddenError(msg));
 	}
 };
 
@@ -68,6 +77,6 @@ export async function verifyToken(token: string) {
 		const user = await getUser(userId);
 		return user;
 	} catch {
-		throw new AuthError("Unauthorized");
+		throw new AuthError();
 	}
 }

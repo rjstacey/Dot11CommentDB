@@ -6,7 +6,12 @@ import { parseCommentsSpreadsheet } from "./commentsSpreadsheet.js";
 import { getComments, getCommentsSummary } from "./comments.js";
 import type { Comment, CommentResolution } from "@schemas/comments.js";
 import type { Resolution } from "@schemas/resolutions.js";
-import type { UploadResolutionsResponse } from "@schemas/uploadResolutions.js";
+import type {
+	UploadResolutionsResponse,
+	MatchAlgo,
+	MatchUpdate,
+	FieldToUpdate,
+} from "@schemas/uploadResolutions.js";
 
 const matchClause = (dbValue: string | null, sValue: string | null) => {
 	if (dbValue === sValue) return true;
@@ -213,22 +218,6 @@ const matchCID: MatchFunc = function (sheetComments, dbComments) {
 
 	return [matched, dbCommentsRemaining, sheetCommentsRemaining];
 };
-
-export const toUpdateOptions = [
-	"cid",
-	"clausepage",
-	"adhoc",
-	"assignee",
-	"resolution",
-	"editing",
-] as const;
-export type FieldToUpdate = (typeof toUpdateOptions)[number];
-
-export const matchAlgoOptions = ["cid", "comment", "elimination"] as const;
-export type MatchAlgo = (typeof matchAlgoOptions)[number];
-
-export const matchUpdateOptions = ["all", "any", "add"] as const;
-export type MatchUpdate = (typeof matchUpdateOptions)[number];
 
 type MatchFunc = (
 	sheetComments: CommentResolution[],
@@ -508,9 +497,10 @@ export async function uploadResolutions(
 	matchAlgo: MatchAlgo,
 	matchUpdate: MatchUpdate,
 	sheetName: string,
-	file: Express.Multer.File
+	filename: string,
+	buffer: Buffer
 ) {
-	if (file.originalname.search(/\.xlsx$/i) === -1) {
+	if (filename.search(/\.xlsx$/i) === -1) {
 		throw TypeError(
 			"Must be an Excel Workbook (*.xlsx). Older formats are not supported."
 		);
@@ -523,10 +513,7 @@ export async function uploadResolutions(
 	}
 
 	//const t1 = Date.now();
-	const sheetComments = await parseCommentsSpreadsheet(
-		file.buffer,
-		sheetName
-	);
+	const sheetComments = await parseCommentsSpreadsheet(buffer, sheetName);
 	//const t2 = Date.now();
 	const dbComments = await getComments(ballot_id);
 	//const t3 = Date.now();

@@ -2,7 +2,7 @@
  * Webex accounts and meetings API
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { ForbiddenError } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "../utils/index.js";
 import { AccessLevel } from "../auth/access.js";
 import {
 	webexAccountCreateSchema,
@@ -35,7 +35,10 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 			((req.method === "DELETE" || req.method === "POST") &&
 				access >= AccessLevel.admin);
 
-		if (grant) return next();
+		if (grant) {
+			next();
+			return;
+		}
 		throw new ForbiddenError();
 	} catch (error) {
 		next(error);
@@ -69,8 +72,10 @@ async function updateAccount(req: Request, res: Response, next: NextFunction) {
 	const user = req.user;
 	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId))
-		return res.status(404).send("path parameter accountId not a number");
+	if (isNaN(accountId)) {
+		next(new BadRequestError("Path parameter :accountId not a number"));
+		return;
+	}
 	try {
 		const changes = webexAccountChangeSchema.parse(req.body);
 		const data = await updateWebexAccount(
@@ -94,8 +99,10 @@ async function revokeAccountAuth(
 	const user = req.user;
 	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId))
-		return res.status(404).send("path parameter accountId not a number");
+	if (isNaN(accountId)) {
+		next(new BadRequestError("Path parameter :accountId not a number"));
+		return;
+	}
 	try {
 		const data = await revokeAuthWebexAccount(
 			req,
@@ -112,8 +119,10 @@ async function revokeAccountAuth(
 async function removeAccount(req: Request, res: Response, next: NextFunction) {
 	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId))
-		return res.status(404).send("path parameter accountId not a number");
+	if (isNaN(accountId)) {
+		next(new BadRequestError("Path parameter :accountId not a number"));
+		return;
+	}
 	try {
 		const data = await deleteWebexAccount(groupId, accountId);
 		res.json(data);

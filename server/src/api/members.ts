@@ -4,8 +4,7 @@
  * Maintain the members roster.
  */
 import { Request, Response, NextFunction, Router } from "express";
-import Multer from "multer";
-import { ForbiddenError } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "../utils/index.js";
 import { AccessLevel } from "../auth/access.js";
 import {
 	memberCreatesSchema,
@@ -103,7 +102,7 @@ async function updateOne(req: Request, res: Response, next: NextFunction) {
 	const changes = req.body;
 	try {
 		if (typeof changes !== "object")
-			throw new TypeError("Bad or missing body; expected object");
+			throw new BadRequestError("Bad or missing body; expected object");
 		const data = await updateMembers(group.id, [{ id, changes }]);
 		res.json(data);
 	} catch (error) {
@@ -181,7 +180,9 @@ async function contactEmails_addOne(
 	const id = Number(params.id);
 	try {
 		if (typeof body !== "object")
-			throw new TypeError("Missing or bad ContactEmails row object");
+			throw new BadRequestError(
+				"Missing or bad ContactEmails row object"
+			);
 		const data = await addMemberContactEmail(group.id, id, body);
 		res.json(data);
 	} catch (error) {
@@ -196,12 +197,16 @@ async function contactEmails_updateOne(
 ) {
 	const group = req.group!;
 	const id = Number(req.params.id);
-	if (isNaN(id))
-		return res.status(404).send("path parameter id not a number");
+	if (isNaN(id)) {
+		next(new TypeError("Path parameter :id not a number"));
+		return;
+	}
 	const entry = req.body;
 	try {
 		if (typeof entry !== "object")
-			throw new TypeError("Missing or bad ContactEmails row object");
+			throw new BadRequestError(
+				"Missing or bad ContactEmails row object"
+			);
 		const data = await updateMemberContactEmail(group.id, id, entry);
 		res.json(data);
 	} catch (error) {
@@ -219,7 +224,9 @@ async function contactEmails_removeOne(
 	const entry = req.body;
 	try {
 		if (typeof entry !== "object")
-			throw new TypeError("Missing or bad ContactEmails row object");
+			throw new BadRequestError(
+				"Missing or bad ContactEmails row object"
+			);
 		const data = await deleteMemberContactEmail(group.id, id, entry);
 		res.json(data);
 	} catch (error) {
@@ -242,9 +249,19 @@ async function postUpload(req: Request, res: Response, next: NextFunction) {
 	const { file } = req;
 	const group = req.group!;
 	const { format } = req.params;
+	if (!req.body) {
+		next(new TypeError("Missing file"));
+		return;
+	}
+	let filename = "";
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) filename = m[1];
+	}
 	try {
-		if (!file) return next(new TypeError("Missing file"));
-		const data = await uploadMembers(group.id, format, file);
+		if (!file) return next(new BadRequestError("Missing file"));
+		const data = await uploadMembers(group.id, format, filename, req.body);
 		res.json(data);
 	} catch (error) {
 		next(error);
@@ -258,9 +275,19 @@ async function postMyProjectRoster(
 ) {
 	const { file } = req;
 	const group = req.group!;
+	if (!req.body) {
+		next(new TypeError("Missing file"));
+		return;
+	}
+	let filename = "";
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) filename = m[1];
+	}
 	try {
-		if (!file) throw new TypeError("Missing file");
-		const data = await importMyProjectRoster(group.id, file);
+		if (!file) throw new BadRequestError("Missing file");
+		const data = await importMyProjectRoster(group.id, filename, req.body);
 		res.json(data);
 	} catch (error) {
 		next(error);
@@ -277,13 +304,24 @@ async function patchMyProjectRoster(
 	const options: UpdateRosterOptions = {};
 	if (query.appendNew === "true") options.appendNew = true;
 	if (query.removeUnchanged === "true") options.removeUnchanged = true;
+	if (!req.body) {
+		next(new TypeError("Missing file"));
+		return;
+	}
+	let filename = "";
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) filename = m[1];
+	}
 	try {
-		if (!file) throw new TypeError("Missing file");
+		if (!file) throw new BadRequestError("Missing file");
 		await updateMyProjectRosterWithMemberStatus(
 			user,
 			group.id,
-			file,
 			options,
+			filename,
+			req.body,
 			res
 		);
 		res.end();
@@ -378,14 +416,13 @@ async function getExportMembers(
 }
 
 const router = Router();
-const upload = Multer();
 
 router
 	.all(/(.*)/, validatePermissions)
 	.get("/user", getUser)
-	.post("/upload/:format", upload.single("File"), postUpload)
-	.post("/MyProjectRoster", upload.single("File"), postMyProjectRoster)
-	.patch("/MyProjectRoster", upload.single("file"), patchMyProjectRoster)
+	.post("/upload/:format", postUpload)
+	.post("/MyProjectRoster", postMyProjectRoster)
+	.patch("/MyProjectRoster", patchMyProjectRoster)
 	.get("/MyProjectRoster", getMyProjectRoster)
 	.get("/public", getPublic)
 	.get("/private", getPrivate)

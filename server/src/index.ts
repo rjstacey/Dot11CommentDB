@@ -7,7 +7,6 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { createServer } from "node:http";
 import express, { ErrorRequestHandler, RequestHandler } from "express";
-import { ZodError } from "zod";
 
 import login from "./auth/login.js";
 import oauth2 from "./auth/oauth2.js";
@@ -101,14 +100,19 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 	let message: string = "";
 	let status = 500;
 	if (typeof err === "string") {
+		console.log("string error");
 		message = err;
 	} else if (err instanceof Error) {
+		console.log("instance of Error");
+
 		message = err.name + ": " + err.message;
-		if (err instanceof ZodError) {
-			const m = err.issues.map((e) => `${e.path[0]}: ${e.message}`);
-			message += "\n" + m.join("\n");
-		}
-		if (err.name === "TypeError" || "sqlState" in err) status = 400;
+		if (
+			err.name === "BadRequestError" ||
+			err.name === "ZodError" ||
+			err.name === "TypeError" ||
+			"sqlState" in err
+		)
+			status = 400;
 		else if (err.name === "AuthError") status = 401;
 		else if (err.name === "ForbiddenError") status = 403;
 		else if (err.name === "NotFoundError") status = 404;
@@ -129,6 +133,7 @@ function initExpressApp() {
 
 	app.use(express.json({ limit: "10MB" }));
 	app.use(express.urlencoded({ extended: true }));
+	app.use(express.raw({ type: "application/octet-stream", limit: "100MB" }));
 
 	// Log requests to console
 	if (process.env.NODE_ENV === "development") app.use(requestLog);

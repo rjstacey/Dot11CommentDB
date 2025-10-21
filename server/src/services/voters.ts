@@ -1,5 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { parseSpreadsheet, BasicFile } from "../utils/index.js";
+import { parseSpreadsheet } from "../utils/index.js";
 import ExcelJS from "exceljs";
 
 import type { Response } from "express";
@@ -63,8 +63,8 @@ export function init() {
 	return db.query(createViewVotersCurrent);
 }
 
-async function parseVoters(file: BasicFile) {
-	const rows = await parseSpreadsheet(file, membersHeader);
+async function parseVoters(filename: string, buffer: Buffer) {
+	const rows = await parseSpreadsheet(filename, buffer, membersHeader);
 
 	return rows.map((c) => {
 		const voter: VoterFromSpreadsheet = {
@@ -245,9 +245,10 @@ async function insertVoters(ballot_id: number, votersIn: Partial<Voter>[]) {
 export async function uploadVoters(
 	workingGroupId: string,
 	ballot_id: number,
-	file: Express.Multer.File
+	filename: string,
+	buffer: Buffer
 ) {
-	const voters = await parseVoters(file);
+	const voters = await parseVoters(filename, buffer);
 	return insertVoters(ballot_id, voters);
 }
 

@@ -11,7 +11,7 @@ import type { Group } from "@schemas/groups.js";
 import { getBallot } from "../services/ballots.js";
 import { Ballot } from "@schemas/ballots.js";
 import { authorize } from "../auth/jwt.js";
-import { NotFoundError } from "../utils/index.js";
+import { BadRequestError, NotFoundError } from "../utils/index.js";
 
 import timezones from "./timezones.js";
 import members from "./members.js";
@@ -120,25 +120,31 @@ router.use("/:groupName/epolls", parseGroupName, epolls); // Access to ePolls ba
 
 async function parseBallot_id(req: Request, res: Response, next: NextFunction) {
 	const ballot_id = Number(req.params.ballot_id);
-	if (isNaN(ballot_id))
-		return res
-			.status(404)
-			.send("path parameter ballot_id not a number");
+	if (isNaN(ballot_id)) {
+		next(new BadRequestError("Path parameter :ballot_id not a number"));
+		return;
+	}
 	const ballot = await getBallot(ballot_id);
-	if (!ballot)
-		return next(new NotFoundError(`Ballot ${ballot_id} does not exist`));
-	if (!ballot.groupId)
-		return next(
-			new NotFoundError(`Ballot ${ballot_id} not associated with a group`)
+	if (!ballot) {
+		next(new NotFoundError(`Ballot ${ballot_id} does not exist`));
+		return;
+	}
+	if (!ballot.groupId) {
+		next(
+			new TypeError(`Ballot ${ballot_id} not associated with a group`)
 		);
+		return;
+	}
 	req.ballot = ballot;
 	req.groups = await getGroups(req.user, { id: ballot.groupId });
-	if (req.groups.length < 1)
-		return next(
+	if (req.groups.length < 1) {
+		next(
 			new NotFoundError(
 				`Group associated with ballot ${ballot_id} does not exist`
 			)
 		);
+		return;
+	}
 	req.group = req.groups[0];
 	req.permissions = req.group.permissions;
 	next();

@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { NetworkError } from "../lib/fetcher";
+import { ResponseError } from "../lib/appFetch";
 
 const name = "errMsg";
 
@@ -29,7 +29,7 @@ export const errorsSlice = createSlice({
 		},
 		clearAll() {
 			return initialState;
-		}
+		},
 	},
 });
 
@@ -37,15 +37,13 @@ export const { clearOne, clearAll } = errorsSlice.actions;
 
 export function setError(summary: string, error: any) {
 	let detail: string;
-	if (error instanceof NetworkError) {
-		const { response } = error;
-		if (typeof response === "object" && "message" in response)
-			detail = response.message as string;
-		else if (typeof response === "string") detail = response;
-		else detail = JSON.stringify(response);
+	if (error instanceof ResponseError) {
+		console.log("ResponseError:", error.message);
+		detail = error.name + "\n" + error.message;
 	} else if (typeof error === "string") {
 		detail = error;
 	} else {
+		console.log("default:", error);
 		detail = error.toString();
 	}
 	return errorsSlice.actions.setError({ summary, detail });

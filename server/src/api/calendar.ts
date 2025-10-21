@@ -30,7 +30,7 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 
-import { ForbiddenError } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "../utils/index.js";
 import { AccessLevel } from "../auth/access.js";
 import {
 	getCalendarAccounts,
@@ -55,7 +55,10 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 			((req.method === "DELETE" || req.method === "POST") &&
 				access >= AccessLevel.admin);
 
-		if (grant) return next();
+		if (grant) {
+			next();
+			return;
+		}
 
 		throw new ForbiddenError();
 	} catch (error) {
@@ -90,8 +93,10 @@ async function updateAccount(req: Request, res: Response, next: NextFunction) {
 	const user = req.user;
 	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId))
-		return res.status(404).send("path parameter accountId not a number");
+	if (isNaN(accountId)) {
+		next(new BadRequestError("Path parameter :accountId not a number"));
+		return;
+	}
 	try {
 		const changes = calendarAccountChangeSchema.parse(req.body);
 		const data = await updateCalendarAccount(
@@ -111,8 +116,10 @@ function revokeAccountAuth(req: Request, res: Response, next: NextFunction) {
 	const user = req.user;
 	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId))
-		return res.status(404).send("path parameter accountId not a number");
+	if (isNaN(accountId)) {
+		next(new BadRequestError("Path parameter :accountId not a number"));
+		return;
+	}
 	try {
 		const data = revokeAuthCalendarAccount(req, user, groupId, accountId);
 		res.json(data);
@@ -124,8 +131,10 @@ function revokeAccountAuth(req: Request, res: Response, next: NextFunction) {
 function removeAccount(req: Request, res: Response, next: NextFunction) {
 	const groupId = req.group!.id;
 	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId))
-		return res.status(404).send("path parameter accountId not a number");
+	if (isNaN(accountId)) {
+		next(new BadRequestError("Path parameter :accountId not a number"));
+		return;
+	}
 	try {
 		const data = deleteCalendarAccount(groupId, accountId);
 		res.json(data);

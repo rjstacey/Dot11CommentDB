@@ -2,15 +2,15 @@ import ExcelJS from "exceljs";
 import { csvParse } from "../utils/index.js";
 import type { SessionRegistration } from "@schemas/registration.js";
 
-export async function parseRegistrationSpreadsheet(file: {
-	originalname: string;
-	buffer: Buffer;
-}) {
+export async function parseRegistrationSpreadsheet(
+	filename: string,
+	buffer: Buffer
+) {
 	let rows: string[][]; // an array of arrays
-	if (file.originalname.search(/\.xlsx$/i) >= 0) {
+	if (filename.search(/\.xlsx$/i) >= 0) {
 		const workbook = new ExcelJS.Workbook();
 		try {
-			await workbook.xlsx.load(file.buffer);
+			await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 		} catch (error) {
 			throw TypeError("Invalid workbook: " + error);
 		}
@@ -26,8 +26,8 @@ export async function parseRegistrationSpreadsheet(file: {
 						)
 				);
 		});
-	} else if (file.originalname.search(/\.csv$/i) >= 0) {
-		rows = await csvParse(file.buffer, {
+	} else if (filename.search(/\.csv$/i) >= 0) {
+		rows = await csvParse(buffer, {
 			columns: false,
 			bom: true,
 			encoding: "latin1",

@@ -443,8 +443,7 @@ export async function importEpollResults(
 		),
 	]);
 
-	const file = { originalname: "poll-results.csv", buffer };
-	const pollResults = await parseEpollResults(file);
+	const pollResults = await parseEpollResults("poll-results.csv", buffer);
 	const pollResults2 = parseEpollResultsHtml(page);
 
 	// Update poll results with Name and Affiliation from HTML (not present in .csv)
@@ -468,12 +467,16 @@ export async function importEpollResults(
  * For SA ballot, the MyProject spreadsheet format is expected.
  * For WG ballot, the ePoll .xlsx or .csv format is expected.
  */
-export async function uploadResults(ballot: Ballot, file: Express.Multer.File) {
+export async function uploadResults(
+	ballot: Ballot,
+	filename: string,
+	buffer: Buffer
+) {
 	let results: Partial<ResultDB>[];
 	if (ballot.Type === BallotType.SA) {
-		results = await parseMyProjectResults(file);
+		results = await parseMyProjectResults(filename, buffer);
 	} else {
-		results = await parseEpollResults(file);
+		results = await parseEpollResults(filename, buffer);
 	}
 	return insertResults(ballot, results);
 }

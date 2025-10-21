@@ -286,6 +286,7 @@ export const importSelectedAsMeetings =
 				calendarAccountId: defaultCalendarAccountId,
 				calendarEventId: null,
 				webexMeeting,
+				imatGracePeriod: 0,
 			};
 			meetings.push(meeting);
 		}

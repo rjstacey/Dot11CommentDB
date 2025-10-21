@@ -68,9 +68,9 @@ function ImportFieldsList({
 	const change: React.ChangeEventHandler<HTMLInputElement> = (e) => {
 		const newFields = fields.slice();
 		if (e.target.checked) {
-			newFields.push(e.target.value as FieldToUpdate);
+			newFields.push(e.target.name as FieldToUpdate);
 		} else {
-			const i = newFields.indexOf(e.target.value as FieldToUpdate);
+			const i = newFields.indexOf(e.target.name as FieldToUpdate);
 			if (i >= 0) newFields.splice(i, 1);
 		}
 		setFields(newFields);
@@ -83,6 +83,7 @@ function ImportFieldsList({
 				<Form.Check
 					key={a.value}
 					id={"import-field-" + a.value}
+					name={a.value}
 					title={a.description}
 					checked={fields.includes(a.value)}
 					onChange={change}

@@ -13,7 +13,7 @@ async function init() {
 
 	const user = await getUser().catch(loginAndReturn);
 	if (!user) throw new Error("Unable to get user");
-	fetcher.setAuth(user.Token, loginAndReturn); // Prime fetcher with autherization token
+	fetcher.setToken(user.Token); // Prime fetcher with autherization token
 
 	const storeUser = selectUser(getState());
 	if (storeUser.SAPIN !== user.SAPIN) dispatch(resetStore());
