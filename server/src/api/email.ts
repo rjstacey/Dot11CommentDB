@@ -34,9 +34,8 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 }
 
 async function sendOne(req: Request, res: Response, next: NextFunction) {
-	const { body } = req;
 	try {
-		const email = emailSchema.parse(body);
+		const email = emailSchema.parse(req.body);
 		const response = await sendEmail(email);
 		res.json(response);
 	} catch (error) {
@@ -45,9 +44,8 @@ async function sendOne(req: Request, res: Response, next: NextFunction) {
 }
 
 async function sendMany(req: Request, res: Response, next: NextFunction) {
-	const { body } = req;
 	try {
-		const emails = emailsSchema.parse(body);
+		const emails = emailsSchema.parse(req.body);
 		const response = await sendEmails(emails);
 		res.json(response);
 	} catch (error) {
@@ -65,8 +63,8 @@ async function get(req: Request, res: Response, next: NextFunction) {
 }
 
 async function addMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
 	try {
+		const group = req.group!;
 		const templates = emailTemplateCreatesSchema.parse(req.body);
 		const data = await addTemplates(group, templates);
 		res.json(data);
@@ -76,8 +74,8 @@ async function addMany(req: Request, res: Response, next: NextFunction) {
 }
 
 async function updateMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
 	try {
+		const group = req.group!;
 		const updates = emailTemplateUpdatesSchema.parse(req.body);
 		const data = await updateTemplates(group, updates);
 		res.json(data);
@@ -87,8 +85,8 @@ async function updateMany(req: Request, res: Response, next: NextFunction) {
 }
 
 async function removeMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
 	try {
+		const group = req.group!;
 		const ids = emailTemplateIdsSchema.parse(req.body);
 		const data = await deleteTemplates(group, ids);
 		res.json(data);

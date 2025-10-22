@@ -36,6 +36,20 @@ import {
 	membersExport,
 } from "../services/members.js";
 
+function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
+	if (!req.body) throw new BadRequestError("Missing file");
+	let filename: string;
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) {
+			filename = m[1];
+			return { filename, buffer: req.body };
+		}
+	}
+	throw new BadRequestError("Missing filename");
+}
+
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {
 		const { group } = req;
@@ -62,9 +76,9 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 }
 
 async function get(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	const groupId = group.id;
 	try {
+		const group = req.group!;
+		const groupId = group.id;
 		const data = await getMembers({ groupId });
 		res.json(data);
 	} catch (error) {
@@ -73,9 +87,9 @@ async function get(req: Request, res: Response, next: NextFunction) {
 }
 
 async function addMany(req: Request, res: Response, next: NextFunction) {
-	const { body } = req;
-	const groupId = req.group!.id;
 	try {
+		const { body } = req;
+		const groupId = req.group!.id;
 		const members = memberCreatesSchema.parse(body);
 		const data = await addMembers(groupId, members);
 		res.json(data);
@@ -85,9 +99,9 @@ async function addMany(req: Request, res: Response, next: NextFunction) {
 }
 
 async function updateMany(req: Request, res: Response, next: NextFunction) {
-	const { body } = req;
-	const groupId = req.group!.id;
 	try {
+		const { body } = req;
+		const groupId = req.group!.id;
 		const updates = memberUpdatesSchema.parse(body);
 		const data = await updateMembers(groupId, updates);
 		res.json(data);
@@ -97,10 +111,10 @@ async function updateMany(req: Request, res: Response, next: NextFunction) {
 }
 
 async function updateOne(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	const id = Number(req.params.id);
-	const changes = req.body;
 	try {
+		const group = req.group!;
+		const id = Number(req.params.id);
+		const changes = req.body;
 		if (typeof changes !== "object")
 			throw new BadRequestError("Bad or missing body; expected object");
 		const data = await updateMembers(group.id, [{ id, changes }]);
@@ -111,9 +125,9 @@ async function updateOne(req: Request, res: Response, next: NextFunction) {
 }
 
 async function removeMany(req: Request, res: Response, next: NextFunction) {
-	const { body } = req;
-	const group = req.group!;
 	try {
+		const { body } = req;
+		const group = req.group!;
 		const ids = memberIdsSchema.parse(body);
 		const data = await deleteMembers(group.id, ids);
 		res.json(data);
@@ -127,10 +141,10 @@ async function statusChangeHistory_addMany(
 	res: Response,
 	next: NextFunction
 ) {
-	const { body, params } = req;
-	const group = req.group!;
-	const id = Number(params.id);
 	try {
+		const { body, params } = req;
+		const group = req.group!;
+		const id = Number(params.id);
 		const data = await addMemberStatusChangeEntries(group.id, id, body);
 		res.json(data);
 	} catch (error) {
@@ -143,10 +157,10 @@ async function statusChangeHistory_updateMany(
 	res: Response,
 	next: NextFunction
 ) {
-	const { body, params } = req;
-	const group = req.group!;
-	const id = Number(params.id);
 	try {
+		const { body, params } = req;
+		const group = req.group!;
+		const id = Number(params.id);
 		const data = await updateMemberStatusChangeEntries(group.id, id, body);
 		res.json(data);
 	} catch (error) {
@@ -159,10 +173,10 @@ async function statusChangeHistory_removeMany(
 	res: Response,
 	next: NextFunction
 ) {
-	const { body, params } = req;
-	const group = req.group!;
-	const id = Number(params.id);
 	try {
+		const { body, params } = req;
+		const group = req.group!;
+		const id = Number(params.id);
 		const data = await deleteMemberStatusChangeEntries(group.id, id, body);
 		res.json(data);
 	} catch (error) {
@@ -175,10 +189,10 @@ async function contactEmails_addOne(
 	res: Response,
 	next: NextFunction
 ) {
-	const { body, params } = req;
-	const group = req.group!;
-	const id = Number(params.id);
 	try {
+		const { body, params } = req;
+		const group = req.group!;
+		const id = Number(params.id);
 		if (typeof body !== "object")
 			throw new BadRequestError(
 				"Missing or bad ContactEmails row object"
@@ -219,10 +233,10 @@ async function contactEmails_removeOne(
 	res: Response,
 	next: NextFunction
 ) {
-	const group = req.group!;
-	const id = Number(req.params.id);
-	const entry = req.body;
 	try {
+		const group = req.group!;
+		const id = Number(req.params.id);
+		const entry = req.body;
 		if (typeof entry !== "object")
 			throw new BadRequestError(
 				"Missing or bad ContactEmails row object"
@@ -235,9 +249,9 @@ async function contactEmails_removeOne(
 }
 
 async function getUser(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	const access = group.permissions.members || AccessLevel.none;
 	try {
+		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
 		const data = await getUserMembers(access, group.id);
 		res.json(data);
 	} catch (error) {
@@ -246,22 +260,11 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
 }
 
 async function postUpload(req: Request, res: Response, next: NextFunction) {
-	const { file } = req;
-	const group = req.group!;
-	const { format } = req.params;
-	if (!req.body) {
-		next(new TypeError("Missing file"));
-		return;
-	}
-	let filename = "";
-	const d = req.headers["content-disposition"];
-	if (d) {
-		const m = d.match(/filename="(.*)"/i);
-		if (m) filename = m[1];
-	}
 	try {
-		if (!file) return next(new BadRequestError("Missing file"));
-		const data = await uploadMembers(group.id, format, filename, req.body);
+		const group = req.group!;
+		const { format } = req.params;
+		const { filename, buffer } = fileBufferOrThrow(req);
+		const data = await uploadMembers(group.id, format, filename, buffer);
 		res.json(data);
 	} catch (error) {
 		next(error);
@@ -273,21 +276,10 @@ async function postMyProjectRoster(
 	res: Response,
 	next: NextFunction
 ) {
-	const { file } = req;
-	const group = req.group!;
-	if (!req.body) {
-		next(new TypeError("Missing file"));
-		return;
-	}
-	let filename = "";
-	const d = req.headers["content-disposition"];
-	if (d) {
-		const m = d.match(/filename="(.*)"/i);
-		if (m) filename = m[1];
-	}
 	try {
-		if (!file) throw new BadRequestError("Missing file");
-		const data = await importMyProjectRoster(group.id, filename, req.body);
+		const group = req.group!;
+		const { filename, buffer } = fileBufferOrThrow(req);
+		const data = await importMyProjectRoster(group.id, filename, buffer);
 		res.json(data);
 	} catch (error) {
 		next(error);
@@ -299,29 +291,19 @@ async function patchMyProjectRoster(
 	res: Response,
 	next: NextFunction
 ) {
-	const { user, query, file } = req;
-	const group = req.group!;
-	const options: UpdateRosterOptions = {};
-	if (query.appendNew === "true") options.appendNew = true;
-	if (query.removeUnchanged === "true") options.removeUnchanged = true;
-	if (!req.body) {
-		next(new TypeError("Missing file"));
-		return;
-	}
-	let filename = "";
-	const d = req.headers["content-disposition"];
-	if (d) {
-		const m = d.match(/filename="(.*)"/i);
-		if (m) filename = m[1];
-	}
 	try {
-		if (!file) throw new BadRequestError("Missing file");
+		const { user, query } = req;
+		const group = req.group!;
+		const options: UpdateRosterOptions = {};
+		if (query.appendNew === "true") options.appendNew = true;
+		if (query.removeUnchanged === "true") options.removeUnchanged = true;
+		const { filename, buffer } = fileBufferOrThrow(req);
 		await updateMyProjectRosterWithMemberStatus(
 			user,
 			group.id,
 			options,
 			filename,
-			req.body,
+			buffer,
 			res
 		);
 		res.end();
@@ -335,10 +317,10 @@ async function getMyProjectRoster(
 	res: Response,
 	next: NextFunction
 ) {
-	const { user } = req;
-	const group = req.group!;
-	const access = group.permissions.members || AccessLevel.none;
 	try {
+		const { user } = req;
+		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
 		if (access < AccessLevel.admin) throw new ForbiddenError();
 		await exportMyProjectRoster(user, group.id, res);
 		res.end();
@@ -348,9 +330,9 @@ async function getMyProjectRoster(
 }
 
 async function getPublic(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	const access = group.permissions.members || AccessLevel.none;
 	try {
+		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
 		if (access < AccessLevel.admin) throw new ForbiddenError();
 		await exportMembersPublic(group.id, res);
 		res.end();
@@ -360,10 +342,10 @@ async function getPublic(req: Request, res: Response, next: NextFunction) {
 }
 
 async function getPrivate(req: Request, res: Response, next: NextFunction) {
-	const { user } = req;
-	const group = req.group!;
-	const access = group.permissions.members || AccessLevel.none;
 	try {
+		const { user } = req;
+		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
 		if (access < AccessLevel.admin) throw new ForbiddenError();
 		await exportMembersPrivate(user, group.id, res);
 		res.end();
@@ -373,12 +355,12 @@ async function getPrivate(req: Request, res: Response, next: NextFunction) {
 }
 
 async function getVoters(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
-	const access = group.permissions.members || AccessLevel.none;
-	const forPlenary = Boolean(req.query.plenary);
-	const forDVL = Boolean(req.query.dvl);
-	const date = req.query.date as string | undefined;
 	try {
+		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
+		const forPlenary = Boolean(req.query.plenary);
+		const forDVL = Boolean(req.query.dvl);
+		const date = req.query.date as string | undefined;
 		if (access < AccessLevel.admin) throw new ForbiddenError();
 		await exportVotingMembers(group, forPlenary, forDVL, date, res);
 		res.end();
@@ -388,8 +370,8 @@ async function getVoters(req: Request, res: Response, next: NextFunction) {
 }
 
 async function getSnapshot(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
 	try {
+		const group = req.group!;
 		const { date } = req.body;
 		const data = await getMembersSnapshot(group.id, date);
 		res.json(data);
@@ -403,9 +385,9 @@ async function getExportMembers(
 	res: Response,
 	next: NextFunction
 ) {
-	const group = req.group!;
-	const access = group.permissions.members || AccessLevel.none;
 	try {
+		const group = req.group!;
+		const access = group.permissions.members || AccessLevel.none;
 		if (access < AccessLevel.admin) throw new ForbiddenError();
 		const query = membersExportQuerySchema.parse(req.query);
 		await membersExport(group, query, res);

@@ -24,31 +24,33 @@ import {
 	deleteWebexMeetings,
 } from "../services/webex.js";
 
+function accountIdOrThrow(req: Request): number {
+	const accountId = Number(req.params.accountId);
+	if (isNaN(accountId))
+		throw new BadRequestError("Bad path parameter :accountId");
+	return accountId;
+}
+
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	try {
-		if (!req.group) throw new Error("Group not set");
+	const access = req.group!.permissions.meetings || AccessLevel.none;
+	const grant =
+		(req.method === "GET" && access >= AccessLevel.ro) ||
+		(req.method === "PATCH" && access >= AccessLevel.rw) ||
+		((req.method === "DELETE" || req.method === "POST") &&
+			access >= AccessLevel.admin);
 
-		const access = req.group.permissions.meetings || AccessLevel.none;
-		const grant =
-			(req.method === "GET" && access >= AccessLevel.ro) ||
-			(req.method === "PATCH" && access >= AccessLevel.rw) ||
-			((req.method === "DELETE" || req.method === "POST") &&
-				access >= AccessLevel.admin);
-
-		if (grant) {
-			next();
-			return;
-		}
-		throw new ForbiddenError();
-	} catch (error) {
-		next(error);
+	if (grant) {
+		next();
+		return;
 	}
+
+	next(new ForbiddenError());
 }
 
 async function getAccounts(req: Request, res: Response, next: NextFunction) {
-	const user = req.user;
-	const groupId = req.group!.id;
 	try {
+		const user = req.user;
+		const groupId = req.group!.id;
 		const data = await getWebexAccounts(req, user, { groupId });
 		res.json(data);
 	} catch (error) {
@@ -57,9 +59,9 @@ async function getAccounts(req: Request, res: Response, next: NextFunction) {
 }
 
 async function addAccount(req: Request, res: Response, next: NextFunction) {
-	const user = req.user;
-	const groupId = req.group!.id;
 	try {
+		const user = req.user;
+		const groupId = req.group!.id;
 		const account = webexAccountCreateSchema.parse(req.body);
 		const data = await addWebexAccount(req, user, groupId, account);
 		res.json(data);
@@ -69,14 +71,10 @@ async function addAccount(req: Request, res: Response, next: NextFunction) {
 }
 
 async function updateAccount(req: Request, res: Response, next: NextFunction) {
-	const user = req.user;
-	const groupId = req.group!.id;
-	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId)) {
-		next(new BadRequestError("Path parameter :accountId not a number"));
-		return;
-	}
 	try {
+		const user = req.user;
+		const groupId = req.group!.id;
+		const accountId = accountIdOrThrow(req);
 		const changes = webexAccountChangeSchema.parse(req.body);
 		const data = await updateWebexAccount(
 			req,
@@ -96,14 +94,10 @@ async function revokeAccountAuth(
 	res: Response,
 	next: NextFunction
 ) {
-	const user = req.user;
-	const groupId = req.group!.id;
-	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId)) {
-		next(new BadRequestError("Path parameter :accountId not a number"));
-		return;
-	}
 	try {
+		const user = req.user;
+		const groupId = req.group!.id;
+		const accountId = accountIdOrThrow(req);
 		const data = await revokeAuthWebexAccount(
 			req,
 			user,
@@ -117,13 +111,9 @@ async function revokeAccountAuth(
 }
 
 async function removeAccount(req: Request, res: Response, next: NextFunction) {
-	const groupId = req.group!.id;
-	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId)) {
-		next(new BadRequestError("Path parameter :accountId not a number"));
-		return;
-	}
 	try {
+		const groupId = req.group!.id;
+		const accountId = accountIdOrThrow(req);
 		const data = await deleteWebexAccount(groupId, accountId);
 		res.json(data);
 	} catch (error) {
@@ -132,8 +122,8 @@ async function removeAccount(req: Request, res: Response, next: NextFunction) {
 }
 
 async function getMeetings(req: Request, res: Response, next: NextFunction) {
-	const groupId = req.group!.id;
 	try {
+		const groupId = req.group!.id;
 		let query = webexMeetingsQuerySchema.parse(req.query);
 		query = { ...query, groupId };
 		const data = await getWebexMeetings(query);

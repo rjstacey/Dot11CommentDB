@@ -17,9 +17,9 @@ import {
 } from "../services/groups.js";
 
 async function get(req: Request, res: Response, next: NextFunction) {
-	const { user } = req;
-	const { parentName } = req.params;
 	try {
+		const { user } = req;
+		const { parentName } = req.params;
 		let query = groupsQuerySchema.parse(req.query);
 		query = { ...query, parentName };
 		const data = await getGroups(user, query);

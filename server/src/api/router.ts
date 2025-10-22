@@ -121,7 +121,7 @@ router.use("/:groupName/epolls", parseGroupName, epolls); // Access to ePolls ba
 async function parseBallot_id(req: Request, res: Response, next: NextFunction) {
 	const ballot_id = Number(req.params.ballot_id);
 	if (isNaN(ballot_id)) {
-		next(new BadRequestError("Path parameter :ballot_id not a number"));
+		next(new BadRequestError("Bad path parameter :ballot_id"));
 		return;
 	}
 	const ballot = await getBallot(ballot_id);

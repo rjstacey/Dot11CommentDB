@@ -10,13 +10,10 @@ import {
 import { AccessLevel } from "../auth/access.js";
 import { selectWorkingGroup } from "../services/groups.js";
 import {
-	VoterCreate,
-	VoterUpdate,
 	voterCreatesSchema,
 	voterUpdatesSchema,
 	voterIdsSchema,
 	voterMemberSnapshotParamsSchema,
-	VoterMemberSnapshotParams,
 } from "@schemas/voters.js";
 import {
 	getVoters,
@@ -28,17 +25,38 @@ import {
 	exportVoters,
 } from "../services/voters.js";
 
+function workingGroupOrThrow(req: Request) {
+	const workingGroup = selectWorkingGroup(req.groups!);
+	if (!workingGroup) {
+		throw new NotFoundError(
+			`Can't find working group for ${req.groups![0].id}`
+		);
+	}
+	return workingGroup;
+}
+
+function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
+	if (!req.body) throw new BadRequestError("Missing file");
+	let filename: string;
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) {
+			filename = m[1];
+			return { filename, buffer: req.body };
+		}
+	}
+	throw new BadRequestError("Missing filename");
+}
+
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.voters || AccessLevel.none;
-	if (req.method === "GET" && access >= AccessLevel.ro) {
-		next();
-		return;
-	}
-	if (req.method === "PATCH" && access >= AccessLevel.rw) {
-		next();
-		return;
-	}
-	if (access >= AccessLevel.admin) {
+	const grant =
+		(req.method === "GET" && access >= AccessLevel.ro) ||
+		(req.method === "PATCH" && access >= AccessLevel.rw) ||
+		access >= AccessLevel.admin;
+
+	if (grant) {
 		next();
 		return;
 	}
@@ -46,126 +64,93 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	next(new ForbiddenError());
 }
 
-function get(req: Request, res: Response, next: NextFunction) {
-	const ballot_id = req.ballot!.id;
-	getVoters({ ballot_id })
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function addMany(req: Request, res: Response, next: NextFunction) {
-	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup) {
-		next(
-			new NotFoundError(
-				`Can't find working group for ${req.groups![0].id}`
-			)
-		);
-		return;
-	}
-
-	const ballot = req.ballot!;
-	let voters: VoterCreate[];
+async function get(req: Request, res: Response, next: NextFunction) {
 	try {
-		voters = voterCreatesSchema.parse(req.body);
+		const ballot_id = req.ballot!.id;
+		const data = await getVoters({ ballot_id });
+		res.json(data);
 	} catch (error) {
 		next(error);
-		return;
 	}
-	addVoters(workingGroup.id, ballot.id, voters)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function updateMany(req: Request, res: Response, next: NextFunction) {
-	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup) {
-		next(
-			new NotFoundError(
-				`Can't find working group for ${req.groups![0].id}`
-			)
-		);
-		return;
-	}
-	let updates: VoterUpdate[];
+async function addMany(req: Request, res: Response, next: NextFunction) {
 	try {
-		updates = voterUpdatesSchema.parse(req.body);
+		const workingGroup = workingGroupOrThrow(req);
+		const ballot = req.ballot!;
+		const voters = voterCreatesSchema.parse(req.body);
+		const data = await addVoters(workingGroup.id, ballot.id, voters);
+		res.json(data);
 	} catch (error) {
 		next(error);
-		return;
 	}
-	updateVoters(workingGroup.id, updates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeMany(req: Request, res: Response, next: NextFunction) {
-	let ids: string[];
+async function updateMany(req: Request, res: Response, next: NextFunction) {
 	try {
-		ids = voterIdsSchema.parse(req.body);
+		const workingGroup = workingGroupOrThrow(req);
+		const updates = voterUpdatesSchema.parse(req.body);
+		const data = await updateVoters(workingGroup.id, updates);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	deleteVoters(ids)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function getExport(req: Request, res: Response, next: NextFunction) {
-	exportVoters(req.user, req.ballot!, res).catch(next);
-}
-
-function postUpload(req: Request, res: Response, next: NextFunction) {
-	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup) {
-		next(
-			new NotFoundError(
-				`Can't find working group for ${req.groups![0].id}`
-			)
-		);
-		return;
-	}
-
-	const ballot = req.ballot!;
-
-	if (!req.body) {
-		next(new BadRequestError("Missing file"));
-		return;
-	}
-	let filename = "";
-	const d = req.headers["content-disposition"];
-	if (d) {
-		const m = d.match(/filename="(.*)"/i);
-		if (m) filename = m[1];
-	}
-
-	uploadVoters(workingGroup.id, ballot.id, filename, req.body)
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function postMembersnapshot(req: Request, res: Response, next: NextFunction) {
-	const user = req.user;
-	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup) {
-		next(
-			new NotFoundError(
-				`Can't find working group for ${req.groups![0].id}`
-			)
-		);
-		return;
-	}
-
-	const ballot = req.ballot!;
-	let params: VoterMemberSnapshotParams;
+async function removeMany(req: Request, res: Response, next: NextFunction) {
 	try {
-		params = voterMemberSnapshotParamsSchema.parse(req.body);
+		const ids = voterIdsSchema.parse(req.body);
+		const data = await deleteVoters(ids);
+		res.json(data);
 	} catch (error) {
-		return next(error);
+		next(error);
 	}
-	votersFromMembersSnapshot(user, workingGroup.id, ballot.id, params.date)
-		.then((data) => res.json(data))
-		.catch(next);
+}
+
+async function getExport(req: Request, res: Response, next: NextFunction) {
+	await exportVoters(req.user, req.ballot!, res);
+	next();
+}
+
+async function postUpload(req: Request, res: Response, next: NextFunction) {
+	try {
+		const workingGroup = workingGroupOrThrow(req);
+		const ballot = req.ballot!;
+		const { filename, buffer } = fileBufferOrThrow(req);
+
+		const data = await uploadVoters(
+			workingGroup.id,
+			ballot.id,
+			filename,
+			buffer
+		);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function postMembersnapshot(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	try {
+		const user = req.user;
+		const workingGroup = workingGroupOrThrow(req);
+		const ballot = req.ballot!;
+		const params = voterMemberSnapshotParamsSchema.parse(req.body);
+		const { date } = params;
+		const data = await votersFromMembersSnapshot(
+			user,
+			workingGroup.id,
+			ballot.id,
+			date
+		);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 const router = Router();

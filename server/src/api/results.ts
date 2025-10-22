@@ -9,7 +9,7 @@ import {
 } from "../utils/index.js";
 import { AccessLevel } from "../auth/access.js";
 import { selectWorkingGroup } from "../services/groups.js";
-import { resultUpdatesSchema, ResultUpdate } from "@schemas/results.js";
+import { resultUpdatesSchema } from "@schemas/results.js";
 import {
 	getResults,
 	updateResults,
@@ -19,101 +19,115 @@ import {
 	exportResults,
 } from "../services/results.js";
 
+function workingGroupOrThrow(req: Request) {
+	const workingGroup = selectWorkingGroup(req.groups!);
+	if (!workingGroup) {
+		throw new NotFoundError(
+			`Can't find working group for ${req.groups![0].id}`
+		);
+	}
+	return workingGroup;
+}
+
+function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
+	if (!req.body) throw new BadRequestError("Missing file");
+	let filename: string;
+	const d = req.headers["content-disposition"];
+	if (d) {
+		const m = d.match(/filename="(.*)"/i);
+		if (m) {
+			filename = m[1];
+			return { filename, buffer: req.body };
+		}
+	}
+	throw new BadRequestError("Missing filename");
+}
+
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.results || AccessLevel.none;
 	if (req.method === "GET" && access >= AccessLevel.ro) return next();
-	if (
+	const grant =
 		(req.method === "DELETE" ||
 			req.method === "POST" ||
 			req.method === "PATCH") &&
-		access >= AccessLevel.admin
-	)
-		return next();
+		access >= AccessLevel.admin;
+	if (grant) {
+		next();
+		return;
+	}
 
 	next(new ForbiddenError());
 }
 
-function getAll(req: Request, res: Response, next: NextFunction) {
-	getResults(req.ballot!)
-		.then((data) => res.json(data))
-		.catch(next);
-}
-
-function updateMany(req: Request, res: Response, next: NextFunction) {
-	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup) {
-		next(
-			new NotFoundError(
-				`Can't find working group for ${req.groups![0].id}`
-			)
-		);
-		return;
-	}
-
-	let updates: ResultUpdate[];
+async function getAll(req: Request, res: Response, next: NextFunction) {
 	try {
-		updates = resultUpdatesSchema.parse(req.body);
+		const data = await getResults(req.ballot!);
+		res.json(data);
 	} catch (error) {
 		next(error);
-		return;
 	}
-
-	updateResults(workingGroup.id, req.ballot!, updates)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function removeAll(req: Request, res: Response, next: NextFunction) {
-	deleteResults(req.ballot!.id)
-		.then((data) => res.json(data))
-		.catch(next);
+async function updateMany(req: Request, res: Response, next: NextFunction) {
+	try {
+		const workingGroup = workingGroupOrThrow(req);
+		const updates = resultUpdatesSchema.parse(req.body);
+		const data = await updateResults(workingGroup.id, req.ballot!, updates);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
-function postUpload(req: Request, res: Response, next: NextFunction) {
-	if (!req.body) {
-		next(new BadRequestError("Missing file"));
-		return;
+async function removeAll(req: Request, res: Response, next: NextFunction) {
+	try {
+		const data = await deleteResults(req.ballot!.id);
+		res.json(data);
+	} catch (error) {
+		next(error);
 	}
-	let filename = "";
-	const d = req.headers["content-disposition"];
-	if (d) {
-		const m = d.match(/filename="(.*)"/i);
-		if (m) filename = m[1];
-	}
-	uploadResults(req.ballot!, filename, req.body)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function postImport(req: Request, res: Response, next: NextFunction) {
-	const workingGroup = selectWorkingGroup(req.groups!);
-	if (!workingGroup) {
-		next(
-			new NotFoundError(
-				`Can't find working group for ${req.groups![0].id}`
-			)
+async function postUpload(req: Request, res: Response, next: NextFunction) {
+	try {
+		const { filename, buffer } = fileBufferOrThrow(req);
+		const data = await uploadResults(req.ballot!, filename, buffer);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function postImport(req: Request, res: Response, next: NextFunction) {
+	try {
+		const workingGroup = workingGroupOrThrow(req);
+		const data = await importEpollResults(
+			req.user,
+			workingGroup,
+			req.ballot!
 		);
-		return;
+		res.json(data);
+	} catch (error) {
+		next(error);
 	}
-
-	importEpollResults(req.user, workingGroup, req.ballot!)
-		.then((data) => res.json(data))
-		.catch(next);
 }
 
-function getExport(req: Request, res: Response, next: NextFunction) {
-	const { forSeries } = req.query;
-	if (forSeries && forSeries !== "true" && forSeries !== "false") {
-		next(
-			new BadRequestError(
-				"Invalid forSeries parameter: expected true or false"
-			)
-		);
-		return;
+async function getExport(req: Request, res: Response, next: NextFunction) {
+	try {
+		const { forSeries } = req.query;
+		if (forSeries && forSeries !== "true" && forSeries !== "false") {
+			next(
+				new BadRequestError(
+					"Invalid forSeries parameter: expected true or false"
+				)
+			);
+			return;
+		}
+		await exportResults(req.user, req.ballot!, forSeries === "true", res);
+		res.end();
+	} catch (error) {
+		next(error);
 	}
-	exportResults(req.user, req.ballot!, forSeries === "true", res)
-		.then(() => res.end())
-		.catch(next);
 }
 
 const router = Router();

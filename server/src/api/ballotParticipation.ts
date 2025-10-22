@@ -31,8 +31,8 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 }
 
 async function getAll(req: Request, res: Response, next: NextFunction) {
-	const groupId = req.group!.id;
 	try {
+		const groupId = req.group!.id;
 		const data = await getBallotSeriesParticipation(groupId);
 		res.json(data);
 	} catch (error) {

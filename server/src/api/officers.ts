@@ -36,8 +36,8 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 }
 
 async function get(req: Request, res: Response, next: NextFunction) {
-	const parentGroupId = req.group!.id;
 	try {
+		const parentGroupId = req.group!.id;
 		const data = await getOfficers({ parentGroupId });
 		res.json(data);
 	} catch (error) {
@@ -46,8 +46,8 @@ async function get(req: Request, res: Response, next: NextFunction) {
 }
 
 async function addMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
 	try {
+		const group = req.group!;
 		const officers = officerCreatesSchema.parse(req.body);
 		const data = await addOfficers(req.user, group, officers);
 		res.json(data);
@@ -57,8 +57,8 @@ async function addMany(req: Request, res: Response, next: NextFunction) {
 }
 
 async function updateMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
 	try {
+		const group = req.group!;
 		const updates = officerUpdatesSchema.parse(req.body);
 		const data = await updateOfficers(req.user, group, updates);
 		res.json(data);
@@ -68,9 +68,9 @@ async function updateMany(req: Request, res: Response, next: NextFunction) {
 }
 
 async function removeMany(req: Request, res: Response, next: NextFunction) {
-	const { user, body } = req;
-	const group = req.group!;
 	try {
+		const { user, body } = req;
+		const group = req.group!;
 		const ids = officerIdsSchema.parse(body);
 		const data = await removeOfficers(user, group, ids);
 		res.json(data);

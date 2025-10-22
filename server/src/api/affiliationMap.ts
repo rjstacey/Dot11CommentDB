@@ -12,8 +12,8 @@ import {
 } from "../services/affiliationMap.js";
 
 async function getAll(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
 	try {
+		const group = req.group!;
 		const data = await getAffiliationMaps(group);
 		res.json(data);
 	} catch (error) {
@@ -22,8 +22,8 @@ async function getAll(req: Request, res: Response, next: NextFunction) {
 }
 
 async function addMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
 	try {
+		const group = req.group!;
 		const affiliationMaps = affiliationMapCreatesSchema.parse(req.body);
 		const data = await addAffiliationMaps(group, affiliationMaps);
 		res.json(data);
@@ -33,8 +33,8 @@ async function addMany(req: Request, res: Response, next: NextFunction) {
 }
 
 async function updateMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
 	try {
+		const group = req.group!;
 		const updates = affiliationMapUpdatesSchema.parse(req.body);
 		const data = await updateAffiliationMaps(group, updates);
 		res.json(data);
@@ -44,8 +44,8 @@ async function updateMany(req: Request, res: Response, next: NextFunction) {
 }
 
 async function removeMany(req: Request, res: Response, next: NextFunction) {
-	const group = req.group!;
 	try {
+		const group = req.group!;
 		const ids = affiliationMapIdsSchema.parse(req.body);
 		const data = await removeAffiliationMaps(group, ids);
 		res.json(data);

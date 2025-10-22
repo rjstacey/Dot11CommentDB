@@ -7,18 +7,14 @@ import { AccessLevel } from "../auth/access.js";
 import { getCommentHistory } from "../services/commentHistory.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
-	try {
-		const access = req.permissions?.comments || AccessLevel.none;
-		const grant = req.method === "GET" && access >= AccessLevel.ro;
-		if (grant) {
-			next();
-			return;
-		}
-
-		throw new ForbiddenError();
-	} catch (error) {
-		next(error);
+	const access = req.permissions?.comments || AccessLevel.none;
+	const grant = req.method === "GET" && access >= AccessLevel.ro;
+	if (grant) {
+		next();
+		return;
 	}
+
+	next(new ForbiddenError());
 }
 
 async function get(req: Request, res: Response, next: NextFunction) {

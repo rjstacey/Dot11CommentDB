@@ -71,8 +71,8 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 }
 
 async function get(req: Request, res: Response, next: NextFunction) {
-	const groupId = req.group!.id;
 	try {
+		const groupId = req.group!.id;
 		let query = meetingsQuerySchema.parse(req.query);
 		query = { ...query, groupId };
 		const data = await getMeetings(req.user, query);

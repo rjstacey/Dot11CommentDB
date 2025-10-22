@@ -44,6 +44,13 @@ import {
 	calendarAccountCreateSchema,
 } from "@schemas/calendar.js";
 
+function accountIdOrThrow(req: Request): number {
+	const accountId = Number(req.params.accountId);
+	if (isNaN(accountId))
+		throw new BadRequestError("Bad path parameter :accountId");
+	return accountId;
+}
+
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {
 		if (!req.group) throw new Error("Group not set");
@@ -67,9 +74,9 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 }
 
 async function getAccounts(req: Request, res: Response, next: NextFunction) {
-	const user = req.user;
-	const groupId = req.group!.id;
 	try {
+		const user = req.user;
+		const groupId = req.group!.id;
 		const data = await getCalendarAccounts(req, user, { groupId });
 		res.json(data);
 	} catch (error) {
@@ -78,9 +85,9 @@ async function getAccounts(req: Request, res: Response, next: NextFunction) {
 }
 
 async function addAccount(req: Request, res: Response, next: NextFunction) {
-	const user = req.user;
-	const groupId = req.group!.id;
 	try {
+		const user = req.user;
+		const groupId = req.group!.id;
 		const account = calendarAccountCreateSchema.parse(req.body);
 		const data = await addCalendarAccount(req, user, groupId, account);
 		res.json(data);
@@ -90,14 +97,10 @@ async function addAccount(req: Request, res: Response, next: NextFunction) {
 }
 
 async function updateAccount(req: Request, res: Response, next: NextFunction) {
-	const user = req.user;
-	const groupId = req.group!.id;
-	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId)) {
-		next(new BadRequestError("Path parameter :accountId not a number"));
-		return;
-	}
 	try {
+		const user = req.user;
+		const groupId = req.group!.id;
+		const accountId = accountIdOrThrow(req);
 		const changes = calendarAccountChangeSchema.parse(req.body);
 		const data = await updateCalendarAccount(
 			req,
@@ -113,14 +116,10 @@ async function updateAccount(req: Request, res: Response, next: NextFunction) {
 }
 
 function revokeAccountAuth(req: Request, res: Response, next: NextFunction) {
-	const user = req.user;
-	const groupId = req.group!.id;
-	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId)) {
-		next(new BadRequestError("Path parameter :accountId not a number"));
-		return;
-	}
 	try {
+		const user = req.user;
+		const groupId = req.group!.id;
+		const accountId = accountIdOrThrow(req);
 		const data = revokeAuthCalendarAccount(req, user, groupId, accountId);
 		res.json(data);
 	} catch (error) {
@@ -129,13 +128,9 @@ function revokeAccountAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 function removeAccount(req: Request, res: Response, next: NextFunction) {
-	const groupId = req.group!.id;
-	const accountId = Number(req.params.accountId);
-	if (isNaN(accountId)) {
-		next(new BadRequestError("Path parameter :accountId not a number"));
-		return;
-	}
 	try {
+		const groupId = req.group!.id;
+		const accountId = accountIdOrThrow(req);
 		const data = deleteCalendarAccount(groupId, accountId);
 		res.json(data);
 	} catch (error) {

@@ -28,9 +28,9 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 }
 
 async function getAll(req: Request, res: Response, next: NextFunction) {
-	const groupName = req.group!.name;
-	const n = typeof req.query.n === "string" ? Number(req.query.n) : 20;
 	try {
+		const groupName = req.group!.name;
+		const n = typeof req.query.n === "string" ? Number(req.query.n) : 20;
 		const data = await getEpolls(req.user, groupName, n);
 		res.json(data);
 	} catch (error) {

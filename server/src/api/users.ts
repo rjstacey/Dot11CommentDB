@@ -18,10 +18,13 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	next(new ForbiddenError());
 }
 
-function get(req: Request, res: Response, next: NextFunction) {
-	getUsers()
-		.then((data) => res.json(data))
-		.catch(next);
+async function get(req: Request, res: Response, next: NextFunction) {
+	try {
+		const data = await getUsers();
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
 }
 
 const router = Router();

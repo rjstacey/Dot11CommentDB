@@ -42,8 +42,8 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 }
 
 async function getAll(req: Request, res: Response, next: NextFunction) {
-	const workingGroupId = req.group!.id;
 	try {
+		const workingGroupId = req.group!.id;
 		const data = await getBallots({ workingGroupId });
 		res.json(data);
 	} catch (error) {
@@ -52,8 +52,8 @@ async function getAll(req: Request, res: Response, next: NextFunction) {
 }
 
 async function addMany(req: Request, res: Response, next: NextFunction) {
-	const { user, group, body } = req;
 	try {
+		const { user, group, body } = req;
 		const ballots = ballotCreatesSchema.parse(body);
 		const data = await addBallots(user, group!, ballots);
 		res.json(data);
@@ -63,8 +63,8 @@ async function addMany(req: Request, res: Response, next: NextFunction) {
 }
 
 async function updateMany(req: Request, res: Response, next: NextFunction) {
-	const { user, group, body } = req;
 	try {
+		const { user, group, body } = req;
 		const updates = ballotUpdatesSchema.parse(body);
 		const data = await updateBallots(user, group!, updates);
 		res.json(data);
