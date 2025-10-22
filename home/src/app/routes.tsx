@@ -1,5 +1,5 @@
 import { RouteObject, LoaderFunction } from "react-router";
-import { getUser, fetcher, User, loginAndReturn } from "@common";
+import { getUser, fetcher, User } from "@common";
 import { store, persistReady } from "@/store";
 import { loadGroups } from "@/store/groups";
 import { setUser } from "@/store/user";
@@ -24,7 +24,7 @@ const rootLoader: LoaderFunction = async () => {
 		console.log(error);
 		return null;
 	}
-	fetcher.setAuth(user.Token, loginAndReturn);
+	fetcher.setToken(user.Token);
 	dispatch(setUser(user));
 	await dispatch(loadGroups());
 	return null;
