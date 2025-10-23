@@ -14,6 +14,16 @@ import {
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { User } from "./users.js";
 
+export async function init() {
+	const sql =
+		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="polls" and column_name = "recordType";';
+	const rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
+	if (rows.length === 0)
+		db.query(
+			"ALTER TABLE polls ADD COLUMN recordType TINYINT default NULL after type;"
+		);
+}
+
 export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 	// prettier-ignore
 	let sql =

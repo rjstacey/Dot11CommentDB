@@ -1,4 +1,4 @@
-import { ActionIcon, Button } from "dot11-components";
+import { Button } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectPollingAdminPolls,
@@ -28,12 +28,16 @@ function EventActions({ event, polls }: { event: Event; polls: Poll[] }) {
 
 	return (
 		<div className={css.eventActions}>
-			<Button isActive={event.isPublished} onClick={toggleIsPublished}>
+			<Button active={event.isPublished} onClick={toggleIsPublished}>
 				Publish
 			</Button>
 			<div>
-				<Button onClick={createMotion}>+ Motion</Button>
-				<Button onClick={createStrawpoll}>+ Strawpoll</Button>
+				<Button variant="light" onClick={createMotion}>
+					{"+ Motion"}
+				</Button>
+				<Button variant="light" onClick={createStrawpoll}>
+					{"+ Strawpoll"}
+				</Button>
 			</div>
 		</div>
 	);
@@ -56,8 +60,9 @@ function PollEntry({ poll }: { poll: Poll }) {
 				/>
 			</div>
 			{poll.state && <div className={css.pollState}>{poll.state}</div>}
-			<ActionIcon
+			<Button
 				name="delete"
+				className="bi-trash"
 				onClick={() => dispatch(pollingAdminDeletePoll(poll.id))}
 			/>
 		</div>

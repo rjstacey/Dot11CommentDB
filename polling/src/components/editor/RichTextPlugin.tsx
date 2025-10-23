@@ -42,7 +42,9 @@ function RichTextPlugin({
 
 	return (
 		<>
-			<ToolbarPlugin shown={showToolbar} />
+			<ToolbarPlugin
+				style={{ visibility: showToolbar ? "visible" : "hidden" }}
+			/>
 			<div
 				className={
 					styles.container +
@@ -51,7 +53,7 @@ function RichTextPlugin({
 				}
 				{...props}
 			>
-				<div style={{ width: "100%" }}>
+				<div className={styles.outerContainer}>
 					<LexicalRichTextPlugin
 						contentEditable={
 							<ContentEditable

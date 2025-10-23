@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, FieldLeft, Checkbox } from "dot11-components";
+import { Button, Form, Row, Col } from "react-bootstrap";
 import { useAppDispatch } from "@/store/hooks";
 import {
 	pollingAdminUpdatePoll,
@@ -135,8 +135,7 @@ function PollOptions({ options }: { options: string[] }) {
 				const id = `poll-option-${i}`;
 				return (
 					<div key={id} className={css.pollOption}>
-						<Checkbox id={id} disabled={true} />
-						<label htmlFor={id}>{o}</label>
+						<Form.Check id={id} disabled={true} label={o} />
 					</div>
 				);
 			})}
@@ -192,7 +191,7 @@ function PollOptionEdit({
 	const id = `poll-option-${index}`;
 	return (
 		<label className={css.pollOption + " " + css.edit}>
-			<Checkbox id={id} disabled={true} />
+			<Form.Check id={id} disabled={true} />
 			<input
 				id={id + "-label"}
 				ref={(ref) => setRef(ref)}
@@ -271,7 +270,7 @@ function PollOptionsEdit({
 					/>
 				))}
 				<div className={css.pollOption} style={{ display: "flex" }}>
-					<Checkbox
+					<Form.Check
 						style={{ visibility: "hidden" }}
 						disabled={true}
 					/>
@@ -322,14 +321,14 @@ function PollActions({ poll }: { poll: Poll }) {
 	return (
 		<>
 			<Button
-				isActive={poll.state === "opened" || poll.state === "closed"}
+				active={poll.state === "opened" || poll.state === "closed"}
 				onClick={openPoll}
 				disabled={openDisabled}
 			>
 				Open
 			</Button>
 			<Button
-				isActive={poll.state === "closed"}
+				active={poll.state === "closed"}
 				onClick={closePoll}
 				disabled={closeDisabled}
 			>
@@ -449,24 +448,26 @@ export function PollForm({ event, poll }: { event: Event; poll: Poll }) {
 				</div>
 			</div>
 			{poll.type === "m" && (
-				<div className={css.pollBodyRow} style={{ flexWrap: "wrap" }}>
-					<FieldLeft label="Move:">
+				<Row className={css.pollBodyRow} style={{ flexWrap: "wrap" }}>
+					<Col>
+						<Form.Label>Move:</Form.Label>
 						<MemberSelector
 							value={poll.movedSAPIN}
 							onChange={(movedSAPIN) =>
 								changePoll({ movedSAPIN })
 							}
 						/>
-					</FieldLeft>
-					<FieldLeft label="Second:">
+					</Col>
+					<Col>
+						<Form.Label>Second:</Form.Label>
 						<MemberSelector
 							value={poll.secondedSAPIN}
 							onChange={(secondedSAPIN) =>
 								changePoll({ secondedSAPIN })
 							}
 						/>
-					</FieldLeft>
-				</div>
+					</Col>
+				</Row>
 			)}
 			<PollActions poll={poll} />
 		</div>

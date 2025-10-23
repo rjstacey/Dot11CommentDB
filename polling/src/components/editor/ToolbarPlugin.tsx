@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Dropdown, DropdownButton, Button } from "react-bootstrap";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	CAN_REDO_COMMAND,
@@ -13,6 +14,7 @@ import {
 	$getSelection,
 	$isRangeSelection,
 	$createParagraphNode,
+	RangeSelection,
 	LexicalEditor,
 	ElementFormatType,
 	TextFormatType,
@@ -25,7 +27,7 @@ import {
 	$createLinkNode,
 	TOGGLE_LINK_COMMAND,
 } from "@lexical/link";
-import { $setBlocksType } from "@lexical/selection";
+import { $setBlocksType, $isAtNodeEnd } from "@lexical/selection";
 import {
 	$getNearestNodeOfType,
 	$findMatchingParent,
@@ -46,12 +48,25 @@ import {
 } from "@lexical/rich-text";
 import { $createCodeNode, $isCodeNode } from "@lexical/code";
 
-import { Dropdown, DropdownRendererProps } from "dot11-components";
-
-import { getSelectedNode } from "./utils";
 import styles from "./editor.module.css";
 
 const LowPriority = 1;
+
+function getSelectedNode(selection: RangeSelection) {
+	const anchor = selection.anchor;
+	const focus = selection.focus;
+	const anchorNode = selection.anchor.getNode();
+	const focusNode = selection.focus.getNode();
+	if (anchorNode === focusNode) {
+		return anchorNode;
+	}
+	const isBackward = selection.isBackward();
+	if (isBackward) {
+		return $isAtNodeEnd(focus) ? anchorNode : focusNode;
+	} else {
+		return $isAtNodeEnd(anchor) ? focusNode : anchorNode;
+	}
+}
 
 const blockTypeOptions = [
 	{ value: "paragraph", label: "Clear formatting", icon: "bi-eraser" },
@@ -185,20 +200,19 @@ function BlockStyleButtons({
 
 	const buttons = blockTypeOptions
 		.map((o) => (
-			<button
+			<Button
 				key={o.value}
 				className={
-					blockType !== "paragraph" && blockType === o.value
-						? "active"
-						: ""
+					o.icon +
+					(blockType !== "paragraph" && blockType === o.value
+						? " active"
+						: "")
 				}
 				disabled={disabled}
 				onClick={() => onChange(o.value)}
-				//arial-label={o.label}
+				aria-label={o.label}
 				title={o.label}
-			>
-				<i className={o.icon} />
-			</button>
+			/>
 		))
 		.concat(
 			<SelectAlignment
@@ -217,7 +231,7 @@ function BlockStyleButtons({
 	} else if (size === "small") {
 		moreButtons = buttons.splice(1, 3);
 		moreButtons.concat(buttons.splice(-1, 1));
-		moreButtons.push(<div key="divider" className="divider" />);
+		moreButtons.push(<div key="div1" className="divider" />);
 		moreButtons.push(buttons.pop()!);
 	}
 
@@ -225,18 +239,13 @@ function BlockStyleButtons({
 		<div className="button-group">
 			{buttons}
 			{moreButtons.length > 0 && (
-				<Dropdown
-					selectRenderer={() => (
-						<button disabled={disabled}>
-							<i className="bi-three-dots-vertical" />
-						</button>
-					)}
-					dropdownRenderer={() => (
-						<div className="button-group">{moreButtons}</div>
-					)}
+				<DropdownButton
+					title={<i className="bi-three-dots-vertical" />}
+					align="end"
 					disabled={disabled}
-					dropdownAlign="right"
-				/>
+				>
+					<div className="button-group">{moreButtons}</div>
+				</DropdownButton>
 			)}
 		</div>
 	);
@@ -332,30 +341,26 @@ function InlineStyleButtons({
 
 	let buttons = inlineFormatOptions
 		.map((o) => (
-			<button
+			<Button
 				key={o.value}
-				className={formats.includes(o.value) ? "active" : ""}
 				disabled={disabled}
 				onClick={() => {
 					editor.dispatchCommand(FORMAT_TEXT_COMMAND, o.value);
 				}}
-				//arial-label={o.label}
 				title={o.label}
-			>
-				<i className={o.icon} />
-			</button>
+				active={formats.includes(o.value)}
+				className={o.icon}
+			/>
 		))
 		.concat(
-			<button
+			<Button
 				key="link"
-				className={isLink ? "active" : ""}
 				disabled={disabled}
 				onClick={insertLink}
-				aria-label="Insert Link"
 				title={(isLink ? "Remove" : "Insert") + " link"}
-			>
-				<i className="bi-link" />
-			</button>
+				active={isLink}
+				className="bi-link"
+			/>
 		);
 	let moreButtons: JSX.Element[] = [];
 
@@ -370,18 +375,13 @@ function InlineStyleButtons({
 		<div className="button-group">
 			{buttons}
 			{moreButtons.length > 0 && (
-				<Dropdown
-					selectRenderer={() => (
-						<button disabled={disabled}>
-							<i className="bi-three-dots-vertical" />
-						</button>
-					)}
-					dropdownRenderer={() => (
-						<div className="button-group">{moreButtons}</div>
-					)}
+				<DropdownButton
+					title={<i className="bi-three-dots-vertical" />}
+					align={size === "small" ? "start" : "end"}
 					disabled={disabled}
-					dropdownAlign={size === "small" ? "left" : "right"}
-				/>
+				>
+					<div className="button-group">{moreButtons}</div>
+				</DropdownButton>
 			)}
 		</div>
 	);
@@ -419,44 +419,26 @@ function SelectAlignment({
 		else editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value);
 	}
 
-	const selectRenderer: (
-		props: DropdownRendererProps
-	) => JSX.Element = () => (
-		<button disabled={disabled}>
-			<i className="bi-text-left" />
-			<i className="bi-chevron-down" style={{ fontSize: "0.5em" }} />
-		</button>
-	);
-
-	const dropdownRenderer: (
-		props: DropdownRendererProps
-	) => JSX.Element = () => (
-		<>
+	return (
+		<DropdownButton
+			title={<i className="bi-text-left" />}
+			align="end"
+			disabled={disabled}
+		>
 			{alignmentOptions.map((o, i) =>
 				o.value ? (
-					<button
+					<Dropdown.Item
 						key={i}
 						className={value === o.value ? "active" : undefined}
 						onClick={() => onChange(o.value!)}
 					>
 						<i className={o.icon} />
-					</button>
+					</Dropdown.Item>
 				) : (
-					<div key={i} className={styles.divider} />
+					<Dropdown.Divider key={i} />
 				)
 			)}
-		</>
-	);
-
-	return (
-		<Dropdown
-			style={{ flexDirection: "row" }}
-			selectRenderer={selectRenderer}
-			dropdownRenderer={dropdownRenderer}
-			dropdownAlign="right"
-			dropdownClassName="dropdown-container"
-			disabled={disabled}
-		/>
+		</DropdownButton>
 	);
 }
 
@@ -495,26 +477,24 @@ function UndoRedo({
 
 	return (
 		<div className="button-group">
-			<button
+			<Button
 				disabled={!canUndo || disabled}
 				onClick={() => {
 					editor.dispatchCommand(UNDO_COMMAND, undefined);
 				}}
 				aria-label="Undo"
 				title="Undo (Ctrl-z)"
-			>
-				<i className="bi-arrow-counterclockwise" />
-			</button>
-			<button
+				className="bi-arrow-counterclockwise"
+			/>
+			<Button
 				disabled={!canRedo || disabled}
 				onClick={() => {
 					editor.dispatchCommand(REDO_COMMAND, undefined);
 				}}
 				aria-label="Redo"
 				title="Redo (Ctrl-r)"
-			>
-				<i className="bi-arrow-clockwise" />
-			</button>
+				className="bi-arrow-clockwise"
+			/>
 		</div>
 	);
 }
@@ -523,7 +503,7 @@ type Size = "small" | "medium" | "large";
 const breakpointSmall = 525;
 const breakpointMedium = 625;
 
-export default function ToolbarPlugin({ shown }: { shown: boolean }) {
+export default function ToolbarPlugin({ style }: React.ComponentProps<"div">) {
 	const [editor] = useLexicalComposerContext();
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const [size, setSize] = React.useState<Size>("large");
@@ -548,7 +528,7 @@ export default function ToolbarPlugin({ shown }: { shown: boolean }) {
 		<div
 			ref={containerRef}
 			className={styles.toolbar}
-			style={{ visibility: shown ? "visible" : "hidden" }}
+			style={style}
 			onMouseDown={(e) => {
 				e.preventDefault();
 			}}

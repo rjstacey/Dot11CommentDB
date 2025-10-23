@@ -24,6 +24,7 @@ import { init as webexInit } from "./services/webex.js";
 import { init as calendarInit } from "./services/calendar.js";
 import { init as emailInit } from "./services/emailSend.js";
 import { init as meetingsInit } from "./services/meetings.js";
+import { init as pollInit } from "./services/poll.js";
 
 dotenv.config();
 
@@ -80,7 +81,11 @@ async function initServices() {
 		process.stdout.write("success\n");
 
 		process.stdout.write("init meetings... ");
-		meetingsInit();
+		await meetingsInit();
+		process.stdout.write("success\n");
+
+		process.stdout.write("init polls... ");
+		await pollInit();
 		process.stdout.write("success\n");
 	} catch (error) {
 		process.stdout.write("FAIL\n");
