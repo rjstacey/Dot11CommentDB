@@ -55,6 +55,8 @@ function InputDates({
 	value,
 	onChange,
 	disabled,
+	readOnly,
+	isInvalid,
 	multi,
 	dual,
 	disablePast,
@@ -66,6 +68,8 @@ function InputDates({
 	value?: Array<string>;
 	onChange?: (value: Array<string>) => void;
 	disabled?: boolean;
+	readOnly?: boolean;
+	isInvalid?: boolean;
 	multi?: boolean;
 	dual?: boolean;
 	disablePast?: boolean;
@@ -140,16 +144,14 @@ function InputDates({
 		setDates(dates);
 	}
 
+	let cn = styles["input-dates"] + " form-control";
+	if (disabled) cn += " disabled";
+	if (readOnly) cn += " read-only";
+	if (isInvalid) cn += " is-invalid";
+	if (className) cn += ` ${className}`;
+
 	return (
-		<div
-			className={
-				"form-control " +
-				styles["input-dates"] +
-				(disabled ? " disabled" : "") +
-				(className ? " " + className : "")
-			}
-			style={style}
-		>
+		<div className={cn} style={style}>
 			<TextArea
 				id={id}
 				className={"textarea" + (dates.length === 0 ? " invalid" : "")}

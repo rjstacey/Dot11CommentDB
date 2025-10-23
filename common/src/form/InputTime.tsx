@@ -4,21 +4,16 @@ import { FormControl as Input } from "react-bootstrap";
 const toTimeStr = (hour: number, min: number) =>
 	("0" + hour).slice(-2) + ":" + ("0" + min).slice(-2);
 
-interface InputTimeProps
-	extends Omit<React.ComponentProps<typeof Input>, "onChange"> {
-	style?: React.CSSProperties;
-	value: string;
-	onChange: (value: string) => void;
-	placeholder?: string;
-}
-
 function InputTime({
 	style,
 	value,
 	onChange,
 	placeholder,
-	...otherProps
-}: InputTimeProps) {
+	...props
+}: {
+	value: string;
+	onChange: (value: string) => void;
+} & Omit<React.ComponentProps<typeof Input>, "value" | "onChange">) {
 	const [rawValue, setRawValue] = React.useState(value);
 	const [valid, setValid] = React.useState(true);
 	const [hasFocus, setHasFocus] = React.useState(false);
@@ -67,7 +62,7 @@ function InputTime({
 			placeholder={placeholder}
 			onFocus={() => setHasFocus(true)}
 			onBlur={() => setHasFocus(false)}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }
