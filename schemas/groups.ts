@@ -25,8 +25,8 @@ export const groupSchema = z.object({
 	color: z.string().nullable(),
 	symbol: z.string().nullable(),
 	project: z.string().nullable(),
-	permissions: z.record(z.number()),
-	permissionsRaw: z.record(z.number()).optional(),
+	permissions: z.record(z.string(), z.number()),
+	permissionsRaw: z.record(z.string(), z.number()).optional(),
 	officerSAPINs: z.number().array(),
 });
 export const groupsSchema = z.array(groupSchema);

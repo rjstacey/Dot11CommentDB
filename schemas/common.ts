@@ -1,3 +1,3 @@
 import { z } from "zod";
 
-export const datetimeSchema = z.string().datetime({ offset: true });
+export const datetimeSchema = z.iso.datetime({ offset: true });

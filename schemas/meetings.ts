@@ -12,9 +12,9 @@ export const meetingIdsSchema = meetingIdSchema.array();
 
 export const meetingSchema = z.object({
 	id: meetingIdSchema,
-	organizationId: z.string().uuid(),
-	start: z.string().datetime({ offset: true }),
-	end: z.string().datetime({ offset: true }),
+	organizationId: z.uuid(),
+	start: z.iso.datetime({ offset: true }),
+	end: z.iso.datetime({ offset: true }),
 	timezone: z.string(),
 	summary: z.string(),
 	location: z.string().nullable().optional(),
