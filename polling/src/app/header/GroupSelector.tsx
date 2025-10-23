@@ -9,7 +9,7 @@ import {
 	selectSubgroups,
 } from "@/store/groups";
 
-import css from "./app.module.css";
+import css from "../app.module.css";
 
 export function GroupSelector(
 	props: Pick<

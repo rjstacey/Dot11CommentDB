@@ -13,7 +13,7 @@ function MemberSelector({
 	onChange: (value: number | null) => void;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"className" | "style" | "readOnly" | "disabled" | "id"
+	"className" | "style" | "readOnly" | "disabled" | "id" | "isInvalid"
 >) {
 	const { loading } = useAppSelector(selectMembersState);
 	const members = useAppSelector(selectMembers);

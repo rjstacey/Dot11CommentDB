@@ -1,4 +1,4 @@
-import { Row, FieldLeft, Checkbox } from "dot11-components";
+import { Form, Row, Col } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 import {
@@ -40,7 +40,7 @@ function PollOptions({ poll }: { poll: Poll }) {
 					const id = `pollOption-${i}`;
 					return (
 						<div key={id} className={css.pollOption}>
-							<Checkbox
+							<Form.Check
 								id={id}
 								checked={pollVotes.includes(i)}
 								onChange={() => toggleVote(i)}
@@ -78,14 +78,20 @@ function PollForm({ poll }: { poll: Poll }) {
 				<PollOptions poll={poll} />
 			</div>
 			{poll.type === "m" && (
-				<Row>
-					<FieldLeft label="Moved:">
-						<MemberShow sapin={poll.movedSAPIN} />
-					</FieldLeft>
-					<FieldLeft label="Seconded:">
+				<Form.Group
+					as={Row}
+					className="mb-3"
+					controlId="formMovedSeconded"
+				>
+					<Col>
+						<Form.Label htmlFor="moved">Moved:</Form.Label>
+						<MemberShow id="moved" sapin={poll.movedSAPIN} />
+					</Col>
+					<Col>
+						<Form.Label htmlFor="seconded">Seconded:</Form.Label>
 						<MemberShow id="seconded" sapin={poll.secondedSAPIN} />
-					</FieldLeft>
-				</Row>
+					</Col>
+				</Form.Group>
 			)}
 		</>
 	);

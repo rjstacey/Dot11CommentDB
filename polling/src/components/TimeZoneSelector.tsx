@@ -14,7 +14,7 @@ function TimeZoneSelector({
 	onChange: (value: string) => void;
 } & Pick<
 	React.ComponentProps<typeof Select>,
-	"className" | "style" | "readOnly" | "disabled" | "id"
+	"className" | "style" | "readOnly" | "disabled" | "id" | "isInvalid"
 >) {
 	const dispatch = useAppDispatch();
 	const { valid, loading, timeZones } = useAppSelector(selectTimeZonesState);

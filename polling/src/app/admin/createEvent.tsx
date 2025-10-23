@@ -1,21 +1,13 @@
 import React from "react";
 import { DateTime } from "luxon";
-import {
-	Button,
-	Form,
-	Row,
-	Dropdown,
-	DropdownRendererProps,
-	Field,
-	Input,
-	InputDates,
-	InputTime,
-} from "dot11-components";
+import { Form, Row, DropdownButton, Col } from "react-bootstrap";
+import { InputTime } from "@common";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { pollingAdminCreateEvent, EventCreate } from "@/store/pollingAdmin";
 import { selectSelectedGroupId } from "@/store/groups";
 
 import TimeZoneSelector from "@/components/TimeZoneSelector";
+import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 function useNullEvent() {
 	const groupId = useAppSelector(selectSelectedGroupId)!;
@@ -30,7 +22,7 @@ function useNullEvent() {
 	}, [groupId]);
 }
 
-function CreateEventForm({ methods }: DropdownRendererProps) {
+function CreateEventForm({ close }: { close: () => void }) {
 	const dispatch = useAppDispatch();
 	const nullEvent = useNullEvent();
 	const [event, setEvent] = React.useState<EventCreate>(nullEvent);
@@ -39,7 +31,7 @@ function CreateEventForm({ methods }: DropdownRendererProps) {
 	const [date, setDate] = React.useState<string | undefined>(
 		d.toISODate() || undefined
 	);
-	const [errorText, setErrorText] = React.useState<string | undefined>();
+	const [formValid, setFormValid] = React.useState<boolean>(false);
 
 	function changeEvent(changes: Partial<EventCreate>) {
 		setEvent((event) => ({ ...event, ...changes }));
@@ -50,109 +42,117 @@ function CreateEventForm({ methods }: DropdownRendererProps) {
 		date: string | undefined,
 		time: string
 	) {
-		if (!event.timeZone) {
-			setErrorText("Set time zone");
-			return;
-		}
-		if (!date) {
-			setErrorText("Date not set");
-			return;
-		}
+		if (!event.timeZone || !date || !time) return;
 		let d = DateTime.fromISO(date, { zone: event.timeZone });
-		if (!d.isValid) {
-			setErrorText("Invalid date");
-			return;
-		}
+		if (!d.isValid) return;
 		const t = DateTime.fromFormat(time, "HH:mm");
-		if (!t.isValid) {
-			setErrorText("Invalid time");
-			return;
-		}
+		if (!t.isValid) return;
 		d = d.set({ hour: t.hour, minute: t.minute });
-		setErrorText(undefined);
-		return { ...event, datetime: d.toISO()! };
-	}
-
-	function changeDate(dates: string[]) {
-		const [date] = dates;
-		setDate(date);
-		datetimeConversion(event, date, time);
-	}
-
-	function changeTime(time: string) {
-		setTime(time);
-		datetimeConversion(event, date, time);
+		return { ...event, datetime: d.toISO() };
 	}
 
 	async function submit() {
 		const updatedEvent = datetimeConversion(event, date, time);
 		if (updatedEvent) {
 			await dispatch(pollingAdminCreateEvent(updatedEvent));
-			methods.close();
+			close();
 		}
 	}
 
+	React.useEffect(() => {
+		const isValid = datetimeConversion(event, date, time) !== undefined;
+		setFormValid(isValid);
+	}, [event, date, time]);
+
 	return (
 		<Form
-			style={{ width: 300 }}
-			title="Add Event"
-			submitLabel="Add"
-			submit={submit}
-			cancel={methods.close}
-			errorText={errorText}
+			noValidate
+			onSubmit={submit}
+			style={{ width: 400 }}
+			className="p-3"
 		>
-			<Row>
-				<Field label="Name:">
-					<Input
+			<Form.Group as={Row} className="align-items-center mb-3">
+				<Col xs="auto">
+					<Form.Label htmlFor="eventName">Name:</Form.Label>
+				</Col>
+				<Col>
+					<Form.Control
+						id="eventName"
 						type="text"
 						value={event.name}
 						onChange={(e) => changeEvent({ name: e.target.value })}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Time zone:">
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="align-items-center mb-3">
+				<Col xs="auto">
+					<Form.Label htmlFor="eventTimeZone">Timezone:</Form.Label>
+				</Col>
+				<Col>
 					<TimeZoneSelector
-						style={{ width: 200, height: 35 }}
+						id="eventTimeZone"
 						value={event.timeZone || ""}
 						onChange={(value) => changeEvent({ timeZone: value })}
+						isInvalid={!event.timeZone}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Date:">
-					<InputDates
-						multi={false}
-						value={date ? [date] : undefined}
-						onChange={changeDate}
+					<Form.Control.Feedback type="invalid">
+						{"Select time zone"}
+					</Form.Control.Feedback>
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="align-items-center mb-3">
+				<Col>
+					<Form.Label htmlFor="eventDate">Date:</Form.Label>
+				</Col>
+				<Col xs="auto">
+					<Form.Control
+						id="eventDate"
+						type="date"
+						value={date || ""}
+						onChange={(e) => setDate(e.target.value || undefined)}
+						isInvalid={!date}
 					/>
-				</Field>
-			</Row>
-			<Row>
-				<Field label="Time:">
-					<InputTime value={time} onChange={changeTime} />
-				</Field>
-			</Row>
+					<Form.Control.Feedback type="invalid">
+						{"Set date"}
+					</Form.Control.Feedback>
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="align-items-center mb-3">
+				<Col>
+					<Form.Label htmlFor="eventTime">Time:</Form.Label>
+				</Col>
+				<Col>
+					<InputTime
+						id="eventTime"
+						value={time}
+						onChange={setTime}
+						isInvalid={!time}
+					/>
+					<Form.Control.Feedback type="invalid">
+						{"Set time"}
+					</Form.Control.Feedback>
+				</Col>
+			</Form.Group>
+			<SubmitCancelRow
+				submitLabel="Add"
+				cancel={close}
+				disabled={!formValid}
+			/>
 		</Form>
 	);
 }
 
 function CreateEvent() {
+	const [show, setShow] = React.useState(false);
 	return (
 		<div>
-			<Dropdown
-				handle={false}
-				selectRenderer={({ state, methods }: DropdownRendererProps) => (
-					<Button
-						title="Export a list of voters"
-						isActive={state.isOpen}
-						onClick={state.isOpen ? methods.close : methods.open}
-					>
-						+ Event
-					</Button>
-				)}
-				dropdownRenderer={(props) => <CreateEventForm {...props} />}
-			/>
+			<DropdownButton
+				title="+ Event"
+				show={show}
+				onToggle={() => setShow(!show)}
+			>
+				<CreateEventForm close={() => setShow(false)} />
+			</DropdownButton>
 		</div>
 	);
 }

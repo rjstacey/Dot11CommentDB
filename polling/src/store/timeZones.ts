@@ -4,7 +4,6 @@ import type { RootState, AppThunk } from ".";
 
 import { fetcher } from "@common";
 import { setError } from ".";
-
 import { timeZonesSchema } from "@schemas/timeZones";
 
 interface TimeZonesState {

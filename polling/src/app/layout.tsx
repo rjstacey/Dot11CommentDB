@@ -1,6 +1,6 @@
 import { Outlet } from "react-router";
 import { ErrorModal, ConfirmModal } from "@common";
-import Header from "./Header";
+import Header from "./header";
 
 import css from "./app.module.css";
 
