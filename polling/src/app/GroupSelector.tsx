@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Select } from "dot11-components";
+import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import {
 	selectTopLevelGroup,
@@ -12,9 +12,9 @@ import {
 import css from "./app.module.css";
 
 export function GroupSelector(
-	props: Omit<
+	props: Pick<
 		React.ComponentProps<typeof Select>,
-		"values" | "onChange" | "options"
+		"id" | "className" | "style" | "readOnly" | "disabled"
 	>
 ) {
 	const location = useLocation();
@@ -54,9 +54,9 @@ export function GroupSelector(
 }
 
 export function SubgroupSelector(
-	props: Omit<
+	props: Pick<
 		React.ComponentProps<typeof Select>,
-		"values" | "onChange" | "options"
+		"id" | "className" | "style" | "readOnly" | "disabled"
 	>
 ) {
 	const location = useLocation();

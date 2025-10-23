@@ -1,10 +1,8 @@
 import { Dropdown } from "react-bootstrap";
-
-import { clearUser } from "@common";
-
+import { clearUserLocalStorage } from "@common";
 import { resetStore } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectUser } from "@/store/user";
+import { selectUser } from "@/store";
 
 import pkg from "../../../package.json";
 
@@ -13,7 +11,7 @@ export function AccountDropdown() {
 	const user = useAppSelector(selectUser);
 	const signOut = () => {
 		dispatch(resetStore());
-		clearUser();
+		clearUserLocalStorage();
 	};
 
 	return (

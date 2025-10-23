@@ -1,15 +1,15 @@
 import { createSlice, isPlainObject } from "@reduxjs/toolkit";
 import { io, Socket } from "socket.io-client";
-import z from "zod";
-import { setError } from "dot11-components";
+import { z } from "zod";
+import { AccessLevel } from "@common";
 import {
 	GroupJoin,
 	groupJoinResponseSchema,
 	PollingError,
 	PollingOK,
 } from "@schemas/poll";
-import { AppThunk, RootState } from ".";
-import { AccessLevel, selectUser } from "./user";
+import { AppThunk, RootState, setError } from ".";
+import { selectUser } from ".";
 import { selectGroup, selectSelectedGroupId } from "./groups";
 import {
 	setEventId as pollingAdminSetEventId,
@@ -87,11 +87,11 @@ function isErrorResponse(response: unknown): response is PollingError {
 	);
 }
 
-export function okResponse<T extends z.ZodTypeAny>(
+/*export function okResponse<T extends z.ZodTypeAny>(
 	response: unknown,
 	schema: T
 ): z.infer<T>;
-export function okResponse(response: unknown): undefined;
+export function okResponse(response: unknown): undefined;*/
 export function okResponse<T extends z.ZodTypeAny>(
 	response: unknown,
 	schema?: T
@@ -108,16 +108,16 @@ export function okResponse<T extends z.ZodTypeAny>(
 
 export function pollingSocketEmit(
 	message: string,
-	data?: any // eslint-disable-line @typescript-eslint/no-explicit-any
+	data?: unknown
 ): Promise<undefined>;
 export function pollingSocketEmit<T extends z.ZodTypeAny>(
 	message: string,
-	data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+	data?: unknown,
 	schema?: T
 ): Promise<z.infer<T>>;
 export function pollingSocketEmit<T extends z.ZodTypeAny>(
 	message: string,
-	data?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+	data?: unknown,
 	schema?: T
 ): Promise<z.infer<T> | undefined> {
 	return new Promise((resolve, reject) => {
@@ -125,9 +125,7 @@ export function pollingSocketEmit<T extends z.ZodTypeAny>(
 			const socket = getSocket();
 			socket.emit(message, data, (response: unknown) => {
 				try {
-					const result = schema
-						? okResponse(response, schema)
-						: okResponse(response);
+					const result = okResponse(response, schema);
 					resolve(result);
 				} catch (error) {
 					reject(error);

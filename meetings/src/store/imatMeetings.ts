@@ -2,7 +2,6 @@ import { createSelector, createAction, EntityId } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
-	setError,
 	displayDate,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
@@ -11,6 +10,7 @@ import {
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
+import { setError } from ".";
 import { selectCurrentSession, selectSessionEntities } from "./sessions";
 import { ImatMeeting, imatMeetingsSchema } from "@schemas/imat";
 

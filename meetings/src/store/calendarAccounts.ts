@@ -5,8 +5,9 @@ import {
 } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
-import { fetcher, setError } from "@common";
+import { fetcher } from "@common";
 import type { AppThunk, RootState } from ".";
+import { setError } from ".";
 import {
 	CalendarAccount,
 	CalendarAccountCreate,

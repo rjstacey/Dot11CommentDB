@@ -14,12 +14,30 @@ export default defineConfig(({ command, mode }) => {
 		base: env.BASE_URL,
 		build: {
 			outDir: env.BUILD_PATH,
+			rollupOptions: {
+				output: {
+					manualChunks: {
+						react: ["react", "react-dom"],
+						router: ["react-router"],
+						boostrap: ["react-bootstrap"],
+						redux: [
+							"@reduxjs/toolkit",
+							"react-redux",
+							"redux-persist",
+							"@redux-offline/redux-offline",
+						],
+						common: ["@common"],
+						store: ["./src/store"],
+					},
+				},
+			},
 		},
 		plugins: [react()],
 		resolve: {
 			alias: {
 				"@": "/src",
 				"@schemas": path.resolve(__dirname, "../schemas"),
+				"@common": path.resolve(__dirname, "../common/src"),
 			},
 		},
 		server: {

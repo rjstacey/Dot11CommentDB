@@ -8,10 +8,10 @@ import {
 	deepMergeTagMultiple,
 	isMultiple,
 	MULTIPLE,
-	setError,
+	AccessLevel,
 } from "@common";
 
-import type { RootState } from "@/store";
+import { type RootState, setError } from "@/store";
 import { selectCurrentGroupDefaults } from "@/store/current";
 import { selectGroupEntities, selectTopLevelGroupId } from "@/store/groups";
 import {
@@ -19,7 +19,6 @@ import {
 	SyncedMeeting,
 	MeetingUpdate,
 } from "@/store/meetings";
-import { AccessLevel } from "@/store/user";
 
 import {
 	selectCurrentSession,

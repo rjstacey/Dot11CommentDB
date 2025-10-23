@@ -2,14 +2,13 @@ import * as React from "react";
 import { Duration } from "luxon";
 import { Form, Row, Col, Button } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { Select, isMultiple, Multiple, setError } from "@common";
-import { InputDates, InputTime } from "@common";
+import { Select, isMultiple, Multiple, InputDates, InputTime } from "@common";
 
+import { setError } from "@/store";
 import {
 	selectCurrentSession,
 	selectCurrentSessionDates,
 } from "@/store/sessions";
-
 import { selectGroupEntities } from "@/store/groups";
 
 import TimeZoneSelector from "@/components/TimeZoneSelector";

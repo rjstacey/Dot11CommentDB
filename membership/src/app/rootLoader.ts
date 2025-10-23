@@ -1,11 +1,9 @@
-import { type LoaderFunction } from "react-router";
-import { getUser, loginAndReturn } from "@common";
+import type { LoaderFunction } from "react-router";
+import { fetcher, getUserLocalStorage, loginAndReturn } from "@common";
 
-import { store, persistReady, resetStore } from "@/store";
-import { setUser, selectUser } from "@/store/user";
+import { store, persistReady, resetStore, setUser, selectUser } from "@/store";
 import { loadGroups } from "@/store/groups";
 import { loadTimeZones } from "@/store/timeZones";
-import { fetcher } from "@common";
 
 let p: Promise<void> | undefined;
 
@@ -14,7 +12,7 @@ async function init() {
 
 	const { dispatch, getState } = store;
 
-	const user = await getUser().catch(loginAndReturn);
+	const user = await getUserLocalStorage().catch(loginAndReturn);
 	if (!user) throw new Error("Unable to get user");
 	fetcher.setToken(user.Token); // Prime fetcher with authorization token
 

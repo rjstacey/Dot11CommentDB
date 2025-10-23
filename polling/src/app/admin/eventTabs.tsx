@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { displayDate } from "dot11-components";
+import { displayDate } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectPollingAdminEvents,

@@ -5,24 +5,23 @@ import {
 	PayloadAction,
 	EntityId,
 } from "@reduxjs/toolkit";
-
 import { v4 as uuid } from "uuid";
 
-import { fetcher } from "@common";
 import {
-	setError,
+	fetcher,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
+	AccessLevel,
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
+import { setError } from ".";
 import {
 	getGroupOfficers,
 	selectOfficerEntities,
 	selectOfficerIds,
 	Officer,
 } from "./officers";
-import { AccessLevel } from "./user";
 
 import {
 	GroupType,

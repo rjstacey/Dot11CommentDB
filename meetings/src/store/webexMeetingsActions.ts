@@ -1,7 +1,8 @@
-import { fetcher, setError, shallowEqual } from "@common";
+import { fetcher, shallowEqual } from "@common";
 
 import slice, { getPending, clearWebexMeetings } from "./webexMeetingsSlice";
 import type { AppThunk } from ".";
+import { setError } from ".";
 import {
 	selectWebexMeetingsAge,
 	selectWebexMeetingsState,

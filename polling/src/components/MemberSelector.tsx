@@ -1,5 +1,5 @@
 import React from "react";
-import { Select } from "dot11-components";
+import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectMembersState, selectMembers } from "@/store/members";
@@ -7,14 +7,13 @@ import { selectMembersState, selectMembers } from "@/store/members";
 function MemberSelector({
 	value,
 	onChange,
-	readOnly,
-	...otherProps
+	...props
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"className" | "style" | "readOnly" | "disabled" | "id"
 >) {
 	const { loading } = useAppSelector(selectMembersState);
 	const members = useAppSelector(selectMembers);
@@ -39,8 +38,7 @@ function MemberSelector({
 			options={options}
 			loading={loading}
 			clearable
-			readOnly={readOnly}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }

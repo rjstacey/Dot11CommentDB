@@ -8,7 +8,6 @@ import { DateTime } from "luxon";
 
 import {
 	fetcher,
-	setError,
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
@@ -16,6 +15,7 @@ import {
 } from "@common";
 
 import type { AppThunk, RootState } from ".";
+import { setError } from ".";
 import { selectMeetingEntities } from "./meetings";
 import { selectSyncedImatMeetingEntities } from "./imatMeetings";
 import {

@@ -7,12 +7,8 @@ import {
 	type Multiple,
 	isMultiple,
 	MULTIPLE,
+	AccessLevel,
 } from "@common";
-
-import CommentEdit from "./CommentEdit";
-import ResolutionEdit from "./ResolutionEdit";
-import { EditingNotesRowCollapsable } from "./EditingNotes";
-
 import { useAppDispatch } from "@/store/hooks";
 import {
 	addResolutions,
@@ -25,7 +21,10 @@ import {
 	ResolutionCreate,
 	getCommentStatus,
 } from "@/store/comments";
-import { AccessLevel } from "@/store/user";
+
+import CommentEdit from "./CommentEdit";
+import ResolutionEdit from "./ResolutionEdit";
+import { EditingNotesRowCollapsable } from "./EditingNotes";
 
 export type MultipleCommentResolution = Multiple<CommentResolution>;
 export type MultipleComment = Multiple<Comment>;

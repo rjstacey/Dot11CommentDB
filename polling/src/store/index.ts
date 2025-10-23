@@ -14,9 +14,13 @@ import {
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import { get, set, del } from "idb-keyval";
 
-import { errorsSlice } from "dot11-components";
+import {
+	errorsSlice,
+	userSlice,
+	createPersistReady,
+	RESET_STORE_ACTION,
+} from "@common";
 
-import userSlice from "./user";
 import timeZonesSlice from "./timeZones";
 import groupsSlice from "./groups";
 import membersSlice from "./members";
@@ -24,7 +28,8 @@ import pollingSocketSlice from "./pollingSocket";
 import pollingAdminSlice from "./pollingAdmin";
 import pollingUserSlice from "./pollingUser";
 
-const RESET_STORE_ACTION = "root/RESET_STORE";
+export { setUser, selectUser, setError, resetStore } from "@common";
+
 const PERSIST_VERSION = 1;
 
 /* Transform presistant state so that we reset "loading" state */
@@ -101,8 +106,7 @@ export const store = configureReduxStore({
 });
 
 export const persistor = persistStore(store);
-
-export const resetStore = (): Action => ({ type: RESET_STORE_ACTION });
+export const persistReady = createPersistReady(persistor);
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof rootReducer>;

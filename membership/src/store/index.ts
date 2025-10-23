@@ -3,7 +3,6 @@ import {
 	configureStore as configureReduxStore,
 } from "@reduxjs/toolkit";
 import type { Action, ThunkAction, Middleware } from "@reduxjs/toolkit";
-
 import { createLogger } from "redux-logger";
 import {
 	persistStore,
@@ -14,7 +13,6 @@ import {
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import { get, set, del } from "idb-keyval";
 
-import userSlice from "./user";
 import groupsSlice from "./groups";
 import timeZonesSlice from "./timeZones";
 import membersSlice from "./members";
@@ -30,11 +28,15 @@ import sessionsSlice from "./sessions";
 import emailTemlatesSlice from "./emailTemplates";
 import affliationMapSlice from "./affiliationMap";
 import myProjectRosterSlice from "./myProjectRoster";
-import { errorsSlice } from "@common";
+import {
+	errorsSlice,
+	userSlice,
+	createPersistReady,
+	RESET_STORE_ACTION,
+} from "@common";
 
-import { createPersistReady } from "./persistReady";
+export { setError, setUser, selectUser, resetStore, type User } from "@common";
 
-const RESET_STORE_ACTION = "root/RESET_STORE";
 const PERSIST_VERSION = 4;
 
 /* Transform presistant state so that we reset "loading" state */
@@ -146,8 +148,6 @@ export const store = configureReduxStore({
 
 export const persistor = persistStore(store);
 export const persistReady = createPersistReady(persistor);
-
-export const resetStore = (): Action => ({ type: RESET_STORE_ACTION });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof rootReducer>;

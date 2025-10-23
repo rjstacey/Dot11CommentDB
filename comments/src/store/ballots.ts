@@ -8,10 +8,10 @@ import {
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
+	AccessLevel,
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
-import { AccessLevel } from "./user";
 import { selectGroupEntities, selectTopLevelGroupByName } from "./groups";
 
 import {

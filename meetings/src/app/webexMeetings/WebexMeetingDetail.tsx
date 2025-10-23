@@ -1,9 +1,9 @@
 import * as React from "react";
+import { Container, Row, Col, Form, Button, Spinner } from "react-bootstrap";
 import { connect, ConnectedProps } from "react-redux";
 import { DateTime } from "luxon";
 
 import { useAppSelector } from "@/store/hooks";
-import { Container, Row, Col, Form, Button, Spinner } from "react-bootstrap";
 import {
 	Select,
 	ConfirmModal,
@@ -14,9 +14,10 @@ import {
 	MULTIPLE,
 	Multiple,
 	InputTime,
+	AccessLevel,
 } from "@common";
 
-import { RootState } from "@/store";
+import { type RootState } from "@/store";
 import {
 	selectWebexMeetingsState,
 	selectSyncedWebexMeetingEntities,
@@ -35,7 +36,6 @@ import {
 import { updateMeetings, Meeting } from "@/store/meetings";
 import { selectWebexAccountDefaultId } from "@/store/webexAccounts";
 import { selectCurrentSession } from "@/store/sessions";
-import { AccessLevel } from "@/store/user";
 
 import WebexAccountSelector from "@/components/WebexAccountSelector";
 import TimeZoneSelector from "@/components/TimeZoneSelector";

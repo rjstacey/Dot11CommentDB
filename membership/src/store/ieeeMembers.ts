@@ -6,9 +6,10 @@ import {
 } from "@reduxjs/toolkit";
 
 import { fetcher } from "@common";
-import { setError, createAppTableDataSlice, FieldType } from "@common";
+import { createAppTableDataSlice, FieldType } from "@common";
 
 import type { RootState, AppThunk } from ".";
+import { setError } from ".";
 import type { ContactEmail, ContactInfo } from "./members";
 
 export type IeeeMember = {

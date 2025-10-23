@@ -1,5 +1,3 @@
-import { fetcher } from ".";
-
 const LOGIN_STORAGE = "User";
 
 export type User = {
@@ -9,15 +7,15 @@ export type User = {
 	Token: any;
 };
 
-export function setUser(user: User) {
+export function setUserLocalStorage(user: User) {
 	localStorage.setItem(LOGIN_STORAGE, JSON.stringify(user));
 }
 
-export function clearUser() {
+export function clearUserLocalStorage() {
 	localStorage.removeItem(LOGIN_STORAGE);
 }
 
-export function getUser() {
+export function getUserLocalStorage() {
 	// Get user from local storage. This may fail if the browser has certain privacy settings.
 	let user: User | undefined;
 	try {
@@ -33,7 +31,7 @@ export function getUser() {
 
 export async function loginAndReturn() {
 	try {
-		clearUser();
+		clearUserLocalStorage();
 	} catch (error) {}
 	window.location.href = "/login?redirect=" + window.location.pathname;
 	await new Promise((r) => setTimeout(r, 1000));

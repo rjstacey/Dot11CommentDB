@@ -1,7 +1,7 @@
 import { LoaderFunction } from "react-router";
 
 import { store } from "@/store";
-import { AccessLevel } from "@/store/user";
+import { AccessLevel } from "@common";
 import { loadGroups, selectTopLevelGroupByName } from "@/store/groups";
 import { loadSessions } from "@/store/sessions";
 import { loadIeeeMembers } from "@/store/ieeeMembers";

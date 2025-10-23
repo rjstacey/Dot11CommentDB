@@ -15,7 +15,7 @@ import {
 } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectUser, type User } from "@/store/user";
+import { selectUser, type User } from "@/store";
 import {
 	selectSyncedMeetingEntities,
 	selectMeetingIds,

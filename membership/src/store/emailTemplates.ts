@@ -4,9 +4,9 @@ import {
 	PayloadAction,
 } from "@reduxjs/toolkit";
 import { fetcher } from "@common";
-import { setError } from "@common";
 
 import type { AppThunk, RootState } from ".";
+import { setError } from ".";
 import {
 	emailTemplatesSchema,
 	EmailTemplate,

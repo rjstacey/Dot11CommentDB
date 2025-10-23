@@ -1,6 +1,6 @@
-import { RouteObject, LoaderFunction } from "react-router";
+import type { RouteObject, LoaderFunction } from "react-router";
+import { AccessLevel } from "@common";
 import { store } from "@/store";
-import { AccessLevel } from "@/store/user";
 import { selectIsOnline } from "@/store/offline";
 import {
 	loadBallots,

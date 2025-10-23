@@ -1,7 +1,5 @@
-import { AppTable, ShowFilters, SplitPanel, Panel } from "@common";
-
+import { AppTable, ShowFilters, SplitPanel, Panel, AccessLevel } from "@common";
 import { useAppSelector } from "@/store/hooks";
-import { AccessLevel } from "@/store/user";
 import {
 	fields,
 	selectBallotsAccess,

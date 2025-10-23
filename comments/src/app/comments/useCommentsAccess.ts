@@ -1,8 +1,9 @@
 import * as React from "react";
+import { AccessLevel } from "@common";
+import { selectUser } from "@/store";
 import { useAppSelector } from "@/store/hooks";
 import { selectCommentsRoleAccess, CommentResolution } from "@/store/comments";
 import { selectGroupEntities } from "@/store/groups";
-import { AccessLevel, selectUser } from "@/store/user";
 
 export function useCommentsAccess(comments: CommentResolution[]) {
 	const user = useAppSelector(selectUser);

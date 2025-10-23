@@ -1,7 +1,6 @@
-import { Multiple } from "@common";
-
+import { Multiple, AccessLevel } from "@common";
 import type { Resolution, ResolutionChange } from "@/store/comments";
-import { AccessLevel } from "@/store/user";
+
 import { ResolutionAssigneeSubmissionRow } from "./ResolutionAssigneeRow";
 import { ResolutionRow } from "./ResolutionRow";
 import { ResolutionApprovalRow } from "./ResolutionApprovalRow";

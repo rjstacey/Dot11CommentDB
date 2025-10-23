@@ -9,7 +9,6 @@ import isEqual from "lodash.isequal";
 
 import { fetcher } from "@common";
 import {
-	setError,
 	createAppTableDataSlice,
 	Fields,
 	FieldType,
@@ -17,6 +16,7 @@ import {
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
+import { setError } from ".";
 import type { ContactInfo } from "./members";
 import { selectMemberEntities } from "./members";
 import { selectSessionByNumber, selectSessionEntities } from "./sessions";

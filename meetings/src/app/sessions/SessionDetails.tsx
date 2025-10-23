@@ -1,8 +1,7 @@
 import * as React from "react";
 import { Spinner, Button } from "react-bootstrap";
-import { ConfirmModal, Multiple } from "@common";
+import { ConfirmModal, Multiple, AccessLevel } from "@common";
 
-import { AccessLevel } from "@/store/user";
 import {
 	deleteSessions,
 	setSelected,

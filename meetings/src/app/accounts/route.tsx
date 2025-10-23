@@ -1,7 +1,7 @@
 import { LoaderFunction, RouteObject } from "react-router";
+import { AccessLevel } from "@common";
 import { store } from "@/store";
 import { selectTopLevelGroupByName, loadGroups } from "@/store/groups";
-import { AccessLevel } from "@/store/user";
 
 import AccountsLayout from "./layout";
 import { rootLoader } from "../rootLoader";

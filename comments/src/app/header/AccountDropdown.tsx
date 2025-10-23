@@ -2,9 +2,8 @@ import { Dropdown } from "react-bootstrap";
 
 import { loginAndReturn } from "@common";
 
-import { resetStore, persistor } from "@/store";
+import { resetStore, persistor, selectUser, setUser } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectUser, setUser } from "@/store/user";
 
 import pkg from "../../../package.json";
 

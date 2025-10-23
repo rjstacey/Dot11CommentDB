@@ -14,15 +14,18 @@ import {
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import { get, set, del } from "idb-keyval";
 
-import { errorsSlice, createPersistReady } from "@common";
-
-import userSlice from "./user";
+import {
+	errorsSlice,
+	userSlice,
+	createPersistReady,
+	RESET_STORE_ACTION,
+} from "@common";
 import groupsSlice from "./groups";
+
+export { resetStore, setUser, selectUser } from "@common";
 
 // Change the version number with a breaking change in the store structure
 const version = 1;
-
-const RESET_STORE_ACTION = "root/RESET_STORE";
 
 const dataAppSliceNames = [groupsSlice.name];
 
@@ -92,8 +95,6 @@ export const store = configureReduxStore({
 
 export const persistor = persistStore(store);
 export const persistReady = createPersistReady(persistor);
-
-export const resetStore = (): Action => ({ type: RESET_STORE_ACTION });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 type StoreType = typeof store;

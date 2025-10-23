@@ -6,7 +6,7 @@ import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectWorkingGroups } from "@/store/groups";
-import { AccessLevel } from "@/store/user";
+import { AccessLevel } from "@common";
 
 import styles from "./root.module.css";
 

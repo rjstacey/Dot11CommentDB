@@ -1,7 +1,7 @@
 import { fetcher } from "@common";
-import { setError } from "@common";
 
 import type { AppThunk } from ".";
+import { setError } from ".";
 import type {
 	Destination,
 	Content,

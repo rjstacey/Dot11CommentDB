@@ -1,12 +1,16 @@
 import { createSelector, EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
-import { displayDate, getAppTableDataSelectors, FieldType } from "@common";
+import {
+	displayDate,
+	getAppTableDataSelectors,
+	FieldType,
+	AccessLevel,
+} from "@common";
 
 import type { RootState } from ".";
 import { selectMeetingEntities } from "./meetingsSelectors";
 import { selectTopLevelGroupByName } from "./groups";
-import { AccessLevel } from "./user";
 
 import {
 	WebexMeeting,

@@ -18,9 +18,8 @@ import {
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import { get, set, del } from "idb-keyval";
 
-import { errorsSlice, createPersistReady } from "@common";
+import { errorsSlice, userSlice, createPersistReady } from "@common";
 
-import userSlice from "./user";
 import currentSlice from "./current";
 import membersSlice from "./members";
 import officersSlice from "./officers";
@@ -36,6 +35,8 @@ import imatMeetingAttendanceSlice from "./imatMeetingAttendance";
 import imatBreakoutAttendanceSlice from "./imatBreakoutAttendance";
 import webexMeetingsSlice from "./webexMeetingsSlice";
 import ieee802WorldSlice from "./ieee802World";
+
+export { setError, setUser, selectUser, type User } from "@common";
 
 // Change the version number with a breaking change in the store structure
 const version = 4;

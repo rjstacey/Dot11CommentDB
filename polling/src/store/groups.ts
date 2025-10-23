@@ -7,9 +7,10 @@ import {
 	Dictionary,
 } from "@reduxjs/toolkit";
 
-import { fetcher, setError } from "dot11-components";
+import { fetcher } from "@common";
 
 import type { RootState, AppThunk } from ".";
+import { setError } from ".";
 import { groupsSchema, groupTypesOrdered } from "@schemas/groups";
 import type {
 	GroupType,

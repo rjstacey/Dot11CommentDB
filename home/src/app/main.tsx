@@ -1,7 +1,7 @@
 import { Outlet } from "react-router";
 import { Container } from "react-bootstrap";
 import { useAppSelector } from "../store/hooks";
-import { selectUser } from "../store/user";
+import { selectUser } from "@/store";
 import WorkingGroupSelector from "./WorkingGroupSelector";
 
 function Root() {

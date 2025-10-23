@@ -3,9 +3,8 @@ import {
 	TablesConfig,
 	ChangeableColumnProperties,
 	CellRendererProps,
+	AccessLevel,
 } from "@common";
-
-import { AccessLevel } from "@/store/user";
 import { BallotType } from "@/store/ballots";
 
 const renderItem = ({ rowData, dataKey }: CellRendererProps) => (

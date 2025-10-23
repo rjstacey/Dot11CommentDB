@@ -1,11 +1,12 @@
 import { useLocation, useNavigate, useParams } from "react-router";
-
-import { Account, Button } from "dot11-components";
+import { Button } from "react-bootstrap";
+import { Account } from "dot11-components";
+import { AccessLevel } from "@common";
 import Toggle from "@/components/toggle";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { resetStore } from "@/store";
 import { selectTopLevelGroup, selectSelectedGroup } from "@/store/groups";
-import { AccessLevel, selectUser, setUser } from "@/store/user";
+import { selectUser, setUser } from "@/store";
 import { GroupSelector, SubgroupSelector } from "./GroupSelector";
 
 import pkg from "../../package.json";

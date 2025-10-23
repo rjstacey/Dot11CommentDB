@@ -3,7 +3,6 @@ import { DateTime } from "luxon";
 
 import {
 	fetcher,
-	setError,
 	displayDate,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
@@ -13,6 +12,7 @@ import {
 } from "@common";
 
 import type { AppThunk, RootState } from ".";
+import { setError } from ".";
 import { selectGroupsState, selectTopLevelGroup } from "./groups";
 import { selectCurrentSessionId } from "./current";
 import { selectSessionEntities, selectCurrentSession } from "./sessions";

@@ -1,8 +1,7 @@
 import React from "react";
-import { AppTable, ShowFilters, SplitPanel, Panel } from "@common";
+import { AppTable, ShowFilters, SplitPanel, Panel, AccessLevel } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { AccessLevel } from "@/store/user";
 import {
 	fields,
 	selectResultsBallot_id,

@@ -1,5 +1,5 @@
 import { Outlet } from "react-router";
-import { ErrorModal, ConfirmModal } from "dot11-components";
+import { ErrorModal, ConfirmModal } from "@common";
 import Header from "./Header";
 
 import css from "./app.module.css";

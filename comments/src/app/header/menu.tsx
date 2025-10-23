@@ -1,9 +1,8 @@
 import * as React from "react";
 import { NavLink, useParams, useMatch } from "react-router";
 import { Navbar, Nav } from "react-bootstrap";
-
+import { AccessLevel } from "@common";
 import { useAppSelector } from "@/store/hooks";
-import { AccessLevel } from "@/store/user";
 import { selectTopLevelGroupByName } from "@/store/groups";
 import { selectCurrentBallotID } from "@/store/ballots";
 import { selectCommentsSearch } from "@/store/comments";

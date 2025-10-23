@@ -1,7 +1,8 @@
-import { LoaderFunction } from "react-router";
+import type { LoaderFunction } from "react-router";
+import { shallowEqualArrays } from "shallow-equal";
+import { AccessLevel } from "@common";
 import { store } from "@/store";
 import { selectIsOnline } from "@/store/offline";
-import { AccessLevel } from "@/store/user";
 import { selectGroup } from "@/store/groups";
 import {
 	loadBallots,
@@ -16,7 +17,6 @@ import {
 	setSelected,
 	setPanelIsSplit,
 } from "@/store/comments";
-import { shallowEqualArrays } from "shallow-equal";
 
 import { rootLoader } from "../rootLoader";
 

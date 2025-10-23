@@ -30,7 +30,7 @@ import {
 } from "@/store/members";
 import { selectMostRecentAttendedSession } from "@/store/sessions";
 import { type Session } from "@/store/sessions";
-import { selectUser, type User } from "@/store/user";
+import { selectUser, type User } from "@/store";
 
 import RecipientsEditor from "./RecipientsEditor";
 import SubjectEditor from "./SubjectEditor";

@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Select } from "dot11-components";
+import { Select } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loadTimeZones, selectTimeZonesState } from "@/store/timeZones";
@@ -8,13 +8,13 @@ import { loadTimeZones, selectTimeZonesState } from "@/store/timeZones";
 function TimeZoneSelector({
 	value,
 	onChange,
-	...otherProps
+	...props
 }: {
 	value: string;
 	onChange: (value: string) => void;
-} & Omit<
+} & Pick<
 	React.ComponentProps<typeof Select>,
-	"values" | "onChange" | "options"
+	"className" | "style" | "readOnly" | "disabled" | "id"
 >) {
 	const dispatch = useAppDispatch();
 	const { valid, loading, timeZones } = useAppSelector(selectTimeZonesState);
@@ -28,10 +28,9 @@ function TimeZoneSelector({
 		[timeZones]
 	);
 
-	const handleChange = onChange
-		? (values: typeof options) =>
-				onChange(values.length > 0 ? values[0].value : "")
-		: undefined;
+	function handleChange(values: typeof options) {
+		onChange(values.length > 0 ? values[0].value : "");
+	}
 	const values = options.filter((o) => o.value === value);
 
 	return (
@@ -41,7 +40,7 @@ function TimeZoneSelector({
 			options={options}
 			loading={loading}
 			clearable
-			{...otherProps}
+			{...props}
 		/>
 	);
 }

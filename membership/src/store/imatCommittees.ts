@@ -5,9 +5,9 @@ import {
 	createSelector,
 } from "@reduxjs/toolkit";
 import { fetcher } from "@common";
-import { setError } from "@common";
 
 import type { AppThunk, RootState } from ".";
+import { setError } from ".";
 
 export type ImatCommitteeType = "Working Group" | "Project";
 export type Committee = {

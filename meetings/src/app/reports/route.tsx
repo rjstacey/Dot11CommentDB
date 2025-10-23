@@ -1,8 +1,7 @@
-import { LoaderFunction, RouteObject } from "react-router";
-import { setError } from "@common";
-import { store } from "@/store";
+import type { LoaderFunction, RouteObject } from "react-router";
+import { AccessLevel } from "@common";
+import { store, setError } from "@/store";
 import { selectTopLevelGroupByName, loadGroups } from "@/store/groups";
-import { AccessLevel } from "@/store/user";
 import { loadSessions, selectSessionByNumber, Session } from "@/store/sessions";
 import { loadImatMeetings } from "@/store/imatMeetings";
 import {

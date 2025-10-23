@@ -7,9 +7,10 @@ import {
 	Dictionary,
 } from "@reduxjs/toolkit";
 
-import { fetcher, setError } from "@common";
+import { fetcher } from "@common";
 
 import type { RootState, AppThunk } from ".";
+import { setError } from ".";
 import {
 	GroupType,
 	Group,

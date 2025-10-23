@@ -13,9 +13,13 @@ import {
 } from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import { get, set, del } from "idb-keyval";
-import { errorsSlice, createPersistReady } from "@common";
+import {
+	errorsSlice,
+	userSlice,
+	createPersistReady,
+	RESET_STORE_ACTION,
+} from "@common";
 
-import userSlice from "./user";
 import groupsSlice from "./groups";
 import membersSlice from "./members";
 import ballotsSlice from "./ballots";
@@ -27,9 +31,9 @@ import votersSlice from "./voters";
 import offlineSlice, { registerOffline } from "./offline";
 import liveUpdateSlice, { registerLiveUpdate } from "./liveUpdate";
 
-const PERSIST_VERSION = 4;
+export { selectUser, setUser, resetStore } from "@common";
 
-const RESET_STORE_ACTION = "root/RESET_STORE";
+const PERSIST_VERSION = 4;
 
 const dataAppSliceNames = [
 	groupsSlice.name,
@@ -131,8 +135,6 @@ export const persistor = persistStore(store, null, () => {
 	registerLiveUpdate(store);
 });
 export const persistReady = createPersistReady(persistor);
-
-export const resetStore = (): Action => ({ type: RESET_STORE_ACTION });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type StoreType = typeof store;

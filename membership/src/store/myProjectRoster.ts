@@ -8,7 +8,6 @@ import {
 
 import { fetcher } from "@common";
 import {
-	setError,
 	createAppTableDataSlice,
 	Fields,
 	FieldType,
@@ -16,6 +15,7 @@ import {
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
+import { setError } from ".";
 import { selectMembersState, selectMemberEntities, Member } from "./members";
 
 export const fields: Fields = {

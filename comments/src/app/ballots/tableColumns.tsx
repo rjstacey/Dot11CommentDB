@@ -12,10 +12,10 @@ import {
 	HeaderCellRendererProps,
 	displayDate,
 	CellRendererProps,
+	AccessLevel,
 } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
-import { AccessLevel } from "@/store/user";
 import { selectGroupEntities } from "@/store/groups";
 import {
 	fields,

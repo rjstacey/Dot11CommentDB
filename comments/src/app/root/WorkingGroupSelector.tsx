@@ -1,11 +1,8 @@
 import { useNavigate, useParams } from "react-router";
 import { createSelector } from "@reduxjs/toolkit";
-
-import { Select } from "@common";
-
+import { Select, AccessLevel } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectTopLevelGroups } from "@/store/groups";
-import { AccessLevel } from "@/store/user";
 
 const selectOptions = createSelector(selectTopLevelGroups, (groups) =>
 	groups.map((g) => {

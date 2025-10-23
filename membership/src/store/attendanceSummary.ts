@@ -9,9 +9,9 @@ import {
 import isEqual from "lodash.isequal";
 
 import { fetcher } from "@common";
-import { setError } from "@common";
 
 import type { RootState, AppThunk } from ".";
+import { setError } from ".";
 import {
 	selectMemberIds,
 	selectMemberEntities,

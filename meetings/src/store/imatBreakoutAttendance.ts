@@ -2,7 +2,6 @@ import { createAction, createSelector } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
-	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	FieldType,
@@ -10,6 +9,7 @@ import {
 } from "@common";
 
 import type { AppThunk, RootState } from ".";
+import { setError } from ".";
 import { selectImatMeetingEntities } from "./imatMeetings";
 import {
 	selectBreakoutMeetingId,

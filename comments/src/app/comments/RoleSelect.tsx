@@ -2,7 +2,7 @@ import * as React from "react";
 import { Dropdown, DropdownButton } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectUser } from "@/store/user";
+import { selectUser } from "@/store";
 import { selectGroupHeirarchy } from "@/store/groups";
 import {
 	selectCommentsBallot,

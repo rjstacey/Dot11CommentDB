@@ -1,13 +1,13 @@
 import { Dropdown } from "react-bootstrap";
-import { loginAndReturn } from "@common";
-import { resetStore, selectUser, setUser } from "@/store";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useDispatch, useSelector } from "react-redux";
+import { loginAndReturn } from "../lib";
+import { selectUser, setUser, resetStore } from "../store";
 
 import pkg from "../../../package.json";
 
-export function AccountDropdown() {
-	const dispatch = useAppDispatch();
-	const user = useAppSelector(selectUser);
+export function AccountDropdown({ className }: { className?: string }) {
+	const dispatch = useDispatch();
+	const user = useSelector(selectUser);
 	const reload = () => {
 		dispatch(resetStore());
 		dispatch(setUser(user));
@@ -15,8 +15,11 @@ export function AccountDropdown() {
 	};
 
 	return (
-		<Dropdown id="basic-nav-dropdown">
-			<Dropdown.Toggle variant="outline-secondary" id="dropdown-basic">
+		<Dropdown id="account-dropdown" className={className}>
+			<Dropdown.Toggle
+				variant="outline-secondary"
+				id="account-dropdown-toggle"
+			>
 				{`${user.Name} (${user.SAPIN})`}
 			</Dropdown.Toggle>
 			<Dropdown.Menu align="end">
@@ -25,9 +28,7 @@ export function AccountDropdown() {
 				</Dropdown.ItemText>
 				<Dropdown.ItemText>{user.Email}</Dropdown.ItemText>
 				<Dropdown.Divider />
-				<Dropdown.Item onClick={reload}>
-					Clear Cache and Reload
-				</Dropdown.Item>
+				<Dropdown.Item onClick={reload}>Clear and Reload</Dropdown.Item>
 				<Dropdown.Item onClick={loginAndReturn}>Sign Out</Dropdown.Item>
 			</Dropdown.Menu>
 		</Dropdown>

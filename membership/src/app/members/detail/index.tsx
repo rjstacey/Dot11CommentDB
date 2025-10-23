@@ -7,7 +7,7 @@ import { ConfirmModal } from "@common";
 import { deepMergeTagMultiple } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
-import { AccessLevel } from "@/store/user";
+import { AccessLevel } from "@common";
 import {
 	ContactInfo,
 	memberContactInfoEmpty,

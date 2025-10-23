@@ -1,8 +1,7 @@
-import { RouteObject, LoaderFunction } from "react-router";
-import { getUser, fetcher, User } from "@common";
-import { store, persistReady } from "@/store";
+import type { RouteObject, LoaderFunction } from "react-router";
+import { fetcher, getUserLocalStorage, loginAndReturn } from "@common";
+import { store, persistReady, resetStore, setUser, selectUser } from "@/store";
 import { loadGroups } from "@/store/groups";
-import { setUser } from "@/store/user";
 
 import Main from "./main";
 import ErrorPage from "./errorPage";
@@ -16,16 +15,15 @@ import Privacy from "./privacy";
 const rootLoader: LoaderFunction = async () => {
 	await persistReady;
 
-	const { dispatch } = store;
-	let user: User;
-	try {
-		user = await getUser();
-	} catch (error) {
-		console.log(error);
-		return null;
-	}
-	fetcher.setToken(user.Token);
-	dispatch(setUser(user));
+	const { dispatch, getState } = store;
+	const user = await getUserLocalStorage().catch(loginAndReturn);
+	if (!user) throw new Error("Unable to get user");
+	fetcher.setToken(user.Token); // Prime fetcher with authorization token
+
+	const storeUser = selectUser(getState());
+	if (storeUser.SAPIN !== user.SAPIN) dispatch(resetStore());
+	dispatch(setUser(user)); // Make sure we have the latest user info
+
 	await dispatch(loadGroups());
 	return null;
 };

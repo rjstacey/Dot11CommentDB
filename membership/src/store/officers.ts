@@ -1,13 +1,11 @@
 import { createSlice, createEntityAdapter } from "@reduxjs/toolkit";
 import type { Dictionary, EntityId, PayloadAction } from "@reduxjs/toolkit";
-
 import { v4 as uuid } from "uuid";
-import type { RootState, AppThunk } from ".";
-
 import { fetcher } from "@common";
-import { setError } from "@common";
 
-import { GroupType } from "./groups";
+import type { RootState, AppThunk } from ".";
+import { setError } from ".";
+import type { GroupType } from "./groups";
 import {
 	officersSchema,
 	OfficerId,

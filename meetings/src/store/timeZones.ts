@@ -1,10 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { RootState, AppThunk } from ".";
-
-import { fetcher, setError } from "@common";
-
+import { fetcher } from "@common";
 import { timeZonesSchema } from "@schemas/timeZones";
+import type { RootState, AppThunk } from ".";
+import { setError } from ".";
 
 interface TimeZonesState {
 	loading: boolean;

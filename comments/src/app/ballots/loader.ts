@@ -1,7 +1,6 @@
-import { LoaderFunction } from "react-router";
-
+import type { LoaderFunction } from "react-router";
+import { AccessLevel } from "@common";
 import { store } from "@/store";
-import { AccessLevel } from "@/store/user";
 import { selectTopLevelGroupByName } from "@/store/groups";
 import { loadBallots, selectBallotsState } from "@/store/ballots";
 import { rootLoader } from "../rootLoader";

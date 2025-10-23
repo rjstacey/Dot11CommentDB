@@ -1,7 +1,6 @@
-import { LoaderFunction } from "react-router";
-
+import type { LoaderFunction } from "react-router";
+import { AccessLevel } from "@common";
 import { store } from "@/store";
-import { AccessLevel } from "@/store/user";
 import { selectIsOnline } from "@/store/offline";
 import { loadGroups, selectTopLevelGroupByName } from "@/store/groups";
 import { loadMembers } from "@/store/members";

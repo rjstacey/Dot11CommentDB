@@ -12,7 +12,6 @@ import { DateTime } from "luxon";
 
 import { fetcher } from "@common";
 import {
-	setError,
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
@@ -20,6 +19,7 @@ import {
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
+import { setError } from ".";
 import {
 	selectMemberEntities,
 	Member,

@@ -1,7 +1,6 @@
 import { Link } from "react-router";
-
+import { AccessLevel } from "@common";
 import { useAppSelector } from "@/store/hooks";
-import { AccessLevel } from "@/store/user";
 import {
 	getEncodedBallotId,
 	selectBallotsAccess,

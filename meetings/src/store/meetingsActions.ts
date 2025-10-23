@@ -1,9 +1,10 @@
 import { EntityId } from "@reduxjs/toolkit";
-import { fetcher, setError, shallowEqual } from "@common";
+import { fetcher, shallowEqual } from "@common";
 
 import slice, { getPending, clearMeetings } from "./meetingsSlice";
 
 import type { AppThunk } from ".";
+import { setError } from ".";
 import { setWebexMeetings, upsertWebexMeetings } from "./webexMeetings";
 import { upsertBreakouts } from "./imatBreakouts";
 import {

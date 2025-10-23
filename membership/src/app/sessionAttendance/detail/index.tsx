@@ -14,7 +14,7 @@ import {
 
 import { store } from "@/store";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { AccessLevel } from "@/store/user";
+import { AccessLevel } from "@common";
 import {
 	selectMemberEntities,
 	selectUserMembersAccess,

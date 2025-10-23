@@ -1,8 +1,8 @@
 import { type LoaderFunction } from "react-router";
 import { getUserLocalStorage, loginAndReturn, fetcher } from "@common";
 import { store, persistReady, resetStore, setUser, selectUser } from "@/store";
+import { loadTimeZones } from "@/store/timeZones";
 import { loadGroups } from "@/store/groups";
-import { selectIsOnline } from "@/store/offline";
 
 async function init() {
 	await persistReady;
@@ -23,11 +23,11 @@ async function init() {
 const oneTimeInit = init();
 
 export const rootLoader: LoaderFunction = async () => {
-	const { dispatch, getState } = store;
-
 	await oneTimeInit;
 
-	if (selectIsOnline(getState())) dispatch(loadGroups());
+	const { dispatch } = store;
+	dispatch(loadTimeZones());
+	await dispatch(loadGroups());
 
 	return null;
 };

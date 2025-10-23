@@ -12,10 +12,10 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
+	AccessLevel,
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
-import { AccessLevel } from "./user";
 import {
 	updateBallotsLocal,
 	selectBallotEntities,

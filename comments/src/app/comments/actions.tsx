@@ -1,13 +1,12 @@
 import React from "react";
 import { Row, Col, Button } from "react-bootstrap";
-import { SplitTableButtonGroup } from "@common";
+import { SplitTableButtonGroup, AccessLevel } from "@common";
 
 import CommentsImport from "./CommentsImport";
 import CommentsExport from "./CommentsExport";
 import CommentsCopy from "./CommentsCopy";
 
 import { useAppSelector } from "@/store/hooks";
-import { AccessLevel } from "@/store/user";
 import {
 	selectCommentsAccess,
 	commentsSelectors,

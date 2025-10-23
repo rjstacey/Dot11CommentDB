@@ -1,18 +1,13 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { RootState } from ".";
+import type { User } from "../lib";
+
+export type { User };
 
 export const AccessLevel = {
 	none: 0,
 	ro: 1,
 	rw: 2,
 	admin: 3,
-};
-
-export type User = {
-	SAPIN: number;
-	Name: string;
-	Email: string;
-	Token: string | null;
 };
 
 const initialState: User = {
@@ -23,7 +18,7 @@ const initialState: User = {
 };
 
 const dataSet = "user";
-const slice = createSlice({
+export const userSlice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
@@ -33,10 +28,8 @@ const slice = createSlice({
 	},
 });
 
-export default slice;
-
 /* Slice actions */
-export const { setUser } = slice.actions;
+export const { setUser } = userSlice.actions;
 
 /* Selectors */
-export const selectUser = (state: RootState) => state[dataSet];
+export const selectUser = (state: { [dataSet]: User }) => state[dataSet];

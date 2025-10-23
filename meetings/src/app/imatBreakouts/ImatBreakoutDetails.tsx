@@ -15,6 +15,7 @@ import {
 	isMultiple,
 	Select,
 	Multiple,
+	AccessLevel,
 } from "@common";
 
 import ImatCommitteeSelector from "@/components/ImatCommitteeSelector";
@@ -49,7 +50,6 @@ import {
 	Group,
 	selectTopLevelGroupId,
 } from "@/store/groups";
-import { AccessLevel } from "@/store/user";
 
 const MULTIPLE_STR = "(Multiple)";
 const BLANK_STR = "(Blank)";

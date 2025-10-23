@@ -1,7 +1,7 @@
 import { useParams, NavLink } from "react-router";
 import { Container, Button, Nav } from "react-bootstrap";
 import { useAppSelector } from "../store/hooks";
-import { selectUser } from "../store/user";
+import { selectUser } from "@/store";
 import { AccountDropdown } from "./AccountDropdown";
 import { loginAndReturn } from "@common";
 
