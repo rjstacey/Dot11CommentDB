@@ -25,5 +25,8 @@
 	"bugs": {
 		"url": "https://github.com/rjstacey/Dot11CommentDB/issues"
 	},
-	"homepage": "https://github.com/rjstacey/Dot11CommentDB#readme"
+	"homepage": "https://github.com/rjstacey/Dot11CommentDB#readme",
+	"dependencies": {
+		"zod": "^4.1.12"
+	}
 }
