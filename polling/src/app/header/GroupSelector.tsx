@@ -7,6 +7,8 @@ import {
 	selectTopLevelGroups,
 	selectSelectedGroup,
 	selectSubgroups,
+	selectGroupEntities,
+	Group,
 } from "@/store/groups";
 
 import css from "../app.module.css";
@@ -53,6 +55,26 @@ export function GroupSelector(
 	);
 }
 
+function renderGroupName(
+	group: Group,
+	entities: ReturnType<typeof selectGroupEntities>
+) {
+	let label: string;
+	if (group.type === "wg") {
+		label = group.name;
+	} else {
+		const groups = [group];
+		let g: Group | undefined = group;
+		do {
+			g = g.parent_id ? entities[g.parent_id] : undefined;
+			if (g && g.type !== "wg") groups.unshift(g);
+		} while (g && g.type !== "wg");
+		label = groups.map((g) => g.name).join(" / ");
+	}
+
+	return label;
+}
+
 export function SubgroupSelector(
 	props: Pick<
 		React.ComponentProps<typeof Select>,
@@ -63,7 +85,7 @@ export function SubgroupSelector(
 	const navigate = useNavigate();
 	const group = useAppSelector(selectTopLevelGroup);
 	const subgroup = useAppSelector(selectSelectedGroup);
-
+	const entities = useAppSelector(selectGroupEntities);
 	const options = useAppSelector(selectSubgroups);
 	const values = options.filter((g) => g.id === subgroup?.id);
 
@@ -83,6 +105,9 @@ export function SubgroupSelector(
 		navigate(pathName);
 	}
 
+	const renderGroup = ({ item: group }: { item: Group }) =>
+		renderGroupName(group, entities);
+
 	return (
 		<Select
 			className={css["group-select"]}
@@ -90,12 +115,13 @@ export function SubgroupSelector(
 			values={values}
 			onChange={handleChange}
 			options={options}
+			searchable={false}
+			placeholder=""
+			//dropdownWidth={150}
 			valueField="id"
 			labelField="name"
-			searchable={false}
-			//clearable
-			placeholder=""
-			dropdownWidth={150}
+			itemRenderer={renderGroup}
+			selectItemRenderer={renderGroup}
 			{...props}
 		/>
 	);

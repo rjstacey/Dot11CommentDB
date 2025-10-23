@@ -24,32 +24,30 @@ function ToggleAdminView() {
 	}
 
 	return (
-		<div>
-			<ButtonGroup>
-				<ToggleButton
-					type="radio"
-					id="toggle-admin"
-					value="admin"
-					variant={"outline-danger"}
-					checked={isAdmin}
-					onChange={(e) => setIsAdmin(e.target.checked)}
-					disabled={navigation.state === "loading"}
-				>
-					{"Admin"}
-				</ToggleButton>
-				<ToggleButton
-					type="radio"
-					id="toggle-user"
-					value="user"
-					variant={"outline-success"}
-					checked={!isAdmin}
-					onChange={(e) => setIsAdmin(!e.target.checked)}
-					disabled={navigation.state === "loading"}
-				>
-					{"User"}
-				</ToggleButton>
-			</ButtonGroup>
-		</div>
+		<ButtonGroup className="align-items-center ms-3 me-3">
+			<ToggleButton
+				type="radio"
+				id="toggle-admin"
+				value="admin"
+				variant={"outline-danger"}
+				checked={isAdmin}
+				onChange={(e) => setIsAdmin(e.target.checked)}
+				disabled={navigation.state === "loading"}
+			>
+				{"Admin"}
+			</ToggleButton>
+			<ToggleButton
+				type="radio"
+				id="toggle-user"
+				value="user"
+				variant={"outline-success"}
+				checked={!isAdmin}
+				onChange={(e) => setIsAdmin(!e.target.checked)}
+				disabled={navigation.state === "loading"}
+			>
+				{"User"}
+			</ToggleButton>
+		</ButtonGroup>
 	);
 }
 
@@ -67,13 +65,13 @@ function Header() {
 		<Container
 			as="header"
 			fluid
-			className="d-flex flex-row justify-content-between bg-body-tertiary "
+			className="d-flex flex-row justify-content-between align-items-center bg-body-tertiary "
 		>
 			<h3 className="title">{title}</h3>
 			<GroupSelector />
 			{group && <SubgroupSelector />}
 			{access >= AccessLevel.rw ? <ToggleAdminView /> : null}
-			<AccountDropdown className="mt-2" />
+			<AccountDropdown />
 		</Container>
 	);
 }

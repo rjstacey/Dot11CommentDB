@@ -58,6 +58,7 @@
 	/*border-radius: 10px;*/
 	padding: 5px;
 	margin: 5px;
+	max-width: 200px;
 }
 
 .group-select:focus-within {
