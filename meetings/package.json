@@ -22,7 +22,6 @@
 		"@types/react-virtualized-auto-sizer": "^1.0.4",
 		"@vite-pwa/assets-generator": "^0.2.6",
 		"convert-svg-to-png": "^0.6.4",
-		"eslint-plugin-react-refresh": "^0.4.18",
 		"vite-node": "^2.1.8"
 	},
 	"overrides": {
