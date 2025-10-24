@@ -1,6 +1,6 @@
 export const renderIcon = (groupName: string, toolName: string) => {
-	const groupNameFontSize = (1.8 * 192) / groupName.length;
-	const toolNameFontSize = Math.min((1.5 * 192) / toolName.length, 100);
+	const groupNameFontSize = 110;
+	const toolNameFontSize = 65;
 
 	return (
 		<svg
@@ -55,12 +55,12 @@ export const renderIcon = (groupName: string, toolName: string) => {
 				<rect width="100%" height="100%" fill="#eee" />
 				<text
 					x="50%"
-					y="50%"
-					textLength="90%"
+					y="85%"
+					//textLength="100%"
 					textAnchor="middle"
 					style={{
 						font: `bold ${toolNameFontSize}px Helvetica, Arial, sans-serif`,
-						alignmentBaseline: "text-before-edge",
+						//alignmentBaseline: "text-before-edge",
 						fill: "url(#radialGradient2)",
 					}}
 				>
@@ -69,7 +69,7 @@ export const renderIcon = (groupName: string, toolName: string) => {
 				<text
 					x="50%"
 					y="50%"
-					textLength="100%"
+					//textLength="100%"
 					textAnchor="middle"
 					style={{
 						font: `bold ${groupNameFontSize}px Helvetica, Arial, sans-serif`,

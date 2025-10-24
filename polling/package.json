@@ -14,7 +14,7 @@
 		"build": "vite build --emptyOutDir",
 		"test": "vite test",
 		"check": "tsc --noEmit && eslint",
-		"assets": "vite-node scripts/generateIcon.ts"
+		"assets": "scripts/convert.sh"
 	},
 	"dependencies": {
 		"@lexical/code": "^0.31.1",
@@ -31,18 +31,13 @@
 		"socket.io-client": "^4.8.1"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.18.0",
 		"@testing-library/jest-dom": "^5.17.0",
 		"@testing-library/react": "^13.4.0",
 		"@testing-library/user-event": "^13.5.0",
 		"@types/jest": "^27.5.2",
 		"@types/node": "^18.19.68",
-		"cheerio": "1.0.0-rc.11",
-		"convert-svg-to-png": "^0.6.4",
+		"convert-svg-to-png-cli": "^0.7.1",
+		"svg-to-ico": "^1.0.17",
 		"vite-node": "^2.1.8"
-	},
-	"overrides": {
-		"cheerio": "1.0.0-rc.11",
-		"puppeteer": "23.11.1"
 	}
 }
