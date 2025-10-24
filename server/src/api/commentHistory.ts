@@ -18,12 +18,12 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 }
 
 async function get(req: Request, res: Response, next: NextFunction) {
-	const comment_id = Number(req.params.comment_id);
-	if (isNaN(comment_id)) {
-		next(new BadRequestError("Path parameter :comment_id not a number"));
-		return;
-	}
 	try {
+		const comment_id = Number(req.params.comment_id);
+		if (isNaN(comment_id))
+			throw new BadRequestError(
+				"Path parameter :comment_id not a number"
+			);
 		const data = await getCommentHistory(comment_id);
 		res.json(data);
 	} catch (error) {

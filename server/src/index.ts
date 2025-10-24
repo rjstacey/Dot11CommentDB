@@ -28,8 +28,6 @@ import { init as pollInit } from "./services/poll.js";
 
 dotenv.config();
 
-const LISTEN_PORT = process.env.PORT || 8080;
-
 async function initDatabase() {
 	process.stdout.write("init database... ");
 	try {
@@ -98,29 +96,24 @@ const requestLog: RequestHandler = function (req, res, next) {
 	next();
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
+const errorHandler: ErrorRequestHandler = function (err, req, res) {
 	if (process.env.NODE_ENV === "development") console.warn(err);
 
 	let message: string = "";
 	let status = 500;
 	if (typeof err === "string") {
-		console.log("string error");
 		message = err;
 	} else if (err instanceof Error) {
-		console.log("instance of Error");
-
-		message = err.name + ": " + err.message;
-		if (
-			err.name === "BadRequestError" ||
-			err.name === "ZodError" ||
-			err.name === "TypeError" ||
-			"sqlState" in err
-		)
+		message = err.message;
+		if (err.name === "BadRequestError" || err.name === "ZodError")
 			status = 400;
 		else if (err.name === "AuthError") status = 401;
 		else if (err.name === "ForbiddenError") status = 403;
 		else if (err.name === "NotFoundError") status = 404;
+		else {
+			status = 500;
+			message = err.name + ": " + err.message;
+		}
 	} else {
 		try {
 			message = err.toString();
@@ -130,8 +123,6 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 	}
 	res.status(status).send(message);
 };
-
-const __dirname = process.cwd();
 
 function initExpressApp() {
 	const app = express();
@@ -144,7 +135,7 @@ function initExpressApp() {
 	if (process.env.NODE_ENV === "development") app.use(requestLog);
 
 	// Default is to expire immediately
-	app.all(/(.*)/, (req, res, next) => {
+	app.use((req, res, next) => {
 		res.setHeader("Cache-Control", "max-age=0");
 		next();
 	});
@@ -153,55 +144,43 @@ function initExpressApp() {
 		res.status(200).send("I'm healthy!");
 	});
 
-	app.use("/auth", login);
+	app.use("/auth", login); // User autherization (login and logout)
+	app.use("/oauth2", oauth2); // OAuth2 completion callbacks
+	app.use("/api", api); // Secure access to the REST API
+	app.use(errorHandler); // Error handling
 
-	// The /oauth2 interface is used for oauth2 completion callbacks
-	app.use("/oauth2", oauth2);
+	let dir = process.cwd();
+	if (process.env.NODE_ENV === "development")
+		dir = path.join(dir, "../build");
 
-	// The /api interface provides secure access to the REST API
-	app.use("/api", api);
+	app.use(express.static(dir, { maxAge: 31536000 }));
 
-	// Error handler
-	app.use(errorHandler);
-
-	//app.get('*/static*', (req, res, next) => {
-	//	res.setHeader('Cache-Control', 'max-age=31536000');
-	//	next();
-	//});
-
-	let devdir = "";
-	if (process.env.NODE_ENV === "development") {
-		devdir = "../build";
-		//console.log(path.join(__dirname, devdir));
-	}
-
-	app.use(
-		express.static(path.join(__dirname, devdir, ""), { maxAge: 31536000 })
+	/* If we can't find the static file, send the index page
+	 * (e.g., a request for old asset) */
+	app.get("/login", (req, res) =>
+		res.sendFile(path.join(dir, "auth/index.html"))
 	);
-
-	app.get("/login", (req, res) => {
-		res.sendFile(path.join(__dirname, devdir, "auth/index.html"));
-	});
 	app.get("/logout", (req, res) =>
-		res.sendFile(path.join(__dirname, devdir, "auth/logout.html"))
+		res.sendFile(path.join(dir, "auth/logout.html"))
+	);
+	app.get("/home", (req, res) =>
+		res.sendFile(path.join(dir, "home/index.html"))
 	);
 	app.get(/\/comments.*/, (req, res) =>
-		res.sendFile(path.join(__dirname, devdir, "comments/index.html"))
+		res.sendFile(path.join(dir, "comments/index.html"))
 	);
 	app.get(/\/membership.*/, (req, res) =>
-		res.sendFile(path.join(__dirname, devdir, "membership/index.html"))
+		res.sendFile(path.join(dir, "membership/index.html"))
 	);
 	app.get(/\/meetings.*/, (req, res) =>
-		res.sendFile(path.join(__dirname, devdir, "meetings/index.html"))
+		res.sendFile(path.join(dir, "meetings/index.html"))
 	);
 	app.get(/\/polling.*/, (req, res) =>
-		res.sendFile(path.join(__dirname, devdir, "polling/index.html"))
+		res.sendFile(path.join(dir, "polling/index.html"))
 	);
-	app.get("/", (req, res) =>
-		//res.sendFile(path.join(__dirname, devdir, "home/index.html"))
-		res.redirect("/home")
-	);
-	//app.get('*', (req, res) => res.redirect('/'));
+
+	// Redirect root to /home
+	app.get("/", (req, res) => res.redirect("/home"));
 
 	return app;
 }
@@ -232,6 +211,7 @@ async function main() {
 	console.log("create socket.io server");
 	initSocketIo(server);
 
+	const LISTEN_PORT = process.env.PORT || 8080;
 	server.listen(LISTEN_PORT, () => {
 		console.log("👂 listening on port %s", LISTEN_PORT);
 	});

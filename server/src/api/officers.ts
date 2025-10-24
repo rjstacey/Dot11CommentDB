@@ -69,10 +69,9 @@ async function updateMany(req: Request, res: Response, next: NextFunction) {
 
 async function removeMany(req: Request, res: Response, next: NextFunction) {
 	try {
-		const { user, body } = req;
 		const group = req.group!;
-		const ids = officerIdsSchema.parse(body);
-		const data = await removeOfficers(user, group, ids);
+		const ids = officerIdsSchema.parse(req.body);
+		const data = await removeOfficers(req.user, group, ids);
 		res.json(data);
 	} catch (error) {
 		next(error);
