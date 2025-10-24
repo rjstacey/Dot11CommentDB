@@ -19,10 +19,13 @@ export default defineConfig(({ command, mode }) => {
 					manualChunks: {
 						react: ["react", "react-dom"],
 						boostrap: ["bootstrap", "react-bootstrap"],
+						router: ["react-router"],
 						redux: [
 							"@reduxjs/toolkit",
 							"react-redux",
 							"redux-persist",
+							"idb-keyval",
+							"redux-logger",
 						],
 					},
 				},
