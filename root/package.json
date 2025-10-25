@@ -1,14 +1,14 @@
 {
-	"name": "@802tools/home",
+	"name": "@802tools/root",
 	"version": "1.0.1",
 	"private": true,
-	"homepage": "home",
+	"homepage": "root",
 	"type": "module",
 	"scripts": {
 		"start": "vite --force",
 		"build": "vite --emptyOutDir build",
 		"test": "vite test",
 		"check": "tsc --noEmit && eslint",
-		"eslint": "eslint"
+		"assets": "scripts/convert.sh"
 	}
 }

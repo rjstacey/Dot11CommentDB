@@ -12,6 +12,7 @@ export default [
 			parser: "@typescript-eslint/parser",
 			parserOptions: {
 				sourceType: "module",
+				tsConfigRootDir: __dirname,
 			},
 			globals: globals.browser,
 		},

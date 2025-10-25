@@ -7,7 +7,6 @@
 	"scripts": {
 		"start": "vite",
 		"build": "vite build --emptyOutDir",
-		"test": "vite test",
-		"assets": "vite-node scripts/generateIcon.ts"
+		"test": "vite test"
 	}
 }

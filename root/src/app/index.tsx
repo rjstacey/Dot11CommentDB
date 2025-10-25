@@ -9,7 +9,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./index.css";
 
-const router = createBrowserRouter(routes, { basename: "/home" });
+const router = createBrowserRouter(routes, { basename: "/root" });
 
 function App() {
 	return (
