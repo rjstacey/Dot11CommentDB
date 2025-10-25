@@ -164,8 +164,8 @@ function initExpressApp() {
 	app.get("/logout", (req, res) =>
 		res.sendFile(path.join(dir, "auth/logout.html"))
 	);
-	app.get("/home", (req, res) =>
-		res.sendFile(path.join(dir, "home/index.html"))
+	app.get("/root", (req, res) =>
+		res.sendFile(path.join(dir, "root/index.html"))
 	);
 	app.get(/\/comments.*/, (req, res) =>
 		res.sendFile(path.join(dir, "comments/index.html"))
@@ -180,8 +180,8 @@ function initExpressApp() {
 		res.sendFile(path.join(dir, "polling/index.html"))
 	);
 
-	// Redirect root to /home
-	app.get("/", (req, res) => res.redirect("/home"));
+	// Redirect root to /root
+	app.get("/", (req, res) => res.redirect("/root"));
 
 	return app;
 }
