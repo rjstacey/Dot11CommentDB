@@ -164,19 +164,19 @@ function initExpressApp() {
 	app.get("/logout", (req, res) =>
 		res.sendFile(path.join(dir, "auth/logout.html"))
 	);
-	app.get("/root", (req, res) =>
+	app.get(/\/root\/.*/, (req, res) =>
 		res.sendFile(path.join(dir, "root/index.html"))
 	);
-	app.get(/\/comments.*/, (req, res) =>
+	app.get(/\/comments\/.*/, (req, res) =>
 		res.sendFile(path.join(dir, "comments/index.html"))
 	);
-	app.get(/\/membership.*/, (req, res) =>
+	app.get(/\/membership\/.*/, (req, res) =>
 		res.sendFile(path.join(dir, "membership/index.html"))
 	);
-	app.get(/\/meetings.*/, (req, res) =>
+	app.get(/\/meetings\/.*/, (req, res) =>
 		res.sendFile(path.join(dir, "meetings/index.html"))
 	);
-	app.get(/\/polling.*/, (req, res) =>
+	app.get(/\/polling\/.*/, (req, res) =>
 		res.sendFile(path.join(dir, "polling/index.html"))
 	);
 
