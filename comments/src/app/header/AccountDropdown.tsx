@@ -1,11 +1,9 @@
 import { Dropdown } from "react-bootstrap";
-
 import { loginAndReturn } from "@common";
-
 import { resetStore, persistor, selectUser, setUser } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
-import pkg from "../../../package.json";
+import pkg from "../../../package.json" with { type: "json" };
 
 export function AccountDropdown() {
 	const dispatch = useAppDispatch();
@@ -18,8 +16,8 @@ export function AccountDropdown() {
 	};
 
 	return (
-		<Dropdown id="basic-nav-dropdown">
-			<Dropdown.Toggle variant="outline-secondary" id="dropdown-basic">
+		<Dropdown id="account-dropdown">
+			<Dropdown.Toggle variant="outline-secondary" id="account-dropdown-toggle">
 				{`${user.Name} (${user.SAPIN})`}
 			</Dropdown.Toggle>
 			<Dropdown.Menu align="end">
