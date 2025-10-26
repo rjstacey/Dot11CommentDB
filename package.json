@@ -6,7 +6,7 @@
 	"workspaces": [
 		"server",
 		"auth",
-		"root",
+		"home",
 		"comments",
 		"membership",
 		"meetings",
@@ -63,6 +63,7 @@
 		"eslint-plugin-react-refresh": "^0.4.24",
 		"globals": "^16.4.0",
 		"svg-to-ico": "^1.0.17",
+		"tsx": "^4.20.6",
 		"typescript-eslint": "^8.46.2",
 		"vite": "^6.4.1",
 		"vite-node": "^3.2.4",

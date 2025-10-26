@@ -1,5 +1,5 @@
 #!/usr/bin/sh
-vite-node scripts/generateIcon.ts
+tsx scripts/generateIcon.ts
 rm -f public/favicon.ico
 svg-to-ico public/favicon.svg public/favicon.ico
 rm -f public/favicon-96x96.png
