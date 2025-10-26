@@ -1,7 +1,6 @@
 /*
  * imat.ieee.org HTML scraping
  */
-import PropTypes from "prop-types";
 import { DateTime, Duration } from "luxon";
 import { load as cheerioLoad } from "cheerio";
 
@@ -653,19 +652,6 @@ const breakoutCredit = {
 	Other: 4,
 };
 
-const breakoutProps = {
-	name: PropTypes.string.isRequired,
-	groupId: PropTypes.number.isRequired,
-	day: PropTypes.number.isRequired,
-	startSlotId: PropTypes.number.isRequired,
-	startTime: PropTypes.string.isRequired,
-	endSlotId: PropTypes.number.isRequired,
-	endTime: PropTypes.string.isRequired,
-	location: PropTypes.string.isRequired,
-	credit: PropTypes.oneOf(Object.keys(breakoutCredit)).isRequired,
-	facilitator: PropTypes.string,
-};
-
 async function addImatBreakout(
 	user: User,
 	imatMeeting: ImatMeeting,
@@ -673,13 +659,6 @@ async function addImatBreakout(
 	pageCommittees: PageCommittee[],
 	breakout: BreakoutCreate
 ): Promise<Breakout> {
-	PropTypes.checkPropTypes(
-		breakoutProps,
-		breakout,
-		"breakout",
-		"addImatBreakout"
-	);
-
 	const { ieeeClient } = user;
 
 	const params = {
@@ -834,13 +813,6 @@ async function updateImatBreakout(
 	imatMeeting: ImatMeeting,
 	breakout: BreakoutUpdate
 ) {
-	PropTypes.checkPropTypes(
-		breakoutProps,
-		breakout,
-		"breakout",
-		"updateImatBreakout"
-	);
-
 	const params = {
 		tz: 420,
 		v: 1,

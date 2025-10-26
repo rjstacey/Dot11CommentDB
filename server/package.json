@@ -24,8 +24,8 @@
 		"dotenv": "^8.6.0",
 		"exceljs": "^4.4.0",
 		"express": "^5.1.0",
-		"google-auth-library": "^9.15.0",
-		"googleapis": "^144.0.0",
+		"google-auth-library": "^10.4.2",
+		"googleapis": "^164.1.0",
 		"http-cookie-agent": "^7.0.2",
 		"jsonwebtoken": "^9.0.2",
 		"lodash.isempty": "^4.4.0",
@@ -33,12 +33,10 @@
 		"lodash.throttle": "^4.1.1",
 		"lodash.uniq": "^4.5.0",
 		"mysql2": "^3.15.3",
-		"prop-types": "^15.8.1",
 		"socket.io": "^4.8.1",
 		"tough-cookie": "^4.1.4",
 		"tzdata": "^1.0.46",
-		"undici": "^7.15.0",
-		"webex": "^1.161.0"
+		"undici": "^7.15.0"
 	},
 	"devDependencies": {
 		"@types/csv-parse": "^1.2.2",
@@ -49,7 +47,7 @@
 		"@types/lodash.isempty": "^4.4.9",
 		"@types/lodash.isequal": "^4.5.8",
 		"@types/lodash.throttle": "^4.1.9",
-		"@types/node": "^20.12.13",
+		"@types/node": "^22.18.12",
 		"@types/tough-cookie": "^4.0.2",
 		"esbuild": "^0.25.11",
 		"tsx": "^4.19.2",
