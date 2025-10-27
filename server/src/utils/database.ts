@@ -48,26 +48,6 @@ async function init() {
 	await pool.query("SET time_zone='-08:00';");
 }
 
-function query<
-	T extends
-		| RowDataPacket[]
-		| ResultSetHeader
-		| RowDataPacket[][]
-		| ResultSetHeader[]
->(
-	sql: string,
-	values?: any // eslint-disable-line @typescript-eslint/no-explicit-any
-): Promise<T>;
-function query<
-	T extends
-		| RowDataPacket[]
-		| ResultSetHeader
-		| RowDataPacket[][]
-		| ResultSetHeader[]
->(
-	options: QueryOptions,
-	values?: any // eslint-disable-line @typescript-eslint/no-explicit-any
-): Promise<T>;
 async function query<
 	T extends
 		| RowDataPacket[]
@@ -75,10 +55,10 @@ async function query<
 		| RowDataPacket[][]
 		| ResultSetHeader[]
 >(
-	sql: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+	sql: string | QueryOptions,
 	values?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ) {
-	return pool.query<T>(sql, values).then(([rows]) => rows);
+	return pool.query<T>(sql as string, values).then(([rows]) => rows);
 }
 
 export { init, query, escape, format };
