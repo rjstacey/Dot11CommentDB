@@ -2,6 +2,8 @@ import globals from "globals";
 import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 
+const __dirname = process.cwd();
+
 /** @type {import('eslint').Linter.Config[]} */
 export default [
 	{

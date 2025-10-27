@@ -1,6 +1,6 @@
 {
 	"name": "@802tools/server",
-	"version": "1.4.0",
+	"version": "1.5.0",
 	"description": "IEEE 802 tools server",
 	"repository": "https://github.com/rjstacey/Dot11CommentDB",
 	"type": "module",
@@ -10,7 +10,7 @@
 	"scripts": {
 		"start": "NODE_ENV=development tsx watch --trace-deprecation src/index.ts",
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=../build/server.js",
+		"build": "esbuild src/index.ts --bundle --minify --platform=node --target=node20 --outfile=../build/server.js",
 		"prod": "cd ../build && node server.js",
 		"check": "tsc --noEmit && eslint",
 		"eslint": "eslint"
