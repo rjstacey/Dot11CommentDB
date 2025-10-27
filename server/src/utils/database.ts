@@ -3,12 +3,11 @@ import type {
 	Pool,
 	PoolOptions,
 	QueryOptions,
-	//RowDataPacket,
-	//ResultSetHeader,
-	QueryResult,
+	ResultSetHeader,
+	RowDataPacket,
 } from "mysql2/promise";
 
-let pool: Pool; //ReturnType<Pool["promise"]>;
+let pool: Pool;
 
 async function init() {
 	if (!process.env.DB_HOST) {
@@ -49,19 +48,33 @@ async function init() {
 	await pool.query("SET time_zone='-08:00';");
 }
 
-/* There seems to be a bug in the typing; dateStrings should be an option */
-interface QueryOptions2 extends QueryOptions {
-	dateStrings: boolean;
-}
-function query<T extends QueryResult>(
+function query<
+	T extends
+		| RowDataPacket[]
+		| ResultSetHeader
+		| RowDataPacket[][]
+		| ResultSetHeader[]
+>(
 	sql: string,
 	values?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ): Promise<T>;
-function query<T extends QueryResult>(
-	options: QueryOptions2,
+function query<
+	T extends
+		| RowDataPacket[]
+		| ResultSetHeader
+		| RowDataPacket[][]
+		| ResultSetHeader[]
+>(
+	options: QueryOptions,
 	values?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ): Promise<T>;
-async function query<T extends QueryResult>(
+async function query<
+	T extends
+		| RowDataPacket[]
+		| ResultSetHeader
+		| RowDataPacket[][]
+		| ResultSetHeader[]
+>(
 	sql: any, // eslint-disable-line @typescript-eslint/no-explicit-any
 	values?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ) {

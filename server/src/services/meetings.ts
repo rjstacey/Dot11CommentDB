@@ -158,7 +158,7 @@ async function selectMeetings(constraints: MeetingsQuery) {
 		delete constraints.groupId;
 	}
 	const sql = selectMeetingsSql(constraints);
-	return db.query({ sql, dateStrings: true }) as Promise<Meeting[]>;
+	return db.query(sql) as Promise<Meeting[]>;
 }
 
 /**
@@ -679,10 +679,7 @@ async function addMeeting(user: User, meetingToAdd: MeetingCreate) {
 	}
 
 	const sql = "INSERT INTO meetings SET " + meetingToSetSql(meeting);
-	const { insertId } = (await db.query({
-		sql,
-		dateStrings: true,
-	})) as ResultSetHeader;
+	const { insertId } = await db.query<ResultSetHeader>(sql);
 	const [meetingOut] = await selectMeetings({ id: insertId });
 
 	return { meeting: meetingOut, webexMeeting, breakout };
