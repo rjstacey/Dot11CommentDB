@@ -4,7 +4,7 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import { ForbiddenError } from "../utils/index.js";
-import { AccessLevel } from "../auth/access.js";
+import { AccessLevel } from "@schemas/access.js";
 import {
 	officerCreatesSchema,
 	officerIdsSchema,

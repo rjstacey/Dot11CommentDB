@@ -9,7 +9,7 @@ import { parseMyProjectComments } from "./myProjectSpreadsheets.js";
 import { parsePublicReviewComments } from "./publicReviewSpreadsheets.js";
 import { BallotType, getBallotWithNewResultsSummary } from "./ballots.js";
 import { selectUser, type UserContext } from "./users.js";
-import { AccessLevel } from "../auth/access.js";
+import { AccessLevel } from "@schemas/access.js";
 import { getGroups } from "./groups.js";
 import type {
 	Comment,

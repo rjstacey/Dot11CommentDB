@@ -3,7 +3,7 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import { BadRequestError, ForbiddenError } from "../utils/index.js";
-import { AccessLevel } from "../auth/access.js";
+import { AccessLevel } from "@schemas/access.js";
 import { commentResolutionQuerySchema } from "@schemas/comments.js";
 import { resolutionsUploadParamsSchema } from "@schemas/uploadResolutions.js";
 import {

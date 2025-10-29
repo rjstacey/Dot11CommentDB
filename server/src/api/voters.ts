@@ -7,7 +7,7 @@ import {
 	ForbiddenError,
 	NotFoundError,
 } from "../utils/index.js";
-import { AccessLevel } from "../auth/access.js";
+import { AccessLevel } from "@schemas/access.js";
 import { selectWorkingGroup } from "../services/groups.js";
 import {
 	voterCreatesSchema,

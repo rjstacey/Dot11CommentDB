@@ -4,7 +4,7 @@ import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { ForbiddenError, NotFoundError } from "../utils/index.js";
 import type { UserContext } from "./users.js";
-import { AccessLevel } from "../auth/access.js";
+import { AccessLevel } from "@schemas/access.js";
 import { getBallots } from "./ballots.js";
 import { getSessions } from "./sessions.js";
 import {

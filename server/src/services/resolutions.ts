@@ -6,7 +6,7 @@ import { selectComments } from "./comments.js";
 import type { UserContext } from "./users.js";
 import type { ResultSetHeader } from "mysql2";
 import { ForbiddenError, NotFoundError } from "../utils/index.js";
-import { AccessLevel } from "../auth/access.js";
+import { AccessLevel } from "@schemas/access.js";
 import { getGroups } from "./groups.js";
 import type {
 	ResolutionCreate,

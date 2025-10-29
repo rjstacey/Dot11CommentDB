@@ -33,7 +33,7 @@
  *		Returns the number of meetings deleted.
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { AccessLevel } from "../auth/access.js";
+import { AccessLevel } from "@schemas/access.js";
 import { ForbiddenError } from "../utils/index.js";
 import {
 	getMeetings,

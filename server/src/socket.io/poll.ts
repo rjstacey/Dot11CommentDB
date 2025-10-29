@@ -45,7 +45,7 @@ import {
 } from "../services/poll.js";
 import { ForbiddenError, NotFoundError } from "../utils/index.js";
 import { getGroups } from "../services/groups.js";
-import { AccessLevel } from "../auth/access.js";
+import { AccessLevel } from "@schemas/access.js";
 
 export class NoGroupError extends Error {
 	name = "NoGroupError";

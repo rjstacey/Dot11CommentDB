@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction, Router } from "express";
-import { AccessLevel } from "../auth/access.js";
+import { AccessLevel } from "@schemas/access.js";
 import { ForbiddenError } from "../utils/index.js";
 import { getUsers } from "../services/members.js";
 

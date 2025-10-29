@@ -20,7 +20,7 @@ import {
 } from "./membersSpreadsheets.js";
 
 import { NotFoundError, csvStringify, isPlainObject } from "../utils/index.js";
-import { AccessLevel } from "../auth/access.js";
+import { AccessLevel } from "@schemas/access.js";
 
 import {
 	UserType,
