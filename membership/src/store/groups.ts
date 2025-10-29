@@ -11,7 +11,6 @@ import {
 	fetcher,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
-	AccessLevel,
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
@@ -30,7 +29,9 @@ import {
 	GroupUpdate,
 	groupsSchema,
 } from "@schemas/groups";
+import { AccessLevel } from "@schemas/access";
 export type { GroupType, Group, GroupCreate, GroupUpdate };
+export { AccessLevel };
 
 export const GroupTypeLabels: Record<GroupType, string> = {
 	r: "Root",
@@ -61,7 +62,7 @@ export function getSubgroupTypes(parentType: GroupType): GroupType[] {
 
 export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(
 	([value, label]) =>
-		({ value, label } as { value: GroupType; label: string })
+		({ value, label }) as { value: GroupType; label: string }
 );
 const groupTypes = Object.keys(GroupTypeLabels);
 

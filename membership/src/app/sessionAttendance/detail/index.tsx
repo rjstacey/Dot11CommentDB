@@ -14,12 +14,12 @@ import {
 
 import { store } from "@/store";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { AccessLevel } from "@common";
 import {
 	selectMemberEntities,
 	selectUserMembersAccess,
 	Member,
 	MemberCreate,
+	AccessLevel,
 } from "@/store/members";
 import { selectSessionByNumber, Session } from "@/store/sessions";
 import {

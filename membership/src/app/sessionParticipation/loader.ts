@@ -1,7 +1,6 @@
 import type { LoaderFunction } from "react-router";
 import { store } from "@/store";
-import { AccessLevel } from "@common";
-import { selectTopLevelGroupByName } from "@/store/groups";
+import { selectTopLevelGroupByName, AccessLevel } from "@/store/groups";
 import { loadSessions } from "@/store/sessions";
 import {
 	loadRecentAttendanceSummaries,

@@ -3,16 +3,15 @@ import { Button } from "react-bootstrap";
 import { shallowEqual } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
 
-import { ConfirmModal } from "@common";
-import { deepMergeTagMultiple } from "@common";
+import { ConfirmModal, deepMergeTagMultiple } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
-import { AccessLevel } from "@common";
 import {
 	ContactInfo,
 	memberContactInfoEmpty,
 	selectMembersState,
 	selectUserMembersAccess,
+	AccessLevel,
 	type Member,
 	type MemberCreate,
 } from "@/store/members";

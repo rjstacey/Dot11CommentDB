@@ -29,8 +29,7 @@ import type { RootState, AppThunk } from ".";
 import { setError } from ".";
 import { selectSessionParticipationWithMembershipAndSummary } from "./sessionParticipation";
 import { selectBallotParticipationWithMembershipAndSummary } from "./ballotParticipation";
-import { selectTopLevelGroupByName } from "./groups";
-import { AccessLevel } from "@common";
+import { selectTopLevelGroupByName, AccessLevel } from "./groups";
 import { loadIeeeMembers } from "./ieeeMembers";
 
 export type {
@@ -45,6 +44,7 @@ export type {
 	MemberStatus,
 	MembersExportQuery,
 };
+export { AccessLevel };
 
 export type ExpectedStatusType = StatusType | "";
 

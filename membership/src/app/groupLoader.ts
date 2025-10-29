@@ -1,11 +1,11 @@
 import { type LoaderFunction } from "react-router";
 
 import { store } from "@/store";
-import { AccessLevel } from "@common";
 import {
 	loadGroups,
 	selectTopLevelGroupByName,
 	setTopLevelGroupId,
+	AccessLevel,
 	type Group,
 } from "@/store/groups";
 import { loadMembers } from "@/store/members";

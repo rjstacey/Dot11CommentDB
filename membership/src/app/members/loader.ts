@@ -1,8 +1,11 @@
 import { LoaderFunction } from "react-router";
 
 import { store } from "@/store";
-import { AccessLevel } from "@common";
-import { loadGroups, selectTopLevelGroupByName } from "@/store/groups";
+import {
+	loadGroups,
+	selectTopLevelGroupByName,
+	AccessLevel,
+} from "@/store/groups";
 import { loadSessions } from "@/store/sessions";
 import { loadIeeeMembers } from "@/store/ieeeMembers";
 import { loadMembers, selectMembersState } from "@/store/members";

@@ -1,4 +1,4 @@
-import { AccessLevel } from "@common";
+import { AccessLevel } from "@/store/groups";
 
 function renderAccess(access: number) {
 	if (access === AccessLevel.admin) return "admin";

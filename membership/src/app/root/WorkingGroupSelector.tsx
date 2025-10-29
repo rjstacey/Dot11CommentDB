@@ -5,8 +5,7 @@ import { createSelector } from "@reduxjs/toolkit";
 import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
-import { selectWorkingGroups } from "@/store/groups";
-import { AccessLevel } from "@common";
+import { selectWorkingGroups, AccessLevel } from "@/store/groups";
 
 import styles from "./root.module.css";
 
