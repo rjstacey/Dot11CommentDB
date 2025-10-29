@@ -1,7 +1,6 @@
 import { createSlice, isPlainObject } from "@reduxjs/toolkit";
 import { io, Socket } from "socket.io-client";
 import { z } from "zod";
-import { AccessLevel } from "@common";
 import {
 	GroupJoin,
 	groupJoinResponseSchema,
@@ -10,7 +9,7 @@ import {
 } from "@schemas/poll";
 import { AppThunk, RootState, setError } from ".";
 import { selectUser } from ".";
-import { selectGroup, selectSelectedGroupId } from "./groups";
+import { selectGroup, selectSelectedGroupId, AccessLevel } from "./groups";
 import {
 	setEventId as pollingAdminSetEventId,
 	setEvents as pollingAdminSetEvents,

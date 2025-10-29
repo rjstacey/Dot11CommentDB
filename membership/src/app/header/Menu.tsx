@@ -3,8 +3,7 @@ import { NavLink, useParams } from "react-router";
 import { Navbar, Nav } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
-import { AccessLevel } from "@common";
-import { selectWorkingGroup } from "@/store/groups";
+import { selectWorkingGroup, AccessLevel } from "@/store/groups";
 import {
 	selectSessionAttendeesState,
 	selectSessionAttendeesSession,

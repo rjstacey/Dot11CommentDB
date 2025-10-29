@@ -6,9 +6,12 @@ import {
 	useParams,
 } from "react-router";
 import { GroupSelector, SubgroupSelector } from "./GroupSelector";
-import { AccessLevel } from "@common";
 import { useAppSelector } from "@/store/hooks";
-import { selectTopLevelGroup, selectSelectedGroup } from "@/store/groups";
+import {
+	selectTopLevelGroup,
+	selectSelectedGroup,
+	AccessLevel,
+} from "@/store/groups";
 import { AccountDropdown } from "./AccountDropdown";
 
 function ToggleAdminView() {

@@ -18,7 +18,9 @@ import type {
 	GroupCreate,
 	GroupUpdate,
 } from "@schemas/groups";
+import { AccessLevel } from "@schemas/access";
 export type { GroupType, Group, GroupCreate, GroupUpdate };
+export { AccessLevel };
 
 const topLevelGroupTypes = ["r", "c", "wg"] as const satisfies GroupType[];
 
