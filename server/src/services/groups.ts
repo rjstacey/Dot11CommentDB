@@ -3,7 +3,7 @@ import { v4 as uuid } from "uuid";
 import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { ForbiddenError, NotFoundError } from "../utils/index.js";
-import { User } from "./users.js";
+import type { UserContext } from "./users.js";
 import { AccessLevel } from "../auth/access.js";
 import { getBallots } from "./ballots.js";
 import { getSessions } from "./sessions.js";
@@ -115,7 +115,7 @@ function groupCmp(g1: Group, g2: Group) {
  * @returns The rolled up permissions for the group
  */
 function rollupGroupUserPermissions(
-	user: User,
+	user: UserContext,
 	group: Group,
 	groupEntities: Record<string, Group>
 ) {
@@ -143,7 +143,7 @@ function rollupGroupUserPermissions(
  * @param constraints.parentName (Optional) Group and subgroups with the parent with this name
  * @returns An array of group objects that includes the user permissions for each group
  */
-export async function getGroups(user: User, query?: GroupsQuery) {
+export async function getGroups(user: UserContext, query?: GroupsQuery) {
 	let sql = selectGroupsSql;
 
 	if (query) {
@@ -216,7 +216,7 @@ export async function getGroups(user: User, query?: GroupsQuery) {
  * @returns An array of groups where the first entry is the group and successive entries the parents
  */
 export async function getGroupHierarchy(
-	user: User,
+	user: UserContext,
 	id: string
 ): Promise<Group[]> {
 	let groups = await getGroupsAndParentGroups([id]);
@@ -246,7 +246,7 @@ export async function getGroupHierarchy(
 }
 
 export async function getGroupByName(
-	user: User,
+	user: UserContext,
 	name: string
 ): Promise<Group | undefined> {
 	const [group] = await getGroups(user, { name });
@@ -258,7 +258,7 @@ export function selectWorkingGroup(groups: Group[]) {
 }
 
 export async function getWorkingGroup(
-	user: User,
+	user: UserContext,
 	group_id: string
 ): Promise<Group | undefined> {
 	const groups = await getGroupHierarchy(user, group_id);
@@ -310,7 +310,7 @@ const memberPermissions: Record<string, number> = {
 	polling: AccessLevel.ro,
 };
 
-function getGroupUserPermissions(user: User, group: Group) {
+function getGroupUserPermissions(user: UserContext, group: Group) {
 	if (group.type === "r" && group.officerSAPINs.includes(user.SAPIN))
 		return rootPermissions;
 	else if (
@@ -368,7 +368,7 @@ function groupSetSql(group: Partial<Group>) {
 }
 
 async function addGroup(
-	user: User,
+	user: UserContext,
 	{ id, ...rest }: GroupCreate
 ): Promise<Group> {
 	if (!id) id = uuid();
@@ -380,12 +380,12 @@ async function addGroup(
 	return groups[0];
 }
 
-export function addGroups(user: User, groups: GroupCreate[]) {
+export function addGroups(user: UserContext, groups: GroupCreate[]) {
 	return Promise.all(groups.map((g) => addGroup(user, g)));
 }
 
 async function updateGroup(
-	user: User,
+	user: UserContext,
 	{ id, changes }: GroupUpdate
 ): Promise<Group> {
 	const setSql = groupSetSql(changes);
@@ -400,14 +400,17 @@ async function updateGroup(
 	return groups[0];
 }
 
-export function updateGroups(user: User, updates: GroupUpdate[]) {
+export function updateGroups(user: UserContext, updates: GroupUpdate[]) {
 	if (updates.find((u) => u.id === "00000000-0000-0000-0000-000000000000")) {
 		throw new ForbiddenError("Can't update root entry");
 	}
 	return Promise.all(updates.map((u) => updateGroup(user, u)));
 }
 
-export async function removeGroups(user: User, ids: string[]): Promise<number> {
+export async function removeGroups(
+	user: UserContext,
+	ids: string[]
+): Promise<number> {
 	if (ids.includes("00000000-0000-0000-0000-000000000000")) {
 		throw new ForbiddenError("Can't delete root entry");
 	}

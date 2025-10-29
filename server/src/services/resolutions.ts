@@ -3,7 +3,7 @@ import { v4 as uuid, validate as validateUUID } from "uuid";
 import db from "../utils/database.js";
 
 import { selectComments } from "./comments.js";
-import { User } from "./users.js";
+import type { UserContext } from "./users.js";
 import type { ResultSetHeader } from "mysql2";
 import { ForbiddenError, NotFoundError } from "../utils/index.js";
 import { AccessLevel } from "../auth/access.js";
@@ -28,7 +28,7 @@ export const defaultResolution: Required<ResolutionChange> = {
 	EditNotes: "",
 };
 
-async function addResolution(user: User, resolution: ResolutionCreate) {
+async function addResolution(user: UserContext, resolution: ResolutionCreate) {
 	const id = validateUUID(resolution.id || "") ? resolution.id! : uuid();
 	delete resolution.id;
 
@@ -81,7 +81,7 @@ async function addResolution(user: User, resolution: ResolutionCreate) {
  * @returns An array of comment resolutions as added plus additional comment resolutions with changes after `modifiedSince`.
  */
 export async function addResolutions(
-	user: User,
+	user: UserContext,
 	ballot_id: number,
 	access: number,
 	resolutions: ResolutionCreate[],
@@ -131,7 +131,7 @@ export async function addResolutions(
 }
 
 async function updateResolution(
-	user: User,
+	user: UserContext,
 	ballot_id: number,
 	id: string,
 	changes: ResolutionChange
@@ -159,7 +159,7 @@ async function updateResolution(
  * @returns An array of modified comment resolutions plus additional comment resolutions with changes after `modifiedSince`.
  */
 export async function updateResolutions(
-	user: User,
+	user: UserContext,
 	ballot_id: number,
 	access: number,
 	updates: ResolutionUpdate[],
@@ -251,7 +251,7 @@ export async function updateResolutions(
  * @param modifiedSince - Optional ISO Date string. Comments that have been modified since this date will be returned.
  */
 export async function deleteResolutions(
-	user: User,
+	user: UserContext,
 	ballot_id: number,
 	access: number,
 	ids: string[],

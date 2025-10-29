@@ -4,7 +4,7 @@ import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Response } from "express";
 
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 
 import {
 	parseMyProjectRosterSpreadsheet,
@@ -1023,7 +1023,7 @@ export async function importMyProjectRoster(
 }
 
 export async function exportMyProjectRoster(
-	user: User,
+	user: UserContext,
 	groupId: string,
 	res: Response
 ) {
@@ -1043,7 +1043,7 @@ export async function exportMyProjectRoster(
 }
 
 export async function updateMyProjectRosterWithMemberStatus(
-	user: User,
+	user: UserContext,
 	groupId: string,
 	options: UpdateRosterOptions,
 	fileanme: string,
@@ -1094,7 +1094,7 @@ export async function exportMembersPublic(groupId: string, res: Response) {
 }
 
 export async function exportMembersPrivate(
-	user: User,
+	user: UserContext,
 	groupId: string,
 	res: Response
 ) {

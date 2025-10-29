@@ -3,7 +3,7 @@ import { OAuth2Client, Credentials } from "google-auth-library";
 import { google, calendar_v3 } from "googleapis";
 import qs from "node:querystring";
 import { Request } from "express";
-import { User } from "./users.js";
+import { UserContext } from "./users.js";
 
 import {
 	genOAuthState,
@@ -151,7 +151,11 @@ function getCalendarApi(account: CalendarAccountLocal) {
  * @param host host portion of URL
  * @param account Calendar account
  */
-function getAuthUrl(user: User, host: string, account: CalendarAccountLocal) {
+function getAuthUrl(
+	user: UserContext,
+	host: string,
+	account: CalendarAccountLocal
+) {
 	return account.auth.generateAuthUrl({
 		access_type: "offline",
 		scope: calendarAuthScope,
@@ -245,7 +249,7 @@ async function getActiveCalendarAccount(id: number) {
 
 export async function getCalendarAccounts(
 	req: Request,
-	user: User,
+	user: UserContext,
 	query?: CalendarAccountsQuery
 ) {
 	const proxyHost = req.headers["x-forwarded-host"] as string;
@@ -306,7 +310,7 @@ export async function getCalendarAccounts(
  */
 export async function addCalendarAccount(
 	req: Request,
-	user: User,
+	user: UserContext,
 	groupId: string,
 	accountIn: CalendarAccountCreate
 ) {
@@ -330,7 +334,7 @@ export async function addCalendarAccount(
  */
 export async function updateCalendarAccount(
 	req: Request,
-	user: User,
+	user: UserContext,
 	groupId: string,
 	id: number,
 	changes: CalendarAccountChange
@@ -367,7 +371,7 @@ export async function deleteCalendarAccount(groupId: string, id: number) {
  */
 export async function revokeAuthCalendarAccount(
 	req: Request,
-	user: User,
+	user: UserContext,
 	groupId: string,
 	id: number
 ) {

@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { User } from "../lib";
-
+import type { User } from "@schemas/user.js";
 export type { User };
 
 export const AccessLevel = {

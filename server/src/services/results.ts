@@ -2,7 +2,7 @@ import db from "../utils/database.js";
 import { shallowEqual, AuthError, NotFoundError } from "../utils/index.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Response } from "express";
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 
 import { parseEpollResults, parseEpollResultsHtml } from "./epoll.js";
 import { parseMyProjectResults } from "./myProjectSpreadsheets.js";
@@ -424,7 +424,7 @@ async function insertResults(ballot: Ballot, results: Partial<Result>[]) {
 }
 
 export async function importEpollResults(
-	user: User,
+	user: UserContext,
 	workingGroup: Group,
 	ballot: Ballot
 ) {
@@ -485,7 +485,7 @@ export const sanitize = (name: string) =>
 	name.slice(0, 30).replace(/[*.?:\\/[\]]/g, "_");
 
 export async function exportResults(
-	user: User,
+	user: UserContext,
 	ballot: Ballot,
 	forBallotSeries: boolean,
 	res: Response

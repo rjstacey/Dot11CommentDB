@@ -17,7 +17,12 @@
 		"noEmit": true,
 		"jsx": "react-jsx",
 
-		"baseUrl": "."
+		"baseUrl": ".",
+		"paths": {
+			"@schemas/*": ["../schemas/*"],
+			"@common": ["../common/src"],
+			"@/*": ["src/*"]
+		}
 	},
 	"exclude": ["src/setupTests.*", "src/**/*.test.*", "src/stories"]
 }

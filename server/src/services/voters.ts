@@ -8,7 +8,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import db from "../utils/database.js";
 
 import { getMembersSnapshot } from "./members.js";
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 import type {
 	Voter,
 	VoterQuery,
@@ -253,7 +253,7 @@ export async function uploadVoters(
 }
 
 export async function votersFromMembersSnapshot(
-	user: User,
+	user: UserContext,
 	workingGroupId: string,
 	ballot_id: number,
 	date: string
@@ -309,7 +309,11 @@ function populateVotersWorksheet(
 	});
 }
 
-export async function exportVoters(user: User, ballot: Ballot, res: Response) {
+export async function exportVoters(
+	user: UserContext,
+	ballot: Ballot,
+	res: Response
+) {
 	const voters = await getVoters({ ballot_id: ballot.id });
 	console.log(`ballot ${ballot.BallotID} has ${voters.length} voters`);
 

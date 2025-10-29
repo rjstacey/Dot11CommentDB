@@ -3,7 +3,7 @@ import { Request } from "express";
 import { NotFoundError } from "../utils/index.js";
 
 import { WebexClient, WebexAuthParams } from "../utils/webexClient.js";
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 import type {
 	OAuthAccount,
 	OAuthAccountCreate,
@@ -103,7 +103,7 @@ function removeWebexAccount(id: number) {
  * @param id Webex account identifier
  * @returns The URL for authorizing Webex access
  */
-function getAuthUrl(user: User, host: string, id: number) {
+function getAuthUrl(user: UserContext, host: string, id: number) {
 	const state = genOAuthState({ accountId: id, userId: user.SAPIN, host });
 	const redirect_uri = host + webexAuthRedirectPath;
 	return WebexClient.getAuthUrl(redirect_uri, state);
@@ -198,7 +198,7 @@ async function activatedWebexAccount(id: number) {
 
 export async function getWebexAccounts(
 	req: Request,
-	user: User,
+	user: UserContext,
 	query?: WebexAccountsQuery
 ) {
 	const proxyHost = req.headers["x-forwarded-host"] as string;
@@ -255,7 +255,7 @@ export async function getWebexAccounts(
  */
 export async function addWebexAccount(
 	req: Request,
-	user: User,
+	user: UserContext,
 	groupId: string,
 	accountIn: WebexAccountCreate
 ) {
@@ -281,7 +281,7 @@ export async function addWebexAccount(
  */
 export async function updateWebexAccount(
 	req: Request,
-	user: User,
+	user: UserContext,
 	groupId: string,
 	id: number,
 	changes: WebexAccountChange
@@ -323,7 +323,7 @@ export async function deleteWebexAccount(
  */
 export async function revokeAuthWebexAccount(
 	req: Request,
-	user: User,
+	user: UserContext,
 	groupId: string,
 	id: number
 ) {

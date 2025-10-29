@@ -5,7 +5,7 @@ import { isPlainObject, NotFoundError } from "../utils/index.js";
 
 import { getResults } from "./results.js";
 import { getWorkingGroup } from "./groups.js";
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 import type { Group } from "@schemas/groups.js";
 import type {
 	Ballot,
@@ -163,7 +163,7 @@ export async function getBallot(id: number) {
 }
 
 export async function getBallotWithNewResultsSummary(
-	user: User,
+	user: UserContext,
 	workingGroupId: string | null,
 	ballot_id: number
 ): Promise<Ballot> {
@@ -276,7 +276,7 @@ function ballotSetSql(ballot: Partial<BallotDB>) {
  * @returns The ballot as added
  */
 async function addBallot(
-	user: User,
+	user: UserContext,
 	workingGroup: Group,
 	ballot: BallotCreate
 ) {
@@ -310,7 +310,7 @@ async function addBallot(
  * @returns An array of ballots as added
  */
 export function addBallots(
-	user: User,
+	user: UserContext,
 	workingGroup: Group,
 	ballots: BallotCreate[]
 ) {
@@ -328,7 +328,7 @@ export function addBallots(
  * @returns The ballot as updated
  */
 async function updateBallot(
-	user: User,
+	user: UserContext,
 	workingGroup: Group,
 	update: BallotUpdate
 ) {
@@ -360,7 +360,7 @@ async function updateBallot(
  * @returns An array of ballots as updated
  */
 export function updateBallots(
-	user: User,
+	user: UserContext,
 	workingGroup: Group,
 	updates: BallotUpdate[]
 ) {
@@ -375,7 +375,7 @@ export function updateBallots(
  * @param ids An array of ballot identifiers that identify the ballots to delete
  */
 export async function deleteBallots(
-	user: User,
+	user: UserContext,
 	workingGroup: Group,
 	ids: number[]
 ) {

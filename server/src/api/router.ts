@@ -5,7 +5,7 @@
  */
 import { NextFunction, Request, Response, Router } from "express";
 
-import { User } from "../services/users.js";
+import { UserContext } from "../services/users.js";
 import { getGroups } from "../services/groups.js";
 import type { Group } from "@schemas/groups.js";
 import { getBallot } from "../services/ballots.js";
@@ -68,7 +68,7 @@ declare global {
 	// eslint-disable-next-line @typescript-eslint/no-namespace
 	namespace Express {
 		interface Request {
-			user: User;
+			user: UserContext;
 			groups?: Group[];
 			group?: Group;
 			ballot?: Ballot;
@@ -78,12 +78,16 @@ declare global {
 }
 
 async function parseGroupName(req: Request, res: Response, next: NextFunction) {
-	const { groupName } = req.params;
-	req.groups = await getGroups(req.user, { name: groupName });
-	if (req.groups.length < 1)
-		return next(new NotFoundError(`Group ${groupName} does not exist`));
-	req.group = req.groups[0];
-	next();
+	try {
+		const { groupName } = req.params;
+		req.groups = await getGroups(req.user, { name: groupName });
+		if (req.groups.length < 1)
+			throw new NotFoundError(`Group ${groupName} does not exist`);
+		req.group = req.groups[0];
+		next();
+	} catch (error) {
+		next(error);
+	}
 }
 
 /*
@@ -119,35 +123,33 @@ router.use("/:groupName/ballots", parseGroupName, ballots);
 router.use("/:groupName/epolls", parseGroupName, epolls); // Access to ePolls balloting tool
 
 async function parseBallot_id(req: Request, res: Response, next: NextFunction) {
-	const ballot_id = Number(req.params.ballot_id);
-	if (isNaN(ballot_id)) {
-		next(new BadRequestError("Bad path parameter :ballot_id"));
-		return;
-	}
-	const ballot = await getBallot(ballot_id);
-	if (!ballot) {
-		next(new NotFoundError(`Ballot ${ballot_id} does not exist`));
-		return;
-	}
-	if (!ballot.groupId) {
-		next(
-			new TypeError(`Ballot ${ballot_id} not associated with a group`)
-		);
-		return;
-	}
-	req.ballot = ballot;
-	req.groups = await getGroups(req.user, { id: ballot.groupId });
-	if (req.groups.length < 1) {
-		next(
-			new NotFoundError(
+	try {
+		const ballot_id = Number(req.params.ballot_id);
+		if (isNaN(ballot_id))
+			throw new BadRequestError("Bad path parameter :ballot_id");
+		const ballot = await getBallot(ballot_id);
+		if (!ballot) {
+			throw new NotFoundError(`Ballot ${ballot_id} does not exist`);
+		}
+		if (!ballot.groupId) {
+			throw new TypeError(
+				`Ballot ${ballot_id} not associated with a group`
+			);
+		}
+
+		req.ballot = ballot;
+		req.groups = await getGroups(req.user, { id: ballot.groupId });
+		if (req.groups.length < 1) {
+			throw new NotFoundError(
 				`Group associated with ballot ${ballot_id} does not exist`
-			)
-		);
-		return;
+			);
+		}
+		req.group = req.groups[0];
+		req.permissions = req.group.permissions;
+		next();
+	} catch (error) {
+		next(error);
 	}
-	req.group = req.groups[0];
-	req.permissions = req.group.permissions;
-	next();
 }
 
 router.use("/voters/:ballot_id", parseBallot_id, voters); // Ballot voters

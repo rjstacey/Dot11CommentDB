@@ -1,11 +1,5 @@
+import type { User } from "@schemas/user.js";
 const LOGIN_STORAGE = "User";
-
-export type User = {
-	SAPIN: number;
-	Name: string;
-	Email: string;
-	Token: any;
-};
 
 export function setUserLocalStorage(user: User) {
 	localStorage.setItem(LOGIN_STORAGE, JSON.stringify(user));

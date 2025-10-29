@@ -8,7 +8,7 @@ import { parseEpollComments, parseEpollUserComments } from "./epoll.js";
 import { parseMyProjectComments } from "./myProjectSpreadsheets.js";
 import { parsePublicReviewComments } from "./publicReviewSpreadsheets.js";
 import { BallotType, getBallotWithNewResultsSummary } from "./ballots.js";
-import { selectUser, type User } from "./users.js";
+import { selectUser, type UserContext } from "./users.js";
 import { AccessLevel } from "../auth/access.js";
 import { getGroups } from "./groups.js";
 import type {
@@ -203,7 +203,7 @@ function commentsSetSql(changes: CommentChange) {
  * @param changes An object with fields to be changed
  */
 async function updateComment(
-	user: User,
+	user: UserContext,
 	ballot_id: number,
 	id: number,
 	changes: CommentChange
@@ -220,7 +220,7 @@ async function updateComment(
 }
 
 export async function updateComments(
-	user: User,
+	user: UserContext,
 	ballot_id: number,
 	access: number,
 	updates: CommentUpdate[],
@@ -279,7 +279,7 @@ export async function updateComments(
  * @returns Updated comments and changes to the ballot comments summary.
  */
 export async function setStartCommentId(
-	user: User,
+	user: UserContext,
 	ballot_id: number,
 	startCommentId: number
 ) {
@@ -306,7 +306,7 @@ export async function setStartCommentId(
 /**
  * Delete all comments for the specified ballot
  */
-export async function deleteComments(user: User, ballot_id: number) {
+export async function deleteComments(user: UserContext, ballot_id: number) {
 	// The order of the deletes is import; from resolutions table first and then from comments table.
 	// This is because a delete from resolutions tables adds a history log and a delete from comments then removes it.
 	// prettier-ignore
@@ -323,7 +323,7 @@ export async function deleteComments(user: User, ballot_id: number) {
  * Replace all comments for the specified ballot
  */
 async function insertComments(
-	user: User,
+	user: UserContext,
 	ballot_id: number,
 	commentsIn: CommentCreate[]
 ) {
@@ -370,7 +370,7 @@ async function insertComments(
  * Replace all comments for the specified ballot
  */
 async function replaceComments(
-	user: User,
+	user: UserContext,
 	ballot_id: number,
 	comments: CommentCreate[]
 ) {
@@ -384,7 +384,7 @@ async function replaceComments(
  * Import comments directly from ePoll
  */
 export async function importEpollComments(
-	user: User,
+	user: UserContext,
 	ballot: Ballot,
 	startCommentId: number
 ) {
@@ -413,7 +413,7 @@ export async function importEpollComments(
  * For WG ballot, the ePoll .csv format is expected.
  */
 export async function uploadComments(
-	user: User,
+	user: UserContext,
 	ballot: Ballot,
 	startCommentId: number,
 	filename: string,
@@ -454,7 +454,7 @@ async function getHighestIndexes(ballot_id: number): Promise<MaxIndexes> {
  * For WG ballot, the ePoll .csv format is expected.
  */
 export async function uploadUserComments(
-	user: User,
+	user: UserContext,
 	ballot: Ballot,
 	sapin: number,
 	filename: string,
@@ -482,7 +482,7 @@ export async function uploadUserComments(
  * Upload public review comments from spreadsheet.
  */
 export async function uploadPublicReviewComments(
-	user: User,
+	user: UserContext,
 	ballot: Ballot,
 	filename: string,
 	buffer: Buffer

@@ -2,7 +2,7 @@ import { v4 as uuid } from "uuid";
 
 import db from "../utils/database.js";
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 import { getGroupAndSubgroupIds } from "./groups.js";
 import { Group } from "@schemas/groups.js";
 import {
@@ -44,11 +44,11 @@ export function getOfficers(constraints?: OfficerQuery): Promise<Officer[]> {
 								? "BIN_TO_UUID(??) IN (?)"
 								: "BIN_TO_UUID(??)=?",
 							[key, value]
-					  )
+						)
 					: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
 							key,
 							value,
-					  ])
+						])
 			)
 			.join(" AND ");
 	}
@@ -86,7 +86,7 @@ async function addOfficer({
  * @returns An array of officer objects as added
  */
 export async function addOfficers(
-	user: User,
+	user: UserContext,
 	workingGroup: Group,
 	officers: OfficerCreate[]
 ) {
@@ -130,7 +130,7 @@ async function updateOfficer({ id, changes }: OfficerUpdate): Promise<Officer> {
  * @returns An array of update officer objects
  */
 export async function updateOfficers(
-	user: User,
+	user: UserContext,
 	workingGroup: Group,
 	updates: OfficerUpdate[]
 ) {
@@ -157,7 +157,7 @@ export async function updateOfficers(
  * @returns number of deleted officers
  */
 export async function removeOfficers(
-	user: User,
+	user: UserContext,
 	workingGroup: Group,
 	ids: string[]
 ): Promise<number> {

@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import type { Response } from "express";
 import type { MemberAttendance } from "./attendances.js";
-import { User } from "./users.js";
+import { UserContext } from "./users.js";
 import { Group } from "@schemas/groups.js";
 import { Session } from "@schemas/sessions.js";
 
@@ -27,7 +27,7 @@ const attendanceColumns: Col[] = [
 ];
 
 export function genAttendanceSpreadsheet(
-	user: User,
+	user: UserContext,
 	group: Group,
 	session: Session,
 	attendances: MemberAttendance[],

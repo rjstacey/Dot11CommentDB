@@ -6,8 +6,8 @@ import { DateTime } from "luxon";
 import { load as cheerioLoad } from "cheerio";
 import { AuthError, parseSpreadsheet } from "../utils/index.js";
 
-import type { User } from "./users.js";
-import { Epoll } from "@schemas/epolls.js";
+import type { UserContext } from "./users.js";
+import type { Epoll } from "@schemas/epolls.js";
 
 // Convert date string to UTC
 function parseDateTime(dateStr: string) {
@@ -59,7 +59,7 @@ function parseClosedEpollsPage(body: string): Epoll[] {
  * Parameters: n = number of entries to get
  */
 export async function getEpolls(
-	user: User,
+	user: UserContext,
 	groupName: string,
 	n: number
 ): Promise<Epoll[]> {
@@ -223,7 +223,7 @@ const epollUserCommentsHeader = [
 ];
 
 function parseUserComment(
-	user: User,
+	user: UserContext,
 	CommentID: number,
 	C_Index: number,
 	c: string[]
@@ -258,7 +258,7 @@ function parseUserComment(
 }
 
 export async function parseEpollUserComments(
-	user: User,
+	user: UserContext,
 	startCommentId: number,
 	startIndex: number,
 	filename: string,

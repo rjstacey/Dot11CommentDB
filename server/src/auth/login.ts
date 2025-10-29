@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response, Router } from "express";
 import { IeeeClient } from "../utils/index.js";
+import type { User } from "@schemas/user.js";
 import { selectUser, getUser, setUser, delUser } from "../services/users.js";
 import { verify, token } from "./jwt.js";
-import { AccessLevel } from "./access.js";
 
 /*
  * login API
@@ -16,8 +16,9 @@ import { AccessLevel } from "./access.js";
 async function getLogin(req: Request, res: Response) {
 	try {
 		const userId = Number(verify(req));
-		const { ieeeClient, ...user } = await getUser(userId);
-		res.json({ user });
+		const user = (await getUser(userId)) || null;
+		delete user?.ieeeClient;
+		res.json({ user } satisfies { user: User | null });
 	} catch {
 		res.json({ user: null });
 	}
@@ -36,12 +37,11 @@ async function postLogin(req: Request, res: Response, next: NextFunction) {
 		);
 		//const SAPIN = 5073, Name = "Robert Stacey", Email= "rjstacey@gmail.com";
 
-		const user = (await selectUser({ SAPIN, Email })) || {
+		const user: User = (await selectUser({ SAPIN, Email })) || {
 			SAPIN,
 			Name,
 			Email,
-			Access: AccessLevel.none,
-			Permissions: [],
+			Token: null,
 		};
 
 		user.Token = token(user.SAPIN);

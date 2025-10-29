@@ -13,7 +13,7 @@ import type {
 } from "@schemas/comments.js";
 import type { Member, UpdateRosterOptions } from "@schemas/members.js";
 import type { Result } from "@schemas/results.js";
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 
 const myProjectCommentsHeader = [
 	"Comment ID",
@@ -352,7 +352,7 @@ export async function parseMyProjectRosterSpreadsheet(buffer: Buffer) {
  * generate MyProject roster spreadsheet
  */
 export async function genMyProjectRosterSpreadsheet(
-	user: User,
+	user: UserContext,
 	members: Member[],
 	res: Response
 ) {
@@ -381,7 +381,7 @@ export async function genMyProjectRosterSpreadsheet(
 }
 
 export async function updateMyProjectRoster(
-	user: User,
+	user: UserContext,
 	members: Member[],
 	options: UpdateRosterOptions,
 	buffer: Buffer,

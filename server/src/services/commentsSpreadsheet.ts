@@ -9,7 +9,7 @@ import {
 	type CommentResolution,
 	type CommentsExportStyle,
 } from "@schemas/comments.js";
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 import type { Response } from "express";
 import { BallotType } from "./ballots.js";
 import { getComments } from "./comments.js";
@@ -778,7 +778,7 @@ function toHtml(value: string | null | undefined) {
 const getColRef = (n: number) =>
 	n
 		? getColRef(Math.floor((n - 1) / 26)) +
-		  String.fromCharCode(65 + ((n - 1) % 26))
+			String.fromCharCode(65 + ((n - 1) % 26))
 		: "";
 
 function addResolutionFormatting(
@@ -967,7 +967,7 @@ function addWorksheet(workbook: ExcelJS.Workbook, name: string) {
 }
 
 async function genCommentsSpreadsheet(
-	user: User,
+	user: UserContext,
 	isLegacy: boolean,
 	style: CommentsExportStyle,
 	appendSheets: boolean,
@@ -1033,7 +1033,7 @@ async function genCommentsSpreadsheet(
 }
 
 export async function exportCommentsSpreadsheet(
-	user: User,
+	user: UserContext,
 	ballot: Ballot,
 	isLegacy: boolean,
 	style: CommentsExportStyle,

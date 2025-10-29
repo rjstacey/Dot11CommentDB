@@ -11,8 +11,8 @@ import {
 	PollResult,
 	PollChoice,
 } from "@schemas/poll.js";
-import { ResultSetHeader, RowDataPacket } from "mysql2";
-import { User } from "./users.js";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import type { UserContext } from "./users.js";
 
 export async function init() {
 	const sql =
@@ -142,7 +142,7 @@ export async function deletePoll(id: number) {
 	return affectedRows;
 }
 
-export async function pollVote(user: User, poll: Poll, votes: number[]) {
+export async function pollVote(user: UserContext, poll: Poll, votes: number[]) {
 	if (poll.state !== "opened") throw new TypeError("Poll not open");
 	// Strip out duplicates
 	votes = [...new Set(votes)];

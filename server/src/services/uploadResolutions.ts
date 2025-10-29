@@ -1,7 +1,7 @@
 import { v4 as uuid } from "uuid";
 
 import db from "../utils/database.js";
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 import { parseCommentsSpreadsheet } from "./commentsSpreadsheet.js";
 import { getComments, getCommentsSummary } from "./comments.js";
 import type { Comment, CommentResolution } from "@schemas/comments.js";
@@ -491,7 +491,7 @@ async function addComments(
  * @param file The spreadsheet file
  */
 export async function uploadResolutions(
-	user: User,
+	user: UserContext,
 	ballot_id: number,
 	toUpdate: FieldToUpdate[],
 	matchAlgo: MatchAlgo,

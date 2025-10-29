@@ -1,5 +1,5 @@
 import { Socket } from "socket.io";
-import type { User } from "../services/users.js";
+import type { UserContext } from "../services/users.js";
 import {
 	PollingOK,
 	PollingError,
@@ -311,7 +311,7 @@ async function onPollAction(
 
 async function onPollVote(
 	this: Socket,
-	user: User,
+	user: UserContext,
 	payload: unknown,
 	callback: unknown
 ) {
@@ -379,7 +379,7 @@ async function onGroupLeave(this: Socket) {
 	clearSocketGroupId(this);
 }
 
-function onConnect(socket: Socket, user: User) {
+function onConnect(socket: Socket, user: UserContext) {
 	console.log("register " + user.Name + " for polling");
 	socket.onAny((event, ...args) => {
 		console.log(event, args);

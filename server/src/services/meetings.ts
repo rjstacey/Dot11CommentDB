@@ -5,7 +5,7 @@ import { AuthError, NotFoundError } from "../utils/index.js";
 import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 
 import { getSession } from "./sessions.js";
 import type { Session } from "@schemas/sessions.js";
@@ -169,7 +169,7 @@ async function selectMeetings(constraints: MeetingsQuery) {
  * constraints and `webexMeetings` is an array of Webex meetings referenced by the meetings.
  */
 export async function getMeetings(
-	user: User,
+	user: UserContext,
 	constraints: MeetingsQuery
 ): Promise<MeetingsGetResponse> {
 	const meetings = await selectMeetings(constraints);
@@ -577,7 +577,7 @@ async function meetingsAffectedByGracePeriod(meeting: Meeting | MeetingCreate) {
  * @param meetingToAdd The meeting object to be added
  * @returns An object that includes the meeting as added, the Webex meeting event (if created) and IMAT breakout (if created).
  */
-async function addMeeting(user: User, meetingToAdd: MeetingCreate) {
+async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 	let webexMeeting: WebexMeeting | undefined,
 		breakout: Breakout | undefined,
 		session: Promise<Session | undefined> | Session | undefined,
@@ -692,7 +692,10 @@ async function addMeeting(user: User, meetingToAdd: MeetingCreate) {
  * @param meetings An array of meeting objects to be added
  * @returns An object that contains an array of meeting objects as added, an array of webex meetings and an array of IMAT breakouts.
  */
-export async function addMeetings(user: User, meetingsIn: MeetingCreate[]) {
+export async function addMeetings(
+	user: UserContext,
+	meetingsIn: MeetingCreate[]
+) {
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
 
 	const entries = await Promise.all(
@@ -823,9 +826,8 @@ async function meetingMakeWebexUpdates(
 							webexMeetingParams
 						)
 					) {
-						webexMeeting = await updateWebexMeeting(
-							webexMeetingParams
-						);
+						webexMeeting =
+							await updateWebexMeeting(webexMeetingParams);
 					}
 				} catch (error) {
 					if (!(error instanceof NotFoundError)) throw error;
@@ -856,7 +858,7 @@ async function meetingMakeWebexUpdates(
  *      (the user is linking a meeting entry to an existing IMAT breakout entry)
  */
 async function meetingMakeImatBreakoutUpdates(
-	user: User,
+	user: UserContext,
 	meeting: Meeting,
 	changes: MeetingChange,
 	session: Session | undefined,
@@ -1062,7 +1064,7 @@ async function meetingMakeCalendarUpdates(
  * @returns An object the includes the meeting as updated, webex meeting events as updated and IMAT breakouts as updated.
  */
 export async function updateMeeting(
-	user: User,
+	user: UserContext,
 	id: number,
 	changesIn: MeetingChange
 ) {
@@ -1140,7 +1142,7 @@ export async function updateMeeting(
  * @returns An object that includes an array of meeting objects as updated, an array of webex Meeting events as updated and an array of IMAT breakouts as updated.
  */
 export async function updateMeetings(
-	user: User,
+	user: UserContext,
 	updates: MeetingUpdate[]
 ): Promise<MeetingsUpdateResponse> {
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
@@ -1175,7 +1177,7 @@ export async function updateMeetings(
  * @returns The number of meetings deleted.
  */
 export async function deleteMeetings(
-	user: User,
+	user: UserContext,
 	ids: number[]
 ): Promise<number> {
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
@@ -1202,9 +1204,8 @@ export async function deleteMeetings(
 		"FROM meetings WHERE id IN (?);",
 		[ids]
 	);
-	const entries = await db.query<(RowDataPacket & DeleteMeetingSelect)[]>(
-		sql
-	);
+	const entries =
+		await db.query<(RowDataPacket & DeleteMeetingSelect)[]>(sql);
 	for (const entry of entries) {
 		if (entry.webexAccountId && entry.webexMeetingId) {
 			try {

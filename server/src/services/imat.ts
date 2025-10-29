@@ -4,7 +4,7 @@
 import { DateTime, Duration } from "luxon";
 import { load as cheerioLoad } from "cheerio";
 
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 
 import {
 	csvParse,
@@ -175,7 +175,9 @@ async function parseMeetingsCsv(buffer: Buffer) {
  * get IMAT meetings
  * @returns An array of IMAT meeting objects
  */
-export async function getImatMeetings(user: User): Promise<ImatMeeting[]> {
+export async function getImatMeetings(
+	user: UserContext
+): Promise<ImatMeeting[]> {
 	const { ieeeClient } = user;
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
@@ -184,7 +186,10 @@ export async function getImatMeetings(user: User): Promise<ImatMeeting[]> {
 	return meetings;
 }
 
-async function getImatMeeting(user: User, id: number): Promise<ImatMeeting> {
+async function getImatMeeting(
+	user: UserContext,
+	id: number
+): Promise<ImatMeeting> {
 	const meetings = await getImatMeetings(user);
 	const meeting = meetings.find((m) => m.id === id);
 	if (!meeting) throw new NotFoundError("Meeting does not exist");
@@ -309,7 +314,7 @@ async function parseImatCommitteesCsv(buffer: Buffer) {
  * @param user The user executing the get
  * @param group The working group
  */
-export async function getImatCommittees(user: User, group: Group) {
+export async function getImatCommittees(user: UserContext, group: Group) {
 	const { ieeeClient } = user;
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
@@ -573,7 +578,7 @@ async function parseImatTimeslotCsv(buffer: Buffer) {
  * @param imatMeetingId The IMAT meeting number
  */
 export async function getImatBreakoutsInternal(
-	user: User,
+	user: UserContext,
 	imatMeetingId: number
 ) {
 	const { ieeeClient } = user;
@@ -639,7 +644,7 @@ export async function getImatBreakoutsInternal(
 }
 
 export async function getImatBreakouts(
-	user: User,
+	user: UserContext,
 	imatMeetingId: number
 ): Promise<GetImatBreakoutsResponse> {
 	return getImatBreakoutsInternal(user, imatMeetingId);
@@ -653,7 +658,7 @@ const breakoutCredit = {
 };
 
 async function addImatBreakout(
-	user: User,
+	user: UserContext,
 	imatMeeting: ImatMeeting,
 	timeslots: ImatTimeslot[],
 	pageCommittees: PageCommittee[],
@@ -743,7 +748,7 @@ function pageBreakoutToBreakout(
 }
 
 export async function addImatBreakouts(
-	user: User,
+	user: UserContext,
 	imatMeetingId: number,
 	breakouts: BreakoutCreate[]
 ) {
@@ -773,7 +778,7 @@ export async function addImatBreakouts(
 }
 
 export async function deleteImatBreakouts(
-	user: User,
+	user: UserContext,
 	imatMeetingId: number,
 	ids: number[]
 ) {
@@ -809,7 +814,7 @@ export async function deleteImatBreakouts(
 }
 
 async function updateImatBreakout(
-	user: User,
+	user: UserContext,
 	imatMeeting: ImatMeeting,
 	breakout: BreakoutUpdate
 ) {
@@ -856,7 +861,7 @@ async function updateImatBreakout(
 }
 
 export async function updateImatBreakouts(
-	user: User,
+	user: UserContext,
 	imatMeetingId: number,
 	breakouts: BreakoutUpdate[]
 ) {
@@ -898,7 +903,7 @@ function slotDateTime(date: DateTime, slot: ImatTimeslot) {
 }
 
 async function meetingToBreakout(
-	user: User,
+	user: UserContext,
 	imatMeeting: ImatMeeting,
 	timeslots: ImatTimeslot[],
 	committees: ImatCommittee[],
@@ -1165,7 +1170,7 @@ function breakoutAddGracePeriod<B extends BreakoutCreate>(
 }
 
 export async function addImatBreakoutFromMeeting(
-	user: User,
+	user: UserContext,
 	session: Session | undefined,
 	meeting: MeetingCreate,
 	webexMeeting: WebexMeeting | undefined
@@ -1218,7 +1223,7 @@ export async function addImatBreakoutFromMeeting(
 }
 
 export async function updateImatBreakoutFromMeeting(
-	user: User,
+	user: UserContext,
 	session: Session | undefined,
 	meeting: MeetingCreate,
 	webexMeeting: WebexMeeting | undefined
@@ -1311,7 +1316,7 @@ function getTimestamp(t: string) {
  * Get IMAT breakout attendance
  */
 export async function getImatBreakoutAttendance(
-	user: User,
+	user: UserContext,
 	imatMeetingId: number,
 	breakoutId: number
 ): Promise<ImatBreakoutAttendance[]> {
@@ -1392,7 +1397,7 @@ async function parseImatMeetingAttendance(
 }
 
 export async function getImatMeetingAttendance(
-	user: User,
+	user: UserContext,
 	imatMeetingId: number
 ): Promise<ImatMeetingAttendance[]> {
 	const { ieeeClient } = user;
@@ -1453,7 +1458,7 @@ async function parseImatMeetingAttendanceSummary(buffer: Buffer) {
  * @returns An array of objects that represent the session attendees
  */
 async function getImatMeetingAttendanceSummaryByDate(
-	user: User,
+	user: UserContext,
 	groupName: string,
 	start: string,
 	end: string
@@ -1473,7 +1478,7 @@ async function getImatMeetingAttendanceSummaryByDate(
  * @returns An array of objects that represent the session attendees
  */
 export async function getImatMeetingAttendanceSummaryForSession(
-	user: User,
+	user: UserContext,
 	group: Group,
 	session: Session
 ) {
@@ -1506,7 +1511,7 @@ export async function getImatMeetingAttendanceSummaryForSession(
  * @returns An array of objects that represents the session attendees
  */
 export async function getImatMeetingAttendanceSummary(
-	user: User,
+	user: UserContext,
 	group: Group,
 	imatMeetingId: number
 ): Promise<ImatAttendanceSummary[]> {
@@ -1627,7 +1632,7 @@ async function parseImatMeetingDailyAttendance(buffer: Buffer) {
  * @returns An array of objects representing the meeting attendees
  */
 export async function getImatMeetingDailyAttendance(
-	user: User,
+	user: UserContext,
 	group: Group,
 	imatMeetingId: number
 ): Promise<ImatDailyAttendanceSummary[]> {

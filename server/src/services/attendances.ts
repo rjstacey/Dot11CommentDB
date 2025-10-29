@@ -11,7 +11,7 @@ import {
 	getImatMeetingDailyAttendance,
 } from "./imat.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 import type { Member } from "@schemas/members.js";
 import { getMembers, getMembersSnapshot } from "./members.js";
 import { genAttendanceSpreadsheet } from "./attendancesSpreadsheet.js";
@@ -91,11 +91,11 @@ function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
 						? "BIN_TO_UUID(a.??) IN (?)"
 						: "a.??=UUID_TO_BIN(?)",
 					[key, value]
-			  )
+				)
 			: db.format(Array.isArray(value) ? "a.?? IN (?)" : "a.??=?", [
 					key,
 					value,
-			  ])
+				])
 	);
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 
@@ -109,16 +109,15 @@ export async function getAttendances(
 	query?: SessionAttendanceSummaryQuery
 ): Promise<SessionAttendanceSummary[]> {
 	const sql = getAttendancesSql(query);
-	const attendances = await db.query<
-		(RowDataPacket & SessionAttendanceSummary)[]
-	>(sql);
+	const attendances =
+		await db.query<(RowDataPacket & SessionAttendanceSummary)[]>(sql);
 	return attendances;
 }
 
 /**
  * Get recent session attendances
  */
-export async function getRecentAttendances(user: User, groupId: string) {
+export async function getRecentAttendances(user: UserContext, groupId: string) {
 	const groups = await getGroupHierarchy(user, groupId);
 	if (groups.length === 0)
 		throw new NotFoundError(
@@ -166,7 +165,7 @@ export async function getRecentAttendances(user: User, groupId: string) {
  * Import (from IMAT) the attendances for a session
  */
 export async function importAttendances(
-	user: User,
+	user: UserContext,
 	group: Group,
 	session_id: number,
 	useDailyAttendance: boolean
@@ -230,7 +229,7 @@ export async function importAttendances(
 }
 
 export async function uploadRegistration(
-	user: User,
+	user: UserContext,
 	group: Group,
 	session_id: number,
 	filename: string,
@@ -276,7 +275,7 @@ export type MemberAttendance = SessionAttendanceSummary & {
  * Export attendances for meeting minutes
  */
 export async function exportAttendancesForMinutes(
-	user: User,
+	user: UserContext,
 	group: Group,
 	session_id: number,
 	res: Response

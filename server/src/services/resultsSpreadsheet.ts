@@ -3,7 +3,7 @@
  */
 import ExcelJS from "exceljs";
 import type { Response } from "express";
-import type { User } from "./users.js";
+import type { UserContext } from "./users.js";
 import type { Ballot } from "@schemas/ballots.js";
 import type { Result } from "@schemas/results.js";
 import { getSheetName } from "./commentsSpreadsheet.js";
@@ -177,7 +177,7 @@ function populateResultsWorksheet(
 }
 
 export async function genResultsSpreadsheet(
-	user: User,
+	user: UserContext,
 	ballots: Ballot[],
 	resultsArr: Result[][],
 	res: Response

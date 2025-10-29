@@ -1,5 +1,4 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { ResponseError } from "../lib/appFetch";
 
 const name = "errMsg";
 
@@ -37,13 +36,11 @@ export const { clearOne, clearAll } = errorsSlice.actions;
 
 export function setError(summary: string, error: any) {
 	let detail: string;
-	if (error instanceof ResponseError) {
-		console.log("ResponseError:", error.message);
-		detail = error.name + "\n" + error.message;
-	} else if (typeof error === "string") {
+	if (typeof error === "string") {
 		detail = error;
+	} else if (error instanceof Error) {
+		detail = error.name + "\n" + error.message;
 	} else {
-		console.log("default:", error);
 		detail = error.toString();
 	}
 	return errorsSlice.actions.setError({ summary, detail });
