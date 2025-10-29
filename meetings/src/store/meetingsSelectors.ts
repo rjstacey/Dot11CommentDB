@@ -6,13 +6,13 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
-	AccessLevel,
 } from "@common";
 
 import type { RootState } from ".";
 import {
 	selectGroupEntities,
 	selectTopLevelGroupByName,
+	AccessLevel,
 	type Group,
 } from "./groups";
 import { selectWebexAccountEntities, WebexAccount } from "./webexAccounts";
@@ -43,6 +43,7 @@ export type {
 	MeetingChangeWebexParams,
 	MeetingsQuery,
 };
+export { AccessLevel };
 
 /** `Meeting` record with additional fields from referenced entities */
 export type SyncedMeeting = Meeting & {
@@ -134,7 +135,7 @@ export function getField(entity: SyncedMeeting, key: string) {
 		return webexMeeting
 			? `${webexAccountName}: ${displayMeetingNumber(
 					webexMeeting.meetingNumber
-			  )}`
+				)}`
 			: "";
 	}
 	if (key === "meetingNumber")
@@ -182,7 +183,7 @@ export const selectSyncedMeetingEntities = createSelector(
 		const entities: Record<EntityId, SyncedMeeting> = {};
 		for (const [id, meeting] of Object.entries(meetingEntities) as [
 			string,
-			Meeting
+			Meeting,
 		][]) {
 			const group: Group | undefined = meeting.organizationId
 				? groupEntities[meeting.organizationId]
@@ -205,7 +206,7 @@ export const selectSyncedMeetingEntities = createSelector(
 			const room = meeting!.sessionId
 				? sessionEntities[meeting.sessionId]!.rooms?.find(
 						(room) => room.id === meeting.roomId
-				  )
+					)
 				: undefined;
 			const sessionName = meeting!.sessionId
 				? sessionEntities[meeting.sessionId]!.name

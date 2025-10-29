@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 import pkg from "../../../package.json" with { type: "json" };
 
-export function AccountDropdown() {
+export function AccountDropdown({ className }: { className?: string }) {
 	const dispatch = useAppDispatch();
 	const user = useAppSelector(selectUser);
 	const reload = async () => {
@@ -16,8 +16,11 @@ export function AccountDropdown() {
 	};
 
 	return (
-		<Dropdown id="account-dropdown">
-			<Dropdown.Toggle variant="outline-secondary" id="account-dropdown-toggle">
+		<Dropdown id="account-dropdown" className={className}>
+			<Dropdown.Toggle
+				variant="outline-secondary"
+				id="account-dropdown-toggle"
+			>
 				{`${user.Name} (${user.SAPIN})`}
 			</Dropdown.Toggle>
 			<Dropdown.Menu align="end">

@@ -5,7 +5,7 @@ import { Button, Form, Container, Row, Col, Spinner } from "react-bootstrap";
 import type { Dictionary } from "@reduxjs/toolkit";
 
 import { useAppSelector } from "@/store/hooks";
-import { selectUserMeetingsAccess } from "@/store/meetings";
+import { selectUserMeetingsAccess, AccessLevel } from "@/store/meetings";
 
 import {
 	ConfirmModal,
@@ -15,7 +15,6 @@ import {
 	isMultiple,
 	Select,
 	Multiple,
-	AccessLevel,
 } from "@common";
 
 import ImatCommitteeSelector from "@/components/ImatCommitteeSelector";

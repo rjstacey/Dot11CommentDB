@@ -19,7 +19,9 @@ import {
 	groupsSchema,
 	groupTypesOrdered,
 } from "@schemas/groups";
+import { AccessLevel } from "@schemas/access";
 export type { GroupType, Group, GroupCreate, GroupUpdate };
+export { AccessLevel };
 
 function arrangeIdsHeirarchically(
 	ids: EntityId[],

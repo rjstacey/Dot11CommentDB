@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Spinner, Button } from "react-bootstrap";
-import { ConfirmModal, Multiple, AccessLevel } from "@common";
+import { ConfirmModal, Multiple } from "@common";
 
 import {
 	deleteSessions,
@@ -8,6 +8,7 @@ import {
 	selectSessionsState,
 	selectUserSessionsAccess,
 	Session,
+	AccessLevel,
 } from "@/store/sessions";
 
 import { SessionEditForm } from "./SessionEditForm";

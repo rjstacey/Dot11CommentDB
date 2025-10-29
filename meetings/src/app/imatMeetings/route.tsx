@@ -1,7 +1,6 @@
 import type { LoaderFunction, RouteObject } from "react-router";
-import { AccessLevel } from "@common";
 import { store } from "@/store";
-import { selectTopLevelGroupByName } from "@/store/groups";
+import { selectTopLevelGroupByName, AccessLevel } from "@/store/groups";
 import {
 	loadImatMeetings,
 	selectImatMeetingsState,

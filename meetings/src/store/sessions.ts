@@ -12,13 +12,16 @@ import {
 	fetcher,
 	displayDate,
 	getAppTableDataSelectors,
-	AccessLevel,
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
 import { setError } from ".";
 import { selectCurrentSessionId } from "./current";
-import { selectGroupEntities, selectTopLevelGroupByName } from "./groups";
+import {
+	selectGroupEntities,
+	selectTopLevelGroupByName,
+	AccessLevel,
+} from "./groups";
 
 import {
 	Session,
@@ -30,38 +33,7 @@ import {
 } from "@schemas/sessions";
 
 export type { Session, Room, Timeslot, SessionCreate };
-/*
-export type Room = {
-	id: number;
-	name: string;
-	description: string;
-};
-
-export type Timeslot = {
-	id: number;
-	name: string;
-	startTime: string;
-	endTime: string;
-};
-
-export interface Session {
-	id: number;
-	number: number | null;
-	name: string;
-	type: SessionType | null;
-	groupId: string | null;
-	isCancelled: boolean;
-	imatMeetingId: number | null;
-	OrganizerID: string;
-	timezone: string;
-	startDate: string;
-	endDate: string;
-	rooms: Room[];
-	timeslots: Timeslot[];
-	defaultCredits: string[][];
-	attendees: number;
-}
-*/
+export { AccessLevel };
 
 export const SessionTypeLabels = {
 	p: "Plenary",
@@ -74,7 +46,7 @@ export type SessionType = keyof typeof SessionTypeLabels;
 
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 	([value, label]) =>
-		({ value, label } as { value: SessionType; label: string })
+		({ value, label }) as { value: SessionType; label: string }
 );
 
 export const displaySessionType = (type: SessionType | null) =>
