@@ -1,10 +1,9 @@
 import React from "react";
 import { Dictionary } from "@reduxjs/toolkit";
 import { Container, Row, Col, Spinner } from "react-bootstrap";
-import { AccessLevel } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
-import { selectTopLevelGroupId } from "@/store/groups";
+import { selectTopLevelGroupId, AccessLevel } from "@/store/groups";
 import {
 	selectEpollsState,
 	selectSyncedEntities,

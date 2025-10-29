@@ -1,5 +1,5 @@
 import React from "react";
-import { AppTable, ShowFilters, SplitPanel, Panel, AccessLevel } from "@common";
+import { AppTable, ShowFilters, SplitPanel, Panel } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -10,7 +10,7 @@ import {
 	upsertTableColumns,
 	selectResultsAccess,
 } from "@/store/results";
-import { selectBallot, BallotType } from "@/store/ballots";
+import { selectBallot, BallotType, AccessLevel } from "@/store/ballots";
 
 import { ResultsDetail } from "./detail";
 import { tableColumns, getDefaultTablesConfig } from "./tableColumns";

@@ -3,9 +3,8 @@ import {
 	TablesConfig,
 	ChangeableColumnProperties,
 	CellRendererProps,
-	AccessLevel,
 } from "@common";
-import { BallotType } from "@/store/ballots";
+import { BallotType, AccessLevel } from "@/store/ballots";
 
 const renderItem = ({ rowData, dataKey }: CellRendererProps) => (
 	<div className="text-truncate">{rowData[dataKey]}</div>
@@ -34,31 +33,34 @@ export function getDefaultTablesConfig(
 	access: number,
 	type: number
 ): TablesConfig {
-	const columns = tableColumns.reduce((o, c) => {
-		let columnConfig: ChangeableColumnProperties = {
-			shown: true,
-			width: c.width!,
-			unselectable: false,
-		};
-		if (
-			c.key === "SAPIN" &&
-			(access < AccessLevel.admin || type === BallotType.SA)
-		) {
-			columnConfig = {
-				...columnConfig,
-				shown: false,
+	const columns = tableColumns.reduce(
+		(o, c) => {
+			let columnConfig: ChangeableColumnProperties = {
+				shown: true,
+				width: c.width!,
 				unselectable: false,
 			};
-		}
-		if (c.key === "Email" && access < AccessLevel.admin) {
-			columnConfig = {
-				...columnConfig,
-				shown: false,
-				unselectable: false,
-			};
-		}
-		o[c.key] = columnConfig;
-		return o;
-	}, {} as { [key: string]: ChangeableColumnProperties });
+			if (
+				c.key === "SAPIN" &&
+				(access < AccessLevel.admin || type === BallotType.SA)
+			) {
+				columnConfig = {
+					...columnConfig,
+					shown: false,
+					unselectable: false,
+				};
+			}
+			if (c.key === "Email" && access < AccessLevel.admin) {
+				columnConfig = {
+					...columnConfig,
+					shown: false,
+					unselectable: false,
+				};
+			}
+			o[c.key] = columnConfig;
+			return o;
+		},
+		{} as { [key: string]: ChangeableColumnProperties }
+	);
 	return { default: { fixed: false, columns } };
 }

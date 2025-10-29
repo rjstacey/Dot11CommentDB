@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
-import { ConfirmModal, type Multiple, AccessLevel } from "@common";
+import { ConfirmModal, type Multiple } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -12,6 +12,7 @@ import {
 	Comment,
 	Resolution,
 	ResolutionCreate,
+	AccessLevel,
 } from "@/store/comments";
 
 import CommentHistory from "./CommentHistory";

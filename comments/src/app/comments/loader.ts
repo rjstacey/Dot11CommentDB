@@ -1,9 +1,8 @@
 import type { LoaderFunction } from "react-router";
 import { shallowEqualArrays } from "shallow-equal";
-import { AccessLevel } from "@common";
 import { store } from "@/store";
 import { selectIsOnline } from "@/store/offline";
-import { selectGroup } from "@/store/groups";
+import { selectGroup, AccessLevel } from "@/store/groups";
 import {
 	loadBallots,
 	selectBallotByBallotID,

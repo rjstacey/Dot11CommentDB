@@ -8,11 +8,14 @@ import {
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
-	AccessLevel,
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
-import { selectGroupEntities, selectTopLevelGroupByName } from "./groups";
+import {
+	selectGroupEntities,
+	selectTopLevelGroupByName,
+	AccessLevel,
+} from "./groups";
 
 import {
 	Ballot,
@@ -23,6 +26,7 @@ import {
 } from "@schemas/ballots";
 
 export type { Ballot, BallotUpdate, BallotChange, BallotCreate };
+export { AccessLevel };
 
 export const BallotType = {
 	CC: 0, // comment collection

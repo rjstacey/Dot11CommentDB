@@ -7,7 +7,6 @@ import {
 	type Multiple,
 	isMultiple,
 	MULTIPLE,
-	AccessLevel,
 } from "@common";
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -20,6 +19,7 @@ import {
 	ResolutionUpdate,
 	ResolutionCreate,
 	getCommentStatus,
+	AccessLevel,
 } from "@/store/comments";
 
 import CommentEdit from "./CommentEdit";

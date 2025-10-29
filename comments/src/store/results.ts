@@ -12,7 +12,6 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
-	AccessLevel,
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
@@ -22,7 +21,7 @@ import {
 	selectBallot,
 	BallotTypeLabels,
 } from "./ballots";
-import { selectGroupPermissions } from "./groups";
+import { selectGroupPermissions, AccessLevel } from "./groups";
 import {
 	Result,
 	ResultUpdate,

@@ -8,7 +8,6 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
-	AccessLevel,
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
@@ -19,7 +18,7 @@ import {
 	BallotType,
 	Ballot,
 } from "./ballots";
-import { selectGroup } from "./groups";
+import { selectGroup, AccessLevel } from "./groups";
 import { Effect, offlineFetch } from "./offline";
 import {
 	Comment,
@@ -64,7 +63,7 @@ export type {
 	CommentsExportFormat,
 	CommentsExportStyle,
 };
-export { AdHocStatus, commentStatusOrder, getCommentStatus };
+export { AdHocStatus, AccessLevel, commentStatusOrder, getCommentStatus };
 
 export type CommentResolutionChange = CommentChange &
 	ResolutionChange & { ResolutionCount?: number };
@@ -113,10 +112,13 @@ const editStatusOptions = [
 	{ value: "N", label: "No change" },
 ];
 
-const mustSatisfyLabels = mustSatisfyOptions.reduce((obj, o) => {
-	obj[o.value] = o.label;
-	return obj;
-}, {} as Record<number, string>);
+const mustSatisfyLabels = mustSatisfyOptions.reduce(
+	(obj, o) => {
+		obj[o.value] = o.label;
+		return obj;
+	},
+	{} as Record<number, string>
+);
 
 function getCID(b: Ballot | undefined, c: CommentResolution) {
 	let CID: string;

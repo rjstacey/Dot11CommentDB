@@ -1,8 +1,7 @@
 import type { RouteObject, LoaderFunction } from "react-router";
-import { AccessLevel } from "@common";
 import { store } from "@/store";
 import { selectIsOnline } from "@/store/offline";
-import { selectGroup } from "@/store/groups";
+import { selectGroup, AccessLevel } from "@/store/groups";
 import {
 	loadBallots,
 	selectBallotByBallotID,

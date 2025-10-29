@@ -1,6 +1,6 @@
 import React from "react";
 import { Row, Col, Button } from "react-bootstrap";
-import { SplitTableButtonGroup, AccessLevel } from "@common";
+import { SplitTableButtonGroup } from "@common";
 
 import CommentsImport from "./CommentsImport";
 import CommentsExport from "./CommentsExport";
@@ -11,6 +11,7 @@ import {
 	selectCommentsAccess,
 	commentsSelectors,
 	commentsActions,
+	AccessLevel,
 } from "@/store/comments";
 import { selectIsOnline } from "@/store/offline";
 

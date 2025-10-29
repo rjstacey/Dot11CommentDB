@@ -1,11 +1,11 @@
 import { Link } from "react-router";
-import { AccessLevel } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import {
 	getEncodedBallotId,
 	selectBallotsAccess,
 	BallotType,
 	Ballot,
+	AccessLevel,
 } from "@/store/ballots";
 
 export function BallotResults({ ballot }: { ballot: Ballot }) {

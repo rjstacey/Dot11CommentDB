@@ -1,5 +1,4 @@
 import type { RouteObject, LoaderFunction } from "react-router";
-import { AccessLevel } from "@common";
 import { store } from "@/store";
 import { selectIsOnline } from "@/store/offline";
 import {
@@ -7,7 +6,7 @@ import {
 	selectBallotByBallotID,
 	setCurrentBallot_id,
 } from "@/store/ballots";
-import { selectGroup } from "@/store/groups";
+import { selectGroup, AccessLevel } from "@/store/groups";
 import { clearResults, loadResults } from "@/store/results";
 
 import { rootLoader } from "../rootLoader";
