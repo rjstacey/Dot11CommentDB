@@ -2,13 +2,6 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { User } from "@schemas/user.js";
 export type { User };
 
-export const AccessLevel = {
-	none: 0,
-	ro: 1,
-	rw: 2,
-	admin: 3,
-};
-
 const initialState: User = {
 	SAPIN: 0,
 	Name: "",

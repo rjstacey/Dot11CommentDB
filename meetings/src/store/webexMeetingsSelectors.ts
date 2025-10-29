@@ -27,6 +27,7 @@ export type {
 	WebexEntryExitTone,
 	WebexMeetingsQuery,
 };
+export { AccessLevel };
 
 export function webexMeetingToWebexMeetingParams(
 	i: WebexMeeting
