@@ -16,8 +16,11 @@ import { verify, token } from "./jwt.js";
 async function getLogin(req: Request, res: Response) {
 	try {
 		const userId = Number(verify(req));
-		const user = (await getUser(userId)) || null;
-		delete user?.ieeeClient;
+		let user = (await getUser(userId)) || null;
+		if (user) {
+			user = { ...user };
+			delete user.ieeeClient;
+		}
 		res.json({ user } satisfies { user: User | null });
 	} catch {
 		res.json({ user: null });
