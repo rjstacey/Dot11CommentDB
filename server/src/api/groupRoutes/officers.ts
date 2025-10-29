@@ -3,7 +3,7 @@
  *
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { ForbiddenError } from "../utils/index.js";
+import { ForbiddenError } from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
 import {
 	officerCreatesSchema,
@@ -15,7 +15,7 @@ import {
 	addOfficers,
 	updateOfficers,
 	removeOfficers,
-} from "../services/officers.js";
+} from "@/services/officers.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

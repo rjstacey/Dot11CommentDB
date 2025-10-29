@@ -2,9 +2,9 @@
  * Comments History API
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { BadRequestError, ForbiddenError } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
-import { getCommentHistory } from "../services/commentHistory.js";
+import { getCommentHistory } from "@/services/commentHistory.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	const access = req.permissions?.comments || AccessLevel.none;

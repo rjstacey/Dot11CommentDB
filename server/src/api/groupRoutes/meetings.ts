@@ -34,13 +34,13 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import { AccessLevel } from "@schemas/access.js";
-import { ForbiddenError } from "../utils/index.js";
+import { ForbiddenError } from "@/utils/index.js";
 import {
 	getMeetings,
 	updateMeetings,
 	addMeetings,
 	deleteMeetings,
-} from "../services/meetings.js";
+} from "@/services/meetings.js";
 import {
 	meetingCreatesSchema,
 	meetingUpdatesSchema,

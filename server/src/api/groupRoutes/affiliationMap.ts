@@ -9,7 +9,7 @@ import {
 	updateAffiliationMaps,
 	addAffiliationMaps,
 	removeAffiliationMaps,
-} from "../services/affiliationMap.js";
+} from "@/services/affiliationMap.js";
 
 async function getAll(req: Request, res: Response, next: NextFunction) {
 	try {

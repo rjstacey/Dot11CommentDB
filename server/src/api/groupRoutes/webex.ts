@@ -2,7 +2,7 @@
  * Webex accounts and meetings API
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { BadRequestError, ForbiddenError } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
 import {
 	webexAccountCreateSchema,
@@ -22,7 +22,7 @@ import {
 	updateWebexMeetings,
 	revokeAuthWebexAccount,
 	deleteWebexMeetings,
-} from "../services/webex.js";
+} from "@/services/webex.js";
 
 function accountIdOrThrow(req: Request): number {
 	const accountId = Number(req.params.accountId);

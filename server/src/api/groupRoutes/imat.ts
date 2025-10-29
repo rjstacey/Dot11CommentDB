@@ -14,7 +14,7 @@ import {
 	getImatBreakoutAttendance,
 	getImatMeetingDailyAttendance,
 	getImatMeetingAttendanceSummary,
-} from "../services/imat.js";
+} from "@/services/imat.js";
 import {
 	breakoutCreatesSchema,
 	breakoutIdsSchema,

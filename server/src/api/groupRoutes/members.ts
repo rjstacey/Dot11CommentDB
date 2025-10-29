@@ -4,7 +4,7 @@
  * Maintain the members roster.
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { BadRequestError, ForbiddenError } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
 import {
 	memberCreatesSchema,
@@ -34,7 +34,7 @@ import {
 	exportMembersPrivate,
 	exportVotingMembers,
 	membersExport,
-} from "../services/members.js";
+} from "@/services/members.js";
 
 function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
 	if (!req.body) throw new BadRequestError("Missing file");

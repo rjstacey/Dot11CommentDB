@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction, Router } from "express";
-import { ForbiddenError } from "../utils/index.js";
+import { ForbiddenError } from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
 import {
 	ballotCreatesSchema,
@@ -16,7 +16,7 @@ import {
 	updateBallots,
 	addBallots,
 	deleteBallots,
-} from "../services/ballots.js";
+} from "@/services/ballots.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

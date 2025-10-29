@@ -2,7 +2,7 @@
  * Resolutions API
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { BadRequestError, ForbiddenError } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
 import { commentResolutionQuerySchema } from "@schemas/comments.js";
 import { resolutionsUploadParamsSchema } from "@schemas/uploadResolutions.js";
@@ -15,8 +15,8 @@ import {
 	addResolutions,
 	updateResolutions,
 	deleteResolutions,
-} from "../services/resolutions.js";
-import { uploadResolutions } from "../services/uploadResolutions.js";
+} from "@/services/resolutions.js";
+import { uploadResolutions } from "@/services/uploadResolutions.js";
 
 async function addMany(req: Request, res: Response, next: NextFunction) {
 	try {

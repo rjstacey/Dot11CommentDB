@@ -6,9 +6,9 @@ import {
 	BadRequestError,
 	ForbiddenError,
 	NotFoundError,
-} from "../utils/index.js";
+} from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
-import { selectWorkingGroup } from "../services/groups.js";
+import { selectWorkingGroup } from "@/services/groups.js";
 import {
 	voterCreatesSchema,
 	voterUpdatesSchema,
@@ -23,7 +23,7 @@ import {
 	uploadVoters,
 	votersFromMembersSnapshot,
 	exportVoters,
-} from "../services/voters.js";
+} from "@/services/voters.js";
 
 function workingGroupOrThrow(req: Request) {
 	const workingGroup = selectWorkingGroup(req.groups!);

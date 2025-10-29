@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction, Router } from "express";
-import { ForbiddenError } from "../utils/index.js";
+import { ForbiddenError } from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
 import {
 	getTemplates,
 	addTemplates,
 	updateTemplates,
 	deleteTemplates,
-} from "../services/emailTemplates.js";
-import { sendEmail, sendEmails } from "../services/emailSend.js";
+} from "@/services/emailTemplates.js";
+import { sendEmail, sendEmails } from "@/services/emailSend.js";
 import { emailSchema, emailsSchema } from "@schemas/email.js";
 import {
 	emailTemplateCreatesSchema,

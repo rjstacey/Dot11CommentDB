@@ -6,9 +6,9 @@
  *		Returns an array of epoll objects.
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { ForbiddenError } from "../utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
-import { getEpolls } from "../services/epoll.js";
+import { ForbiddenError } from "@/utils/index.js";
+import { getEpolls } from "@/services/epoll.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

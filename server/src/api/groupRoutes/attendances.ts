@@ -4,7 +4,7 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import { AccessLevel } from "@schemas/access.js";
-import { ForbiddenError, BadRequestError } from "../utils/index.js";
+import { ForbiddenError, BadRequestError } from "@/utils/index.js";
 import {
 	sessionAttendanceSummaryCreatesSchema,
 	sessionAttendanceSummaryUpdatesSchema,
@@ -19,7 +19,7 @@ import {
 	importAttendances,
 	uploadRegistration,
 	exportAttendancesForMinutes,
-} from "../services/attendances.js";
+} from "@/services/attendances.js";
 
 function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
 	if (!req.body) throw new BadRequestError("Missing file");

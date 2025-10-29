@@ -30,7 +30,7 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 
-import { BadRequestError, ForbiddenError } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
 import {
 	getCalendarAccounts,
@@ -38,7 +38,7 @@ import {
 	updateCalendarAccount,
 	revokeAuthCalendarAccount,
 	deleteCalendarAccount,
-} from "../services/calendar.js";
+} from "@/services/calendar.js";
 import {
 	calendarAccountChangeSchema,
 	calendarAccountCreateSchema,

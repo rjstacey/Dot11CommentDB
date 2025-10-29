@@ -2,8 +2,15 @@
  * Comments API
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { BadRequestError, ForbiddenError } from "../utils/index.js";
+import { BadRequestError, ForbiddenError } from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
+import {
+	commentUpdatesSchema,
+	commentsUploadParamsSchema,
+	commentsUploadUserParamsSchema,
+	commentResolutionQuerySchema,
+	commentsExportParamsSchema,
+} from "@schemas/comments.js";
 import {
 	getComments,
 	updateComments,
@@ -13,16 +20,9 @@ import {
 	uploadComments,
 	uploadUserComments,
 	uploadPublicReviewComments,
-} from "../services/comments.js";
-import { exportResolutionsForMyProject } from "../services/myProjectSpreadsheets.js";
-import { exportCommentsSpreadsheet } from "../services/commentsSpreadsheet.js";
-import {
-	commentUpdatesSchema,
-	commentsUploadParamsSchema,
-	commentsUploadUserParamsSchema,
-	commentResolutionQuerySchema,
-	commentsExportParamsSchema,
-} from "@schemas/comments.js";
+} from "@/services/comments.js";
+import { exportResolutionsForMyProject } from "@/services/myProjectSpreadsheets.js";
+import { exportCommentsSpreadsheet } from "@/services/commentsSpreadsheet.js";
 
 function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
 	if (!req.body) throw new BadRequestError("Missing file");

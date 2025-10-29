@@ -6,9 +6,9 @@ import {
 	ForbiddenError,
 	NotFoundError,
 	BadRequestError,
-} from "../utils/index.js";
+} from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
-import { selectWorkingGroup } from "../services/groups.js";
+import { selectWorkingGroup } from "@/services/groups.js";
 import { resultUpdatesSchema } from "@schemas/results.js";
 import {
 	getResults,
@@ -17,7 +17,7 @@ import {
 	importEpollResults,
 	uploadResults,
 	exportResults,
-} from "../services/results.js";
+} from "@/services/results.js";
 
 function workingGroupOrThrow(req: Request) {
 	const workingGroup = selectWorkingGroup(req.groups!);

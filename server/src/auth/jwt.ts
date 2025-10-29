@@ -1,82 +1,15 @@
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
-import type { RequestHandler, Request } from "express";
-
-import { getUser } from "../services/users.js";
-import {
-	AuthError,
-	BadRequestError,
-	ForbiddenError,
-	NotFoundError,
-} from "../utils/index.js";
 
 const secret = process.env.NODE_ENV === "development" ? "secret" : uuidv4();
 
-/*
+/**
  * Sign the user ID (SAPIN) and return as JWT token
  */
-export const token = (userId: number) => jwt.sign(userId.toString(), secret);
+export const generateToken = (userId: number) =>
+	jwt.sign(userId.toString(), secret);
 
-/*
- * Get token from header
+/**
+ * Verify the JWT token and return the user ID (SAPIN)
  */
-const getToken = (req: Request): string => {
-	try {
-		return req.header("Authorization")!.replace("Bearer ", "");
-	} catch {
-		throw new Error("No token");
-	}
-};
-
-/*
- * Verify a JWT token and, if valid, return the decoded payload
- */
-export const verify = (req: Request) => {
-	const token = getToken(req);
-	try {
-		return jwt.verify(token, secret);
-	} catch {
-		throw new BadRequestError("Bad token");
-	}
-};
-
-/*
- * Express middleware to authorize a request.
- * Validates the token, looks up the user associated with the token
- * and stores as req.user
- */
-export const authorize: RequestHandler = async (req, res, next) => {
-	try {
-		const token = getToken(req);
-		let userId: number;
-		try {
-			userId = Number(jwt.verify(token, secret));
-		} catch {
-			console.warn("unauthorized");
-			next(new AuthError());
-			return;
-		}
-		const user = await getUser(userId);
-		if (!user) {
-			next(new NotFoundError("Unknown user"));
-			return;
-		}
-		req.user = user;
-		next();
-	} catch (error) {
-		//console.log(error);
-		let msg: string | undefined;
-		if (error instanceof Error) msg = error.message;
-		next(new ForbiddenError(msg));
-	}
-};
-
-export async function verifyToken(token: string) {
-	try {
-		const userId = Number(jwt.verify(token, secret));
-		const user = await getUser(userId);
-		return user;
-	} catch {
-		throw new AuthError();
-	}
-}
+export const verifyToken = (token: string) => Number(jwt.verify(token, secret));

@@ -13,7 +13,7 @@ import {
 	updateSession,
 	addSession,
 	deleteSessions,
-} from "../services/sessions.js";
+} from "@/services/sessions.js";
 
 async function get(req: Request, res: Response, next: NextFunction) {
 	try {

@@ -4,8 +4,8 @@
  */
 import { Request, Response, NextFunction, Router } from "express";
 import { AccessLevel } from "@schemas/access.js";
-import { ForbiddenError } from "../utils/index.js";
-import { getBallotSeriesParticipation } from "../services/ballotParticipation.js";
+import { ForbiddenError } from "@/utils/index.js";
+import { getBallotSeriesParticipation } from "@/services/ballotParticipation.js";
 
 function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	try {

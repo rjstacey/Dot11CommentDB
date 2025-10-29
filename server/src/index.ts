@@ -11,7 +11,7 @@ import cors from "cors";
 
 import login from "./auth/login.js";
 import oauth2 from "./auth/oauth2.js";
-import api from "./api/router.js";
+import api from "./api/index.js";
 
 import { init as initSocketIo } from "./socket.io/index.js";
 import { init as initDatabaseConnection } from "./utils/database.js";
