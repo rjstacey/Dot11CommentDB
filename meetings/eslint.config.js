@@ -4,6 +4,8 @@ import tseslint from "typescript-eslint";
 import pluginReact from "eslint-plugin-react";
 import pluginRefresh from "eslint-plugin-react-refresh";
 
+const __dirname = process.cwd();
+
 /** @type {import('eslint').Linter.Config[]} */
 export default [
 	{
