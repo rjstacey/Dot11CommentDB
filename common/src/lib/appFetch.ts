@@ -8,15 +8,7 @@ export class ResponseError extends Error {
 
 	constructor(res: Response, messsage: string) {
 		super(messsage);
-		let name = res.statusText;
-		if (res.status === 500) name = "Server Error";
-		else if (res.status === 502) name = "Bad Gateway";
-		else if (res.status === 503) name = "Service Unavailable";
-		else if (res.status === 400) name = "Bad Request";
-		else if (res.status === 401) name = "Unauthorized";
-		else if (res.status === 403) name = "Forbidden";
-		else if (res.status === 404) name = "Not Found";
-		this.name = name;
+		this.name = res.statusText;
 		this.response = res;
 
 		Object.setPrototypeOf(this, ResponseError.prototype);
@@ -69,7 +61,7 @@ class AppFetch {
 					s = await res.text();
 				}
 			} catch (error) {
-				s = "Unexpected response";
+				s = error;
 			}
 			let message = "";
 			if (typeof s === "string") message = s;
@@ -83,7 +75,7 @@ class AppFetch {
 		const options: RequestInit = { method };
 
 		options.headers = {
-			Accept: "application/json",
+			Accept: "application/json, text/plain",
 			Authorization: `Bearer ${this.token}`,
 		};
 
