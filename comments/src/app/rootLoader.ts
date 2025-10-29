@@ -11,6 +11,7 @@ async function init() {
 
 	const user = await getUserLocalStorage().catch(loginAndReturn);
 	if (!user) throw new Error("Unable to get user");
+	if (!user.Token) throw new Error("No token");
 	fetcher.setToken(user.Token); // Prime fetcher with authorization token
 
 	const storeUser = selectUser(getState());
