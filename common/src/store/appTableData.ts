@@ -40,7 +40,6 @@ import {
 	SortDirectionValue,
 } from "./sorts";
 import { createUiSubslice, getUiSelectors, UiState } from "./ui";
-import { O } from "vitest/dist/chunks/reporters.d.BFLkQcL6.js";
 
 //export * from './selected';
 //export * from './expanded';
@@ -150,7 +149,7 @@ export function getAppTableDataSelectors<
 	S,
 	T1 extends {},
 	T2 extends T1,
-	O extends O1<S, T1> | O2<S, T1, T2>
+	O extends O1<S, T1> | O2<S, T1, T2>,
 >(
 	/** Selector for the slice state (required) */
 	selectState: (state: S) => AppTableDataState<T1>,
@@ -218,7 +217,7 @@ export function getAppTableDataSelectors<
 export type AppTableDataSelectors<
 	S = any,
 	T1 extends {} = any,
-	T2 extends T1 = T1
+	T2 extends T1 = T1,
 > = ReturnType<typeof getAppTableDataSelectors<S, T1, T2>>;
 
 /*
@@ -238,7 +237,7 @@ export function createAppTableDataSlice<
 	Reducers extends SliceCaseReducers<
 		ExtraState & AppTableDataState<T>
 	> = SliceCaseReducers<ExtraState & AppTableDataState<T>>,
-	Name extends string = string
+	Name extends string = string,
 >({
 	name,
 	fields,
