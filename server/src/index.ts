@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { createServer } from "node:http";
 import express, { ErrorRequestHandler, RequestHandler } from "express";
+import cors from "cors";
 
 import login from "./auth/login.js";
 import oauth2 from "./auth/oauth2.js";
@@ -128,6 +129,7 @@ const errorHandler: ErrorRequestHandler = function (err, req, res, next) {
 function initExpressApp() {
 	const app = express();
 
+	app.use(cors());
 	app.use(express.json({ limit: "10MB" }));
 	app.use(express.urlencoded({ extended: true }));
 	app.use(express.raw({ type: "application/octet-stream", limit: "100MB" }));
