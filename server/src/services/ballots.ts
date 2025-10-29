@@ -334,7 +334,6 @@ async function updateBallot(
 ) {
 	const { id, changes } = update;
 	const entry = ballotEntry(changes);
-	console.log(changes, entry);
 	if (Object.keys(entry).length > 0) {
 		const sql =
 			"UPDATE ballots SET " +
