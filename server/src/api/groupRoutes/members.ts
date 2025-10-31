@@ -31,7 +31,6 @@ import {
 	exportMyProjectRoster,
 	updateMyProjectRosterWithMemberStatus,
 	exportMembersPublic,
-	exportMembersPrivate,
 	exportVotingMembers,
 	membersExport,
 } from "@/services/members.js";
@@ -341,19 +340,6 @@ async function getPublic(req: Request, res: Response, next: NextFunction) {
 	}
 }
 
-async function getPrivate(req: Request, res: Response, next: NextFunction) {
-	try {
-		const { user } = req;
-		const group = req.group!;
-		const access = group.permissions.members || AccessLevel.none;
-		if (access < AccessLevel.admin) throw new ForbiddenError();
-		await exportMembersPrivate(user, group.id, res);
-		res.end();
-	} catch (error) {
-		next(error);
-	}
-}
-
 async function getVoters(req: Request, res: Response, next: NextFunction) {
 	try {
 		const group = req.group!;
@@ -407,7 +393,6 @@ router
 	.patch("/MyProjectRoster", patchMyProjectRoster)
 	.get("/MyProjectRoster", getMyProjectRoster)
 	.get("/public", getPublic)
-	.get("/private", getPrivate)
 	.get("/voters", getVoters)
 	.get("/snapshot", getSnapshot)
 	.get("/export", getExportMembers);

@@ -1537,11 +1537,6 @@ export async function getImatMeetingAttendanceSummary(
 	return getImatMeetingAttendanceSummaryByDate(user, group.name, start, end);
 }
 
-/*type ImatDailyAttendance = ImatAttendanceSummary & {
-	Employer: string;
-	ContactInfo: ContactInfo;
-};*/
-
 /* The daily attendance spreadsheet has columns:
  * 'SA PIN', ... 'Country'
  * and then one column per session day (e.g., 'Sun', 'Mon', ...)

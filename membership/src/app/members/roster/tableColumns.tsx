@@ -16,7 +16,7 @@ import {
 	myProjectRosterActions,
 } from "@/store/myProjectRoster";
 
-import { TruncatedDiff } from "../../sessionAttendance/TruncatedDiff";
+import { TruncatedDiff } from "@/components/TruncatedDiff";
 
 function renderDiffCell(s1: string, s2: string | null) {
 	return <TruncatedDiff newStr={s1} oldStr={s2} />;

@@ -5,9 +5,9 @@ import { displayDateRange } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import {
 	selectMemberAttendances,
-	selectAttendanceSummarySessionIds,
 	getNullAttendanceSummary,
-} from "@/store/attendanceSummary";
+} from "@/store/attendanceSummaries";
+import { selectSessionParticipationSessionIds } from "@/store/sessionParticipation";
 import { selectSessionEntities, Session } from "@/store/sessions";
 
 import { renderTable } from "@/components/renderTable";
@@ -27,7 +27,7 @@ function renderSessionSummary(session: Session | undefined) {
 }
 
 export function useRenderSessionAttendances() {
-	const sessionIds = useAppSelector(selectAttendanceSummarySessionIds);
+	const sessionIds = useAppSelector(selectSessionParticipationSessionIds);
 	const sessionEntities = useAppSelector(selectSessionEntities);
 	const membersAttendances = useAppSelector(selectMemberAttendances);
 

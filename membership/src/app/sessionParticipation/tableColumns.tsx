@@ -15,7 +15,7 @@ import {
 	sessionParticipationActions,
 	type MemberAttendances,
 } from "@/store/sessionParticipation";
-import type { SessionAttendanceSummary } from "@/store/attendanceSummary";
+import type { SessionAttendanceSummary } from "@/store/attendanceSummaries";
 import {
 	renderNameAndEmail,
 	renderHeaderNameAndEmail,
@@ -38,8 +38,8 @@ const renderSessionAttendance = (
 			{attendance.DidAttend
 				? "Did attend"
 				: attendance.DidNotAttend
-				? "Did not attend"
-				: ""}
+					? "Did not attend"
+					: ""}
 		</span>
 	</div>
 );

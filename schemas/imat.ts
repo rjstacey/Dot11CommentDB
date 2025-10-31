@@ -130,6 +130,8 @@ export const imatAttendanceSummarySchema = z.object({
 	Affiliation: z.string(),
 	Status: z.string(),
 	AttendancePercentage: z.number(),
+	Employer: z.string().optional(), // Only in daily summary
+	ContactInfo: contactInfoSchema.optional(), // Only in daily summary
 });
 export const imatAttendanceSummariesSchema =
 	imatAttendanceSummarySchema.array();

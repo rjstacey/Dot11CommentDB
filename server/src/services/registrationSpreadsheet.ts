@@ -16,7 +16,7 @@ export async function parseRegistrationSpreadsheet(
 		}
 
 		rows = [];
-		workbook.getWorksheet(1)?.eachRow((row) => {
+		workbook.worksheets[0]?.eachRow((row) => {
 			if (Array.isArray(row.values))
 				rows.push(
 					row.values

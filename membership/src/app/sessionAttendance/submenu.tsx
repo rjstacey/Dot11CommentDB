@@ -4,25 +4,30 @@ import { Link, useLocation } from "react-router";
 export function SessionAttendanceSubmenu(
 	props: React.ComponentProps<typeof Col>
 ) {
-	const location = useLocation();
-	const registrationShown = /registration$/.test(location.pathname);
-
+	const { pathname, search } = useLocation();
 	return (
 		<Col className="align-items-center m-3" {...props}>
 			<Nav variant="underline">
 				<Nav.Link
 					as={Link}
-					to={registrationShown ? ".." : "."}
-					active={!registrationShown}
+					to={{ pathname: "imat", search }}
+					active={/imat$/i.test(pathname)}
 				>
-					Attendance
+					IMAT
 				</Nav.Link>
 				<Nav.Link
 					as={Link}
-					to={registrationShown ? "." : "registration"}
-					active={registrationShown}
+					to={{ pathname: "registration", search }}
+					active={/registration$/i.test(pathname)}
 				>
 					Registration
+				</Nav.Link>
+				<Nav.Link
+					as={Link}
+					to={{ pathname: "summary", search }}
+					active={/summary$/i.test(pathname)}
+				>
+					Summary
 				</Nav.Link>
 			</Nav>
 		</Col>

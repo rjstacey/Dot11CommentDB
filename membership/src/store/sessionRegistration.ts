@@ -14,7 +14,7 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { setError } from ".";
-import { upsertAttendanceSummaries } from "./attendanceSummary";
+import { upsertAttendanceSummaries } from "./attendanceSummaries";
 import {
 	uploadSessionRegistrationResponseSchema,
 	SessionRegistration,
@@ -179,7 +179,7 @@ export const uploadSessionRegistration =
 			);
 			return;
 		}
-		const url = `/api/${groupName}/attendances/${session.id}/uploadRegistration`;
+		const url = `/api/${groupName}/attendances/${session.id}/upload?format=registration`;
 		dispatch(getPending({ groupName, sessionId: session.id }));
 		let r: UploadSessionRegistrationResponse;
 		try {

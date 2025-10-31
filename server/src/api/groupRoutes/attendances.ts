@@ -9,16 +9,17 @@ import {
 	sessionAttendanceSummaryCreatesSchema,
 	sessionAttendanceSummaryUpdatesSchema,
 	sessionAttendanceSummaryIdsSchema,
+	sessionAttendanceSummaryQuerySchema,
 } from "@schemas/attendances.js";
 import {
 	getAttendances,
-	getRecentAttendances,
 	addAttendances,
 	updateAttendances,
 	deleteAttendances,
 	importAttendances,
 	uploadRegistration,
 	exportAttendancesForMinutes,
+	deleteAllSessionAttendances,
 } from "@/services/attendances.js";
 
 function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
@@ -64,45 +65,7 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 	}
 }
 
-async function getForSession(req: Request, res: Response, next: NextFunction) {
-	try {
-		const groupId = req.group!.id;
-		const session_id = sessionIdOrThrow(req);
-		const data = await getAttendances({ groupId, session_id });
-		res.json(data);
-	} catch (error) {
-		next(error);
-	}
-}
-
-async function getForMinutes(req: Request, res: Response, next: NextFunction) {
-	try {
-		const user = req.user;
-		const group = req.group!;
-		const session_id = sessionIdOrThrow(req);
-		await exportAttendancesForMinutes(user, group, session_id, res);
-		res.end();
-	} catch (error) {
-		next(error);
-	}
-}
-
-async function importAll(req: Request, res: Response, next: NextFunction) {
-	try {
-		const user = req.user;
-		const group = req.group!;
-		const session_id = sessionIdOrThrow(req);
-		const { use } = req.query;
-		const useDaily =
-			typeof use === "string" && use.toLowerCase().startsWith("daily");
-		const data = await importAttendances(user, group, session_id, useDaily);
-		res.json(data);
-	} catch (error) {
-		next(error);
-	}
-}
-
-async function uploadRegistrationRequest(
+async function getSessionIdExport(
 	req: Request,
 	res: Response,
 	next: NextFunction
@@ -111,6 +74,46 @@ async function uploadRegistrationRequest(
 		const user = req.user;
 		const group = req.group!;
 		const session_id = sessionIdOrThrow(req);
+		const format = req.query.format;
+		if (format && format !== "minutes")
+			throw new BadRequestError("Invalid format parameter");
+		await exportAttendancesForMinutes(user, group, session_id, res);
+		res.end();
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function postSessionIdImport(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	try {
+		const user = req.user;
+		const group = req.group!;
+		const session_id = sessionIdOrThrow(req);
+		const useDailyIn = req.query.useDaily;
+		const useDaily = Boolean(useDailyIn) && useDailyIn !== "false";
+		const data = await importAttendances(user, group, session_id, useDaily);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function postSessionIdUpload(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	try {
+		const user = req.user;
+		const group = req.group!;
+		const session_id = sessionIdOrThrow(req);
+		const format = req.query.format;
+		if (format && format !== "registration")
+			throw new BadRequestError("Invalid format parameter");
 		const { filename, buffer } = fileBufferOrThrow(req);
 		const data = await uploadRegistration(
 			user,
@@ -125,11 +128,26 @@ async function uploadRegistrationRequest(
 	}
 }
 
-async function getRecent(req: Request, res: Response, next: NextFunction) {
+async function get(req: Request, res: Response, next: NextFunction) {
 	try {
-		const user = req.user;
 		const groupId = req.group!.id;
-		const data = await getRecentAttendances(user, groupId);
+		const query = sessionAttendanceSummaryQuerySchema.parse(req.query);
+		const data = await getAttendances({ groupId, ...query });
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
+async function removeSessionId(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	try {
+		const groupId = req.group!.id;
+		const session_id = sessionIdOrThrow(req);
+		const data = await deleteAllSessionAttendances(groupId, session_id);
 		res.json(data);
 	} catch (error) {
 		next(error);
@@ -151,8 +169,9 @@ async function addMany(req: Request, res: Response, next: NextFunction) {
 
 async function updateMany(req: Request, res: Response, next: NextFunction) {
 	try {
+		const groupId = req.group!.id;
 		const updates = sessionAttendanceSummaryUpdatesSchema.parse(req.body);
-		const data = await updateAttendances(updates);
+		const data = await updateAttendances(groupId, updates);
 		res.json(data);
 	} catch (error) {
 		next(error);
@@ -161,8 +180,9 @@ async function updateMany(req: Request, res: Response, next: NextFunction) {
 
 async function removeMany(req: Request, res: Response, next: NextFunction) {
 	try {
+		const groupId = req.group!.id;
 		const ids = sessionAttendanceSummaryIdsSchema.parse(req.body);
-		const data = await deleteAttendances(ids);
+		const data = await deleteAttendances(groupId, ids);
 		res.json(data);
 	} catch (error) {
 		next(error);
@@ -172,15 +192,10 @@ async function removeMany(req: Request, res: Response, next: NextFunction) {
 const router = Router();
 router
 	.all(/(.*)/, validatePermissions)
-	.get("/:session_id", getForSession)
-	.get("/:session_id/exportForMinutes", getForMinutes)
-	.post("/:session_id/import", importAll)
-	.post("/:session_id/uploadRegistration", uploadRegistrationRequest);
-router
-	.route("/")
-	.get(getRecent)
-	.post(addMany)
-	.patch(updateMany)
-	.delete(removeMany);
+	.delete("/:session_id", removeSessionId)
+	.get("/:session_id/export", getSessionIdExport)
+	.post("/:session_id/import", postSessionIdImport)
+	.post("/:session_id/upload", postSessionIdUpload);
+router.route("/").get(get).post(addMany).patch(updateMany).delete(removeMany);
 
 export default router;

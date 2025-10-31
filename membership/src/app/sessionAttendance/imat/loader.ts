@@ -4,15 +4,11 @@ import { store } from "@/store";
 import { selectTopLevelGroupByName, AccessLevel } from "@/store/groups";
 import {
 	loadImatAttendanceSummary,
-	clearImatAttendanceSummary,
 	selectImatAttendanceSummaryState,
 } from "@/store/imatAttendanceSummary";
-import {
-	loadSessionAttendanceSummary,
-	clearSessionAttendanceSummary,
-} from "@/store/sessionAttendanceSummary";
+import { loadSessionAttendanceSummary } from "@/store/sessionAttendanceSummary";
 import { loadSessions, selectSessionByNumber } from "@/store/sessions";
-import { rootLoader } from "../rootLoader";
+import { rootLoader } from "../../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -28,17 +24,7 @@ export function refresh() {
 	}
 }
 
-export const indexLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	const { dispatch } = store;
-	dispatch(clearImatAttendanceSummary());
-	dispatch(clearSessionAttendanceSummary());
-
-	return null;
-};
-
-export const sessionAttendanceLoader: LoaderFunction = async (args) => {
+export const loader: LoaderFunction = async (args) => {
 	await rootLoader(args);
 
 	const { params, request } = args;
@@ -62,7 +48,6 @@ export const sessionAttendanceLoader: LoaderFunction = async (args) => {
 	const session = selectSessionByNumber(getState(), Number(sessionNumber));
 	if (session) {
 		dispatch(loadImatAttendanceSummary(groupName, session.id, useDaily));
-		dispatch(loadSessionAttendanceSummary(groupName, session.id));
 	} else {
 		throw new Error("Can't find session " + sessionNumber);
 	}

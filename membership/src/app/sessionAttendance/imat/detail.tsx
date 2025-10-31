@@ -24,17 +24,17 @@ import {
 import { selectSessionByNumber, Session } from "@/store/sessions";
 import {
 	setSelected,
-	selectSessionAttendeesState,
-	SessionAttendee,
-	selectSessionAttendeesSelected,
-	selectSessionAttendeesEntities,
-} from "@/store/sessionAttendees";
+	selectImatAttendanceSummaryState,
+	type ImatAttendanceSummary,
+	selectImatAttendanceSummarySelected,
+	selectImatAttendanceSummaryEntities,
+} from "@/store/imatAttendanceSummary";
 import {
 	getNullAttendanceSummary,
 	selectAttendanceSummaryEntitiesForSession,
 	SessionAttendanceSummary,
 	SessionAttendanceSummaryChanges,
-} from "@/store/attendanceSummary";
+} from "@/store/attendanceSummaries";
 
 import {
 	MemberBasicInfo,
@@ -47,14 +47,14 @@ import {
 	useMembersAdd,
 	useMembersUpdate,
 } from "../../members/detail/useMembersEdit";
-import { sessionAttendeeToNewMember, useAttendanceUpdate } from "../utils";
+import { sessionAttendeeToNewMember, useAttendanceUpdate } from "./utils";
 
 import ShowAccess from "@/components/ShowAccess";
 
 /** Identify changes to an existing member */
 function sessionAttendeeMemberChanges(
 	member: Member,
-	attendee: SessionAttendee
+	attendee: ImatAttendanceSummary
 ) {
 	const memberChanges: Partial<Member> = {
 		Name: attendee.Name,
@@ -304,9 +304,9 @@ type MemberAttendanceDetailState = {
 function initStateForSession(session: Session) {
 	const state = store.getState();
 
-	const { loading, valid } = selectSessionAttendeesState(state);
-	const selected = selectSessionAttendeesSelected(state);
-	const attendeeEntities = selectSessionAttendeesEntities(state);
+	const { loading, valid } = selectImatAttendanceSummaryState(state);
+	const selected = selectImatAttendanceSummarySelected(state);
+	const attendeeEntities = selectImatAttendanceSummaryEntities(state);
 	const memberEntities = selectMemberEntities(state);
 	const attendanceSummaryEntities = selectAttendanceSummaryEntitiesForSession(
 		state,
@@ -397,8 +397,8 @@ export function MemberAttendanceDetail() {
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 
-	const { loading, valid } = useAppSelector(selectSessionAttendeesState);
-	const selected = useAppSelector(selectSessionAttendeesSelected);
+	const { loading, valid } = useAppSelector(selectImatAttendanceSummaryState);
+	const selected = useAppSelector(selectImatAttendanceSummarySelected);
 
 	const initState = React.useCallback(
 		() => initStateForSession(session),

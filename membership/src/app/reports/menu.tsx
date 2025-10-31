@@ -3,13 +3,13 @@ import { Nav } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import {
-	selectSessionAttendeesState,
-	selectSessionAttendeesSession,
-} from "@/store/sessionAttendees";
+	selectImatAttendanceSummaryState,
+	selectImatAttendanceSummarySession,
+} from "@/store/imatAttendanceSummary";
 
 export function Menu() {
-	const session = useAppSelector(selectSessionAttendeesSession);
-	const { useDaily } = useAppSelector(selectSessionAttendeesState);
+	const session = useAppSelector(selectImatAttendanceSummarySession);
+	const { useDaily } = useAppSelector(selectImatAttendanceSummaryState);
 	let sessionAttendanceLink = "sessionAttendance";
 	if (session?.number) {
 		sessionAttendanceLink += `/${session.number}`;

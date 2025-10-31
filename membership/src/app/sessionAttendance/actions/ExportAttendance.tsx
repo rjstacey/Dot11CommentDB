@@ -1,6 +1,6 @@
 import { Button } from "react-bootstrap";
 import { useAppDispatch } from "@/store/hooks";
-import { exportAttendanceForMinutes } from "@/store/sessionAttendees";
+import { exportAttendanceForMinutes } from "@/store/attendanceSummaries";
 
 export function ExportAttendanceButton({
 	groupName,

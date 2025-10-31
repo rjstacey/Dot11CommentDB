@@ -1,11 +1,10 @@
 import { z } from "zod";
 import { groupIdSchema } from "./groups.js";
-import { sessionIdSchema } from "./sessions.js";
 
 export const sessionAttendanceSummarySchema = z.object({
 	id: z.number(),
 	session_id: z.number(), // Session identifier
-	AttendancePercentage: z.number(), // Percentage of meeting slots attended
+	AttendancePercentage: z.number().nullable(), // Percentage of meeting slots attended
 	IsRegistered: z.boolean(), // Registered for session
 	InPerson: z.boolean(), // Attended in-person (vs remote)
 	DidAttend: z.boolean(), // Declare attendance criteria met
@@ -70,9 +69,9 @@ export const sessionAttendanceSummaryIdsSchema = z.number().array();
 
 export const sessionAttendanceSummaryQuerySchema = z
 	.object({
-		id: z.union([z.number(), z.number().array()]),
+		id: z.union([z.coerce.number(), z.coerce.number().array()]),
 		groupId: z.union([groupIdSchema, groupIdSchema.array()]),
-		session_id: z.union([sessionIdSchema, sessionIdSchema.array()]),
+		session_id: z.union([z.coerce.number(), z.coerce.number().array()]),
 	})
 	.partial();
 

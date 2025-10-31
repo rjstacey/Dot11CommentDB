@@ -13,17 +13,15 @@ import {
 	sessionAttendeesSelectors,
 	sessionAttendeesActions,
 	fields,
-} from "@/store/sessionAttendees";
+} from "@/store/imatAttendanceSummary";
 
 import { MemberAttendanceDetail } from "./detail";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
-import { SessionAttendanceSubmenu } from "./submenu";
-import { Main } from "./main";
+import { Main } from "../main";
 
 export function SessionAttendanceTable() {
 	return (
 		<>
-			<SessionAttendanceSubmenu style={{ order: 2 }} />
 			<SplitTableButtonGroup
 				style={{ order: 3 }}
 				selectors={sessionAttendeesSelectors}

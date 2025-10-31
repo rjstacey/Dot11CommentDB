@@ -10,7 +10,7 @@ import { loadSessions } from "@/store/sessions";
 import { loadIeeeMembers } from "@/store/ieeeMembers";
 import { loadMembers, selectMembersState } from "@/store/members";
 import { loadOfficers } from "@/store/officers";
-import { loadRecentAttendanceSummaries } from "@/store/attendanceSummary";
+import { loadRecentAttendanceSummaries } from "@/store/sessionParticipation";
 import { loadBallotParticipation } from "@/store/ballotParticipation";
 import { loadAffiliationMap } from "@/store/affiliationMap";
 import { rootLoader } from "../rootLoader";

@@ -1,11 +1,12 @@
 import * as React from "react";
-import { RouteObject, Outlet } from "react-router";
+import { RouteObject } from "react-router";
 import { indexLoader, sessionAttendanceLoader } from "./loader";
 import SessionAttendanceLayout from "./layout";
+import SessionNumberLayout from "./sessionNumberLayout";
 import { Main } from "./main";
-
-const SessionAttendanceTable = React.lazy(() => import("./table"));
-const SessionRegistrationTable = React.lazy(() => import("./registration"));
+import imatRoute from "./imat/route";
+import registrationRoute from "./registration/route";
+import summaryRoute from "./registration/route";
 
 export const sessionAttendanceRoute: RouteObject = {
 	Component: SessionAttendanceLayout,
@@ -13,19 +14,21 @@ export const sessionAttendanceRoute: RouteObject = {
 		{
 			index: true,
 			loader: indexLoader,
-			element: <Main />,
+			Component: Main,
 		},
 		{
 			path: ":sessionNumber",
 			loader: sessionAttendanceLoader,
 			element: (
 				<React.Suspense fallback={<Main>Loading...</Main>}>
-					<Outlet />
+					<SessionNumberLayout />
 				</React.Suspense>
 			),
 			children: [
-				{ index: true, element: <SessionAttendanceTable /> },
-				{ path: "registration", element: <SessionRegistrationTable /> },
+				{ index: true, element: <Main /> },
+				{ path: "imat", ...imatRoute },
+				{ path: "summary", ...summaryRoute },
+				{ path: "registration", ...registrationRoute },
 			],
 		},
 	],

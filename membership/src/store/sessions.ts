@@ -26,7 +26,7 @@ export const SessionTypeLabels: Record<SessionType, string> = {
 
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 	([value, label]) =>
-		({ value, label } as { value: SessionType; label: string })
+		({ value, label }) as { value: SessionType; label: string }
 );
 
 export const displaySessionType = (type: SessionType | null) =>
@@ -137,6 +137,17 @@ export const selectRecentSessions = createSelector(
 					(s.type === "p" || s.type == "i")
 			)
 			.slice(0, 8);
+	}
+);
+
+export const selectRecentPlusOneSessions = createSelector(
+	selectSessions,
+	selectRecentSessions,
+	(sessions, recentSessions) => {
+		const session = recentSessions[0];
+		const i = sessions.findIndex((s) => s.id === session?.id) - 1;
+		if (i >= 0) recentSessions = [sessions[i], ...recentSessions];
+		return recentSessions;
 	}
 );
 

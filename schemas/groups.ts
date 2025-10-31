@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const groupIdSchema = z.string().uuid();
+export const groupIdSchema = z.uuid();
 
 /** Ordered list of group types */
 export const groupTypesOrdered = [

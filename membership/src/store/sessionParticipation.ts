@@ -1,4 +1,5 @@
 import { createSelector, Dictionary, EntityId } from "@reduxjs/toolkit";
+
 import { DateTime } from "luxon";
 
 import {
@@ -9,18 +10,23 @@ import {
 } from "@common";
 
 import type { RootState } from ".";
+import { AppThunk } from ".";
 import {
 	selectMemberEntities,
 	StatusType,
 	ExpectedStatusType,
 	Member,
 } from "./members";
-import { selectSessionEntities, type Session } from "./sessions";
 import {
-	selectAttendanceSummarySessionIds,
+	selectRecentSessions,
+	selectSessionEntities,
+	type Session,
+} from "./sessions";
+import {
+	loadAttendanceSummary,
 	selectMemberAttendances,
-	SessionAttendanceSummary,
-} from "./attendanceSummary";
+	type SessionAttendanceSummary,
+} from "./attendanceSummaries";
 
 export const fields: Fields = {
 	id: { label: "id", type: FieldType.NUMERIC },
@@ -80,8 +86,12 @@ const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
 	selectId: (entity: MemberAttendances) => entity.SAPIN,
-	initialState: {},
-	reducers: {},
+	initialState: { sessionIds: [] as number[] },
+	reducers: {
+		setSessionIds(state, action: { payload: number[] }) {
+			state.sessionIds = action.payload;
+		},
+	},
 });
 
 export default slice;
@@ -89,6 +99,7 @@ export default slice;
 /*
  * Slice actions
  */
+const { setSessionIds } = slice.actions;
 export const sessionParticipationActions = slice.actions;
 export const setSessionParticipationSelected = slice.actions.setSelected;
 
@@ -97,7 +108,8 @@ export const setSessionParticipationSelected = slice.actions.setSelected;
  */
 export const selectSessionParticipationState = (state: RootState) =>
 	state[dataSet];
-
+export const selectSessionParticipationSessionIds = (state: RootState) =>
+	selectSessionParticipationState(state).sessionIds;
 export const selectSessionParticipationSelected = (state: RootState) =>
 	selectSessionParticipationState(state).selected;
 
@@ -158,7 +170,8 @@ function recentAttendanceStats(
 	const hasPartial = Boolean(
 		attendances.find(
 			(a) =>
-				(a.AttendancePercentage > 0 || a.DidAttend) && !a.DidNotAttend
+				((a.AttendancePercentage || 0) > 0 || a.DidAttend) &&
+				!a.DidNotAttend
 		)
 	);
 
@@ -192,7 +205,9 @@ function recentAttendanceStats(
 
 	// Keep properly attended sessions
 	attendances = attendances.filter(
-		(a) => (a.AttendancePercentage >= 75 || a.DidAttend) && !a.DidNotAttend
+		(a) =>
+			((a.AttendancePercentage || 0) >= 75 || a.DidAttend) &&
+			!a.DidNotAttend
 	);
 
 	// One interim may be substituted for a plenary; only keep latest properly attended interim
@@ -220,7 +235,7 @@ function recentAttendanceStats(
 
 export const selectMemberAttendanceStats = createSelector(
 	selectMemberAttendances,
-	selectAttendanceSummarySessionIds,
+	selectSessionParticipationSessionIds,
 	selectSessionEntities,
 	selectMemberEntities,
 	(state: RootState, SAPIN: number) => SAPIN,
@@ -304,7 +319,7 @@ export const selectSessionParticipationWithMembershipAndSummary =
 		selectSessionParticipationIds,
 		selectSessionParticipationEntities,
 		selectMemberEntities,
-		selectAttendanceSummarySessionIds,
+		selectSessionParticipationSessionIds,
 		selectSessionEntities,
 		(ids, entities, memberEntities, sessionIds, sessionEntities) => {
 			const newEntities: Record<EntityId, MemberAttendances> = {};
@@ -369,3 +384,17 @@ export const sessionParticipationSelectors = getAppTableDataSelectors(
 		getField,
 	}
 );
+
+export const loadRecentAttendanceSummaries =
+	(groupName: string, force = false): AppThunk<void> =>
+	async (dispatch, getState) => {
+		const state = getState();
+		const sessions = selectRecentSessions(state);
+		const sessionIds = sessions.map((s) => s.id);
+		dispatch(setSessionIds(sessionIds));
+		await Promise.all(
+			sessionIds.map((session_id) =>
+				dispatch(loadAttendanceSummary(groupName, session_id, force))
+			)
+		);
+	};

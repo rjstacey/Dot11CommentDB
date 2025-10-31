@@ -13,7 +13,7 @@ import {
 	SessionAttendanceSummaryChanges,
 	SessionAttendanceSummaryCreate,
 	SessionAttendanceSummaryUpdate,
-} from "@/store/attendanceSummary";
+} from "@/store/attendanceSummaries";
 import {
 	MemberCreate,
 	ContactEmail,
@@ -22,13 +22,13 @@ import {
 	StatusChangeEntry,
 } from "@/store/members";
 import type { Session } from "@/store/sessions";
-import type { SessionAttendee } from "@/store/sessionAttendees";
+import type { ImatAttendanceSummary } from "@/store/imatAttendanceSummary";
 
 import type { MultipleSessionAttendanceSummary } from "./detail";
 
 /** Create a new member from attendee */
 export function sessionAttendeeToNewMember(
-	attendee: SessionAttendee,
+	attendee: ImatAttendanceSummary,
 	session: Session
 ) {
 	const date = DateTime.fromISO(session.startDate, {

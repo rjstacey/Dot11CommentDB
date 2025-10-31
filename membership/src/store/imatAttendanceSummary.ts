@@ -1,14 +1,13 @@
 import {
 	createSelector,
 	createAction,
-	isPlainObject,
 	EntityId,
 	Action,
 } from "@reduxjs/toolkit";
 import isEqual from "lodash.isequal";
 
-import { fetcher } from "@common";
 import {
+	fetcher,
 	createAppTableDataSlice,
 	Fields,
 	FieldType,
@@ -19,12 +18,17 @@ import type { RootState, AppThunk } from ".";
 import { setError } from ".";
 import type { ContactInfo } from "./members";
 import { selectMemberEntities } from "./members";
-import { selectSessionByNumber, selectSessionEntities } from "./sessions";
+import { selectSessionEntities } from "./sessions";
 import {
 	getNullAttendanceSummary,
 	selectAttendanceSummaryEntitiesForSession,
 	SessionAttendanceSummary,
-} from "./attendanceSummary";
+} from "./attendanceSummaries";
+import {
+	imatAttendanceSummariesSchema,
+	type ImatAttendanceSummary,
+} from "@schemas/imat";
+export type { ImatAttendanceSummary };
 
 export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
@@ -52,23 +56,10 @@ export const fields: Fields = {
 	Notes: { label: "Notes" },
 };
 
-export type SessionAttendee = {
-	SAPIN: number;
-	Name: string;
-	FirstName: string;
-	MI: string;
-	LastName: string;
-	CurrentInvolvementLevel: string;
-	Email: string;
-	Affiliation: string;
-	Employer?: string; // Not present with attendance summary
-	ContactInfo?: ContactInfo; // Not present with attendance summary
-	AttendancePercentage: number;
-};
+type ImatAttendanceSummaryWithSummary = ImatAttendanceSummary &
+	SessionAttendanceSummary;
 
-type SessionAttendeeWithSummary = SessionAttendee & SessionAttendanceSummary;
-
-export type SyncedSessionAttendee = SessionAttendeeWithSummary & {
+export type SyncedSessionAttendee = ImatAttendanceSummaryWithSummary & {
 	Status: string;
 	OldName: string | null;
 	OldAffiliation: string | null;
@@ -80,8 +71,8 @@ export type SyncedSessionAttendee = SessionAttendeeWithSummary & {
 /*
  * Slice
  */
-const selectId = (attendee: SessionAttendee) => attendee.SAPIN;
-const sortComparer = (m1: SessionAttendee, m2: SessionAttendee) =>
+const selectId = (attendee: ImatAttendanceSummary) => attendee.SAPIN;
+const sortComparer = (m1: ImatAttendanceSummary, m2: ImatAttendanceSummary) =>
 	m1.SAPIN - m2.SAPIN;
 
 const initialState: {
@@ -96,7 +87,7 @@ const initialState: {
 	lastLoad: null,
 };
 
-const dataSet = "sessionAttendees";
+const dataSet = "imatAttendanceSummary";
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
@@ -126,7 +117,7 @@ const slice = createAppTableDataSlice({
 			)
 			.addMatcher(
 				(action: Action) =>
-					action.type === clearSessionAttendees.toString(),
+					action.type === clearImatAttendanceSummary.toString(),
 				(state) => {
 					state.groupName = null;
 					state.sessionId = null;
@@ -145,7 +136,7 @@ export default slice;
  */
 export const sessionAttendeesActions = slice.actions;
 export const { setSelected } = slice.actions;
-export const clearSessionAttendees = createAction(dataSet + "/clear");
+export const clearImatAttendanceSummary = createAction(dataSet + "/clear");
 
 const { getSuccess, getFailure } = slice.actions;
 // Overload getPending() with one that sets groupName
@@ -158,40 +149,41 @@ const getPending = createAction<{
 /*
  * Selectors
  */
-export const selectSessionAttendeesState = (state: RootState) => state[dataSet];
+export const selectImatAttendanceSummaryState = (state: RootState) =>
+	state[dataSet];
 const selectSessionAttendeesAge = (state: RootState) => {
-	const lastLoad = selectSessionAttendeesState(state).lastLoad;
+	const lastLoad = selectImatAttendanceSummaryState(state).lastLoad;
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
-export const selectSessionAttendeesGroupName = (state: RootState) =>
-	selectSessionAttendeesState(state).groupName;
-export const selectSessionAttendeesIds = (state: RootState) =>
-	selectSessionAttendeesState(state).ids;
-export const selectSessionAttendeesEntities = (state: RootState) =>
-	selectSessionAttendeesState(state).entities;
-export const selectSessionAttendeesSessionId = (state: RootState) =>
-	selectSessionAttendeesState(state).sessionId;
-export const selectSessionAttendeesSession = (state: RootState) => {
-	const sessionId = selectSessionAttendeesSessionId(state);
+export const selectImatAttendanceSummaryGroupName = (state: RootState) =>
+	selectImatAttendanceSummaryState(state).groupName;
+export const selectImatAttendanceSummaryIds = (state: RootState) =>
+	selectImatAttendanceSummaryState(state).ids;
+export const selectImatAttendanceSummaryEntities = (state: RootState) =>
+	selectImatAttendanceSummaryState(state).entities;
+export const selectImatAttendanceSummarySessionId = (state: RootState) =>
+	selectImatAttendanceSummaryState(state).sessionId;
+export const selectImatAttendanceSummarySession = (state: RootState) => {
+	const sessionId = selectImatAttendanceSummarySessionId(state);
 	if (sessionId) return selectSessionEntities(state)[sessionId];
 };
-export const selectSessionAttendeesSelected = createSelector(
-	(state: RootState) => selectSessionAttendeesState(state).selected,
-	selectSessionAttendeesEntities,
+export const selectImatAttendanceSummarySelected = createSelector(
+	(state: RootState) => selectImatAttendanceSummaryState(state).selected,
+	selectImatAttendanceSummaryEntities,
 	(selected, entities) => selected.filter((id) => Boolean(entities[id]))
 );
 
-export const selectSyncedSessionAtendeeEntities = createSelector(
-	selectSessionAttendeesIds,
-	selectSessionAttendeesEntities,
+export const selectSyncedImatAttendanceSummaryEntities = createSelector(
+	selectImatAttendanceSummaryIds,
+	selectImatAttendanceSummaryEntities,
 	(state: RootState) =>
 		selectAttendanceSummaryEntitiesForSession(
 			state,
-			selectSessionAttendeesSessionId(state)
+			selectImatAttendanceSummarySessionId(state)
 		),
 	selectMemberEntities,
-	selectSessionAttendeesSessionId,
+	selectImatAttendanceSummarySessionId,
 	(ids, entities, attendanceSummaryEntities, memberEntities, session_id) => {
 		const syncedEntities: Record<EntityId, SyncedSessionAttendee> = {};
 
@@ -236,37 +228,17 @@ export const selectSyncedSessionAtendeeEntities = createSelector(
 );
 
 export const sessionAttendeesSelectors = getAppTableDataSelectors(
-	selectSessionAttendeesState,
-	{ selectEntities: selectSyncedSessionAtendeeEntities }
+	selectImatAttendanceSummaryState,
+	{ selectEntities: selectSyncedImatAttendanceSummaryEntities }
 );
 
 /*
  * Thunk actions
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isGenericObject(o: unknown): o is Record<string, any> {
-	return isPlainObject(o);
-}
-
-function validSessionAttendee(entry: unknown): entry is SessionAttendee {
-	return (
-		isGenericObject(entry) &&
-		typeof entry.SAPIN === "number" &&
-		typeof entry.Name === "string" &&
-		typeof entry.Email === "string"
-	);
-}
-
-function validGetImatAttendanceResponse(
-	response: unknown
-): response is SessionAttendee[] {
-	return Array.isArray(response) && response.every(validSessionAttendee);
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loadingPromise: Promise<void>;
-export const loadSessionAttendees =
+export const loadImatAttendanceSummary =
 	(
 		groupName: string,
 		sessionId: number,
@@ -284,11 +256,12 @@ export const loadSessionAttendees =
 						: "Bad session"
 				)
 			);
-			dispatch(clearSessionAttendees());
+			dispatch(clearImatAttendanceSummary());
 			return;
 		}
 
-		const { loading, ...current } = selectSessionAttendeesState(getState());
+		const { loading, ...current } =
+			selectImatAttendanceSummaryState(getState());
 		if (
 			groupName === current.groupName &&
 			session.id === current.sessionId &&
@@ -303,38 +276,14 @@ export const loadSessionAttendees =
 		const url = `/api/${groupName}/imat/attendance/${session.imatMeetingId}/summary`;
 		loadingPromise = fetcher
 			.get(url, { useDaily })
-			.then((imatAttendances) => {
-				if (!validGetImatAttendanceResponse(imatAttendances))
-					throw new TypeError("Unexpected response to GET " + url);
+			.then((response) => {
+				const imatAttendances =
+					imatAttendanceSummariesSchema.parse(response);
 				dispatch(getSuccess(imatAttendances));
 			})
 			.catch((error) => {
 				dispatch(getFailure());
-				dispatch(setError("Unable to get attendances", error));
+				dispatch(setError("GET " + url, error));
 			});
 		return loadingPromise;
-	};
-
-export const exportAttendanceForMinutes =
-	(groupName: string, sessionNumber: number): AppThunk =>
-	async (dispatch, getState) => {
-		const session = selectSessionByNumber(getState(), sessionNumber);
-		if (!session) {
-			dispatch(
-				setError("Can't retrieve attendance", "Bad session number")
-			);
-			return;
-		}
-		const url = `/api/${groupName}/attendances/${session.id}/exportForMinutes`;
-		try {
-			await fetcher.getFile(url);
-		} catch (error) {
-			dispatch(
-				setError(
-					"Unable to export attendance for session " +
-						`id=${session.id}`,
-					error
-				)
-			);
-		}
 	};

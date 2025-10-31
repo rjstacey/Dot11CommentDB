@@ -5,9 +5,9 @@ import { Navbar, Nav } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectWorkingGroup, AccessLevel } from "@/store/groups";
 import {
-	selectSessionAttendeesState,
-	selectSessionAttendeesSession,
-} from "@/store/sessionAttendees";
+	selectImatAttendanceSummaryState,
+	selectImatAttendanceSummarySession,
+} from "@/store/imatAttendanceSummary";
 
 type MenuItem = {
 	link: string;
@@ -17,15 +17,15 @@ type MenuItem = {
 function useMenuLinks() {
 	//const groupName = useParams().groupName || "";
 	const group = useAppSelector(selectWorkingGroup);
-	const session = useAppSelector(selectSessionAttendeesSession);
-	const { useDaily } = useAppSelector(selectSessionAttendeesState);
+	const session = useAppSelector(selectImatAttendanceSummarySession);
+	const { useDaily } = useAppSelector(selectImatAttendanceSummaryState);
 	let sessionAttendanceLink = "sessionAttendance";
 	if (session?.number) {
 		sessionAttendanceLink += `/${session.number}`;
 		if (useDaily) sessionAttendanceLink += "?useDaily=true";
 	}
 
-	// Only display links for which the use has permissions
+	// Only display links for which the user has permissions
 	// Replace params with the current setting
 	return React.useMemo(() => {
 		const menu: MenuItem[] = [];

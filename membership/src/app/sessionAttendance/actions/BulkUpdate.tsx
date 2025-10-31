@@ -2,9 +2,9 @@ import * as React from "react";
 import { Form, Row, Col, Button, Spinner, Dropdown } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-	selectSessionAttendeesState,
-	selectSessionAttendeesSession,
-} from "@/store/sessionAttendees";
+	selectImatAttendanceSummaryState,
+	selectImatAttendanceSummarySession,
+} from "@/store/imatAttendanceSummary";
 import {
 	selectMemberEntities,
 	addMembers,
@@ -12,15 +12,15 @@ import {
 	Member,
 	MemberUpdate,
 } from "@/store/members";
-import { importAttendanceSummary } from "@/store/attendanceSummary";
+import { importAttendanceSummary } from "@/store/attendanceSummaries";
 
-import { sessionAttendeeToNewMember } from "../utils";
+import { sessionAttendeeToNewMember } from "../imat/utils";
 
 function BulkUpdateForm({ close }: { close: () => void }) {
 	const { groupName, selected, ids, entities } = useAppSelector(
-		selectSessionAttendeesState
+		selectImatAttendanceSummaryState
 	);
-	const session = useAppSelector(selectSessionAttendeesSession)!;
+	const session = useAppSelector(selectImatAttendanceSummarySession)!;
 
 	const [selectedOnly, setSelectedOnly] = React.useState(false);
 	const [importAttendance, setImportAttendance] = React.useState(true);

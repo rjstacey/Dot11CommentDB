@@ -6,7 +6,6 @@ import {
 	Dictionary,
 	createSelector,
 } from "@reduxjs/toolkit";
-import isEqual from "lodash.isequal";
 
 import { fetcher } from "@common";
 
@@ -17,12 +16,7 @@ import {
 	selectMemberEntities,
 	isActiveMember,
 } from "./members";
-import {
-	selectRecentSessions,
-	selectSessionByNumber,
-	updateSession,
-} from "./sessions";
-
+import { selectSessionByNumber, updateSession } from "./sessions";
 import {
 	SessionAttendanceSummary,
 	SessionAttendanceSummaryCreate,
@@ -30,6 +24,7 @@ import {
 	SessionAttendanceSummaryUpdate,
 	sessionAttendanceSummariesSchema,
 } from "@schemas/attendances";
+
 export type {
 	SessionAttendanceSummary,
 	SessionAttendanceSummaryCreate,
@@ -68,52 +63,61 @@ export function isNullAttendanceSummary(a: SessionAttendanceSummary) {
 }
 
 type ExtraState = {
-	valid: boolean;
-	loading: boolean;
 	groupName: string | null;
 	sessionIds: EntityId[];
-	lastLoad: string | null;
+	loading: Record<number, boolean>;
+	lastLoad: Record<number, string | null>;
 };
 
 /* Create slice */
 const selectId = (d: SessionAttendanceSummary) => d.id;
 const dataAdapter = createEntityAdapter<SessionAttendanceSummary>({ selectId });
 const initialState = dataAdapter.getInitialState<ExtraState>({
-	valid: false,
-	loading: false,
 	groupName: null,
 	sessionIds: [],
-	lastLoad: null,
+	loading: {},
+	lastLoad: {},
 });
-const dataSet = "attendanceSummary";
+const dataSet = "attendanceSummaries";
 const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
 		getPending(
 			state,
-			action: PayloadAction<{ groupName: string; sessionIds: number[] }>
+			action: PayloadAction<{ groupName: string; session_id: number }>
 		) {
-			const { groupName, sessionIds } = action.payload;
-			state.loading = true;
-			state.lastLoad = new Date().toISOString();
-			if (
-				state.groupName !== groupName ||
-				!isEqual(state.sessionIds, sessionIds)
-			) {
+			const { groupName, session_id } = action.payload;
+			state.loading[session_id] = true;
+			state.lastLoad[session_id] = new Date().toISOString();
+			if (state.groupName !== groupName) {
 				state.groupName = groupName;
-				state.sessionIds = sessionIds;
-				state.valid = false;
+				state.sessionIds = [session_id];
 				dataAdapter.removeAll(state);
 			}
 		},
-		getSuccess(state, action: PayloadAction<SessionAttendanceSummary[]>) {
-			state.loading = false;
-			state.valid = true;
-			dataAdapter.setAll(state, action.payload);
+		getSuccess(
+			state,
+			action: PayloadAction<{
+				session_id: number;
+				attendanceSummaries: SessionAttendanceSummary[];
+			}>
+		) {
+			const { session_id, attendanceSummaries } = action.payload;
+			state.loading[session_id] = false;
+			if (!state.sessionIds.includes(session_id)) {
+				state.sessionIds.push(session_id);
+			}
+			const ids = state.ids.filter(
+				(id) => state.entities[id]?.session_id === session_id
+			);
+			dataAdapter.removeMany(state, ids);
+			dataAdapter.setMany(state, attendanceSummaries);
 		},
-		getFailure(state) {
-			state.loading = false;
+		getFailure(state, action: PayloadAction<{ session_id: number }>) {
+			const { session_id } = action.payload;
+			state.loading[session_id] = false;
+			state.lastLoad[session_id] = null;
 		},
 		setMany: dataAdapter.setMany,
 		addMany: dataAdapter.addMany,
@@ -131,26 +135,28 @@ const { getPending, getSuccess, getFailure, setMany, updateMany, removeMany } =
 export const upsertAttendanceSummaries = slice.actions.upsertMany;
 
 /** Selectors */
-export const selectAttendanceSummaryState = (state: RootState) =>
+export const selectAttendanceSummariesState = (state: RootState) =>
 	state[dataSet];
-const selectAttendanceSummaryAge = (state: RootState) => {
-	const lastLoad = selectAttendanceSummaryState(state).lastLoad;
+const selectAttendanceSummariesAge = (state: RootState, session_id: number) => {
+	const lastLoad = selectAttendanceSummariesState(state).lastLoad[session_id];
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
-export const selectAttendanceSummaryIds = (state: RootState) =>
-	selectAttendanceSummaryState(state).ids;
-export const selectAttendanceSummaryEntities = (state: RootState) =>
-	selectAttendanceSummaryState(state).entities;
-export const selectAttendanceSummaryGroupName = (state: RootState) =>
-	selectAttendanceSummaryState(state).groupName;
-export const selectAttendanceSummarySessionIds = (state: RootState) =>
-	selectAttendanceSummaryState(state).sessionIds;
+const selectAttendanceSummariesLoading = (
+	state: RootState,
+	session_id: number
+) => selectAttendanceSummariesState(state).loading[session_id];
+export const selectAttendanceSummariesIds = (state: RootState) =>
+	selectAttendanceSummariesState(state).ids;
+export const selectAttendanceSummariesEntities = (state: RootState) =>
+	selectAttendanceSummariesState(state).entities;
+export const selectAttendanceSummariesGroupName = (state: RootState) =>
+	selectAttendanceSummariesState(state).groupName;
 
-/** Select attendance symmary entities for session indexed by SAPIN */
+/** Select attendance summary entities for session indexed by SAPIN */
 export const selectAttendanceSummaryEntitiesForSession = createSelector(
-	selectAttendanceSummaryIds,
-	selectAttendanceSummaryEntities,
+	selectAttendanceSummariesIds,
+	selectAttendanceSummariesEntities,
 	(state: RootState, session_id: number | null) => session_id,
 	(ids, entities, session_id) => {
 		const newEntities: Dictionary<SessionAttendanceSummary> = {};
@@ -174,8 +180,8 @@ export type MembersSessionAttendanceSummaries = Record<
 
 /** Create a dictionary indexed by member SAPIN where each entry is a dictionary of attendance indexed by session ID */
 export const selectMemberAttendances = createSelector(
-	selectAttendanceSummaryIds,
-	selectAttendanceSummaryEntities,
+	selectAttendanceSummariesIds,
+	selectAttendanceSummariesEntities,
 	selectMemberIds,
 	selectMemberEntities,
 	(ids, entities, sapins, memberEntities) => {
@@ -208,54 +214,35 @@ export const selectMemberAttendances = createSelector(
 /*
  * Thunk actions
  */
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loading = false;
-let loadingPromise: Promise<void> = Promise.resolve();
-export const loadRecentAttendanceSummaries =
-	(groupName: string, force = false): AppThunk<void> =>
+const loadingPromise: Record<number, Promise<void>> = {};
+export const loadAttendanceSummary =
+	(groupName: string, session_id: number, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const state = getState();
-		const sessions = selectRecentSessions(state);
-		const sessionIds = sessions.map((s) => s.id);
-		const { groupName: currentGroupName, sessionIds: currentSessionIds } =
-			selectAttendanceSummaryState(state);
-		if (
-			currentGroupName === groupName &&
-			isEqual(currentSessionIds, sessionIds)
-		) {
-			if (loading) return loadingPromise;
-			const age = selectAttendanceSummaryAge(state);
-			if (!force && age && age < AGE_STALE) return loadingPromise;
+		const { groupName: currentGroupName } =
+			selectAttendanceSummariesState(state);
+		if (currentGroupName === groupName) {
+			const loading = selectAttendanceSummariesLoading(state, session_id);
+			if (loading) return loadingPromise[session_id];
+			const age = selectAttendanceSummariesAge(state, session_id);
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
-		dispatch(getPending({ groupName, sessionIds }));
-		const baseUrl = `/api/${groupName}/attendances`;
-		loading = true;
-		loadingPromise = Promise.all(
-			sessions.map((session) => {
-				const url = `${baseUrl}/${session.id}`;
-				return fetcher
-					.get(url)
-					.then((response: unknown) =>
-						sessionAttendanceSummariesSchema.parse(response)
-					);
-			})
-		)
-			.then((all) => {
-				const summaries = ([] as SessionAttendanceSummary[]).concat(
-					...all
-				);
-				dispatch(getSuccess(summaries));
+		dispatch(getPending({ groupName, session_id }));
+		const url = `/api/${groupName}/attendances?session_id=${session_id}`;
+		loadingPromise[session_id] = fetcher
+			.get(url)
+			.then((response) => {
+				const attendanceSummaries =
+					sessionAttendanceSummariesSchema.parse(response);
+				dispatch(getSuccess({ session_id, attendanceSummaries }));
 			})
 			.catch((error) => {
-				dispatch(getFailure());
-				dispatch(setError(`GET ${baseUrl}/:session_id`, error));
-			})
-			.finally(() => {
-				loading = false;
+				dispatch(getFailure({ session_id }));
+				dispatch(setError("GET " + url, error));
 			});
-		return loadingPromise;
+		return loadingPromise[session_id];
 	};
 
 export const importAttendanceSummary =
@@ -269,7 +256,7 @@ export const importAttendanceSummary =
 			return;
 		}
 		let url = `/api/${groupName}/attendances/${session.id}/import`;
-		if (useDaily) url += "?use=daily-attendance";
+		if (useDaily) url += "?useDaily=true";
 		let attendances: SessionAttendanceSummary[];
 		try {
 			const response = await fetcher.post(url);
@@ -290,7 +277,7 @@ export const importAttendanceSummary =
 export const addAttendanceSummaries =
 	(adds: SessionAttendanceSummaryCreate[]): AppThunk =>
 	async (dispatch, getState) => {
-		const groupName = selectAttendanceSummaryGroupName(getState());
+		const groupName = selectAttendanceSummariesGroupName(getState());
 		const url = `/api/${groupName}/attendances`;
 		let attendances: SessionAttendanceSummary[];
 		try {
@@ -307,7 +294,7 @@ export const updateAttendanceSummaries =
 	(updates: SessionAttendanceSummaryUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
 		dispatch(updateMany(updates));
-		const groupName = selectAttendanceSummaryGroupName(getState());
+		const groupName = selectAttendanceSummariesGroupName(getState());
 		const url = `/api/${groupName}/attendances`;
 		let attendances: SessionAttendanceSummary[];
 		try {
@@ -324,11 +311,35 @@ export const deleteAttendanceSummaries =
 	(ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
 		dispatch(removeMany(ids));
-		const groupName = selectAttendanceSummaryGroupName(getState());
+		const groupName = selectAttendanceSummariesGroupName(getState());
 		const url = `/api/${groupName}/attendances`;
 		try {
 			await fetcher.delete(url, ids);
 		} catch (error) {
 			dispatch(setError("DELETE " + url, error));
+		}
+	};
+
+export const exportAttendanceForMinutes =
+	(groupName: string, sessionNumber: number): AppThunk =>
+	async (dispatch, getState) => {
+		const session = selectSessionByNumber(getState(), sessionNumber);
+		if (!session) {
+			dispatch(
+				setError("Can't retrieve attendance", "Bad session number")
+			);
+			return;
+		}
+		const url = `/api/${groupName}/attendances/${session.id}/export`;
+		try {
+			await fetcher.getFile(url, { format: "minutes" });
+		} catch (error) {
+			dispatch(
+				setError(
+					"Unable to export attendance for session " +
+						`id=${session.id}`,
+					error
+				)
+			);
 		}
 	};

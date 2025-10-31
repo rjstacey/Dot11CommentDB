@@ -3,10 +3,12 @@ import { Button, FormCheck, FormControl } from "react-bootstrap";
 import { displayDateRange, shallowDiff, useDebounce } from "@common";
 
 import type { RootState } from "@/store";
-import { selectMemberAttendanceStats } from "@/store/sessionParticipation";
+import {
+	selectMemberAttendanceStats,
+	selectSessionParticipationSessionIds,
+} from "@/store/sessionParticipation";
 import {
 	selectMemberAttendances,
-	selectAttendanceSummarySessionIds,
 	updateAttendanceSummaries,
 	getNullAttendanceSummary,
 	SessionAttendanceSummary,
@@ -16,7 +18,7 @@ import {
 	SessionAttendanceSummaryUpdate,
 	addAttendanceSummaries,
 	deleteAttendanceSummaries,
-} from "@/store/attendanceSummary";
+} from "@/store/attendanceSummaries";
 import { selectSessionEntities } from "@/store/sessions";
 
 import styles from "../sessionAttendance/actions/actions.module.css";
@@ -27,7 +29,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRenderSessionAttendances } from "./renderSessionAttendances";
 
 function useSessionAttendances(SAPIN: number) {
-	const sessionIds = useAppSelector(selectAttendanceSummarySessionIds);
+	const sessionIds = useAppSelector(selectSessionParticipationSessionIds);
 	const membersAttendances = useAppSelector(selectMemberAttendances);
 
 	return React.useMemo(() => {

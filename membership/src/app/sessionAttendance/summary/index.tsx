@@ -1,39 +1,39 @@
 import { AppTable, ShowFilters } from "@common";
 import {
-	sessionRegistrationSelectors,
-	sessionRegistrationActions,
+	sessionAttendanceSummarySelectors,
+	sessionAttendanceSummaryActions,
 	fields,
-} from "@/store/sessionRegistration";
+} from "@/store/sessionAttendanceSummary";
 import { SplitTableButtonGroup } from "@common";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 import { Main } from "../main";
 
-export function SessionRegistrationTable() {
+export function SessionAttendanceSummaryTable() {
 	return (
 		<>
 			<SplitTableButtonGroup
 				style={{ order: 3 }}
-				selectors={sessionRegistrationSelectors}
-				actions={sessionRegistrationActions}
+				selectors={sessionAttendanceSummarySelectors}
+				actions={sessionAttendanceSummaryActions}
 				columns={tableColumns}
 			/>
 			<Main>
 				<ShowFilters
 					fields={fields}
-					selectors={sessionRegistrationSelectors}
-					actions={sessionRegistrationActions}
+					selectors={sessionAttendanceSummarySelectors}
+					actions={sessionAttendanceSummaryActions}
 				/>
 				<AppTable
 					columns={tableColumns}
 					headerHeight={40}
 					estimatedRowHeight={50}
 					defaultTablesConfig={defaultTablesConfig}
-					selectors={sessionRegistrationSelectors}
-					actions={sessionRegistrationActions}
+					selectors={sessionAttendanceSummarySelectors}
+					actions={sessionAttendanceSummaryActions}
 				/>
 			</Main>
 		</>
 	);
 }
 
-export default SessionRegistrationTable;
+export default SessionAttendanceSummaryTable;

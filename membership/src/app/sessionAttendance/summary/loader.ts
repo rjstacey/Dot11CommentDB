@@ -3,45 +3,26 @@ import { LoaderFunction } from "react-router";
 import { store } from "@/store";
 import { selectTopLevelGroupByName, AccessLevel } from "@/store/groups";
 import {
-	loadImatAttendanceSummary,
-	clearImatAttendanceSummary,
-	selectImatAttendanceSummaryState,
-} from "@/store/imatAttendanceSummary";
-import {
+	selectSessionAttendanceSummaryState,
 	loadSessionAttendanceSummary,
-	clearSessionAttendanceSummary,
 } from "@/store/sessionAttendanceSummary";
 import { loadSessions, selectSessionByNumber } from "@/store/sessions";
-import { rootLoader } from "../rootLoader";
+import { rootLoader } from "../../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
-	const { groupName } = selectImatAttendanceSummaryState(getState());
+	const { groupName, sessionId } =
+		selectSessionAttendanceSummaryState(getState());
 	if (!groupName) throw new Error("Refresh: groupName not set");
-	const { sessionId, useDaily } =
-		selectImatAttendanceSummaryState(getState());
 	if (sessionId) {
-		dispatch(
-			loadImatAttendanceSummary(groupName, sessionId, useDaily, true)
-		);
 		dispatch(loadSessionAttendanceSummary(groupName, sessionId, true));
 	}
 }
 
-export const indexLoader: LoaderFunction = async (args) => {
+export const loader: LoaderFunction = async (args) => {
 	await rootLoader(args);
 
-	const { dispatch } = store;
-	dispatch(clearImatAttendanceSummary());
-	dispatch(clearSessionAttendanceSummary());
-
-	return null;
-};
-
-export const sessionAttendanceLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	const { params, request } = args;
+	const { params } = args;
 
 	const { groupName, sessionNumber } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
@@ -54,14 +35,9 @@ export const sessionAttendanceLoader: LoaderFunction = async (args) => {
 	if (access < AccessLevel.admin)
 		throw new Error("You don't have permission to view this data");
 
-	const searchParams = new URL(request.url).searchParams;
-	const useDaily =
-		searchParams.has("useDaily") &&
-		searchParams.get("useDaily") !== "false";
 	await dispatch(loadSessions(groupName));
 	const session = selectSessionByNumber(getState(), Number(sessionNumber));
 	if (session) {
-		dispatch(loadImatAttendanceSummary(groupName, session.id, useDaily));
 		dispatch(loadSessionAttendanceSummary(groupName, session.id));
 	} else {
 		throw new Error("Can't find session " + sessionNumber);

@@ -18,11 +18,12 @@ import timeZonesSlice from "./timeZones";
 import membersSlice from "./members";
 import ieeeMembersSlice from "./ieeeMembers";
 import officersSlice from "./officers";
-import attendanceSummarySlice from "./attendanceSummary";
+import attendanceSummariesSlice from "./attendanceSummaries";
 import attendancesSlice from "./sessionParticipation";
 import ballotParticipationSlice from "./ballotParticipation";
-import sessionAttendeesSlice from "./sessionAttendees";
-import sessionRegistratonSlice from "./sessionRegistration";
+import imatAttendanceSummarySlice from "./imatAttendanceSummary";
+import sessionAttendanceSummarySlice from "./sessionAttendanceSummary";
+import sessionRegistrationSlice from "./sessionRegistration";
 import imatCommitteesSlice from "./imatCommittees";
 import sessionsSlice from "./sessions";
 import emailTemlatesSlice from "./emailTemplates";
@@ -41,29 +42,10 @@ const PERSIST_VERSION = 4;
 
 /* Transform presistant state so that we reset "loading" state */
 type GenericObject = Record<string, unknown>;
-const transformState = createTransform(
-	(state: GenericObject) => {
-		const { loading, ...rest } = state;
-		return rest;
-	},
-	(state: GenericObject) => ({ ...state, loading: false }),
-	{
-		whitelist: [
-			membersSlice.name,
-			ieeeMembersSlice.name,
-			groupsSlice.name,
-			officersSlice.name,
-			attendanceSummarySlice.name,
-			attendancesSlice.name,
-			ballotParticipationSlice.name,
-			sessionAttendeesSlice.name,
-			sessionRegistratonSlice.name,
-			emailTemlatesSlice.name,
-			affliationMapSlice.name,
-			myProjectRosterSlice.name,
-		],
-	}
-);
+const transformState = createTransform((state: GenericObject) => {
+	const { loading, ...rest } = state;
+	return rest;
+});
 
 const appReducer = combineReducers({
 	[userSlice.name]: userSlice.reducer,
@@ -72,13 +54,14 @@ const appReducer = combineReducers({
 	[ieeeMembersSlice.name]: ieeeMembersSlice.reducer,
 	[sessionsSlice.name]: sessionsSlice.reducer,
 	[officersSlice.name]: officersSlice.reducer,
-	[attendanceSummarySlice.name]: attendanceSummarySlice.reducer,
+	[attendanceSummariesSlice.name]: attendanceSummariesSlice.reducer,
 	[attendancesSlice.name]: attendancesSlice.reducer,
 	[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
-	[sessionAttendeesSlice.name]: sessionAttendeesSlice.reducer,
-	[sessionRegistratonSlice.name]: sessionRegistratonSlice.reducer,
-	[timeZonesSlice.name]: timeZonesSlice.reducer,
+	[imatAttendanceSummarySlice.name]: imatAttendanceSummarySlice.reducer,
 	[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
+	[sessionAttendanceSummarySlice.name]: sessionAttendanceSummarySlice.reducer,
+	[sessionRegistrationSlice.name]: sessionRegistrationSlice.reducer,
+	[timeZonesSlice.name]: timeZonesSlice.reducer,
 	[emailTemlatesSlice.name]: emailTemlatesSlice.reducer,
 	[affliationMapSlice.name]: affliationMapSlice.reducer,
 	[myProjectRosterSlice.name]: myProjectRosterSlice.reducer,
@@ -109,13 +92,14 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 		ieeeMembersSlice.name,
 		sessionsSlice.name,
 		officersSlice.name,
-		attendanceSummarySlice.name,
+		attendanceSummariesSlice.name,
 		attendancesSlice.name,
 		ballotParticipationSlice.name,
-		sessionAttendeesSlice.name,
-		sessionRegistratonSlice.name,
-		timeZonesSlice.name,
+		imatAttendanceSummarySlice.name,
 		imatCommitteesSlice.name,
+		sessionAttendanceSummarySlice.name,
+		sessionRegistrationSlice.name,
+		timeZonesSlice.name,
 		emailTemlatesSlice.name,
 		affliationMapSlice.name,
 		myProjectRosterSlice.name,

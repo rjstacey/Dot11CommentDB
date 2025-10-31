@@ -8,11 +8,11 @@ import { displayDateRange } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import {
 	selectSessionsState,
-	selectRecentSessions,
+	selectRecentPlusOneSessions,
 	Session,
 	displaySessionType,
 } from "@/store/sessions";
-import { selectSessionAttendeesState } from "@/store/sessionAttendees";
+import { selectImatAttendanceSummaryState } from "@/store/imatAttendanceSummary";
 
 import styles from "./actions.module.css";
 
@@ -29,7 +29,7 @@ const renderSession = ({ item: session }: { item: Session }) => (
 	</div>
 );
 
-export function SessionSelector({
+function SessionSelector({
 	value,
 	onChange,
 	readOnly,
@@ -41,7 +41,7 @@ export function SessionSelector({
 	style?: React.CSSProperties;
 }) {
 	const { loading, valid } = useAppSelector(selectSessionsState);
-	const options = useAppSelector(selectRecentSessions);
+	const options = useAppSelector(selectRecentPlusOneSessions);
 	const values = options.filter((o) => o.number === value);
 	const handleChange = (values: typeof options) =>
 		onChange(values.length > 0 ? values[0].number : null);
@@ -85,7 +85,7 @@ export function SessionSelectorNav(props: React.ComponentProps<typeof Col>) {
 		navigate({ search: searchParams.toString() });
 	};
 
-	const { loading } = useAppSelector(selectSessionAttendeesState);
+	const { loading } = useAppSelector(selectImatAttendanceSummaryState);
 
 	return (
 		<Col xs="auto" className="d-flex align-items-center gap-3" {...props}>

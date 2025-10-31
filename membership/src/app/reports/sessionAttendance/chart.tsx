@@ -4,10 +4,10 @@ import { Ratio } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { AffiliationMap, selectAffiliationMaps } from "@/store/affiliationMap";
 import {
-	selectSyncedSessionAtendeeEntities,
-	selectSessionAttendeesIds,
+	selectSyncedImatAttendanceSummaryEntities,
+	selectImatAttendanceSummaryIds,
 	SyncedSessionAttendee,
-} from "@/store/sessionAttendees";
+} from "@/store/imatAttendanceSummary";
 import StackedBarChart from "@/components/StackedBarChart";
 import { useDimensions } from "../useDimensions";
 
@@ -38,8 +38,8 @@ const nullEntry: StatusCountRecord = {
 };
 
 const attendeesByAffiliation = createSelector(
-	selectSessionAttendeesIds,
-	selectSyncedSessionAtendeeEntities,
+	selectImatAttendanceSummaryIds,
+	selectSyncedImatAttendanceSummaryEntities,
 	selectAffiliationMaps,
 	(attendeeIds, attendeeEntities, maps) => {
 		const membersEntities: Record<string, SyncedSessionAttendee[]> = {};

@@ -17,7 +17,7 @@ const attendanceColumns: Col[] = [
 	{
 		label: "Attended ≥ 75%",
 		width: 18,
-		set: (m) => m.AttendancePercentage >= 75,
+		set: (m) => (m.AttendancePercentage || 0) >= 75,
 	},
 	{
 		label: "Status",

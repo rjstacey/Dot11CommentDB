@@ -44,9 +44,9 @@ export default defineConfig(({ command, mode }) => {
 					enabled: false,
 				},
 				manifest: {
-					name: "802 tools | Membeship",
+					name: "802 tools | Membership",
 					short_name: "802|MEM",
-					description: "Managegroup membership",
+					description: "Manage group membership",
 					theme_color: "#ffffff",
 					icons: [
 						{

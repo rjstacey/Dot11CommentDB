@@ -12,9 +12,9 @@ import {
 	sessionAttendeesActions,
 	type SyncedSessionAttendee,
 	fields,
-} from "@/store/sessionAttendees";
+} from "@/store/imatAttendanceSummary";
 
-import { TruncatedDiff } from "./TruncatedDiff";
+import { TruncatedDiff } from "@/components/TruncatedDiff";
 
 const renderName = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => (
 	<TruncatedDiff

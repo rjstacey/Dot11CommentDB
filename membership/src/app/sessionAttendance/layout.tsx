@@ -1,14 +1,14 @@
 import { Outlet } from "react-router";
 import { Container } from "react-bootstrap";
-import { SessionAttendanceActions } from "./actions";
+import { SessionSelectorNav } from "./actions/SessionSelector";
 
-export function SessionAttendance() {
+export function SessionAttendanceLayout() {
 	return (
 		<Container fluid className="d-flex flex-wrap h-100 w-100">
-			<SessionAttendanceActions />
+			<SessionSelectorNav style={{ order: 1 }} />
 			<Outlet />
 		</Container>
 	);
 }
 
-export default SessionAttendance;
+export default SessionAttendanceLayout;
