@@ -30,9 +30,7 @@ export const fields: Fields = {
 	Email: { label: "Email" },
 	AttendancePercentage: { label: "Attendance", type: FieldType.NUMERIC },
 	IsRegistered: { label: "Registered" },
-	InPerson: {
-		label: "In-Person",
-	},
+	InPerson: { label: "In-Person" },
 	Notes: { label: "Notes" },
 };
 
@@ -69,8 +67,12 @@ const slice = createAppTableDataSlice({
 	sortComparer,
 	initialState,
 	reducers: {
-		setSessionId(state, action: PayloadAction<number>) {
-			state.sessionId = action.payload;
+		setSessionId(
+			state,
+			action: PayloadAction<{ groupName: string; sessionId: number }>
+		) {
+			state.sessionId = action.payload.sessionId;
+			state.groupName = action.payload.groupName;
 		},
 	},
 	extraReducers: (builder, dataAdapter) => {
@@ -127,20 +129,11 @@ export const selectSessionAttendanceSummaryIds = createSelector(
 	selectAttendanceSummariesIds,
 	selectAttendanceSummariesEntities,
 	(session_id, ids, entities) =>
-		ids.filter((id) => entities[id]?.id === session_id)
+		ids.filter((id) => entities[id]?.session_id === session_id)
 );
 
-export const selectSessionAttendanceSummaryEntities = createSelector(
-	selectSessionAttendanceSummaryIds,
-	selectAttendanceSummariesEntities,
-	(ids, entities) => {
-		const newEntities: typeof entities = {};
-		for (const id of ids) {
-			newEntities[id] = entities[id]!;
-		}
-		return newEntities;
-	}
-);
+export const selectSessionAttendanceSummaryEntities =
+	selectAttendanceSummariesEntities;
 
 const selectSyncedSessionAttendanceSummaryEntities = createSelector(
 	selectSessionAttendanceSummaryIds,
@@ -166,13 +159,16 @@ const selectSyncedSessionAttendanceSummaryEntities = createSelector(
 
 export const sessionAttendanceSummarySelectors = getAppTableDataSelectors(
 	selectSessionAttendanceSummaryState,
-	{ selectEntities: selectSyncedSessionAttendanceSummaryEntities }
+	{
+		selectEntities: selectSyncedSessionAttendanceSummaryEntities,
+		selectIds: selectSessionAttendanceSummaryIds,
+	}
 );
 
 /** Thunk actions */
 export const loadSessionAttendanceSummary =
 	(groupName: string, session_id: number, force = false): AppThunk<void> =>
 	async (dispatch) => {
-		dispatch(setSessionId(session_id));
+		dispatch(setSessionId({ groupName, sessionId: session_id }));
 		await dispatch(loadAttendanceSummary(groupName, session_id, force));
 	};

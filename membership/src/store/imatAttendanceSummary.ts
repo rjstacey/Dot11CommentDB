@@ -44,7 +44,6 @@ export const fields: Fields = {
 	ContactInfo: { label: "Contact Info" },
 	Status: { label: "Status" },
 	AttendancePercentage: { label: "Attendance", type: FieldType.NUMERIC },
-	AttendanceOverride: { label: "Attendance override" },
 	InPerson: {
 		label: "In-Person",
 		options: [
@@ -61,11 +60,12 @@ type ImatAttendanceSummaryWithSummary = ImatAttendanceSummary &
 
 export type SyncedSessionAttendee = ImatAttendanceSummaryWithSummary & {
 	Status: string;
-	OldName: string | null;
-	OldAffiliation: string | null;
-	OldEmployer: string | null;
-	OldEmail: string | null;
-	OldContactInfo: ContactInfo | null;
+	CurrentName: string | null;
+	CurrentAffiliation: string | null;
+	CurrentEmployer: string | null;
+	CurrentEmail: string | null;
+	CurrentContactInfo: ContactInfo | null;
+	CurrentAttendancePercentage: number | null;
 };
 
 /*
@@ -195,30 +195,38 @@ export const selectSyncedImatAttendanceSummaryEntities = createSelector(
 			const syncedEntity: SyncedSessionAttendee = {
 				...a,
 				...entity,
-				OldAffiliation: null,
-				OldEmployer: null,
-				OldName: null,
-				OldEmail: null,
-				OldContactInfo: null,
+				CurrentAffiliation: null,
+				CurrentEmployer: null,
+				CurrentName: null,
+				CurrentEmail: null,
+				CurrentContactInfo: null,
+				CurrentAttendancePercentage: null,
 				Status: "New",
 			};
+			if (
+				syncedEntity.AttendancePercentage.toFixed(1) !==
+				a.AttendancePercentage?.toFixed(1)
+			)
+				syncedEntity.CurrentAttendancePercentage =
+					a.AttendancePercentage;
 			const m = memberEntities[id];
 			if (m) {
 				syncedEntity.Status = m.Status;
 				if (m.Affiliation !== syncedEntity.Affiliation)
-					syncedEntity.OldAffiliation = m.Affiliation;
+					syncedEntity.CurrentAffiliation = m.Affiliation;
 				if (
 					syncedEntity.Employer !== undefined &&
 					m.Employer !== entity.Employer
 				)
-					syncedEntity.OldEmployer = m.Employer;
-				if (m.Email !== entity.Email) syncedEntity.OldEmail = m.Email;
-				if (m.Name !== entity.Name) syncedEntity.OldName = m.Name;
+					syncedEntity.CurrentEmployer = m.Employer;
+				if (m.Email !== entity.Email)
+					syncedEntity.CurrentEmail = m.Email;
+				if (m.Name !== entity.Name) syncedEntity.CurrentName = m.Name;
 				if (
 					syncedEntity.Employer !== undefined &&
 					!isEqual(m.ContactInfo, entity.ContactInfo)
 				) {
-					syncedEntity.OldContactInfo = m.ContactInfo;
+					syncedEntity.CurrentContactInfo = m.ContactInfo;
 				}
 			}
 			syncedEntities[id] = syncedEntity;

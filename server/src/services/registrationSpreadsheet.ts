@@ -2,6 +2,11 @@ import ExcelJS from "exceljs";
 import { csvParse } from "../utils/index.js";
 import type { SessionRegistration } from "@schemas/registration.js";
 
+type SessionRegistrationSS = Pick<
+	SessionRegistration,
+	"id" | "SAPIN" | "Name" | "FirstName" | "LastName" | "Email" | "RegType"
+>;
+
 export async function parseRegistrationSpreadsheet(
 	filename: string,
 	buffer: Buffer
@@ -17,14 +22,11 @@ export async function parseRegistrationSpreadsheet(
 
 		rows = [];
 		workbook.worksheets[0]?.eachRow((row) => {
-			if (Array.isArray(row.values))
-				rows.push(
-					row.values
-						.slice(1, 20 + 1)
-						.map((r) =>
-							typeof r === "string" ? r : r ? r.toString() : ""
-						)
-				);
+			const nCols = Math.max(row.cellCount, 20);
+			const cRow = Array(nCols)
+				.fill("")
+				.map((_, i) => row.getCell(i + 1).text);
+			rows.push(cRow);
 		});
 	} else if (filename.search(/\.csv$/i) >= 0) {
 		rows = await csvParse(buffer, {
@@ -52,7 +54,7 @@ export async function parseRegistrationSpreadsheet(
 	const lastNameIndex = rows[0].findIndex((v) => /last name/i.test(v));
 	if (lastNameIndex < 0) throw new TypeError("Can't find Last Name column");
 	const fullNameIndex = rows[0].findIndex((v) => /full name/i.test(v));
-	rows.unshift();
+	rows.shift();
 	const registrations = rows.map((r, id) => {
 		let Name = r[firstNameIndex] + " " + r[lastNameIndex];
 		if (fullNameIndex >= 0) Name = r[fullNameIndex];
@@ -64,7 +66,7 @@ export async function parseRegistrationSpreadsheet(
 			LastName: r[lastNameIndex],
 			Email: r[emailIndex],
 			RegType: r[regTypeIndex],
-		} satisfies SessionRegistration;
+		} satisfies SessionRegistrationSS;
 	});
 	return registrations;
 }

@@ -1,10 +1,9 @@
-import { AppTable, ShowFilters } from "@common";
+import { AppTable, ShowFilters, SplitTableButtonGroup } from "@common";
 import {
 	sessionAttendanceSummarySelectors,
 	sessionAttendanceSummaryActions,
 	fields,
 } from "@/store/sessionAttendanceSummary";
-import { SplitTableButtonGroup } from "@common";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 import { Main } from "../main";
 

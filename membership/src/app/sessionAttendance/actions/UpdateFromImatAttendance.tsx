@@ -16,7 +16,7 @@ import { importAttendanceSummary } from "@/store/attendanceSummaries";
 
 import { sessionAttendeeToNewMember } from "../imat/utils";
 
-function BulkUpdateForm({ close }: { close: () => void }) {
+function UpdateForm({ close }: { close: () => void }) {
 	const { groupName, selected, ids, entities } = useAppSelector(
 		selectImatAttendanceSummaryState
 	);
@@ -72,7 +72,8 @@ function BulkUpdateForm({ close }: { close: () => void }) {
 		return updates;
 	}, [list, entities, memberEntities]);
 
-	async function handleSubmit() {
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+		e.preventDefault();
 		setBusy(true);
 		if (importAttendance)
 			await dispatch(
@@ -132,15 +133,15 @@ function BulkUpdateForm({ close }: { close: () => void }) {
 	);
 }
 
-export function BulkUpdateDropdown({ disabled }: { disabled?: boolean }) {
+export function UpdateFromImatAttendance({ disabled }: { disabled?: boolean }) {
 	const [show, setShow] = React.useState(false);
 	return (
 		<Dropdown align="end" show={show} onToggle={() => setShow(!show)}>
 			<Dropdown.Toggle variant="success-outline" disabled={disabled}>
-				Bulk Update
+				{"Update"}
 			</Dropdown.Toggle>
 			<Dropdown.Menu>
-				<BulkUpdateForm close={() => setShow(false)} />
+				<UpdateForm close={() => setShow(false)} />
 			</Dropdown.Menu>
 		</Dropdown>
 	);

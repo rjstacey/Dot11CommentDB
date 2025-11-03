@@ -5,8 +5,8 @@ export const sessionAttendanceSummarySchema = z.object({
 	id: z.number(),
 	session_id: z.number(), // Session identifier
 	AttendancePercentage: z.number().nullable(), // Percentage of meeting slots attended
-	IsRegistered: z.boolean(), // Registered for session
-	InPerson: z.boolean(), // Attended in-person (vs remote)
+	IsRegistered: z.boolean().nullable(), // Registered for session
+	InPerson: z.boolean().nullable(), // Attended in-person (vs remote)
 	DidAttend: z.boolean(), // Declare attendance criteria met
 	DidNotAttend: z.boolean(), // Declare attendance criteria not met
 	SAPIN: z.number(), // SA PIN under which attendance was logged
@@ -30,7 +30,7 @@ export const sessionAttendanceSummaryCreateSchema =
 			session_id: true,
 			SAPIN: true,
 		})
-		.merge(
+		.extend(
 			sessionAttendanceSummarySchema
 				.pick({
 					AttendancePercentage: true,
@@ -40,7 +40,7 @@ export const sessionAttendanceSummaryCreateSchema =
 					DidNotAttend: true,
 					Notes: true,
 				})
-				.partial()
+				.partial().shape
 		);
 export const sessionAttendanceSummaryCreatesSchema =
 	sessionAttendanceSummaryCreateSchema.array();
@@ -72,6 +72,7 @@ export const sessionAttendanceSummaryQuerySchema = z
 		id: z.union([z.coerce.number(), z.coerce.number().array()]),
 		groupId: z.union([groupIdSchema, groupIdSchema.array()]),
 		session_id: z.union([z.coerce.number(), z.coerce.number().array()]),
+		withAttendance: z.coerce.boolean(),
 	})
 	.partial();
 

@@ -172,9 +172,7 @@ function selectMembersSql(query: MemberQuery) {
 	return sql;
 }
 
-/*
- * A detailed list of members
- */
+/** A detailed list of members */
 export function getMembers(query: MemberQuery): Promise<Member[]> {
 	const sql = selectMembersSql(query);
 	return db.query<(RowDataPacket & Member)[]>(sql);
@@ -188,9 +186,7 @@ export async function getMember(groupId: string, SAPIN: number) {
 	return members[0];
 }
 
-/*
- * A details list of users (IEEE account holders)
- */
+/** A details list of users (IEEE account holders) */
 export function getUsers() {
 	// prettier-ignore
 	const sql =
@@ -204,6 +200,18 @@ export function getUsers() {
 			"ContactEmails " +
 		"FROM users";
 	return db.query(sql) as Promise<UserType[]>;
+}
+
+/** A record of users (IEEE account holders) */
+export async function getUserEntities(): Promise<Record<number, UserType>> {
+	const users = await getUsers();
+	return users.reduce(
+		(entities, user) => {
+			entities[user.SAPIN] = user;
+			return entities;
+		},
+		{} as Record<number, UserType>
+	);
 }
 
 /*

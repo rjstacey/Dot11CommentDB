@@ -55,12 +55,15 @@ export const tableColumns: ColumnProperties[] = [
 		flexGrow: 1,
 		flexShrink: 1,
 	},
+	{ key: "Status", label: "Status", width: 100, flexGrow: 1, flexShrink: 1 },
 	{
 		key: "AttendancePercentage",
 		label: "Attendance",
 		width: 200,
 		flexGrow: 1,
 		flexShrink: 1,
+		dataRenderer: (d: number | null) =>
+			d === null ? "" : d.toFixed(0) + "%",
 	},
 	{
 		key: "IsRegistered",
@@ -68,7 +71,8 @@ export const tableColumns: ColumnProperties[] = [
 		width: 80,
 		flexGrow: 1,
 		flexShrink: 1,
-		dataRenderer: (d: boolean) => (d ? "YES" : "NO"),
+		dataRenderer: (d: boolean | null) =>
+			d === null ? "" : d ? "YES" : "NO",
 	},
 	{
 		key: "InPerson",
@@ -76,7 +80,15 @@ export const tableColumns: ColumnProperties[] = [
 		width: 80,
 		flexGrow: 1,
 		flexShrink: 1,
-		dataRenderer: (d: boolean) => (d ? "YES" : "NO"),
+		dataRenderer: (d: boolean | null) =>
+			d === null ? "" : d ? "YES" : "NO",
+	},
+	{
+		key: "Notes",
+		label: "Notes",
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
 	},
 ];
 
@@ -86,9 +98,11 @@ const defaultTablesColumns = {
 		"SAPIN",
 		"Name",
 		"Email",
+		"Status",
 		"AttendancePercentage",
 		"IsRegistered",
 		"InPerson",
+		"Notes",
 	],
 };
 

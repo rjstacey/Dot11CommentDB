@@ -1,8 +1,8 @@
 import {
 	createAction,
-	createSelector,
 	Action,
-	Dictionary,
+	createSelector,
+	EntityId,
 } from "@reduxjs/toolkit";
 import { fetcher } from "@common";
 import {
@@ -14,34 +14,40 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { setError } from ".";
-import { upsertAttendanceSummaries } from "./attendanceSummaries";
+import {
+	SessionAttendanceSummary,
+	upsertAttendanceSummaries,
+	selectAttendanceSummaryEntitiesForSession,
+} from "./attendanceSummaries";
 import {
 	uploadSessionRegistrationResponseSchema,
 	SessionRegistration,
 	UploadSessionRegistrationResponse,
 } from "@schemas/registration";
-import { Member, selectMemberEntities } from "./members";
 import { selectSessionByNumber } from "./sessions";
 
 export type { SessionRegistration };
 
 export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
-	"Name/Email": { label: "Name/Email" },
 	Name: { label: "Name" },
 	LastName: { label: "Last name" },
 	FirstName: { label: "First name" },
 	Email: { label: "Email" },
-	RegType: {
-		label: "Registration type",
-	},
+	Status: { label: "Status" },
+	RegType: { label: "Registration type" },
 	Matched: { label: "Matched", type: FieldType.STRING },
+	AttendancePercentage: { label: "Attendance", type: FieldType.NUMERIC },
+	IsRegistered: { label: "Registered" },
+	InPerson: { label: "In-Person" },
+	Notes: { label: "Notes" },
 };
 
-export type SyncedSessionRegistration = SessionRegistration & {
-	Matched: string;
-	CurrentSAPIN: number | null;
-};
+type SyncedSessionRegistration = SessionRegistration &
+	Pick<
+		SessionAttendanceSummary,
+		"InPerson" | "IsRegistered" | "AttendancePercentage" | "Notes"
+	>;
 
 export type SessionRegistrationUpdate = {
 	id: number;
@@ -126,46 +132,44 @@ export const selectSessionRegistrationEntities = (state: RootState) =>
 	selectSessionRegistrationState(state).entities;
 export const selectSessionRegistrationSessionId = (state: RootState) =>
 	selectSessionRegistrationState(state).sessionId;
+export const selectSessionRegistrationSummarySessionId = (state: RootState) =>
+	selectSessionRegistrationState(state).sessionId;
 
-const selectSyncedSessionRegistrationEntities = createSelector(
+export const selectSyncedSessionRegistrationEntities = createSelector(
 	selectSessionRegistrationIds,
 	selectSessionRegistrationEntities,
-	selectMemberEntities,
-	(ids, entities, memberEntities) => {
-		const syncedEntities: Dictionary<SyncedSessionRegistration> = {};
-		const members = Object.values(memberEntities) as Member[];
-		for (const id of ids) {
-			const reg = entities[id]!;
-			const email = reg.Email.toLowerCase();
-			let sapin = reg.SAPIN;
-			let Matched = "NO";
-			let m = sapin ? memberEntities[sapin] : undefined;
-			if (m) {
-				Matched = "SAPIN";
-			} else {
-				m = members.find((m) => m.Email.toLowerCase() === email);
-				if (m) Matched = "Email";
-			}
-			if (m) sapin = m.SAPIN;
-			syncedEntities[id] = {
-				...entities[id]!,
-				Matched,
-				CurrentSAPIN: sapin,
-			} satisfies SyncedSessionRegistration;
-		}
+	(state: RootState) =>
+		selectAttendanceSummaryEntitiesForSession(
+			state,
+			selectSessionRegistrationSummarySessionId(state)
+		),
+	(ids, entities, attendanceSummaryEntities) => {
+		const syncedEntities: Record<EntityId, SyncedSessionRegistration> = {};
+
+		ids.forEach((id) => {
+			const entity = entities[id]!;
+			const a = entity.CurrentSAPIN
+				? attendanceSummaryEntities[entity.CurrentSAPIN]
+				: undefined;
+			const syncedEntity: SyncedSessionRegistration = {
+				...entity,
+				InPerson: a ? a.InPerson : null,
+				IsRegistered: a ? a.IsRegistered : null,
+				AttendancePercentage: a ? a.AttendancePercentage : null,
+				Notes: a ? a.Notes : null,
+			};
+			syncedEntities[id] = syncedEntity;
+		});
 		return syncedEntities;
 	}
 );
 
-export const selectSessionRegistrationsUnmatched = createSelector(
-	selectSessionRegistrationIds,
-	selectSyncedSessionRegistrationEntities,
-	(ids, entities) => ids.map((id) => entities[id]!).filter((r) => !r.Matched)
-);
-
 export const sessionRegistrationSelectors = getAppTableDataSelectors(
 	selectSessionRegistrationState,
-	{ selectEntities: selectSyncedSessionRegistrationEntities }
+	{
+		selectEntities: selectSyncedSessionRegistrationEntities,
+		selectIds: selectSessionRegistrationIds,
+	}
 );
 
 /** Thunk actions */

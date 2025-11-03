@@ -1,6 +1,6 @@
 import { Outlet } from "react-router";
 import { Container } from "react-bootstrap";
-import { SessionSelectorNav } from "./actions/SessionSelector";
+import { SessionSelectorNav } from "./actions/SessionSelectorNav";
 
 export function SessionAttendanceLayout() {
 	return (

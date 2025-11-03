@@ -20,12 +20,12 @@ const renderName = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => (
 	<TruncatedDiff
 		className="fw-bold"
 		newStr={rowData.Name}
-		oldStr={rowData.OldName}
+		oldStr={rowData.CurrentName}
 	/>
 );
 
 const renderEmail = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => (
-	<TruncatedDiff newStr={rowData.Email} oldStr={rowData.OldEmail} />
+	<TruncatedDiff newStr={rowData.Email} oldStr={rowData.CurrentEmail} />
 );
 
 const renderEmployer = ({
@@ -34,7 +34,10 @@ const renderEmployer = ({
 	// The "Employer" field is present with "daily attendance" but undefined with "attendance summary"
 	if (rowData.Employer === undefined) return "N/A";
 	return (
-		<TruncatedDiff newStr={rowData.Employer} oldStr={rowData.OldEmployer} />
+		<TruncatedDiff
+			newStr={rowData.Employer}
+			oldStr={rowData.CurrentEmployer}
+		/>
 	);
 };
 
@@ -43,9 +46,21 @@ const renderAffiliation = ({
 }: CellRendererProps<SyncedSessionAttendee>) => (
 	<TruncatedDiff
 		newStr={rowData.Affiliation}
-		oldStr={rowData.OldAffiliation}
+		oldStr={rowData.CurrentAffiliation}
 	/>
 );
+
+let i = 0;
+const renderAttendance = ({
+	rowData,
+}: CellRendererProps<SyncedSessionAttendee>) => {
+	const newStr = rowData.AttendancePercentage.toFixed(0) + "%";
+	let oldStr: string | null = null;
+	if (rowData.CurrentAttendancePercentage !== null)
+		oldStr = rowData.CurrentAttendancePercentage.toFixed(0) + "%";
+	if (i++ < 1) console.log(newStr, oldStr);
+	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
+};
 
 export const tableColumns: ColumnProperties[] = [
 	{
@@ -117,14 +132,7 @@ export const tableColumns: ColumnProperties[] = [
 		width: 100,
 		flexGrow: 1,
 		flexShrink: 1,
-		dataRenderer: (d: number) => d.toFixed(0) + "%",
-	},
-	{
-		key: "AttendanceOverride",
-		label: "Attendance override",
-		width: 100,
-		flexGrow: 1,
-		flexShrink: 1,
+		cellRenderer: renderAttendance,
 	},
 	{
 		key: "InPerson",
@@ -143,6 +151,13 @@ export const tableColumns: ColumnProperties[] = [
 		dataRenderer: (d: boolean) => (d ? "Registered" : ""),
 	},
 	{
+		key: "Matched",
+		label: "Matched",
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
 		key: "Notes",
 		label: "Notes",
 		width: 150,
@@ -157,21 +172,20 @@ const defaultTablesColumns = {
 		"SAPIN",
 		"Name",
 		"Email",
-		"Employer",
 		"Affiliation",
 		"Status",
+		"AttendancePercentage",
 	],
-	Attendance: [
+	Detail: [
 		"__ctrl__",
 		"SAPIN",
 		"Name",
 		"Email",
-		"Employer",
 		"Affiliation",
 		"Status",
 		"AttendancePercentage",
-		"AttendanceOverride",
 		"Notes",
+		"Matched",
 	],
 };
 

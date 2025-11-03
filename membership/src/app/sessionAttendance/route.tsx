@@ -6,7 +6,7 @@ import SessionNumberLayout from "./sessionNumberLayout";
 import { Main } from "./main";
 import imatRoute from "./imat/route";
 import registrationRoute from "./registration/route";
-import summaryRoute from "./registration/route";
+import summaryRoute from "./summary/route";
 
 export const sessionAttendanceRoute: RouteObject = {
 	Component: SessionAttendanceLayout,

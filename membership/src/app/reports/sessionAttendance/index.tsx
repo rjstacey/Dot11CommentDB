@@ -1,5 +1,5 @@
 import { Outlet } from "react-router";
-import { SessionSelectorNav } from "../../sessionAttendance/actions/SessionSelector";
+import { SessionSelectorNav } from "../../sessionAttendance/actions/SessionSelectorNav";
 import { ChartActions } from "../ChartActions";
 
 export default function SessionAttendanceReport() {

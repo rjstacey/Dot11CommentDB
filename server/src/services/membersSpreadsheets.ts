@@ -115,7 +115,7 @@ function parseMembersDatabaseEntry(u: ExcelJS.CellValue[]) {
 
 export async function parseMembersSpreadsheet(buffer: Buffer) {
 	const workbook = new ExcelJS.Workbook();
-	await workbook.xlsx.load(buffer);
+	await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
 	const rows: ExcelJS.CellValue[][] = []; // an array of arrays
 	workbook.getWorksheet(1)?.eachRow((row) => {
@@ -146,7 +146,7 @@ function parseSAPINsEntry(u: ExcelJS.CellValue[]) {
 
 export async function parseSAPINsSpreadsheet(buffer: Buffer) {
 	const workbook = new ExcelJS.Workbook();
-	await workbook.xlsx.load(buffer);
+	await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
 	const rows: ExcelJS.CellValue[][] = []; // an array of arrays
 	workbook.getWorksheet(1)?.eachRow((row) => {
@@ -185,7 +185,7 @@ function parseEmailsEntry(u: ExcelJS.CellValue[]) {
 
 export async function parseEmailsSpreadsheet(buffer: Buffer) {
 	const workbook = new ExcelJS.Workbook();
-	await workbook.xlsx.load(buffer);
+	await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
 	const rows: ExcelJS.CellValue[][] = []; // an array of arrays
 	workbook.getWorksheet(1)?.eachRow((row) => {
@@ -230,7 +230,7 @@ function parseHistoryEntry(u: ExcelJS.CellValue[]) {
 
 export async function parseHistorySpreadsheet(buffer: Buffer) {
 	const workbook = new ExcelJS.Workbook();
-	await workbook.xlsx.load(buffer);
+	await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
 
 	const rows: ExcelJS.CellValue[][] = []; // an array of arrays
 	workbook.getWorksheet(1)?.eachRow((row) => {

@@ -11,7 +11,7 @@ import {
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { UserContext } from "./users.js";
 import type { Member } from "@schemas/members.js";
-import { getMembers, getMembersSnapshot } from "./members.js";
+import { getMembers, getMembersSnapshot, getUsers } from "./members.js";
 import { genAttendanceSpreadsheet } from "./attendancesSpreadsheet.js";
 import type {
 	SessionAttendanceSummary,
@@ -22,6 +22,7 @@ import type {
 } from "@schemas/attendances.js";
 import { parseRegistrationSpreadsheet } from "./registrationSpreadsheet.js";
 import { ImatAttendanceSummary } from "@schemas/imat.js";
+import { SessionRegistration } from "@schemas/registration.js";
 
 function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
 	// prettier-ignore
@@ -40,19 +41,23 @@ function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
 		"FROM attendanceSummary a " +
 			'LEFT JOIN members m ON m.SAPIN=a.SAPIN AND m.Status="Obsolete" ';
 
-	const wheres = Object.entries(query).map(([key, value]) =>
-		key === "groupId"
-			? db.format(
-					Array.isArray(value)
-						? "BIN_TO_UUID(a.??) IN (?)"
-						: "a.??=UUID_TO_BIN(?)",
-					[key, value]
-				)
-			: db.format(Array.isArray(value) ? "a.?? IN (?)" : "a.??=?", [
-					key,
-					value,
-				])
-	);
+	const wheres = Object.entries(query).map(([key, value]) => {
+		if (key === "groupId") {
+			return db.format(
+				Array.isArray(value)
+					? "BIN_TO_UUID(a.??) IN (?)"
+					: "a.??=UUID_TO_BIN(?)",
+				[key, value]
+			);
+		}
+		if (key === "withAttendance") {
+			return db.format("a.AttendancePercentage > 0");
+		}
+		return db.format(Array.isArray(value) ? "a.?? IN (?)" : "a.??=?", [
+			key,
+			value,
+		]);
+	});
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 
 	return sql;
@@ -83,7 +88,6 @@ export async function importAttendances(
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
-	let attendances: { SAPIN: number; AttendancePercentage: number | null }[];
 	let imatAttendances: ImatAttendanceSummary[];
 	if (useDaily) {
 		const imatMeetingId = session.imatMeetingId;
@@ -103,39 +107,33 @@ export async function importAttendances(
 			session
 		);
 	}
-	attendances = imatAttendances.map((a) => ({
-		SAPIN: a.SAPIN,
-		AttendancePercentage: a.AttendancePercentage,
-	}));
+
+	const queries: Promise<ResultSetHeader>[] = [];
 
 	// Clear AttendancePercentage for current entries
 	let sql = db.format(
-		"UPDATE attendanceSummary SET AttendancePercentage=0 WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
+		"UPDATE attendanceSummary SET AttendancePercentage=NULL WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
 		[group.id, session.id]
 	);
-	await db.query(sql);
+	queries.push(db.query(sql));
 
-	if (attendances.length) {
+	imatAttendances.forEach((a) => {
 		sql =
 			db.format(
 				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, AttendancePercentage) VALUES "
 			) +
-			attendances
-				.map((a) =>
-					db.format("(UUID_TO_BIN(?), ?, ?, ?)", [
-						group.id,
-						session.id,
-						a.SAPIN,
-						a.AttendancePercentage,
-					])
-				)
-				.join(", ") +
-			"ON DUPLICATE KEY UPDATE AttendancePercentage=VALUES(AttendancePercentage)";
-		await db.query(sql);
-	}
+			db.format("(UUID_TO_BIN(?), ?, ?, ?)", [
+				group.id,
+				session.id,
+				a.SAPIN,
+				a.AttendancePercentage,
+			]) +
+			" ON DUPLICATE KEY UPDATE AttendancePercentage=VALUES(AttendancePercentage)";
+		queries.push(db.query(sql));
+	});
+	await Promise.all(queries);
 
-	attendances = await getAttendances({ groupId: group.id, session_id });
-
+	const attendances = await getAttendances({ groupId: group.id, session_id });
 	return attendances;
 }
 
@@ -150,41 +148,60 @@ export async function uploadRegistration(
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
-	const registrations = await parseRegistrationSpreadsheet(filename, buffer);
+	const ssRegistrations = await parseRegistrationSpreadsheet(
+		filename,
+		buffer
+	);
+	const users = await getUsers();
+	const registrations = ssRegistrations.map((r) => {
+		const email = r.Email.toLowerCase();
+		const sapin = r.SAPIN;
+		let Matched: null | "SAPIN" | "EMAIL" = null;
+		let user = users.find((u) => u.SAPIN === sapin);
+		if (user) {
+			Matched = "SAPIN";
+		} else {
+			user = users.find((u) => u.Email.toLowerCase() === email);
+			if (user) Matched = "EMAIL";
+		}
+		const entity: SessionRegistration = {
+			...r,
+			Matched,
+			CurrentSAPIN: user ? user.SAPIN : null,
+			CurrentName: user ? user.Name : null,
+			CurrentEmail: user ? user.Email : null,
+		};
+		return entity;
+	});
 
-	const queries: string[] = [];
+	const queries: Promise<ResultSetHeader>[] = [];
 
 	// Clear InPerson and IsRegistered for current entries
 	let sql = db.format(
-		"UPDATE attendanceSummary SET InPerson=0, IsRegistered=0 WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
+		"UPDATE attendanceSummary SET InPerson=NULL, IsRegistered=NULL WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
 		[group.id, session_id]
 	);
-	queries.push(sql);
+	queries.push(db.query(sql));
 
-	if (registrations.length > 0) {
+	registrations.forEach((r) => {
+		if (r.CurrentSAPIN === null) return;
 		sql =
 			db.format(
 				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, InPerson, IsRegistered) VALUES "
 			) +
-			registrations
-				.filter((r) => Boolean(r.SAPIN))
-				.map((r) =>
-					db.format("(UUID_TO_BIN(?), ?, ?, ?, ?)", [
-						group.id,
-						session_id,
-						r.SAPIN,
-						/virtual|remote/i.test(r.RegType) ? 0 : 1,
-						1,
-					])
-				)
-				.join(", ") +
-			"ON DUPLICATE KEY UPDATE InPerson=VALUES(InPerson), IsRegistered=VALUES(IsRegistered)";
-		queries.push(sql);
-	}
-	await Promise.all(queries.map((sql) => db.query(sql)));
+			db.format("(UUID_TO_BIN(?), ?, ?, ?, ?)", [
+				group.id,
+				session_id,
+				r.CurrentSAPIN,
+				/virtual|remote/i.test(r.RegType) ? 0 : 1,
+				1,
+			]) +
+			" ON DUPLICATE KEY UPDATE InPerson=VALUES(InPerson), IsRegistered=VALUES(IsRegistered)";
+		queries.push(db.query(sql));
+	});
+	await Promise.all(queries);
 
 	const attendances = await getAttendances({ groupId: group.id, session_id });
-
 	return { registrations, attendances };
 }
 
@@ -195,7 +212,7 @@ export type MemberAttendance = SessionAttendanceSummary & {
 };
 
 /**
- * Export attendances for meeting minutes
+ * Export session attendance for meeting minutes
  */
 export async function exportAttendancesForMinutes(
 	user: UserContext,
@@ -206,7 +223,11 @@ export async function exportAttendancesForMinutes(
 	const [session] = await getSessions({ id: session_id });
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
-	const attendances = await getAttendances({ groupId: group.id, session_id });
+	const attendances = await getAttendances({
+		groupId: group.id,
+		session_id,
+		withAttendance: true,
+	});
 	if (attendances.length === 0)
 		throw new NotFoundError("There is no attendance for this session");
 
@@ -309,6 +330,7 @@ export async function addAttendances(
 }
 
 export async function deleteAttendances(groupId: string, ids: number[]) {
+	if (ids.length === 0) return 0;
 	const sql = db.format(
 		"DELETE FROM attendanceSummary WHERE groupId=UUID_TO_BIN(?) AND ID IN (?)",
 		[groupId, ids]

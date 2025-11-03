@@ -119,7 +119,9 @@ export function SessionSelectorNav(props: React.ComponentProps<typeof Col>) {
 					/>
 				</Form.Group>
 			</Col>
-			<Col>{loading && <Spinner animation="border" />}</Col>
+			<Col>
+				<Spinner hidden={!loading} />
+			</Col>
 		</Col>
 	);
 }

@@ -60,7 +60,7 @@ function ImportRegistrationForm({
 	);
 }
 
-export function ImportRegistrationDropdown({
+export function ImportRegistration({
 	groupName,
 	sessionNumber,
 }: {
@@ -74,7 +74,7 @@ export function ImportRegistrationDropdown({
 				variant="success-outline"
 				disabled={!groupName || !sessionNumber}
 			>
-				Import registration
+				{"Import"}
 			</Dropdown.Toggle>
 			<Dropdown.Menu>
 				<ImportRegistrationForm
