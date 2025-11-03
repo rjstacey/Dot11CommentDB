@@ -94,6 +94,14 @@ function ImportFieldsList({
 			<Form.Text>
 				Selected fields are overwritten. Unselected fields are retained.
 			</Form.Text>
+			<Form.Text
+				className="text-danger d-block"
+				style={{
+					visibility: fields.length === 0 ? "hidden" : "visible",
+				}}
+			>
+				Select at least one field to import
+			</Form.Text>
 		</>
 	);
 }
@@ -210,6 +218,8 @@ function CommentsImportDropdown({
 	const [sheetName, setSheetName] = React.useState("All Comments");
 	const [busy, setBusy] = React.useState(false);
 
+	const formValid = fields.length > 0 && file !== null;
+
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!file) return;
@@ -235,8 +245,8 @@ function CommentsImportDropdown({
 						updated === 0
 							? "No comments were updated (no changes identified)."
 							: matched.length === updated
-							? "All comments updated."
-							: `${updated} comments were updated.`;
+								? "All comments updated."
+								: `${updated} comments were updated.`;
 				} else {
 					msg =
 						(unmatched.length === 1
@@ -249,8 +259,8 @@ function CommentsImportDropdown({
 					updated === 0
 						? "No comments were updated."
 						: updated === 1
-						? "1 comment was updated."
-						: `${updated} comments were updated.`;
+							? "1 comment was updated."
+							: `${updated} comments were updated.`;
 			} else {
 				msg =
 					added.length === 0
@@ -258,7 +268,7 @@ function CommentsImportDropdown({
 						: (added.length === 1
 								? `1 comment was added:\n`
 								: `${added.length} comments were added:\n`) +
-						  added.join(", ");
+							added.join(", ");
 			}
 			if (remaining.length > 0) {
 				msg +=
@@ -339,9 +349,9 @@ function CommentsImportDropdown({
 			</Form.Group>
 			<Row>
 				<Col className="d-flex justify-content-end">
-					<Button type="submit" disabled={!file}>
-						{busy && <Spinner size="sm" className="me-2" />}
-						Upload
+					<Button type="submit" disabled={!formValid || busy}>
+						<Spinner size="sm" className="me-2" hidden={!busy} />
+						{"Upload"}
 					</Button>
 				</Col>
 			</Row>

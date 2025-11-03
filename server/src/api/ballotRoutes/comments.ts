@@ -174,19 +174,15 @@ async function patchExport(req: Request, res: Response, next: NextFunction) {
 		}
 
 		const params = commentsExportParamsSchema.parse(req.query);
-		const { buffer } = fileBufferOrThrow(req);
 		if (params.format === "myproject") {
-			const data = await exportResolutionsForMyProject(
-				req.ballot!.id,
-				buffer,
-				res
-			);
-			res.json(data);
+			const { buffer } = fileBufferOrThrow(req);
+			await exportResolutionsForMyProject(req.ballot!.id, buffer, res);
 		} else {
 			const isLegacy = params.format === "legacy";
 			const style = params.style || "AllComments";
 			const appendSheets = params.appendSheets === "true";
-			const data = await exportCommentsSpreadsheet(
+			const buffer = req.body;
+			await exportCommentsSpreadsheet(
 				req.user,
 				req.ballot!,
 				isLegacy,
@@ -195,7 +191,6 @@ async function patchExport(req: Request, res: Response, next: NextFunction) {
 				buffer,
 				res
 			);
-			res.json(data);
 		}
 	} catch (error) {
 		next(error);

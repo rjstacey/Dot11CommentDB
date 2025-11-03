@@ -886,7 +886,6 @@ export const uploadResolutions =
 			matchUpdate,
 			sheetName,
 		};
-		console.log(params);
 		let r: UploadResolutionsResponse;
 		try {
 			const response = await fetcher.postFile(url, file, params);

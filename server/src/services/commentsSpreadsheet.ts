@@ -978,10 +978,11 @@ async function genCommentsSpreadsheet(
 ) {
 	const workbook = new ExcelJS.Workbook();
 	if (buffer) {
-		const b: ExcelJS.Buffer = buffer as unknown as ExcelJS.Buffer;
-		await workbook.xlsx.load(b).catch((error) => {
-			throw new TypeError("Invalid workbook: " + error);
-		});
+		await workbook.xlsx
+			.load(buffer as unknown as ExcelJS.Buffer)
+			.catch((error) => {
+				throw new TypeError("Invalid workbook: " + error);
+			});
 
 		if (!appendSheets) {
 			const sheetIds: number[] = [];

@@ -18,6 +18,13 @@ import {
 } from "@/services/resolutions.js";
 import { uploadResolutions } from "@/services/uploadResolutions.js";
 
+function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
+	if (!req.body) throw new BadRequestError("Missing file");
+	const m = req.headers["content-disposition"]?.match(/filename="(.*)"/i);
+	if (!m) throw new BadRequestError("Missing filename");
+	return { filename: m[1], buffer: req.body };
+}
+
 async function addMany(req: Request, res: Response, next: NextFunction) {
 	try {
 		const access = req.permissions?.comments || AccessLevel.none;
@@ -110,13 +117,7 @@ async function uploadMany(req: Request, res: Response, next: NextFunction) {
 		if (!Array.isArray(params.toUpdate))
 			params.toUpdate = [params.toUpdate];
 
-		if (!req.body) throw new BadRequestError("Missing file");
-		let filename = "";
-		const d = req.headers["content-disposition"];
-		if (d) {
-			const m = d.match(/filename="(.*)"/i);
-			if (m) filename = m[1];
-		}
+		const { filename, buffer } = fileBufferOrThrow(req);
 
 		const data = await uploadResolutions(
 			req.user,
@@ -126,7 +127,7 @@ async function uploadMany(req: Request, res: Response, next: NextFunction) {
 			params.matchUpdate,
 			params.sheetName,
 			filename,
-			req.body
+			buffer
 		);
 		res.json(data);
 	} catch (error) {
