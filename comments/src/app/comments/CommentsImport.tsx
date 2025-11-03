@@ -97,7 +97,7 @@ function ImportFieldsList({
 			<Form.Text
 				className="text-danger d-block"
 				style={{
-					visibility: fields.length === 0 ? "hidden" : "visible",
+					visibility: fields.length === 0 ? "visible" : "hidden",
 				}}
 			>
 				Select at least one field to import
