@@ -215,8 +215,8 @@ export const webexMeetingsQuerySchema = z
 	.object({
 		groupId: groupIdSchema,
 		sessionId: z.coerce.number(),
-		fromDate: z.string().date(),
-		toDate: z.string().date(),
+		fromDate: z.iso.date(),
+		toDate: z.iso.date(),
 		timezone: z.string(),
 		ids: webexMeetingSchema.shape.id.array(),
 	})
@@ -262,7 +262,7 @@ export type WebexSchedulingOptions = z.infer<
 
 export const webexPersonSchema = z.object({
 	id: z.string(),
-	emails: z.string().email().array(),
+	emails: z.email().array(),
 	phoneNumbers: z.object({}),
 	displayName: z.string(),
 	userName: z.string(), // Email address
@@ -294,14 +294,14 @@ export type WebexMeetingDelete = z.infer<typeof webexMeetingDeleteSchema>;
 export const webexAccountSchema = oAuthAccountSchema
 	.omit({ authParams: true })
 	.extend({
-		authUrl: z.string().url(),
+		authUrl: z.url(),
 		displayName: z.string().optional(),
 		userName: z.string().optional(),
 		owner: webexPersonSchema.optional(),
-		siteUrl: z.string().url().optional(),
+		siteUrl: z.url().optional(),
 		preferences: webexMeetingPreferencesSchema.optional(),
 		templates: webexMeetingTemplateSchema.array().optional(),
-		lastAccessed: z.string().datetime().nullable(),
+		lastAccessed: z.iso.datetime().nullable(),
 	});
 export const webexAccountsSchema = webexAccountSchema.array();
 

@@ -11,7 +11,7 @@ export const voterSchema = z.object({
 	LastName: z.string(),
 	FirstName: z.string(),
 	MI: z.string(),
-	Email: z.string().email(),
+	Email: z.email(),
 	Affiliation: z.string(),
 	Status: z.string(),
 	Excused: z.boolean(),
@@ -34,14 +34,14 @@ export const voterCreateSchema = voterSchema
 		SAPIN: true,
 		Status: true,
 	})
-	.merge(
+	.extend(
 		voterSchema
 			.pick({
 				id: true,
 				Affiliation: true,
 				Excused: true,
 			})
-			.partial()
+			.partial().shape
 	);
 export const voterCreatesSchema = voterCreateSchema.array();
 export const voterUpdateSchema = z.object({
@@ -52,7 +52,7 @@ export const voterUpdatesSchema = voterUpdateSchema.array();
 export const voterIdsSchema = voterIdSchema.array();
 
 export const voterMemberSnapshotParamsSchema = z.object({
-	date: z.string().date(),
+	date: z.iso.date(),
 });
 
 export const votersResponseSchema = z.object({

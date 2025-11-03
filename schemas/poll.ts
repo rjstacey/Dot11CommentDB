@@ -84,7 +84,7 @@ export enum PollRecordType {
 	ADMIN_VIEW,
 	RECORDED,
 }
-export const pollRecordTypeSchema = z.nativeEnum(PollRecordType);
+export const pollRecordTypeSchema = z.enum(PollRecordType);
 
 export const pollActionSchema = z.enum(["show", "unshow", "open", "close"]);
 export const pollStateSchema = z.enum(["shown", "opened", "closed"]).nullable();
@@ -95,7 +95,7 @@ export enum PollChoice {
 	SINGLE = 1,
 	MULTIPLE = 0,
 }
-export const pollChoiceSchema = z.nativeEnum(PollChoice);
+export const pollChoiceSchema = z.enum(PollChoice);
 
 export const pollSchema = z.object({
 	id: pollIdSchema,

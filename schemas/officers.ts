@@ -13,7 +13,7 @@ export const officersSchema = officerSchema.array();
 
 export const officerQuerySchema = z
 	.object({
-		parentGroupId: z.string().uuid().optional(),
+		parentGroupId: z.uuid().optional(),
 		id: z.union([officerIdSchema, z.array(officerIdSchema)]),
 		group_id: z.union([groupIdSchema, z.array(groupIdSchema)]),
 		sapin: z.union([z.number(), z.array(z.number())]),

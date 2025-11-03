@@ -14,7 +14,7 @@ export const memberStatusValues = [
 	"Obsolete",
 ] as const;
 
-const memberStatusSchema = z.enum(memberStatusValues);
+export const memberStatusSchema = z.enum(memberStatusValues);
 export type MemberStatus = z.infer<typeof memberStatusSchema>;
 
 // Historically we allowed additional values

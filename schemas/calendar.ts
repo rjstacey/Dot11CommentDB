@@ -33,12 +33,12 @@ export const calendarAccountsQuery = z
 export const calendarAccountSchema = oAuthAccountSchema
 	.omit({ authParams: true })
 	.extend({
-		authUrl: z.string().url(),
+		authUrl: z.url(),
 		displayName: z.string().optional(),
 		userName: z.string().optional(),
 		primaryCalendar: googleCalendarSchema.optional(),
 		calendarList: z.any().array(),
-		lastAccessed: z.string().datetime().nullable(),
+		lastAccessed: z.iso.datetime().nullable(),
 	});
 export const calendarAccountsSchema = calendarAccountSchema.array();
 

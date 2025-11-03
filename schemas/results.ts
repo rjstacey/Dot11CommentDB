@@ -7,7 +7,7 @@ export const resultSchema = z.object({
 	id: resultIdSchema,
 	ballot_id: z.number(),
 	SAPIN: z.number().optional(), // Present in WG ballots, but not SA ballots
-	Email: z.string().email(),
+	Email: z.email(),
 	Name: z.string(),
 	Affiliation: z.string(),
 	Status: z.string().nullable(),
