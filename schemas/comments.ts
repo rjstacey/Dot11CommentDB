@@ -36,7 +36,7 @@ export const commentSchema = z.object({
 	CommentGroup: z.string(),
 	ProposedChange: z.string(),
 	LastModifiedBy: z.number().nullable(),
-	LastModifiedTime: z.string().datetime().nullable(),
+	LastModifiedTime: z.iso.datetime().nullable(),
 });
 
 export const commentsUploadParamsSchema = z.object({

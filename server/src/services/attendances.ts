@@ -1,6 +1,7 @@
 import db from "../utils/database.js";
-import { NotFoundError } from "../utils/index.js";
 import type { Response } from "express";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import { NotFoundError, csvStringify } from "../utils/index.js";
 
 import { getSessions } from "./sessions.js";
 import type { Group } from "@schemas/groups.js";
@@ -8,9 +9,8 @@ import {
 	getImatMeetingAttendanceSummaryForSession,
 	getImatMeetingDailyAttendance,
 } from "./imat.js";
-import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { UserContext } from "./users.js";
-import type { Member } from "@schemas/members.js";
+import type { Member, MemberStatus } from "@schemas/members.js";
 import { getMembers, getMembersSnapshot, getUsers } from "./members.js";
 import { genAttendanceSpreadsheet } from "./attendancesSpreadsheet.js";
 import type {
@@ -23,6 +23,47 @@ import type {
 import { parseRegistrationSpreadsheet } from "./registrationSpreadsheet.js";
 import { ImatAttendanceSummary } from "@schemas/imat.js";
 import { SessionRegistration } from "@schemas/registration.js";
+
+const createViewMemberAttendanceSummary = `
+	DROP VIEW IF EXISTS memberAttendanceSummary;
+	CREATE VIEW memberAttendanceSummary AS
+	WITH membersCurrent AS (
+		SELECT
+			SAPIN, SAPIN as CurrentSAPIN, Name, LastName, FirstName, MI, Email, Affiliation, Status, groupId
+		FROM members WHERE Status<>'Obsolete'
+		UNION ALL
+		SELECT
+			m1.SAPIN, m1.ReplacedBySAPIN as CurrentSAPIN, m2.Name, m2.LastName, m2.FirstName, m2.MI, m2.Email, m2.Affiliation, m2.Status, m2.groupId
+		FROM members m1
+			LEFT JOIN members m2 ON m1.groupId=m2.groupId AND m2.SAPIN=m1.ReplacedBySAPIN
+		WHERE m1.Status='Obsolete'
+	)
+	SELECT
+		a.id,
+		a.groupId,
+		a.session_id,
+		a.AttendancePercentage,
+		a.InPerson,
+		a.IsRegistered,
+		a.DidAttend,
+		a.DidNotAttend,
+		a.Notes,
+		a.SAPIN,
+		COALESCE(m.CurrentSAPIN, a.SAPIN) AS CurrentSAPIN,
+		m.Name,
+		m.LastName,
+		m.FirstName,
+		m.MI,
+		m.Email,
+		m.Affiliation,
+		COALESCE(m.Status, 'Non-Voter') AS Status
+	FROM attendanceSummary a 
+		LEFT JOIN membersCurrent m ON a.SAPIN=m.SAPIN AND a.groupId=m.groupId
+`;
+
+export function init() {
+	return db.query(createViewMemberAttendanceSummary);
+}
 
 function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
 	// prettier-ignore
@@ -214,7 +255,7 @@ export type MemberAttendance = SessionAttendanceSummary & {
 /**
  * Export session attendance for meeting minutes
  */
-export async function exportAttendancesForMinutes(
+export async function exportAttendeesForMinutes(
 	user: UserContext,
 	group: Group,
 	session_id: number,
@@ -254,6 +295,70 @@ export async function exportAttendancesForMinutes(
 		memberAttendances,
 		res
 	);
+}
+
+type AttendingMember = {
+	FirstName: string;
+	LastName: string;
+	Email: string;
+};
+
+function attendingMemberSQL(
+	session_id: number,
+	status: MemberStatus[],
+	isRegistered: boolean | undefined
+) {
+	let sql = db.format(
+		"SELECT " +
+			"FirstName, " +
+			"LastName, " +
+			"Email " +
+			"FROM memberAttendanceSummary " +
+			"WHERE session_id=? AND Status IN (?)",
+		[session_id, status]
+	);
+	if (typeof isRegistered === "boolean")
+		sql += db.format(" AND IsRegistered=?", [isRegistered ? 1 : 0]);
+	return sql;
+}
+
+export async function exportAttendeesForDVL(
+	user: UserContext,
+	group: Group,
+	session_id: number,
+	isRegsistered: boolean | undefined,
+	res: Response
+) {
+	const [session] = await getSessions({ id: session_id });
+	if (!session)
+		throw new NotFoundError(`Session id=${session_id} does not exist`);
+
+	const Status: MemberStatus[] =
+		session.type === "p"
+			? ["Voter", "ExOfficio", "Potential Voter"]
+			: ["Voter", "ExOfficio"];
+
+	const sql = attendingMemberSQL(session_id, Status, isRegsistered);
+	const attendingMembers =
+		await db.query<(RowDataPacket & AttendingMember)[]>(sql);
+
+	const ssData = attendingMembers.map((m) => ({
+		"First Name": m.FirstName,
+		"Last Name": m.LastName,
+		Email: m.Email,
+		MobilePhone: "",
+		City: "",
+		State: "",
+		Zipcode: "",
+		Country: "",
+		AllocatedVotes: "",
+	}));
+
+	const filename = `${group.name}-voting-members-dvl.csv`;
+	const csv = await csvStringify(ssData, { header: true });
+
+	res.attachment(filename);
+	res.status(200).send(csv);
 }
 
 /**

@@ -7,9 +7,11 @@ import {
 } from "@reduxjs/toolkit";
 import {
 	createAppTableDataSlice,
+	fetcher,
 	Fields,
 	FieldType,
 	getAppTableDataSelectors,
+	setError,
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
@@ -19,7 +21,9 @@ import {
 	selectAttendanceSummariesEntities,
 	type SessionAttendanceSummary,
 } from "./attendanceSummaries";
+import { selectSessionByNumber } from "./sessions";
 import { selectMemberEntities } from "./members";
+import { SessionAttendeesExportQuery } from "@schemas/attendances";
 
 export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
@@ -171,4 +175,32 @@ export const loadSessionAttendanceSummary =
 	async (dispatch) => {
 		dispatch(setSessionId({ groupName, sessionId: session_id }));
 		await dispatch(loadAttendanceSummary(groupName, session_id, force));
+	};
+
+export const exportAttendees =
+	(
+		groupName: string,
+		sessionNumber: number,
+		format: "minutes" | "dvl"
+	): AppThunk =>
+	async (dispatch, getState) => {
+		const session = selectSessionByNumber(getState(), sessionNumber);
+		if (!session) {
+			dispatch(setError("Can't export attendees", "Bad session number"));
+			return;
+		}
+		const url = `/api/${groupName}/attendances/${session.id}/export`;
+		try {
+			await fetcher.getFile(url, {
+				format,
+			} satisfies SessionAttendeesExportQuery);
+		} catch (error) {
+			dispatch(
+				setError(
+					"Unable to export attendees for session " +
+						`id=${session.id}`,
+					error
+				)
+			);
+		}
 	};

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { groupIdSchema } from "./groups.js";
+import { memberStatusSchema } from "./members.js";
 
 export const sessionAttendanceSummarySchema = z.object({
 	id: z.number(),
@@ -76,6 +77,10 @@ export const sessionAttendanceSummaryQuerySchema = z
 	})
 	.partial();
 
+export const sessionAttendeesExportQuerySchema = z.object({
+	format: z.enum(["minutes", "dvl"]),
+});
+
 export type SessionAttendanceSummary = z.infer<
 	typeof sessionAttendanceSummarySchema
 >;
@@ -90,4 +95,7 @@ export type SessionAttendanceSummaryChanges = z.infer<
 >;
 export type SessionAttendanceSummaryUpdate = z.infer<
 	typeof sessionAttendanceSummaryUpdateSchema
+>;
+export type SessionAttendeesExportQuery = z.infer<
+	typeof sessionAttendeesExportQuerySchema
 >;

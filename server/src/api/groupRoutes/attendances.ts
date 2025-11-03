@@ -10,6 +10,7 @@ import {
 	sessionAttendanceSummaryUpdatesSchema,
 	sessionAttendanceSummaryIdsSchema,
 	sessionAttendanceSummaryQuerySchema,
+	sessionAttendeesExportQuerySchema,
 } from "@schemas/attendances.js";
 import {
 	getAttendances,
@@ -18,8 +19,9 @@ import {
 	deleteAttendances,
 	importAttendances,
 	uploadRegistration,
-	exportAttendancesForMinutes,
+	exportAttendeesForMinutes,
 	deleteAllSessionAttendances,
+	exportAttendeesForDVL,
 } from "@/services/attendances.js";
 
 function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
@@ -74,10 +76,17 @@ async function getSessionIdExport(
 		const user = req.user;
 		const group = req.group!;
 		const session_id = sessionIdOrThrow(req);
-		const format = req.query.format;
-		if (format && format !== "minutes")
-			throw new BadRequestError("Invalid format parameter");
-		await exportAttendancesForMinutes(user, group, session_id, res);
+		const params = sessionAttendeesExportQuerySchema.parse(req.query);
+		if (params.format === "minutes")
+			await exportAttendeesForMinutes(user, group, session_id, res);
+		else
+			await exportAttendeesForDVL(
+				user,
+				group,
+				session_id,
+				params.isRegistered,
+				res
+			);
 		res.end();
 	} catch (error) {
 		next(error);

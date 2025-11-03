@@ -5,7 +5,7 @@ import { SessionAttendanceSubmenu } from "../submenu";
 import { ImportRegistration } from "./ImportRegistration";
 import { UpdateFromImatAttendance } from "./UpdateFromImatAttendance";
 import { UpdateSummary } from "./UpdateSummary";
-import { ExportAttendance } from "./ExportAttendance";
+import { ExportAttendeesList } from "./ExportAttendeesList";
 import { refresh as imatRefresh } from "../imat/loader";
 import { refresh as summaryRefresh } from "../summary/loader";
 
@@ -33,7 +33,7 @@ export function SessionAttendanceActions() {
 		actions = (
 			<>
 				<UpdateSummary />
-				<ExportAttendance
+				<ExportAttendeesList
 					groupName={groupName}
 					sessionNumber={sessionNumber}
 				/>

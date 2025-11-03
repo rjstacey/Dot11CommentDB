@@ -319,27 +319,3 @@ export const deleteAttendanceSummaries =
 			dispatch(setError("DELETE " + url, error));
 		}
 	};
-
-export const exportAttendanceForMinutes =
-	(groupName: string, sessionNumber: number): AppThunk =>
-	async (dispatch, getState) => {
-		const session = selectSessionByNumber(getState(), sessionNumber);
-		if (!session) {
-			dispatch(
-				setError("Can't retrieve attendance", "Bad session number")
-			);
-			return;
-		}
-		const url = `/api/${groupName}/attendances/${session.id}/export`;
-		try {
-			await fetcher.getFile(url, { format: "minutes" });
-		} catch (error) {
-			dispatch(
-				setError(
-					"Unable to export attendance for session " +
-						`id=${session.id}`,
-					error
-				)
-			);
-		}
-	};
