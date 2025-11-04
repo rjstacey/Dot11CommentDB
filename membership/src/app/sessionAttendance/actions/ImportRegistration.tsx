@@ -1,5 +1,12 @@
 import * as React from "react";
-import { Form, Row, Col, Button, Spinner, Dropdown } from "react-bootstrap";
+import {
+	Form,
+	Row,
+	Col,
+	Button,
+	Spinner,
+	DropdownButton,
+} from "react-bootstrap";
 import { useAppDispatch } from "@/store/hooks";
 import { uploadSessionRegistration } from "@/store/sessionRegistration";
 
@@ -8,21 +15,19 @@ function ImportRegistrationForm({
 	sessionNumber,
 	close,
 }: {
-	groupName: string | null;
-	sessionNumber: number | null;
+	groupName: string;
+	sessionNumber: number;
 	close: () => void;
 }) {
 	const dispatch = useAppDispatch();
-
 	const [busy, setBusy] = React.useState(false);
 	const [file, setFile] = React.useState<File | null>(null);
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		if (!e.currentTarget.checkValidity()) return;
 		setBusy(true);
 		await dispatch(
-			uploadSessionRegistration(groupName!, sessionNumber!, file!)
+			uploadSessionRegistration(groupName, sessionNumber, file!)
 		);
 		setBusy(false);
 		close();
@@ -50,8 +55,8 @@ function ImportRegistrationForm({
 			</Form.Group>
 			<Row>
 				<Col className="d-flex justify-content-end">
-					<Button type="submit">
-						{busy && <Spinner animation="border" size="sm" />}
+					<Button type="submit" disabled={!file || busy}>
+						<Spinner size="sm" hidden={!busy} className="me-2" />
 						<span>Upload</span>
 					</Button>
 				</Col>
@@ -64,25 +69,23 @@ export function ImportRegistration({
 	groupName,
 	sessionNumber,
 }: {
-	groupName: string | null;
-	sessionNumber: number | null;
+	groupName: string;
+	sessionNumber: number;
 }) {
 	const [show, setShow] = React.useState(false);
 	return (
-		<Dropdown align="end" show={show} onToggle={() => setShow(!show)}>
-			<Dropdown.Toggle
-				variant="success-outline"
-				disabled={!groupName || !sessionNumber}
-			>
-				{"Import"}
-			</Dropdown.Toggle>
-			<Dropdown.Menu>
-				<ImportRegistrationForm
-					groupName={groupName}
-					sessionNumber={sessionNumber}
-					close={() => setShow(false)}
-				/>
-			</Dropdown.Menu>
-		</Dropdown>
+		<DropdownButton
+			variant="success-outline"
+			align="end"
+			show={show}
+			onToggle={() => setShow(!show)}
+			title={"Import"}
+		>
+			<ImportRegistrationForm
+				groupName={groupName}
+				sessionNumber={sessionNumber}
+				close={() => setShow(false)}
+			/>
+		</DropdownButton>
 	);
 }

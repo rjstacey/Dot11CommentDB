@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Dropdown, Form, Button, Row, Col } from "react-bootstrap";
+import { Form, Button, Row, Col, DropdownButton } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
 import { exportAttendees } from "@/store/sessionAttendanceSummary";
@@ -8,19 +8,19 @@ function ExportAttendeesListForm({
 	groupName,
 	sessionNumber,
 }: {
-	groupName: string | null;
-	sessionNumber: number | null;
+	groupName: string;
+	sessionNumber: number;
 }) {
 	const dispatch = useAppDispatch();
 	const [format, setFormat] = React.useState<"dvl" | "minutes">("minutes");
 
 	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		dispatch(exportAttendees(groupName!, sessionNumber!, format));
+		dispatch(exportAttendees(groupName, sessionNumber, format));
 	}
 
 	return (
-		<Form onSubmit={handleSubmit} className="p-3">
+		<Form onSubmit={handleSubmit} className="p-3" style={{ minWidth: 400 }}>
 			<Row className="mb-3">
 				<Col>
 					<Form.Check
@@ -56,7 +56,7 @@ function ExportAttendeesListForm({
 			</Row>
 			<Row>
 				<Col className="d-flex justify-content-end">
-					<Button type="submit">{"Export"}</Button>
+					<Button type="submit">Export</Button>
 				</Col>
 			</Row>
 		</Form>
@@ -67,13 +67,12 @@ export function ExportAttendeesList(
 	props: React.ComponentProps<typeof ExportAttendeesListForm>
 ) {
 	return (
-		<Dropdown align="end">
-			<Dropdown.Toggle variant="success-outline">
-				{"Export attendees"}
-			</Dropdown.Toggle>
-			<Dropdown.Menu style={{ minWidth: "400px" }}>
-				<ExportAttendeesListForm {...props} />
-			</Dropdown.Menu>
-		</Dropdown>
+		<DropdownButton
+			variant="success-outline"
+			align="end"
+			title={"Export attendees"}
+		>
+			<ExportAttendeesListForm {...props} />
+		</DropdownButton>
 	);
 }

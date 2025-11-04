@@ -1,5 +1,12 @@
 import * as React from "react";
-import { Form, Row, Col, Button, Spinner, Dropdown } from "react-bootstrap";
+import {
+	Form,
+	Row,
+	Col,
+	Button,
+	Spinner,
+	DropdownButton,
+} from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { deleteAttendanceSummaries } from "@/store/attendanceSummaries";
 import {
@@ -49,7 +56,7 @@ function UpdateForm({ close }: { close: () => void }) {
 			<Row>
 				<Col className="d-flex justify-content-end">
 					<Button type="submit">
-						{busy && <Spinner animation="border" size="sm" />}
+						<Spinner size="sm" hidden={!busy} className="me-2" />
 						<span>Update</span>
 					</Button>
 				</Col>
@@ -58,16 +65,17 @@ function UpdateForm({ close }: { close: () => void }) {
 	);
 }
 
-export function UpdateSummary({ disabled }: { disabled?: boolean }) {
+export function UpdateSummary() {
 	const [show, setShow] = React.useState(false);
 	return (
-		<Dropdown align="end" show={show} onToggle={() => setShow(!show)}>
-			<Dropdown.Toggle variant="success-outline" disabled={disabled}>
-				{"Update"}
-			</Dropdown.Toggle>
-			<Dropdown.Menu>
-				<UpdateForm close={() => setShow(false)} />
-			</Dropdown.Menu>
-		</Dropdown>
+		<DropdownButton
+			variant="success-outline"
+			align="end"
+			show={show}
+			onToggle={() => setShow(!show)}
+			title="Update"
+		>
+			<UpdateForm close={() => setShow(false)} />
+		</DropdownButton>
 	);
 }
