@@ -69,32 +69,31 @@ function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
 	// prettier-ignore
 	let sql = 
 		"SELECT " +
-			"a.id, " +
-			"a.session_id, " +
-			"a.AttendancePercentage, " +
-			"a.InPerson, " +
-			"a.IsRegistered, " +
-			"a.DidAttend, " +
-			"a.DidNotAttend, " +
-			"a.Notes, " +
-			"a.SAPIN, " +
-			"COALESCE(m.ReplacedBySAPIN, a.SAPIN) AS CurrentSAPIN " +
-		"FROM attendanceSummary a " +
-			'LEFT JOIN members m ON m.SAPIN=a.SAPIN AND m.Status="Obsolete" ';
+			"id, " +
+			"session_id, " +
+			"AttendancePercentage, " +
+			"InPerson, " +
+			"IsRegistered, " +
+			"DidAttend, " +
+			"DidNotAttend, " +
+			"Notes, " +
+			"SAPIN, " +
+			"CurrentSAPIN " +
+		"FROM memberAttendanceSummary";
 
 	const wheres = Object.entries(query).map(([key, value]) => {
 		if (key === "groupId") {
 			return db.format(
 				Array.isArray(value)
-					? "BIN_TO_UUID(a.??) IN (?)"
-					: "a.??=UUID_TO_BIN(?)",
+					? "BIN_TO_UUID(??) IN (?)"
+					: "??=UUID_TO_BIN(?)",
 				[key, value]
 			);
 		}
 		if (key === "withAttendance") {
-			return db.format("a.AttendancePercentage > 0");
+			return db.format("AttendancePercentage > 0");
 		}
-		return db.format(Array.isArray(value) ? "a.?? IN (?)" : "a.??=?", [
+		return db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
 			key,
 			value,
 		]);
@@ -150,9 +149,10 @@ export async function importAttendances(
 	}
 
 	const queries: Promise<ResultSetHeader>[] = [];
+	let sql: string;
 
 	// Clear AttendancePercentage for current entries
-	let sql = db.format(
+	sql = db.format(
 		"UPDATE attendanceSummary SET AttendancePercentage=NULL WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
 		[group.id, session.id]
 	);
@@ -216,16 +216,17 @@ export async function uploadRegistration(
 	});
 
 	const queries: Promise<ResultSetHeader>[] = [];
+	let sql: string;
 
 	// Clear InPerson and IsRegistered for current entries
-	let sql = db.format(
+	sql = db.format(
 		"UPDATE attendanceSummary SET InPerson=NULL, IsRegistered=NULL WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
 		[group.id, session_id]
 	);
 	queries.push(db.query(sql));
 
 	registrations.forEach((r) => {
-		if (r.CurrentSAPIN === null) return;
+		if (r.CurrentSAPIN === null) return; // Not (yet) present in users table
 		sql =
 			db.format(
 				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, InPerson, IsRegistered) VALUES "
@@ -303,30 +304,23 @@ type AttendingMember = {
 	Email: string;
 };
 
-function attendingMemberSQL(
-	session_id: number,
-	status: MemberStatus[],
-	isRegistered: boolean | undefined
-) {
-	let sql = db.format(
+function registeredVotersSQL(session_id: number, status: MemberStatus[]) {
+	// prettier-ignore
+	return db.format(
 		"SELECT " +
 			"FirstName, " +
 			"LastName, " +
 			"Email " +
-			"FROM memberAttendanceSummary " +
-			"WHERE session_id=? AND Status IN (?)",
+		"FROM memberAttendanceSummary " +
+		"WHERE session_id=? AND Status IN (?) AND IsRegistered=1",
 		[session_id, status]
 	);
-	if (typeof isRegistered === "boolean")
-		sql += db.format(" AND IsRegistered=?", [isRegistered ? 1 : 0]);
-	return sql;
 }
 
 export async function exportAttendeesForDVL(
 	user: UserContext,
 	group: Group,
 	session_id: number,
-	isRegsistered: boolean | undefined,
 	res: Response
 ) {
 	const [session] = await getSessions({ id: session_id });
@@ -338,11 +332,11 @@ export async function exportAttendeesForDVL(
 			? ["Voter", "ExOfficio", "Potential Voter"]
 			: ["Voter", "ExOfficio"];
 
-	const sql = attendingMemberSQL(session_id, Status, isRegsistered);
-	const attendingMembers =
+	const sql = registeredVotersSQL(session_id, Status);
+	const registeredVoters =
 		await db.query<(RowDataPacket & AttendingMember)[]>(sql);
 
-	const ssData = attendingMembers.map((m) => ({
+	const ssData = registeredVoters.map((m) => ({
 		"First Name": m.FirstName,
 		"Last Name": m.LastName,
 		Email: m.Email,

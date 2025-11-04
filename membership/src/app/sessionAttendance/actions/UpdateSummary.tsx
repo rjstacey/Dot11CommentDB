@@ -18,7 +18,7 @@ function UpdateForm({ close }: { close: () => void }) {
 		() =>
 			ids.filter((id) => {
 				const attendee = entities[id]!;
-				return attendee.AttendancePercentage === 0;
+				return attendee.AttendancePercentage === null;
 			}),
 		[ids, entities]
 	);

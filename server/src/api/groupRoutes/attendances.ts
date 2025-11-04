@@ -79,14 +79,7 @@ async function getSessionIdExport(
 		const params = sessionAttendeesExportQuerySchema.parse(req.query);
 		if (params.format === "minutes")
 			await exportAttendeesForMinutes(user, group, session_id, res);
-		else
-			await exportAttendeesForDVL(
-				user,
-				group,
-				session_id,
-				params.isRegistered,
-				res
-			);
+		else await exportAttendeesForDVL(user, group, session_id, res);
 		res.end();
 	} catch (error) {
 		next(error);
