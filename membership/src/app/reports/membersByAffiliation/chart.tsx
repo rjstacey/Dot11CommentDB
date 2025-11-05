@@ -3,12 +3,12 @@ import { useAppSelector } from "@/store/hooks";
 import StackedBarChart from "@/components/StackedBarChart";
 import { useDimensions } from "../useDimensions";
 import {
-	selectAttendeesByAffiliation,
+	selectMembersByAffiliation,
 	series,
-} from "./selectAttendeesByAffiliation";
+} from "./selectMembersByAffiliation";
 
-export function SessionAttendanceChart() {
-	const { ids, entities } = useAppSelector(selectAttendeesByAffiliation);
+export function MembersChart() {
+	const { ids, entities } = useAppSelector(selectMembersByAffiliation);
 	const { ref, width, height } = useDimensions();
 
 	return (
@@ -19,10 +19,10 @@ export function SessionAttendanceChart() {
 				series={series}
 				ids={ids}
 				entities={entities}
-				yLabel="Number of attendees"
+				yLabel="Number of members"
 			/>
 		</Ratio>
 	);
 }
 
-export default SessionAttendanceChart;
+export default MembersChart;

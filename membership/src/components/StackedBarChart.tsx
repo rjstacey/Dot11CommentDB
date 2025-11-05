@@ -81,11 +81,11 @@ function xAxis({
 
 function legend({
 	gRef,
-	keys,
+	series,
 	totals,
 }: {
 	gRef: SVGGElement;
-	keys: readonly string[];
+	series: Record<string, string>;
 	totals: Record<string, number>;
 }) {
 	const itemHeight = 20;
@@ -93,10 +93,10 @@ function legend({
 	d3.select(gRef).call((g) => {
 		g.append("rect")
 			.attr("width", 200)
-			.attr("height", 10 + 20 * keys.length)
+			.attr("height", 10 + 20 * Object.keys(series).length)
 			.attr("fill", "white")
 			.attr("stroke", "gray");
-		keys.forEach((key, i) => {
+		Object.keys(series).forEach((key, i) => {
 			const g2 = g.append("g");
 			g2.append("rect")
 				.attr("x", 10)
@@ -108,7 +108,7 @@ function legend({
 			g2.append("text")
 				.attr("x", 30)
 				.attr("y", itemHeight + itemHeight * i)
-				.text(`${key} (${totals[key]})`);
+				.text(`${series[key]} (${totals[key]})`);
 		});
 	});
 }
@@ -174,7 +174,7 @@ function StackedBarChart({
 	width,
 	height,
 	svgRef,
-	keys,
+	series,
 	ids,
 	entities,
 	yLabel,
@@ -182,7 +182,7 @@ function StackedBarChart({
 	svgRef?: React.RefObject<SVGSVGElement>;
 	height: number;
 	width: number;
-	keys: readonly string[];
+	series: Record<string, string>;
 	ids: string[];
 	entities: Record<string, Record<string, number>>;
 	yLabel: string;
@@ -197,14 +197,16 @@ function StackedBarChart({
 	const plotWidth = viewWidth - 2 * margin - yAxisWidth;
 	const plotHeight = viewHeight - 2 * margin - marginTop - xAxisHeight;
 
+	const keys = Object.keys(series);
+
 	const maxCount = React.useMemo(
 		() => deriveMaxSum(keys, ids, entities),
-		[keys, ids, entities]
+		[series, ids, entities]
 	);
 
 	const totals = React.useMemo(
 		() => deriveTotals(keys, ids, entities),
-		[keys, ids, entities]
+		[series, ids, entities]
 	);
 
 	const yScale = React.useMemo(() => {
@@ -235,8 +237,13 @@ function StackedBarChart({
 
 	const gLegendRef = React.useRef<SVGSVGElement>(null);
 	React.useEffect(
-		() => legend({ gRef: gLegendRef.current!, keys, totals }),
-		[keys, totals]
+		() =>
+			legend({
+				gRef: gLegendRef.current!,
+				series,
+				totals,
+			}),
+		[series, totals]
 	);
 
 	return (

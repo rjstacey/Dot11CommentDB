@@ -18,7 +18,7 @@ export function SessionParticipationReport() {
 		"Voter",
 	]);
 	return (
-		<div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+		<>
 			<Row>
 				<Col xs="auto">
 					<SessionsSelector
@@ -40,7 +40,7 @@ export function SessionParticipationReport() {
 					} satisfies SessionParticipationReportContext
 				}
 			/>
-		</div>
+		</>
 	);
 }
 

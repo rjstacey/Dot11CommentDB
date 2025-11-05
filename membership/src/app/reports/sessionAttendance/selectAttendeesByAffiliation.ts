@@ -1,19 +1,23 @@
 import { createSelector } from "@reduxjs/toolkit";
-import { Ratio } from "react-bootstrap";
-
-import { useAppSelector } from "@/store/hooks";
 import { AffiliationMap, selectAffiliationMaps } from "@/store/affiliationMap";
-import { selectActiveMembers, Member } from "@/store/members";
+import {
+	selectSyncedImatAttendanceSummaryEntities,
+	selectImatAttendanceSummaryIds,
+	SyncedSessionAttendee,
+} from "@/store/imatAttendanceSummary";
 
-import StackedBarChart from "@/components/StackedBarChart";
-import { useDimensions } from "../useDimensions";
-import { ChartActions } from "../ChartActions";
+export const series = {
+	Voter: "Voter",
+	"Potential Voter": "Potential Voter",
+	Aspirant: "Aspirant",
+	New: "New",
+} as const;
+const keys = Object.keys(series) as (keyof typeof series)[];
 
-const countedStatus = ["Voter", "Potential Voter", "Aspirant"] as const;
-const isCountedStatus = (s: string): s is (typeof countedStatus)[number] =>
-	(countedStatus as readonly string[]).includes(s);
+const isCountedStatus = (s: string): s is (typeof keys)[number] =>
+	(keys as readonly string[]).includes(s);
 
-type StatusCountRecord = Record<(typeof countedStatus)[number], number>;
+type StatusCountRecord = Record<(typeof keys)[number], number>;
 
 function matchRegExp(map: AffiliationMap) {
 	const parts = map.match.split("/");
@@ -32,15 +36,18 @@ const nullEntry: StatusCountRecord = {
 	Aspirant: 0,
 	"Potential Voter": 0,
 	Voter: 0,
+	New: 0,
 };
 
-const membersByAffiliation = createSelector(
-	selectActiveMembers,
+export const selectAttendeesByAffiliation = createSelector(
+	selectImatAttendanceSummaryIds,
+	selectSyncedImatAttendanceSummaryEntities,
 	selectAffiliationMaps,
-	(members, maps) => {
-		const membersEntities: Record<string, Member[]> = {};
+	(attendeeIds, attendeeEntities, maps) => {
+		const membersEntities: Record<string, SyncedSessionAttendee[]> = {};
 		let shortAffiliations: string[] = [];
-		for (const m of members) {
+		for (const id of attendeeIds) {
+			const m = attendeeEntities[id];
 			let affiliation = m.Affiliation;
 			for (const map of maps) {
 				const re = matchRegExp(map);
@@ -60,7 +67,9 @@ const membersByAffiliation = createSelector(
 		for (const id of shortAffiliations) {
 			const entry = { ...nullEntry };
 			for (const m of membersEntities[id]) {
-				if (isCountedStatus(m.Status)) entry[m.Status]++;
+				let status = m.Status;
+				if (status === "Non-Voter") status = "New";
+				if (isCountedStatus(status)) entry[status]++;
 			}
 			entities[id] = entry;
 		}
@@ -70,6 +79,7 @@ const membersByAffiliation = createSelector(
 			let n = e2.Voter - e1.Voter;
 			if (n === 0) n = e2["Potential Voter"] - e1["Potential Voter"];
 			if (n === 0) n = e2.Aspirant - e1.Aspirant;
+			if (n === 0) n = e2.New - e1.New;
 			return n;
 		}
 		shortAffiliations = shortAffiliations.sort(idsComp);
@@ -79,13 +89,15 @@ const membersByAffiliation = createSelector(
 		shortAffiliations.forEach((id) => {
 			const entity = entities[id];
 			const total =
+				entity["New"] +
 				entity["Aspirant"] +
 				entity["Potential Voter"] +
 				entity["Voter"];
 			if (total <= 1 || id === "No affiliation") {
-				entry.Aspirant += entity.Aspirant;
+				entry["New"] += entity["New"];
+				entry["Aspirant"] += entity["Aspirant"];
 				entry["Potential Voter"] += entity["Potential Voter"];
-				entry.Voter += entity.Voter;
+				entry["Voter"] += entity["Voter"];
 			} else {
 				ids.push(id);
 			}
@@ -97,28 +109,3 @@ const membersByAffiliation = createSelector(
 		return { ids, entities };
 	}
 );
-
-export function MembersReport() {
-	const { ids, entities } = useAppSelector(membersByAffiliation);
-	const { ref, width, height } = useDimensions();
-
-	return (
-		<div className="d-flex flex-column flex-grow-1">
-			<div className="d-flex w-100">
-				<ChartActions />
-			</div>
-			<Ratio ref={ref} aspectRatio="16x9">
-				<StackedBarChart
-					width={width}
-					height={height}
-					keys={countedStatus}
-					ids={ids}
-					entities={entities}
-					yLabel="Number of members"
-				/>
-			</Ratio>
-		</div>
-	);
-}
-
-export default MembersReport;

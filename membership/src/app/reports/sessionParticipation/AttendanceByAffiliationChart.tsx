@@ -1,14 +1,13 @@
 import { Ratio } from "react-bootstrap";
-import { useAppSelector } from "@/store/hooks";
 import StackedBarChart from "@/components/StackedBarChart";
 import { useDimensions } from "../useDimensions";
 import {
-	selectAttendeesByAffiliation,
+	useAttendanceByAffiliation,
 	series,
-} from "./selectAttendeesByAffiliation";
+} from "./useAttendanceByAffiliation";
 
-export function SessionAttendanceChart() {
-	const { ids, entities } = useAppSelector(selectAttendeesByAffiliation);
+export function AttendanceByAffiliationChart() {
+	const { ids, entities } = useAttendanceByAffiliation();
 	const { ref, width, height } = useDimensions();
 
 	return (
@@ -25,4 +24,4 @@ export function SessionAttendanceChart() {
 	);
 }
 
-export default SessionAttendanceChart;
+export default AttendanceByAffiliationChart;

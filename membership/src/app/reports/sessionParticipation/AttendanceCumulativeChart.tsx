@@ -1,13 +1,11 @@
 import * as React from "react";
 import { Ratio } from "react-bootstrap";
 import * as d3 from "d3";
-import { useOutletContext } from "react-router";
 
 import {
 	useAttendanceCumulative,
 	type AttendanceCumulative,
-} from "./useSessionParticipationData";
-import type { SessionParticipationReportContext } from "./layout";
+} from "./useAttendanceCumulative";
 
 import { useDimensions } from "../useDimensions";
 import { XAxis } from "./XAxis";
@@ -174,17 +172,7 @@ function Plot({
 	return <g ref={ref} transform={`translate(${x}, ${y})`} />;
 }
 
-function Chart({
-	width,
-	height,
-	selected,
-	statuses,
-}: {
-	width: number;
-	height: number;
-	selected: number[];
-	statuses: string[];
-}) {
+function Chart({ width, height }: { width: number; height: number }) {
 	const svgRef = React.useRef<SVGSVGElement>(null);
 	const [yAxisActualWidth, setYAxisActualWidth] = React.useState(40);
 	const [xAxisActualHeight, setXAxisActualHeight] = React.useState(40);
@@ -194,10 +182,7 @@ function Chart({
 	const plotWidth = viewWidth - marginLeft - marginRight - yAxisWidth;
 	const plotHeight = viewHeight - marginBottom - marginTop - xAxisHeight;
 
-	const data = useAttendanceCumulative({
-		selected,
-		statuses,
-	});
+	const data = useAttendanceCumulative();
 	const groups = data.map((d, i) => String(i + 1));
 
 	const xScale = React.useMemo(
@@ -245,17 +230,10 @@ function Chart({
 }
 
 export function CumulativeChart() {
-	const { selected, statuses } =
-		useOutletContext<SessionParticipationReportContext>();
 	const { ref, width, height } = useDimensions();
 	return (
-		<Ratio ref={ref} aspectRatio="16x9">
-			<Chart
-				width={width}
-				height={height}
-				selected={selected}
-				statuses={statuses}
-			/>
+		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden">
+			<Chart width={width} height={height} />
 		</Ratio>
 	);
 }

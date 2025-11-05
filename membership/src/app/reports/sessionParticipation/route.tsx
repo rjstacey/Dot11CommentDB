@@ -3,8 +3,11 @@ import { RouteObject } from "react-router";
 import { loader } from "../../sessionParticipation/loader";
 import SessionParticipationReport from "./layout";
 
-const PerSessionChart = React.lazy(() => import("./PerSessionChart"));
-const CumulativeChart = React.lazy(() => import("./CumulativeChart"));
+const PerSessionChart = React.lazy(() => import("./AttendancePerSessionChart"));
+const CumulativeChart = React.lazy(() => import("./AttendanceCumulativeChart"));
+const ByAffiliationChart = React.lazy(
+	() => import("./AttendanceByAffiliationChart")
+);
 
 export const route: RouteObject = {
 	element: <SessionParticipationReport />,
@@ -12,19 +15,18 @@ export const route: RouteObject = {
 	children: [
 		{
 			path: "per-session",
-			element: (
-				<React.Suspense fallback={<div>Loading...</div>}>
-					<PerSessionChart />
-				</React.Suspense>
-			),
+			hydrateFallbackElement: <div>Loading...</div>,
+			element: <PerSessionChart />,
 		},
 		{
 			path: "cumulative",
-			element: (
-				<React.Suspense fallback={<div>Loading...</div>}>
-					<CumulativeChart />
-				</React.Suspense>
-			),
+			hydrateFallbackElement: <div>Loading...</div>,
+			element: <CumulativeChart />,
+		},
+		{
+			path: "by-affiliation",
+			hydrateFallbackElement: <div>Loading...</div>,
+			element: <ByAffiliationChart />,
 		},
 	],
 };

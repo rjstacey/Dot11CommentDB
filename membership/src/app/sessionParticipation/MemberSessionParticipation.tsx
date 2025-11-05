@@ -199,7 +199,7 @@ export function MemberSessionParticipation({
 				renderCell = (entry) => (
 					<FormCheck
 						id={"is-registered-" + entry.session_id}
-						checked={entry.IsRegistered}
+						checked={entry.IsRegistered || false}
 						onChange={(e) =>
 							update(entry.session_id, {
 								IsRegistered: e.target.checked,
@@ -213,7 +213,7 @@ export function MemberSessionParticipation({
 				renderCell = (entry) => (
 					<FormCheck
 						id={"in-person-" + entry.session_id}
-						checked={entry.InPerson}
+						checked={entry.InPerson || false}
 						onChange={(e) =>
 							update(entry.session_id, {
 								InPerson: e.target.checked,

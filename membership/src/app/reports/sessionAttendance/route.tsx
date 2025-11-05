@@ -11,11 +11,8 @@ export const route: RouteObject = {
 		{
 			path: ":sessionNumber",
 			loader,
-			element: (
-				<React.Suspense fallback={<div>Loading...</div>}>
-					<SessionAttendanceChart />
-				</React.Suspense>
-			),
+			hydrateFallbackElement: <div>Loading...</div>,
+			element: <SessionAttendanceChart />,
 		},
 	],
 };

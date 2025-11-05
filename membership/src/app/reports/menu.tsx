@@ -25,10 +25,13 @@ export function Menu() {
 				Session attendance
 			</Nav.Link>
 			<Nav.Link as={NavLink} to="sessionParticipation/per-session">
-				Per Session Participation
+				Remote Vs In-Person
 			</Nav.Link>
 			<Nav.Link as={NavLink} to="sessionParticipation/cumulative">
-				Cumulative Session Participation
+				In-Person Cumulative
+			</Nav.Link>
+			<Nav.Link as={NavLink} to="sessionParticipation/by-affiliation">
+				In-Person By Affiliation
 			</Nav.Link>
 		</Nav>
 	);

@@ -8,7 +8,7 @@ import {
 	useAttendancePerSession,
 	statusOrder,
 	type AttendancePerSession,
-} from "./useSessionParticipationData";
+} from "./useAttendancePerSession";
 import type { SessionParticipationReportContext } from "./layout";
 
 import { useDimensions } from "../useDimensions";
@@ -199,17 +199,7 @@ function Plot({
 	return <g ref={ref} transform={`translate(${x}, ${y})`} />;
 }
 
-function Chart({
-	width,
-	height,
-	selected,
-	statuses,
-}: {
-	width: number;
-	height: number;
-	selected: number[];
-	statuses: string[];
-}) {
+function Chart({ width, height }: { width: number; height: number }) {
 	const svgRef = React.useRef<SVGSVGElement>(null);
 	const [yAxisActualWidth, setYAxisActualWidth] = React.useState(40);
 	const [xAxisActualHeight, setXAxisActualHeight] = React.useState(40);
@@ -219,10 +209,8 @@ function Chart({
 	const plotWidth = viewWidth - marginLeft - marginRight - yAxisWidth;
 	const plotHeight = viewHeight - marginBottom - marginTop - xAxisHeight;
 
-	const data = useAttendancePerSession({
-		selected,
-		statuses,
-	});
+	const { statuses } = useOutletContext<SessionParticipationReportContext>();
+	const data = useAttendancePerSession();
 	const groups = data.map((d, i) => String(i + 1));
 
 	const xScale = React.useMemo(
@@ -282,16 +270,9 @@ function Chart({
 
 export function PerSessionChart() {
 	const { ref, width, height } = useDimensions();
-	const { selected, statuses } =
-		useOutletContext<SessionParticipationReportContext>();
 	return (
-		<Ratio ref={ref} aspectRatio="16x9">
-			<Chart
-				width={width}
-				height={height}
-				selected={selected}
-				statuses={statuses}
-			/>
+		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden">
+			<Chart width={width} height={height} />
 		</Ratio>
 	);
 }
