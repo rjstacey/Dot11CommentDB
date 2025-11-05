@@ -1,5 +1,5 @@
 import { createSelector } from "@reduxjs/toolkit";
-import { AffiliationMap, selectAffiliationMaps } from "@/store/affiliationMap";
+import { selectAffiliationMapper } from "@/store/affiliationMap";
 import { selectActiveMembers, Member } from "@/store/members";
 
 export const series = {
@@ -14,19 +14,6 @@ const isCountedStatus = (s: string): s is (typeof keys)[number] =>
 
 type StatusCountRecord = Record<(typeof keys)[number], number>;
 
-function matchRegExp(map: AffiliationMap) {
-	const parts = map.match.split("/");
-	let re: RegExp;
-	try {
-		if ((parts.length === 2 || parts.length === 3) && parts[0] === "")
-			re = new RegExp(parts[1], parts[2]);
-		else re = new RegExp(map.match);
-	} catch {
-		return;
-	}
-	return re;
-}
-
 const nullEntry: StatusCountRecord = {
 	Aspirant: 0,
 	"Potential Voter": 0,
@@ -35,19 +22,12 @@ const nullEntry: StatusCountRecord = {
 
 export const selectMembersByAffiliation = createSelector(
 	selectActiveMembers,
-	selectAffiliationMaps,
-	(members, maps) => {
+	selectAffiliationMapper,
+	(members, affiliationMapper) => {
 		const membersEntities: Record<string, Member[]> = {};
 		let shortAffiliations: string[] = [];
 		for (const m of members) {
-			let affiliation = m.Affiliation;
-			for (const map of maps) {
-				const re = matchRegExp(map);
-				if (re && re.test(affiliation)) {
-					affiliation = map.shortAffiliation;
-					break;
-				}
-			}
+			const affiliation = affiliationMapper(m.Affiliation);
 			if (shortAffiliations.includes(affiliation)) {
 				membersEntities[affiliation].push(m);
 			} else {

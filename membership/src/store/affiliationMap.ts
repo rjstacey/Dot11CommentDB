@@ -96,6 +96,33 @@ export const selectAffiliationMaps = createSelector(
 	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
+function matchRegExp(match: string) {
+	const parts = match.split("/");
+	let re: RegExp;
+	try {
+		if ((parts.length === 2 || parts.length === 3) && parts[0] === "")
+			re = new RegExp(parts[1], parts[2]);
+		else re = new RegExp(match);
+	} catch {
+		return;
+	}
+	return re;
+}
+
+/** A selector that returns a function that maps an affiliation to a short affiliation */
+export const selectAffiliationMapper = createSelector(
+	selectAffiliationMapIds,
+	selectAffiliationMapEntities,
+	(mapIds, mapEntities) => (affiliation: string) => {
+		for (const id of mapIds) {
+			const map = mapEntities[id]!;
+			const re = matchRegExp(map.match);
+			if (re && re.test(affiliation)) return map.shortAffiliation;
+		}
+		return affiliation;
+	}
+);
+
 /** Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 

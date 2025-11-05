@@ -1,23 +1,10 @@
 import * as React from "react";
 import { useOutletContext } from "react-router";
 import { useAppSelector } from "@/store/hooks";
-import { AffiliationMap, selectAffiliationMaps } from "@/store/affiliationMap";
+import { selectAffiliationMapper } from "@/store/affiliationMap";
 import { selectActiveMembers } from "@/store/members";
 import { selectSessionParticipationWithMembershipAndSummary } from "@/store/sessionParticipation";
 import { SessionParticipationReportContext } from "./layout";
-
-function matchRegExp(map: AffiliationMap) {
-	const parts = map.match.split("/");
-	let re: RegExp;
-	try {
-		if ((parts.length === 2 || parts.length === 3) && parts[0] === "")
-			re = new RegExp(parts[1], parts[2]);
-		else re = new RegExp(map.match);
-	} catch {
-		return;
-	}
-	return re;
-}
 
 export const series = {
 	inPerson: "≥1 In-Person",
@@ -41,7 +28,7 @@ export function useAttendanceByAffiliation() {
 		selectSessionParticipationWithMembershipAndSummary
 	);
 	const members = useAppSelector(selectActiveMembers);
-	const affiliationMaps = useAppSelector(selectAffiliationMaps);
+	const affiliationMapper = useAppSelector(selectAffiliationMapper);
 
 	return React.useMemo(() => {
 		const entities: Record<string, AffiliationCounts> = {};
@@ -63,14 +50,7 @@ export function useAttendanceByAffiliation() {
 				inPersonCount = attendances.filter((a) => a.InPerson).length;
 			}
 
-			let affiliation = m.Affiliation;
-			for (const map of affiliationMaps) {
-				const re = matchRegExp(map);
-				if (re && re.test(affiliation)) {
-					affiliation = map.shortAffiliation;
-					break;
-				}
-			}
+			const affiliation = affiliationMapper(m.Affiliation);
 			if (!shortAffiliations.includes(affiliation)) {
 				shortAffiliations.push(affiliation);
 				entities[affiliation] = { ...zeroCounts };
@@ -109,5 +89,5 @@ export function useAttendanceByAffiliation() {
 		ids.push(id);
 
 		return { ids, entities };
-	}, [participationEntities, members, selected, statuses, affiliationMaps]);
+	}, [participationEntities, members, selected, statuses, affiliationMapper]);
 }
