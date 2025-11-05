@@ -96,7 +96,7 @@ export const selectAffiliationMaps = createSelector(
 	(ids, entities) => ids.map((id) => entities[id]!)
 );
 
-function matchRegExp(match: string) {
+export function matchRegExp(match: string) {
 	const parts = match.split("/");
 	let re: RegExp;
 	try {
