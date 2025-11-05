@@ -170,6 +170,15 @@ function PlotArea({
 	return <>{elements}</>;
 }
 
+/** Produce a stacked bar chart SVG
+ * @param width Width of the SVG element
+ * @param height Height of the SVG element
+ * @param svgRef Ref to the SVG element
+ * @param series Series record: an object with data item keys mapping to series labels
+ * @param ids X-axis columns
+ * @param entities Y-axis data entities
+ * @param yLabel Label for the Y axis
+ */
 function StackedBarChart({
 	width,
 	height,
