@@ -3,8 +3,6 @@ import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 import pluginReact from "eslint-plugin-react";
 
-const __dirname = process.cwd();
-
 /** @type {import('eslint').Linter.Config[]} */
 export default [
 	{
@@ -14,7 +12,7 @@ export default [
 			parser: "@typescript-eslint/parser",
 			parserOptions: {
 				sourceType: "module",
-				tsConfigRootDir: __dirname,
+				tsconfigRootDir: import.meta.dirname,
 			},
 			globals: globals.browser,
 		},
