@@ -33,7 +33,7 @@ function IdList({
 }) {
 	const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
 	const mirrorRef = React.useRef<HTMLDivElement>(null);
-	const [value, setValue] = React.useState("");
+	const [value, setValue] = React.useState(() => ids.join(", "));
 	const [mirrorHtml, setMirrorHtml] = React.useState(markInvalid(value));
 
 	React.useEffect(() => {

@@ -65,14 +65,13 @@ function ControlHeaderCell({
 						allSelected
 							? "Clear all"
 							: isIndeterminate
-							? "Clear selected"
-							: "Select all"
+								? "Clear selected"
+								: "Select all"
 					}
 					checked={allSelected}
 					ref={(el: HTMLInputElement | null) => {
 						el && (el.indeterminate = isIndeterminate);
 					}}
-					//indeterminate={isIndeterminate}
 					onChange={toggleSelect}
 				/>
 				{customSelectorElement && (
@@ -81,12 +80,13 @@ function ControlHeaderCell({
 							variant="light"
 							className="m-1 p-1 lh-1"
 						/>
-						{ReactDOM.createPortal(
-							<Dropdown.Menu className="p-2">
-								{customSelectorElement}
-							</Dropdown.Menu>,
-							anchorEl
-						)}
+						{show &&
+							ReactDOM.createPortal(
+								<Dropdown.Menu className="p-2">
+									{customSelectorElement}
+								</Dropdown.Menu>,
+								anchorEl
+							)}
 					</Dropdown>
 				)}
 			</div>

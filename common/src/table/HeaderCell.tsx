@@ -541,7 +541,7 @@ function AppTableHeaderCell({
 			onToggle={setShow}
 		>
 			{dropdownToggle}
-			{ReactDOM.createPortal(dropdownMenu, anchorEl)}
+			{show && ReactDOM.createPortal(dropdownMenu, anchorEl)}
 		</Dropdown>
 	);
 }
