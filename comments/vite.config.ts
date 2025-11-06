@@ -40,10 +40,16 @@ export default defineConfig(({ command, mode }) => {
 		plugins: [
 			react(),
 			VitePWA({
-				registerType: "autoUpdate",
 				devOptions: {
 					enabled: true,
 				},
+				registerType: "autoUpdate",
+				workbox: {
+					globPatterns: [
+						"**/*.{js,css,html,ico,png,svg,.woff,.woff2}",
+					],
+				},
+				includeAssets: ["*.ico", "*.svg", "*.png"],
 				manifest: {
 					name: "802 tools | Comment Resolution",
 					short_name: "802|CR",
