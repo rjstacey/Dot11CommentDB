@@ -18,14 +18,14 @@ export function BallotActions() {
 
 	return (
 		<Row className="w-100 d-flex justify-content-between align-items-center m-2">
-			<BallotsSubmenu xs="auto" />
+			<BallotsSubmenu />
 			<SplitTableButtonGroup
+				xs="auto"
 				selectors={ballotsSelectors}
 				actions={ballotsActions}
 				columns={tableColumns}
-				xs="auto"
 			/>
-			<Col className="d-flex justify-content-end gap-2">
+			<Col xs="auto" className="d-flex justify-content-end gap-2">
 				<Button
 					variant="outline-secondary"
 					className="bi-arrow-repeat"

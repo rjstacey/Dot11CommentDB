@@ -1,6 +1,6 @@
 {
 	"name": "@802tools/comments",
-	"version": "1.8.2",
+	"version": "1.8.3",
 	"private": true,
 	"homepage": "comments",
 	"type": "module",

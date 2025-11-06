@@ -28,15 +28,16 @@ function ResultsActions() {
 
 	return (
 		<Row className="w-100 justify-content-between align-items-center">
-			<Col xs="auto">
+			<Col>
 				<ProjectBallotSelector />
 			</Col>
 			<SplitTableButtonGroup
+				xs="auto"
 				selectors={resultsSelectors}
 				actions={resultsActions}
 				columns={tableColumns}
 			/>
-			<Col className="d-flex justify-content-end gap-2">
+			<Col xs="auto" className="d-flex justify-content-end gap-2">
 				<ResultsSummary />
 				<ResultsExport ballot={resultsBallot} />
 				<Button

@@ -35,7 +35,7 @@ function CommentsActions() {
 				columns={tableColumns}
 				xs="auto"
 			/>
-			<Col className="d-flex justify-content-end gap-2">
+			<Col xs="auto" className="d-flex justify-content-end gap-2">
 				{access >= AccessLevel.rw && (
 					<>
 						<CommentsImport disabled={!isOnline} />
