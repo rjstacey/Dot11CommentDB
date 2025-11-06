@@ -8,12 +8,11 @@ import {
 	AppTableDataActions,
 	FilterComp,
 	CompOp,
-	FieldType,
 } from "../store/appTableData";
 
 import styles from "./IdList.module.css";
 
-const idRegex = /[^\s,]+/g; // /\d+\.\d+|\d+/g
+const idRegex = /[^\s,]+/g;
 
 function IdList({
 	style,
@@ -34,7 +33,7 @@ function IdList({
 }) {
 	const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
 	const mirrorRef = React.useRef<HTMLDivElement>(null);
-	const [value, setValue] = React.useState(() => ids.join(", "));
+	const [value, setValue] = React.useState("");
 	const [mirrorHtml, setMirrorHtml] = React.useState(markInvalid(value));
 
 	React.useEffect(() => {
@@ -61,7 +60,6 @@ function IdList({
 			"word-spacing",
 			"word-wrap",
 		].forEach((property) => {
-			console.log(property, inputStyles.getPropertyValue(property));
 			mirrorEl.style.setProperty(
 				property,
 				inputStyles.getPropertyValue(property),
@@ -93,6 +91,12 @@ function IdList({
 		}
 	}, [focusOnMount]);
 
+	React.useEffect(() => {
+		// Update value only if not receiving key input
+		if (textAreaRef.current === document.activeElement) return;
+		setValue(() => ids.join(", "));
+	}, [ids]);
+
 	function markInvalid(value: string) {
 		return value.replace(idRegex, (match) => {
 			const id = isNumber ? Number(match) : match;
@@ -118,13 +122,13 @@ function IdList({
 		>
 			<div
 				ref={mirrorRef}
-				className={styles["mirror"]}
+				className="mirror"
 				dangerouslySetInnerHTML={{ __html: mirrorHtml }}
 			/>
 			<TextArea
 				id="id-list"
 				ref={textAreaRef}
-				className={styles["input"]}
+				className="input"
 				value={value}
 				onChange={(e) => handleChange(e.target.value)}
 				placeholder="Enter list..."
@@ -156,18 +160,19 @@ export function IdFilter({
 	const { getField } = selectors;
 	const ids = useSelector(selectors.selectIds);
 	const entities = useSelector(selectors.selectEntities);
-	//const isNumber = ids.length > 0 && typeof getField(entities[ids[0]], dataKey) === "number";
+	const isNumber =
+		ids.length > 0 &&
+		typeof getField(entities[ids[0]], dataKey) === "number";
 
 	const selectFilter = React.useCallback(
 		(state: any) => selectors.selectFilter(state, dataKey),
 		[selectors, dataKey]
 	);
 	const filter = useSelector(selectFilter);
-	const isNumber = filter.type === FieldType.NUMERIC;
 	const values = filter.comps.map((v) => v.value);
 
 	const isValid = React.useCallback(
-		(value: any) =>
+		(value: EntityId) =>
 			ids.findIndex((id) => getField(entities[id], dataKey) === value) !==
 			-1,
 		[ids, entities, dataKey, getField]

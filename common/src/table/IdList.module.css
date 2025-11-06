@@ -18,6 +18,37 @@
 		box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 	}
 
+	& > :global(.mirror) {
+		position: absolute;
+		overflow: hidden;
+		z-index: +1;
+		user-select: none;
+		pointer-events: none;
+
+		& mark {
+			all: unset;
+			color: red;
+			text-decoration: line-through;
+			background-color: inherit;
+		}
+	}
+
+	& > :global(.input) {
+		margin: 5px;
+		background: transparent;
+		border: none;
+		resize: none;
+		width: 100%;
+		line-height: normal;
+		font-family: inherit;
+		font-size: inherit;
+
+		&:focus {
+			outline: 0;
+			box-shadow: none;
+		}
+	}
+
 	& > :global(.clear) {
 		font-size: larger;
 
@@ -25,37 +56,5 @@
 			color: tomato;
 			cursor: pointer;
 		}
-	}
-}
-
-.input {
-	padding: 0;
-	margin: 5px;
-	background: transparent;
-	border: none;
-	resize: none;
-	width: 100%;
-	line-height: normal;
-	font-family: inherit;
-	font-size: inherit;
-
-	&:focus {
-		outline: 0;
-		box-shadow: none;
-	}
-}
-
-.mirror {
-	position: absolute;
-	overflow: hidden;
-	z-index: +1;
-	user-select: none;
-	pointer-events: none;
-
-	& mark {
-		all: unset;
-		color: red;
-		text-decoration: line-through;
-		background-color: inherit;
 	}
 }
