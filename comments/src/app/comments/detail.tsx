@@ -14,6 +14,7 @@ import {
 	ResolutionCreate,
 	AccessLevel,
 } from "@/store/comments";
+import { selectIsOnline } from "@/store/offline";
 
 import CommentHistory from "./CommentHistory";
 import { CommentResolutionEdit } from "./CommentResolutionEdit";
@@ -33,6 +34,7 @@ export type MultipleResolution = Multiple<Resolution>;
 
 function CommentDetail() {
 	const dispatch = useAppDispatch();
+	const isOnline = useAppSelector(selectIsOnline);
 
 	const { entities, loading, selected } = useAppSelector(selectCommentsState);
 	const comments = React.useMemo(
@@ -97,7 +99,7 @@ function CommentDetail() {
 				className="bi-clock-history"
 				onClick={toggleShowHistory}
 				active={showHistory}
-				disabled={selected.length === 0}
+				disabled={selected.length === 0 || !isOnline}
 			>
 				{" History"}
 			</Button>
