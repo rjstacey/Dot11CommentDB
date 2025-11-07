@@ -3,7 +3,7 @@ import { SplitTableButtonGroup } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
-import { Ballot, BallotType, selectBallot } from "@/store/ballots";
+import { Ballot, BallotType, selectBallot, getBallotId } from "@/store/ballots";
 import {
 	exportVoters,
 	selectVotersState,
@@ -20,7 +20,7 @@ import { tableColumns } from "./tableColumns";
 function BallotInfo({ ballot }: { ballot: Ballot | undefined }) {
 	const descr =
 		ballot?.Type === BallotType.WG
-			? `${ballot.BallotID} on ${ballot.Document}`
+			? `${getBallotId(ballot)} on ${ballot.Document}`
 			: "This is not a WG ballot";
 
 	return (

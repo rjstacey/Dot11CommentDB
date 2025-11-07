@@ -16,6 +16,7 @@ import type {
 	VoterUpdate,
 } from "@schemas/voters.js";
 import { Ballot } from "@schemas/ballots.js";
+import { getBallotId } from "./ballots.js";
 
 type VoterFromSpreadsheet = {
 	SAPIN: number;
@@ -279,7 +280,7 @@ function populateVotersWorksheet(
 	];
 
 	const cell = ws.getRow(1).getCell(1);
-	cell.value = `Voters List for ${ballot.BallotID}\n(${ballot.Document})`;
+	cell.value = `Voters List for ${getBallotId(ballot)}\n(${ballot.Document})`;
 	cell.alignment = {
 		horizontal: "center",
 		vertical: "middle",
@@ -290,7 +291,7 @@ function populateVotersWorksheet(
 	ws.getRow(1).height = 100;
 
 	ws.addTable({
-		name: `${ballot.BallotID}Voters`,
+		name: `${getBallotId(ballot)}Voters`,
 		ref: "A2",
 		headerRow: true,
 		totalsRow: false,
@@ -315,13 +316,12 @@ export async function exportVoters(
 	res: Response
 ) {
 	const voters = await getVoters({ ballot_id: ballot.id });
-	console.log(`ballot ${ballot.BallotID} has ${voters.length} voters`);
 
 	const workbook = new ExcelJS.Workbook();
 	workbook.creator = user.Name;
 
 	const ws = workbook.addWorksheet("Voters");
 	populateVotersWorksheet(ws, ballot, voters);
-	res.attachment(`${ballot.BallotID}_voters.xlsx`);
+	res.attachment(`${getBallotId(ballot)}_voters.xlsx`);
 	return workbook.xlsx.write(res);
 }

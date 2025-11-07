@@ -10,7 +10,7 @@ export enum AdHocStatus {
 	MoreWorkRequired = 1,
 	SubmissionRequired = 2,
 }
-export const adHocStatusSchema = z.nativeEnum(AdHocStatus);
+export const adHocStatusSchema = z.enum(AdHocStatus);
 
 export const commentSchema = z.object({
 	id: z.number(),
@@ -80,14 +80,14 @@ export type CommentUpdate = z.infer<typeof commentUpdateSchema>;
 
 export const commentResolutionSchema = commentSchema
 	.omit({ id: true })
-	.merge(resolutionSchema.omit({ id: true }))
+	.extend(resolutionSchema.omit({ id: true }).shape)
 	.extend({
 		id: z.string(),
 		resolution_id: resolutionSchema.shape.id.nullable(),
 		ResolutionID: z.number().nullable(),
 		ResolutionCount: z.number(),
 		CID: z.string(),
-		LastModifiedName: z.string().nullable(),
+		//LastModifiedName: z.string().nullable(),
 	});
 export const commentResolutionsSchema = commentResolutionSchema.array();
 

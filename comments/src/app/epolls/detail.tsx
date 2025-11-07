@@ -39,7 +39,7 @@ const defaultBallot: Ballot = {
 	Comments: { Count: 0, CommentIDMax: 0, CommentIDMin: 0 },
 	Results: null,
 	workingGroupId: "",
-	BallotID: "",
+	//BallotID: "",
 };
 
 function ePollToBallot(

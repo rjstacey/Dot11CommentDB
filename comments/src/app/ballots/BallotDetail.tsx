@@ -101,7 +101,7 @@ function getDefaultBallot(
 		Comments: { Count: 0, CommentIDMax: 0, CommentIDMin: 0 },
 		Results: null,
 		workingGroupId: "",
-		BallotID: "",
+		//BallotID: "",
 	};
 	return ballot;
 }

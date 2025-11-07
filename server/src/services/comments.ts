@@ -7,7 +7,7 @@ import { AuthError, ForbiddenError, NotFoundError } from "../utils/index.js";
 import { parseEpollComments, parseEpollUserComments } from "./epoll.js";
 import { parseMyProjectComments } from "./myProjectSpreadsheets.js";
 import { parsePublicReviewComments } from "./publicReviewSpreadsheets.js";
-import { BallotType, getBallotWithNewResultsSummary } from "./ballots.js";
+import { getBallotWithNewResultsSummary } from "./ballots.js";
 import { selectUser, type UserContext } from "./users.js";
 import { AccessLevel } from "@schemas/access.js";
 import { getGroups } from "./groups.js";
@@ -19,7 +19,7 @@ import type {
 	CommentCreate,
 	UploadCommentsResponse,
 } from "@schemas/comments.js";
-import { Ballot, CommentsSummary } from "@schemas/ballots.js";
+import { Ballot, BallotType, CommentsSummary } from "@schemas/ballots.js";
 
 const commentResolutionsView = "commentResolutions2";
 
@@ -36,7 +36,6 @@ const createViewCommentResolutionsSQL =
 			'IF(b.Type=2, IF(b.stage=0, "I-", CONCAT("R", b.stage, "-")), ""), ' +
 			'IF((SELECT count(*) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(c.CommentID, ".", r.ResolutionID), c.CommentID)' +
 		') AS CID, ' +
-		"b.BallotID AS BallotID, " +
 		"c.CommentID AS CommentID, " +
 		"r.ResolutionID AS ResolutionID, " +
 		"(SELECT count(0) from resolutions r WHERE (c.id = r.comment_id)) AS ResolutionCount, " +
@@ -70,23 +69,20 @@ const createViewCommentResolutionsSQL =
 		"r.EditInDraft AS EditInDraft, " +
 		"r.EditNotes AS EditNotes, " +
 		'DATE_FORMAT(IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedTime, r.LastModifiedTime), "%Y-%m-%dT%TZ") AS LastModifiedTime, ' +
-		"IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) AS LastModifiedBy, " +
-		"m2.Name AS LastModifiedName " +
+		"IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) AS LastModifiedBy " +
 	"FROM comments c " +
 		"LEFT JOIN resolutions r ON (c.id = r.comment_id) " +
 		"LEFT JOIN ballotsStage b ON (c.ballot_id = b.id) " +
 		"LEFT JOIN results ON (c.ballot_id = results.ballot_id AND ((c.CommenterSAPIN IS NOT NULL AND c.CommenterSAPIN = results.SAPIN) OR (c.CommenterSAPIN IS NULL AND c.CommenterEmail = results.Email))) " +
-		"LEFT JOIN users m1 ON (r.AssigneeSAPIN = m1.SAPIN) " +
-		"LEFT JOIN users m2 ON (IF(c.LastModifiedTime > r.LastModifiedTime, c.LastModifiedBy, r.LastModifiedBy) = m2.SAPIN) "
+		"LEFT JOIN users m1 ON (r.AssigneeSAPIN = m1.SAPIN)"
 
 export async function init() {
-	const sql =
-		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="comments" and column_name = "AdHocStatus";';
-	const rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
-	if (rows.length === 0)
-		db.query(
-			"ALTER TABLE comments ADD COLUMN AdHocStatus TINYINT default NULL after Notes;"
-		);
+	await db
+		.query("ALTER TABLE resolutions ADD KEY AssigneeSAPIN (AssigneeSAPIN)")
+		.catch(() => {});
+	await db
+		.query("UPDATE ballots SET `Type`=0 WHERE `Type`=5")
+		.catch(() => {});
 	await db.query(createViewCommentResolutionsSQL);
 }
 

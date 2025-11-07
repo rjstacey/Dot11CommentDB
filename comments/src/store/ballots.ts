@@ -23,33 +23,31 @@ import {
 	BallotUpdate,
 	BallotChange,
 	BallotCreate,
+	BallotType,
 } from "@schemas/ballots";
 
 export type { Ballot, BallotUpdate, BallotChange, BallotCreate };
-export { AccessLevel };
-
-export const BallotType = {
-	CC: 0, // comment collection
-	WG: 1, // WG ballot
-	SA: 2, // SA ballot
-};
+export { AccessLevel, BallotType };
 
 export type SyncedBallot = Ballot & {
 	GroupName: string;
 	GroupActive: boolean;
 };
 
-export const BallotTypeLabels = {
+export const BallotTypeLabels: Record<BallotType, string> = {
 	[BallotType.CC]: "CC",
 	[BallotType.WG]: "LB",
 	[BallotType.SA]: "SA",
 };
 
-export const BallotTypeOptions = Object.values(BallotType).map((v) => ({
-	value: v,
-	label: BallotTypeLabels[v],
-}));
-export const renderBallotType = (type: number) =>
+export const BallotTypeOptions = Object.entries(BallotTypeLabels).map(
+	([key, value]) => ({
+		value: Number(key),
+		label: value,
+	})
+);
+
+export const renderBallotType = (type: BallotType) =>
 	BallotTypeLabels[type] || "Unknown";
 
 export const fields = {

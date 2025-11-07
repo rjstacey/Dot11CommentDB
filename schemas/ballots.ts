@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { groupIdSchema } from "./groups.js";
 
+export enum BallotType {
+	CC = 0, // comment collection
+	WG = 1, // WG ballot
+	SA = 2, // SA ballot
+}
+export const ballotTypeSchema = z.enum(BallotType);
+
 export const commentsSummarySchema = z.object({
 	Count: z.number(),
 	CommentIDMin: z.nullable(z.number()),
@@ -27,9 +34,9 @@ export const ballotSchema = z.object({
 	id: z.number(),
 	groupId: groupIdSchema,
 	workingGroupId: groupIdSchema,
-	Type: z.number(),
+	Type: ballotTypeSchema, //z.number(),
 	number: z.number(),
-	BallotID: z.string(),
+	//BallotID: z.string(),
 	Project: z.string(),
 	prev_id: z.number().nullable(),
 	IsComplete: z.boolean(),

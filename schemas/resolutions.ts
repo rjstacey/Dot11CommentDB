@@ -20,7 +20,7 @@ export const resolutionSchema = z.object({
 	EditNotes: z.string().nullable(),
 	EditInDraft: z.string().nullable(),
 	LastModifiedBy: z.number().nullable(),
-	LastModifiedTime: z.string().datetime().nullable(),
+	LastModifiedTime: z.iso.datetime().nullable(),
 });
 
 export const resolutionCreateSchema = resolutionSchema

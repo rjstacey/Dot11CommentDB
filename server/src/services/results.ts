@@ -7,11 +7,15 @@ import type { UserContext } from "./users.js";
 import { parseEpollResults, parseEpollResultsHtml } from "./epoll.js";
 import { parseMyProjectResults } from "./myProjectSpreadsheets.js";
 import { genResultsSpreadsheet } from "./resultsSpreadsheet.js";
-import { getBallotSeries, BallotType } from "./ballots.js";
+import { getBallotSeries, getBallotId } from "./ballots.js";
 import { getMember } from "./members.js";
 import type { Group } from "@schemas/groups.js";
 import type { Result, ResultUpdate } from "@schemas/results.js";
-import type { Ballot, ResultsSummary } from "@schemas/ballots.js";
+import {
+	type Ballot,
+	type ResultsSummary,
+	BallotType,
+} from "@schemas/ballots.js";
 
 export type ResultDB = {
 	id: string;
@@ -501,7 +505,7 @@ export async function exportResults(
 		fileNamePrefix = ballot.Project;
 	} else {
 		resultsArr = [await getResultsCoalesced(ballot)];
-		fileNamePrefix = ballot.BallotID;
+		fileNamePrefix = getBallotId(ballot);
 	}
 	res.attachment(sanitize(fileNamePrefix) + "_results.xlsx");
 	return genResultsSpreadsheet(user, ballots, resultsArr, res);

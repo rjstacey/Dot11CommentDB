@@ -20,19 +20,17 @@ function EpollsActions() {
 
 	return (
 		<Row className="w-100 d-flex align-items-center m-2">
-			<BallotsSubmenu xs="auto" />
+			<BallotsSubmenu />
+			<Col xs="auto">
+				<Spinner hidden={!loading} />
+			</Col>
 			<SplitTableButtonGroup
+				xs="auto"
 				selectors={epollsSelectors}
 				actions={epollsActions}
 				columns={tableColumns}
-				xs="auto"
 			/>
-			<Col xs="auto">
-				<Spinner
-					style={{ visibility: loading ? "visible" : "hidden" }}
-				/>
-			</Col>
-			<Col className="d-flex justify-content-end gap-2">
+			<Col xs="auto" className="d-flex justify-content-end gap-2">
 				<Button
 					variant="outline-secondary"
 					className="bi-chevron-double-down"

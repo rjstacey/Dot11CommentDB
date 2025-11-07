@@ -7,7 +7,7 @@ import {
 	Ballot,
 	BallotChange,
 	BallotType,
-	BallotTypeLabels,
+	BallotTypeOptions,
 	selectBallots,
 } from "@/store/ballots";
 
@@ -36,12 +36,14 @@ function BallotTypeNumberCol({
 	ballot,
 	original,
 	type,
+	label,
 	updateBallot,
 	readOnly,
 }: {
 	ballot: Multiple<Ballot>;
 	original?: Multiple<Ballot>;
-	type: number;
+	type: BallotType;
+	label: string;
 	updateBallot: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
@@ -51,10 +53,12 @@ function BallotTypeNumberCol({
 	if (!isMultiple(ballot.Type) && !isMultiple(ballot.number)) {
 		defaultNumber = ballot.Type === type ? ballot.number : nextNumber;
 	}
-	const [ballotNumber, setBallotNumber] = React.useState(defaultNumber);
+	const [ballotNumber, setBallotNumber] = React.useState(
+		defaultNumber.toString()
+	);
 
 	React.useEffect(() => {
-		if (original === ballot) setBallotNumber(defaultNumber);
+		if (original === ballot) setBallotNumber(defaultNumber.toString());
 	}, [original, ballot]);
 
 	function updateBallotType(type: number) {
@@ -62,16 +66,17 @@ function BallotTypeNumberCol({
 			updateBallot({
 				Type: type,
 				prev_id: null,
-				number: ballotNumber,
+				number: Number(ballotNumber),
 			});
 			if (!isMultiple(ballot.id)) {
-				updateBallot({ number: ballotNumber });
+				updateBallot({ number: Number(ballotNumber) });
 			}
 		}
 	}
 
-	function updateBallotNumber(number: number) {
-		setBallotNumber(number);
+	function onChangeNumber(e: React.ChangeEvent<HTMLInputElement>) {
+		setBallotNumber(e.target.value);
+		const number = Number(e.target.value);
 		updateBallot({ number });
 	}
 
@@ -85,7 +90,7 @@ function BallotTypeNumberCol({
 		>
 			<Form.Check
 				key={type}
-				label={BallotTypeLabels[type]}
+				label={label}
 				checked={ballot.Type === type}
 				onChange={readOnly ? () => {} : () => updateBallotType(type)}
 				ref={(ref) =>
@@ -104,7 +109,7 @@ function BallotTypeNumberCol({
 					type="number"
 					name="number"
 					value={ballotNumber}
-					onChange={(e) => updateBallotNumber(Number(e.target.value))}
+					onChange={onChangeNumber}
 					placeholder={
 						isMultiple(ballot.Type) || isMultiple(ballot.number)
 							? MULTIPLE_STR
@@ -138,10 +143,11 @@ export function BallotTypeRow({
 			</Form.Label>
 			<Col xs="auto">
 				<Row className={"justify-content-end" + " " + cn}>
-					{Object.values(BallotType).map((type) => (
+					{BallotTypeOptions.map(({ value, label }) => (
 						<BallotTypeNumberCol
-							key={type}
-							type={type}
+							key={value}
+							type={value}
+							label={label}
 							ballot={ballot}
 							original={original}
 							updateBallot={updateBallot}

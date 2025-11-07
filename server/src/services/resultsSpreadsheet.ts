@@ -7,6 +7,7 @@ import type { UserContext } from "./users.js";
 import type { Ballot } from "@schemas/ballots.js";
 import type { Result } from "@schemas/results.js";
 import { getSheetName } from "./commentsSpreadsheet.js";
+import { getBallotId } from "./ballots.js";
 
 function populateSummaryWorksheet(ws: ExcelJS.Worksheet, ballots: Ballot[]) {
 	let colNum = 1;
@@ -78,7 +79,7 @@ function populateSummaryWorksheet(ws: ExcelJS.Worksheet, ballots: Ballot[]) {
 		const abstainsRate = r.Abstain / (r.VotingPoolSize || 0);
 
 		const dataCol = [
-			b.BallotID,
+			getBallotId(b),
 			opened,
 			closed,
 			duration,
@@ -157,7 +158,7 @@ function populateResultsWorksheet(
 	];
 
 	ws.addTable({
-		name: `${ballot.BallotID}ResultsTable`,
+		name: `${getBallotId(ballot)}ResultsTable`,
 		ref: "A1",
 		headerRow: true,
 		totalsRow: false,
@@ -193,12 +194,13 @@ export async function genResultsSpreadsheet(
 
 	resultsArr.forEach((results, i) => {
 		const ballot = ballots[i];
-		ws = workbook.addWorksheet(getSheetName(ballot.BallotID));
+		ws = workbook.addWorksheet(getSheetName(getBallotId(ballot)));
 		const results2 = results.map((r) => {
 			let lastBallotName = "";
 			if (r.lastBallotId && r.lastBallotId !== r.ballot_id)
-				lastBallotName =
-					ballotEntities[r.lastBallotId]?.BallotID || "??";
+				lastBallotName = ballotEntities[r.lastBallotId]
+					? getBallotId(ballotEntities[r.lastBallotId])
+					: "??";
 			return { ...r, lastBallotName };
 		});
 		populateResultsWorksheet(ws, ballot, results2);

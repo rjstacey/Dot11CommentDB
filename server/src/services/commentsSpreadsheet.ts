@@ -11,10 +11,20 @@ import {
 } from "@schemas/comments.js";
 import type { UserContext } from "./users.js";
 import type { Response } from "express";
-import { BallotType } from "./ballots.js";
+import { BallotType, getBallotId } from "./ballots.js";
 import { getComments } from "./comments.js";
+import { getUserMembers } from "./members.js";
+import { type UserMember } from "@schemas/members.js";
 
-type ColSet = (b: Ballot, c: CommentResolution, v: ExcelJS.Cell) => void;
+type CommentResolutionModified = CommentResolution & {
+	LastModifiedName: string;
+};
+
+type ColSet = (
+	b: Ballot,
+	c: CommentResolutionModified,
+	v: ExcelJS.Cell
+) => void;
 type ColGet = (v: ExcelJS.CellValue, c: Partial<CommentResolution>) => void;
 
 type Col = {
@@ -176,7 +186,7 @@ const legacyColumns: Record<string, Col> = {
 		width: 8,
 		outlineLevel: 1,
 		set: (b, c, cell) => {
-			cell.value = b.BallotID;
+			cell.value = getBallotId(b);
 		},
 	},
 	Draft: {
@@ -413,7 +423,7 @@ const legacyColumns: Record<string, Col> = {
 		numFmt: "@",
 		outlineLevel: 1,
 		set: (b, c, cell) => {
-			cell.value = "";
+			cell.value = c.LastModifiedName;
 		},
 	},
 };
@@ -661,7 +671,7 @@ const modernColumns: Record<string, Col> = {
 		numFmt: "@",
 		outlineLevel: 1,
 		set: (b, c, cell) => {
-			cell.value = c.LastModifiedName || "";
+			cell.value = c.LastModifiedName;
 		},
 	},
 };
@@ -878,7 +888,7 @@ function genWorksheet(
 	sheet: ExcelJS.Worksheet,
 	columns: Record<string, Col>,
 	ballot: Ballot,
-	comments: CommentResolution[]
+	comments: CommentResolutionModified[]
 ) {
 	// Adjust column width, outlineLevel and style
 	const borderStyle: ExcelJS.Border = {
@@ -910,7 +920,7 @@ function genWorksheet(
 	sheet.views = [{ state: "frozen", xSplit: 0, ySplit: 1 }];
 
 	// Normalize by comment_id
-	const entities: Record<string, CommentResolution[]> = {};
+	const entities: Record<string, CommentResolutionModified[]> = {};
 	const ids: string[] = [];
 	for (const c of comments) {
 		const id = "" + c.comment_id;
@@ -972,7 +982,7 @@ async function genCommentsSpreadsheet(
 	style: CommentsExportStyle,
 	appendSheets: boolean,
 	ballot: Ballot,
-	comments: CommentResolution[],
+	comments: CommentResolutionModified[],
 	buffer: Buffer | undefined,
 	res: Response
 ) {
@@ -1033,6 +1043,11 @@ async function genCommentsSpreadsheet(
 	return workbook.xlsx.write(res);
 }
 
+function getUserName(sapin: number | null, users: UserMember[]) {
+	const user = users.find((u) => u.SAPIN === sapin);
+	return user ? user.Name : "";
+}
+
 export async function exportCommentsSpreadsheet(
 	user: UserContext,
 	ballot: Ballot,
@@ -1043,6 +1058,11 @@ export async function exportCommentsSpreadsheet(
 	res: Response
 ) {
 	const comments = await getComments(ballot.id);
+	const users = await getUserMembers(0, ballot.groupId);
+	const commentsModified = comments.map((c) => ({
+		...c,
+		LastModifiedName: getUserName(c.LastModifiedBy, users),
+	}));
 
 	res.attachment("comments.xlsx");
 	return genCommentsSpreadsheet(
@@ -1051,7 +1071,7 @@ export async function exportCommentsSpreadsheet(
 		style,
 		appendSheets,
 		ballot,
-		comments,
+		commentsModified,
 		buffer,
 		res
 	);

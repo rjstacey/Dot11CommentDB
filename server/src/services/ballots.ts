@@ -13,13 +13,9 @@ import type {
 	BallotCreate,
 	BallotUpdate,
 } from "@schemas/ballots.js";
+import { BallotType } from "@schemas/ballots.js";
 
-export const BallotType = {
-	CC: 0, // comment collection
-	WG: 1, // WG ballot
-	SA: 2, // SA ballot
-	Motion: 5, // motion
-};
+export { BallotType };
 
 /* ballotsSeries view
  *
@@ -39,7 +35,6 @@ export const BallotType = {
  * id of the last ballot in the series.
  */
 const createViewBallotsSeries = `
-	DROP VIEW IF EXISTS ballotSeries;
 	DROP VIEW IF EXISTS ballotsSeries;
 	CREATE VIEW ballotsSeries AS
 		WITH RECURSIVE cte AS (
@@ -62,7 +57,7 @@ const createViewBallotsSeries = `
  * a column, stage, that is 0 for an initial ballot. 1, 2, 3, etc. for a recirc, where the value is the recirc number,
  * and a column BallotID that is a user readable ballot identifier.
  */
-const createViewBallotsStage = `
+/*const createViewBallotsStage2 = `
 	DROP VIEW IF EXISTS ballotsStage;
 	CREATE VIEW ballotsStage AS
 		WITH ballotsSeriesPlusStage AS (
@@ -84,6 +79,15 @@ const createViewBallotsStage = `
 				)
 			) as BallotID
 		FROM ballotsSeriesPlusStage b;
+`;*/
+
+const createViewBallotsStage = `
+	DROP VIEW IF EXISTS ballotsStage;
+	CREATE VIEW ballotsStage AS
+		SELECT
+			b.*,
+			(SELECT COUNT(*) FROM ballotsSeries s WHERE s.series_id=b.series_id GROUP BY s.series_id) - 1 AS stage
+		FROM ballotsSeries b;
 `;
 
 export async function init() {
@@ -95,7 +99,6 @@ export async function init() {
 const ballotsStageFieldsSQL = `
 	b.id,
 	BIN_TO_UUID(b.groupId) as groupId,
-	b.BallotID,
 	b.Type,
 	b.number,
 	b.stage,
@@ -162,6 +165,23 @@ export async function getBallot(id: number) {
 	return ballot;
 }
 
+/** Derive BallotID from other fields */
+export function getBallotId(ballot: Ballot) {
+	if (ballot.Type === BallotType.CC) {
+		return "CC" + (ballot.number || "(Blank)");
+	} else if (ballot.Type === BallotType.WG) {
+		return "LB" + (ballot.number || "(Blank)");
+	} else if (ballot.Type === BallotType.SA) {
+		return (
+			ballot.Project +
+			"-" +
+			(ballot.stage === 0 ? "I" : "R" + ballot.stage)
+		);
+	}
+
+	return ballot.id.toString();
+}
+
 export async function getBallotWithNewResultsSummary(
 	user: UserContext,
 	workingGroupId: string | null,
@@ -172,7 +192,7 @@ export async function getBallotWithNewResultsSummary(
 		const workingGroup = await getWorkingGroup(user, ballot.groupId!);
 		if (!workingGroup)
 			throw new NotFoundError(
-				`Can't find working group for ballot ${ballot.BallotID}`
+				`Can't find working group for ballot id=${ballot_id}`
 			);
 		workingGroupId = workingGroup.id;
 	}
