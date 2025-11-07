@@ -1,11 +1,15 @@
 import * as React from "react";
-
-import { $getRoot, $isElementNode, type LexicalNode } from "lexical";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import {
+	$getRoot,
+	$isElementNode,
+	$addUpdateTag,
+	SKIP_DOM_SELECTION_TAG,
+	type LexicalNode,
+} from "lexical";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-
 import { useDebounce } from "@common";
 
 function recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
@@ -47,36 +51,31 @@ function InportExportPlugin({
 		if (doneRef.current) return;
 		doneRef.current = true;
 
-		editor.update(
-			() => {
-				let s = value || "";
-				s = s.replace(/<p><br><\/p>/g, "");
-				s = s.replace(/[\r\n]+/g, "");
-				const parser = new DOMParser();
-				// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
-				let dom = parser.parseFromString(s, "text/html");
-				if (
-					dom.body.firstChild === null ||
-					dom.body.firstChild.nodeType === Node.TEXT_NODE
-				) {
-					const asHtml = s
-						.split("\n")
-						.map((t) => `<p>${t}</p>`)
-						.join("");
-					dom = parser.parseFromString(asHtml, "text/html");
-				}
-				const nodes = $generateNodesFromDOM(editor, dom);
-				$getRoot().clear().select().insertNodes(nodes);
-				//console.log(nodes);
-
-				recursivelyReplaceLinkWithAutoLink($getRoot());
-			},
-			{
-				onUpdate: () => {
-					editor.blur();
-				},
+		editor.update(() => {
+			let s = value || "";
+			s = s.replace(/<p><br><\/p>/g, "");
+			s = s.replace(/[\r\n]+/g, "");
+			const parser = new DOMParser();
+			// Convert string to DOM. But if the first body node is a text, then assume input is just text and not HTML.
+			let dom = parser.parseFromString(s, "text/html");
+			if (
+				dom.body.firstChild === null ||
+				dom.body.firstChild.nodeType === Node.TEXT_NODE
+			) {
+				const asHtml = s
+					.split("\n")
+					.map((t) => `<p>${t}</p>`)
+					.join("");
+				dom = parser.parseFromString(asHtml, "text/html");
 			}
-		);
+			const nodes = $generateNodesFromDOM(editor, dom);
+			$getRoot().clear().select().insertNodes(nodes);
+			//console.log(nodes);
+
+			recursivelyReplaceLinkWithAutoLink($getRoot());
+
+			$addUpdateTag(SKIP_DOM_SELECTION_TAG); // Don't take focus
+		});
 	}, []);
 
 	React.useEffect(() => {
