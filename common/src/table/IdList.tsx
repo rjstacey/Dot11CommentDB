@@ -34,7 +34,6 @@ function IdList({
 	const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
 	const mirrorRef = React.useRef<HTMLDivElement>(null);
 	const [value, setValue] = React.useState(() => ids.join(", "));
-	const [mirrorHtml, setMirrorHtml] = React.useState(markInvalid(value));
 
 	React.useEffect(() => {
 		const textAreaEl = textAreaRef.current!;
@@ -94,7 +93,7 @@ function IdList({
 	React.useEffect(() => {
 		// Update value only if not receiving key input
 		if (textAreaRef.current === document.activeElement) return;
-		setValue(() => ids.join(", "));
+		setValue(ids.join(", "));
 	}, [ids]);
 
 	function markInvalid(value: string) {
@@ -106,10 +105,6 @@ function IdList({
 
 	function handleChange(value: string) {
 		setValue(value);
-
-		// Update mirror HTML, marking all the invalid ids
-		setMirrorHtml(markInvalid(value));
-
 		let updatedIds: EntityId[] = value.match(idRegex) || [];
 		if (isNumber) updatedIds = updatedIds.map(Number);
 		if (updatedIds.join() !== ids.join()) onChange(updatedIds);
@@ -123,7 +118,7 @@ function IdList({
 			<div
 				ref={mirrorRef}
 				className="mirror"
-				dangerouslySetInnerHTML={{ __html: mirrorHtml }}
+				dangerouslySetInnerHTML={{ __html: markInvalid(value) }}
 			/>
 			<TextArea
 				id="id-list"
