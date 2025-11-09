@@ -1,4 +1,10 @@
-import { AppTable, ShowFilters, SplitTableButtonGroup } from "@common";
+import { Row, Col } from "react-bootstrap";
+import {
+	AppTable,
+	ShowFilters,
+	GlobalFilter,
+	SplitTableButtonGroup,
+} from "@common";
 import {
 	sessionAttendanceSummarySelectors,
 	sessionAttendanceSummaryActions,
@@ -17,11 +23,21 @@ export function SessionAttendanceSummaryTable() {
 				columns={tableColumns}
 			/>
 			<Main>
-				<ShowFilters
-					fields={fields}
-					selectors={sessionAttendanceSummarySelectors}
-					actions={sessionAttendanceSummaryActions}
-				/>
+				<Row className="align-items-center w-100">
+					<Col>
+						<ShowFilters
+							selectors={sessionAttendanceSummarySelectors}
+							actions={sessionAttendanceSummaryActions}
+							fields={fields}
+						/>
+					</Col>
+					<Col xs={3} sm={2}>
+						<GlobalFilter
+							selectors={sessionAttendanceSummarySelectors}
+							actions={sessionAttendanceSummaryActions}
+						/>
+					</Col>
+				</Row>
 				<AppTable
 					columns={tableColumns}
 					headerHeight={40}
