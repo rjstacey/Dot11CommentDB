@@ -11,6 +11,10 @@ import {
 	loadSessionAttendanceSummary,
 	clearSessionAttendanceSummary,
 } from "@/store/sessionAttendanceSummary";
+import {
+	clearSessionRegistration,
+	selectSessionRegistrationState,
+} from "@/store/sessionRegistration";
 import { loadSessions, selectSessionByNumber } from "@/store/sessions";
 import { rootLoader } from "../rootLoader";
 
@@ -34,6 +38,7 @@ export const indexLoader: LoaderFunction = async (args) => {
 	const { dispatch } = store;
 	dispatch(clearImatAttendanceSummary());
 	dispatch(clearSessionAttendanceSummary());
+	dispatch(clearSessionRegistration());
 
 	return null;
 };
@@ -63,6 +68,12 @@ export const sessionAttendanceLoader: LoaderFunction = async (args) => {
 	if (session) {
 		dispatch(loadImatAttendanceSummary(groupName, session.id, useDaily));
 		dispatch(loadSessionAttendanceSummary(groupName, session.id));
+		const regState = selectSessionRegistrationState(getState());
+		if (
+			regState.groupName !== groupName ||
+			regState.sessionId !== session.id
+		)
+			dispatch(clearSessionRegistration());
 	} else {
 		throw new Error("Can't find session " + sessionNumber);
 	}

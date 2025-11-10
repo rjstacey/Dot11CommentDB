@@ -49,21 +49,26 @@ export async function parseRegistrationSpreadsheet(
 	const regTypeIndex = rows[0].findIndex((v) => /registration/i.test(v));
 	if (regTypeIndex < 0)
 		throw new TypeError("Can't find registration type column");
-	const firstNameIndex = rows[0].findIndex((v) => /first name/i.test(v));
-	if (firstNameIndex < 0) throw new TypeError("Can't find First Name column");
-	const lastNameIndex = rows[0].findIndex((v) => /last name/i.test(v));
-	if (lastNameIndex < 0) throw new TypeError("Can't find Last Name column");
 	const fullNameIndex = rows[0].findIndex((v) => /full name/i.test(v));
+	const firstNameIndex = rows[0].findIndex((v) => /first name/i.test(v));
+	const lastNameIndex = rows[0].findIndex((v) => /last name/i.test(v));
+	if (fullNameIndex < 0 && (firstNameIndex < 0 || lastNameIndex < 0))
+		throw new TypeError(
+			"Need either Full Name or both First and Last Name columns"
+		);
 	rows.shift();
 	const registrations = rows.map((r, id) => {
-		let Name = r[firstNameIndex] + " " + r[lastNameIndex];
+		let Name: string;
+		const FirstName = firstNameIndex >= 0 ? r[firstNameIndex] : "";
+		const LastName = lastNameIndex >= 0 ? r[lastNameIndex] : "";
 		if (fullNameIndex >= 0) Name = r[fullNameIndex];
+		else Name = FirstName + " " + LastName;
 		return {
 			id,
 			SAPIN: Number(r[sapinIndex]) || null,
 			Name,
-			FirstName: r[firstNameIndex],
-			LastName: r[lastNameIndex],
+			FirstName,
+			LastName,
 			Email: r[emailIndex],
 			RegType: r[regTypeIndex],
 		} satisfies SessionRegistrationSS;
