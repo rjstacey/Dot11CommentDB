@@ -170,16 +170,20 @@ function FilterComponent({
 	}, [values, dataRenderer, filter]);
 
 	const filterSelected = React.useCallback(() => {
-		const comps: FilterComp[] = selected.map((id) => ({
-			value: getField(entities[id]!, dataKey),
-			operation: CompOp.EQ,
-		}));
+		const comps: FilterComp[] = selected
+			.filter((id) => entities[id])
+			.map((id) => ({
+				value: getField(entities[id]!, dataKey),
+				operation: CompOp.EQ,
+			}));
 		dispatch(actions.setFilter({ dataKey, comps }));
 	}, [dispatch, actions, dataKey, selected, entities, getField]);
 
 	const isFilterSelected = React.useMemo(() => {
 		if (!filter) return false;
-		const list = selected.map((id) => getField(entities[id]!, dataKey));
+		const list = selected
+			.filter((id) => entities[id])
+			.map((id) => getField(entities[id]!, dataKey));
 		return filter.comps.map((comp) => comp.value).join() === list.join();
 	}, [filter, dataKey, selected, entities, getField]);
 
