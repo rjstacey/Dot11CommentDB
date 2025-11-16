@@ -2,8 +2,6 @@ import globals from "globals";
 import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 
-const __dirname = process.cwd();
-
 /** @type {import('eslint').Linter.Config[]} */
 export default [
 	{
@@ -13,7 +11,7 @@ export default [
 			parser: "@typescript-eslint/parser",
 			parserOptions: {
 				sourceType: "module",
-				tsConfigRootDir: __dirname,
+				tsConfigRootDir: import.meta.dirname,
 			},
 			globals: globals.node,
 		},
