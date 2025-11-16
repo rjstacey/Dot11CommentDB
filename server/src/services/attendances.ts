@@ -148,7 +148,6 @@ export async function importAttendances(
 		);
 	}
 
-	const queries: Promise<ResultSetHeader>[] = [];
 	let sql: string;
 
 	// Clear AttendancePercentage for current entries
@@ -156,9 +155,10 @@ export async function importAttendances(
 		"UPDATE attendanceSummary SET AttendancePercentage=NULL WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
 		[group.id, session.id]
 	);
-	queries.push(db.query(sql));
+	await db.query(sql);
 
-	imatAttendances.forEach((a) => {
+	const queries: Promise<ResultSetHeader>[] = [];
+	for (const a of imatAttendances) {
 		sql =
 			db.format(
 				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, AttendancePercentage) VALUES "
@@ -171,7 +171,7 @@ export async function importAttendances(
 			]) +
 			" ON DUPLICATE KEY UPDATE AttendancePercentage=VALUES(AttendancePercentage)";
 		queries.push(db.query(sql));
-	});
+	}
 	await Promise.all(queries);
 
 	const attendances = await getAttendances({ groupId: group.id, session_id });
@@ -215,7 +215,6 @@ export async function uploadRegistration(
 		return entity;
 	});
 
-	const queries: Promise<ResultSetHeader>[] = [];
 	let sql: string;
 
 	// Clear InPerson and IsRegistered for current entries
@@ -223,10 +222,11 @@ export async function uploadRegistration(
 		"UPDATE attendanceSummary SET InPerson=NULL, IsRegistered=NULL WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
 		[group.id, session_id]
 	);
-	queries.push(db.query(sql));
+	await db.query(sql);
 
-	registrations.forEach((r) => {
-		if (r.CurrentSAPIN === null) return; // Not (yet) present in users table
+	const queries: Promise<ResultSetHeader>[] = [];
+	for (const r of registrations) {
+		if (r.CurrentSAPIN === null) continue; // Not (yet) present in users table
 		sql =
 			db.format(
 				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, InPerson, IsRegistered) VALUES "
@@ -240,7 +240,7 @@ export async function uploadRegistration(
 			]) +
 			" ON DUPLICATE KEY UPDATE InPerson=VALUES(InPerson), IsRegistered=VALUES(IsRegistered)";
 		queries.push(db.query(sql));
-	});
+	}
 	await Promise.all(queries);
 
 	const attendances = await getAttendances({ groupId: group.id, session_id });
