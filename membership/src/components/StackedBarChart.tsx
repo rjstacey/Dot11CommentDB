@@ -187,6 +187,8 @@ function StackedBarChart({
 	ids,
 	entities,
 	yLabel,
+	className,
+	style,
 }: {
 	svgRef?: React.RefObject<SVGSVGElement>;
 	height: number;
@@ -195,16 +197,16 @@ function StackedBarChart({
 	ids: string[];
 	entities: Record<string, Record<string, number>>;
 	yLabel: string;
+	className?: string;
+	style?: React.StyleHTMLAttributes<HTMLOrSVGElement>;
 }) {
 	const viewWidth = 1600;
 	const viewHeight = 900;
-	const margin = 0;
-	const marginTop = 20;
 
 	const [xAxisHeight, setXAxisHeight] = React.useState(200);
 	const [yAxisWidth, setYAxisWidth] = React.useState(40);
-	const plotWidth = viewWidth - 2 * margin - yAxisWidth;
-	const plotHeight = viewHeight - 2 * margin - marginTop - xAxisHeight;
+	const plotWidth = viewWidth - yAxisWidth;
+	const plotHeight = viewHeight - xAxisHeight;
 
 	const keys = Object.keys(series);
 
@@ -232,7 +234,10 @@ function StackedBarChart({
 		xAxis({ gRef, xScale });
 		const b = gRef.getBoundingClientRect();
 		// Prevent repeated re-rendering by rounding to 0.1
-		setXAxisHeight(Math.ceil(b.height * 10) / 10);
+		console.log("height", b.height);
+		const h = Math.ceil(b.height * 10) / 10;
+		const scaledHeight = (h * viewHeight) / height;
+		setXAxisHeight(scaledHeight);
 	}, [xScale]);
 
 	const gyRef = React.useRef<SVGSVGElement>(null);
@@ -241,7 +246,9 @@ function StackedBarChart({
 		yAxis({ gRef, yScale, plotHeight, label: yLabel });
 		const b = gRef.getBoundingClientRect();
 		// Prevent repeated re-rendering by rounding to 0.1
-		setYAxisWidth(Math.ceil(b.width * 10) / 10);
+		const w = Math.ceil(b.width * 10) / 10;
+		const scaledWidth = (w * viewWidth) / width;
+		setYAxisWidth(scaledWidth);
 	}, [yScale, plotHeight, yLabel]);
 
 	const gLegendRef = React.useRef<SVGSVGElement>(null);
@@ -260,28 +267,20 @@ function StackedBarChart({
 			id="chart"
 			ref={svgRef}
 			viewBox={`0 0 ${viewWidth} ${viewHeight}`}
-			width={width - 20}
-			height={height - 40}
+			//width={width}
+			//height={height}
 			fontSize={16}
-			style={{ color: "black" }}
+			style={{ ...style, color: "black" }}
+			className={className}
 		>
 			<g
 				ref={gxRef}
-				transform={`translate(${margin + yAxisWidth} ${
-					viewHeight - xAxisHeight - margin
+				transform={`translate(${yAxisWidth} ${
+					viewHeight - xAxisHeight
 				})`}
 			/>
-			<g
-				ref={gyRef}
-				transform={`translate(${margin + yAxisWidth} ${
-					margin + marginTop
-				})`}
-			/>
-			<g
-				transform={`translate(${margin + yAxisWidth} ${
-					margin + marginTop
-				})`}
-			>
+			<g ref={gyRef} transform={`translate(${yAxisWidth} ${0})`} />
+			<g transform={`translate(${yAxisWidth} ${0})`}>
 				<PlotArea
 					xScale={xScale}
 					yScale={yScale}
@@ -292,7 +291,7 @@ function StackedBarChart({
 			</g>
 			<g
 				ref={gLegendRef}
-				transform={`translate(${viewWidth - 300} ${60 + marginTop})`}
+				transform={`translate(${viewWidth - 300} ${60})`}
 			></g>
 		</svg>
 	);

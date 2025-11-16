@@ -12,7 +12,7 @@ export function MembersChart() {
 	const { ref, width, height } = useDimensions();
 
 	return (
-		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden">
+		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden m-3">
 			<StackedBarChart
 				width={width}
 				height={height}

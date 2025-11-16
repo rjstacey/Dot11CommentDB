@@ -8,13 +8,13 @@ export function ChartActions() {
 				variant="outline-primary"
 				className="bi-copy"
 				title="Copy chart to clipboard"
-				onClick={() => copyChartToClipboard("#chart")}
+				onClick={() => copyChartToClipboard("svg#chart")}
 			/>
 			<Button
 				variant="outline-primary"
 				className="bi-cloud-download"
 				title="Export chart"
-				onClick={downloadChart}
+				onClick={() => downloadChart("svg#chart")}
 			/>
 		</Col>
 	);

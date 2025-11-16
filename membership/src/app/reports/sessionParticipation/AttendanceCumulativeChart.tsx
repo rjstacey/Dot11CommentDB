@@ -232,7 +232,7 @@ function Chart({ width, height }: { width: number; height: number }) {
 export function CumulativeChart() {
 	const { ref, width, height } = useDimensions();
 	return (
-		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden">
+		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden m-3">
 			<Chart width={width} height={height} />
 		</Ratio>
 	);

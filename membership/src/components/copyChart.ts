@@ -12,12 +12,10 @@ function blinkElement(el: Element) {
  * from SVG to a PNG and then do the write to the clipboard.
  */
 interface F {
-	(svg: Element | null): Promise<Blob | null | undefined>;
+	(svg: Element): Promise<Blob | null | undefined>;
 	canvas?: HTMLCanvasElement;
 }
 const svgToPngBlob: F = async function (svg) {
-	if (!svg) return;
-
 	let svgText = svg.outerHTML;
 	const { width, height } = svg.getBoundingClientRect();
 
@@ -57,9 +55,12 @@ const svgToPngBlob: F = async function (svg) {
 	});
 };
 
-export function copyChartToClipboard(selector: string = "") {
-	const svg = document.querySelector("svg" + selector);
-	if (!svg) return;
+export function copyChartToClipboard(selector: string = "svg#chart") {
+	const svg = document.querySelector(selector);
+	if (!svg) {
+		console.warn("Can't find " + selector);
+		return;
+	}
 
 	let svgText = svg.outerHTML;
 	if (!svgText.match(/xmlns="/im))
@@ -79,7 +80,7 @@ export function copyChartToClipboard(selector: string = "") {
 			blinkElement(svg);
 		})
 		.catch(() => {
-			svgToPngBlob(svg!).then((blob) => {
+			svgToPngBlob(svg).then((blob) => {
 				const item = new ClipboardItem({ "image/png": blob! });
 				navigator.clipboard
 					.write([item])
@@ -89,9 +90,12 @@ export function copyChartToClipboard(selector: string = "") {
 		});
 }
 
-export function downloadChart() {
-	const svg = document.getElementById("chart");
-	if (!svg) return;
+export function downloadChart(selector: string = "svg#chart") {
+	const svg = document.querySelector(selector);
+	if (!svg) {
+		console.warn("Can't find " + selector);
+		return;
+	}
 
 	let svgText = svg.outerHTML;
 	if (!svgText.match(/xmlns="/im))
