@@ -76,7 +76,7 @@ export async function updateAffiliationMaps(
 
 export async function removeAffiliationMaps(group: Group, ids: number[]) {
 	const sql = db.format(
-		"DELETE FROM affiliationMaps WHERE groupId=UUID_TO_BIN(?) AND id IN (?)",
+		"DELETE FROM affiliationMap WHERE groupId=UUID_TO_BIN(?) AND id IN (?)",
 		[group.id, ids]
 	);
 	const result = await db.query<ResultSetHeader>(sql);
