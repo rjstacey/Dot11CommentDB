@@ -24,7 +24,7 @@ import styles from "./AppTable.module.css";
 export type { GetEntityField, AppTableDataSelectors, AppTableDataActions };
 
 export type HeaderCellRendererProps = {
-	label?: string; // Column label
+	label?: React.ReactNode; // Column label
 	dataKey: string; // Identifies the data element in the row object
 	column: ColumnProperties & ChangeableColumnProperties;
 	anchorEl: HTMLElement | null;
@@ -42,7 +42,7 @@ export type CellRendererProps<T = any> = {
 
 export type ColumnProperties = {
 	key: string;
-	label?: string;
+	label?: React.ReactNode;
 	width?: number;
 	flexGrow?: number;
 	flexShrink?: number;

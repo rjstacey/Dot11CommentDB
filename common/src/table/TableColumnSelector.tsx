@@ -35,7 +35,7 @@ function ColumnSelectorDropdown({
 
 	/* Build an array of 'selectable' column config that includes a column label */
 	const selectableColumns: Array<
-		ChangeableColumnProperties & { key: string; label: string }
+		ChangeableColumnProperties & { key: string; label: React.ReactNode }
 	> = [];
 	for (const [key, config] of Object.entries<ChangeableColumnProperties>(
 		tableConfig.columns

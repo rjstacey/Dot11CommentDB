@@ -489,12 +489,10 @@ function AppTableHeaderCell({
 	const dropdownToggle = (
 		<Dropdown.Toggle
 			variant="secondary-outline"
-			className="d-flex align-items-center w-100 p-0 text-wrap hasDropdown"
+			className={styles["header"]}
 		>
-			<span className="label flex-grow-1 text-start fw-bold">
-				{label || dataKey}
-			</span>
-			<div className="handle">
+			<span className="label">{label || dataKey}</span>
+			<div className="filter-sort-icons">
 				{isFiltered && (
 					<i className="bi-funnel" style={{ opacity: 0.2 }} />
 				)}
