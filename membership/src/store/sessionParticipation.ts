@@ -282,6 +282,7 @@ function memberExpectedStatusFromAttendanceStats(
 	if (count === 0 && !hasPartial && status !== "Non-Voter")
 		return "Non-Voter";
 
+	/* However, if any attendance means Observer rather than Non-Voter */
 	if (count === 0 && hasPartial && status !== "Observer") return "Observer";
 
 	/* A Non-Voter becomes an Aspirant after attending 1 plenary or interim session.
