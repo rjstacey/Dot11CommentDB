@@ -167,13 +167,8 @@ function recentAttendanceStats(
 	const total = plenaryCount;
 
 	// Has attended at least one session partially
-	const hasPartial = Boolean(
-		attendances.find(
-			(a) =>
-				((a.AttendancePercentage || 0) > 0 || a.DidAttend) &&
-				!a.DidNotAttend
-		)
-	);
+	const hasPartial =
+		attendances.findIndex((a) => (a.AttendancePercentage || 0) > 0) >= 0;
 
 	attendances = attendances
 		.filter((a) => sessionIds.includes(a.session_id)) // only relevant sessions
