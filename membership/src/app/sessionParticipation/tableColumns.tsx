@@ -93,6 +93,13 @@ const tableColumns: ColumnProperties[] = [
 	},
 ];
 
+const lineTruncStyle: React.CSSProperties = {
+	maxWidth: "100%",
+	overflow: "hidden",
+	whiteSpace: "nowrap",
+	textOverflow: "ellipses",
+};
+
 export function useTableColumns() {
 	const sessions = useAppSelector(selectRecentSessions);
 
@@ -116,12 +123,20 @@ export function useTableColumns() {
 				const yearMonth = DateTime.fromISO(session.startDate).toFormat(
 					"yyyy MMM"
 				);
+				const identifier =
+					session.type.toLocaleUpperCase() + ": " + yearMonth;
+				const parts = session.name.split(",");
+				const place = (parts.length > 1 ? parts[1] : parts[0]).trim();
+				const label: React.ReactNode = (
+					<>
+						<span style={lineTruncStyle}>{identifier}</span>
+						<br />
+						<span style={lineTruncStyle}>{place}</span>
+					</>
+				);
 				const column = {
 					key: "session_" + i,
-					label:
-						(session.type || "?").toLocaleUpperCase() +
-						": " +
-						yearMonth,
+					label,
 					width: 100,
 					flexGrow: 1,
 					flexShrink: 1,
