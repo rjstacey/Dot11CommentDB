@@ -59,10 +59,22 @@ export async function parseRegistrationSpreadsheet(
 	rows.shift();
 	const registrations = rows.map((r, id) => {
 		let Name: string;
-		const FirstName = firstNameIndex >= 0 ? r[firstNameIndex] : "";
-		const LastName = lastNameIndex >= 0 ? r[lastNameIndex] : "";
-		if (fullNameIndex >= 0) Name = r[fullNameIndex];
-		else Name = FirstName + " " + LastName;
+		let FirstName = firstNameIndex >= 0 ? r[firstNameIndex] : "";
+		let LastName = lastNameIndex >= 0 ? r[lastNameIndex] : "";
+		if (fullNameIndex >= 0) {
+			Name = r[fullNameIndex].trim();
+			if (Name.includes(",")) {
+				// Assume "Last, First"
+				const parts = Name.split(",");
+				if (parts.length >= 2) {
+					LastName = parts[0].trim();
+					FirstName = parts.slice(1).join(",").trim();
+					Name = FirstName + " " + LastName;
+				}
+			}
+		} else {
+			Name = FirstName + " " + LastName;
+		}
 		return {
 			id,
 			SAPIN: Number(r[sapinIndex]) || null,

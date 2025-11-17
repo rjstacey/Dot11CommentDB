@@ -41,9 +41,14 @@ export function useRenderSessionAttendances() {
 				const a =
 					attendances[id] || getNullAttendanceSummary(id, SAPIN);
 
-				let notes = "";
-				if (a.DidAttend) notes = "Override: did attend";
-				else if (a.DidNotAttend) notes = "Override: did not attend";
+				let notes = a.Notes || "";
+				if (a.DidAttend) {
+					if (notes) notes += "; ";
+					notes += "Override: did attend";
+				} else if (a.DidNotAttend) {
+					if (notes) notes += "; ";
+					notes += "Override: did not attend";
+				}
 				if (a.SAPIN !== SAPIN) {
 					if (notes) notes += "; ";
 					notes += `Attended using SAPIN=${a.SAPIN}`;

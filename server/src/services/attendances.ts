@@ -227,18 +227,28 @@ export async function uploadRegistration(
 	const queries: Promise<ResultSetHeader>[] = [];
 	for (const r of registrations) {
 		if (r.CurrentSAPIN === null) continue; // Not (yet) present in users table
+		const InPerson = /virtual|remote/i.test(r.RegType) ? 0 : 1;
+		const IsRegistered = 1;
+		let DidNotAttend = 0;
+		let Notes: string | null = null;
+		if (/student/i.test(r.RegType)) {
+			DidNotAttend = 1;
+			Notes = "Student registration";
+		}
 		sql =
 			db.format(
-				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, InPerson, IsRegistered) VALUES "
+				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, InPerson, IsRegistered, DidNotAttend, Notes) VALUES "
 			) +
-			db.format("(UUID_TO_BIN(?), ?, ?, ?, ?)", [
+			db.format("(UUID_TO_BIN(?), ?, ?, ?, ?, ?, ?)", [
 				group.id,
 				session_id,
 				r.CurrentSAPIN,
-				/virtual|remote/i.test(r.RegType) ? 0 : 1,
-				1,
+				InPerson,
+				IsRegistered,
+				DidNotAttend,
+				Notes,
 			]) +
-			" ON DUPLICATE KEY UPDATE InPerson=VALUES(InPerson), IsRegistered=VALUES(IsRegistered)";
+			" ON DUPLICATE KEY UPDATE InPerson=VALUES(InPerson), IsRegistered=VALUES(IsRegistered), DidNotAttend=VALUES(DidNotAttend), Notes=VALUES(Notes)";
 		queries.push(db.query(sql));
 	}
 	await Promise.all(queries);

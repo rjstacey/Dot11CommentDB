@@ -191,6 +191,7 @@ const defaultTablesColumns = {
 		"SAPIN",
 		"Name/Email",
 		"Employer/Affiliation",
+		"OldStatus",
 		"Status",
 		"StatusChangeDate",
 	],

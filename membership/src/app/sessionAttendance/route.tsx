@@ -1,5 +1,5 @@
 import * as React from "react";
-import { RouteObject } from "react-router";
+import { RouteObject, Navigate } from "react-router";
 import { indexLoader, sessionAttendanceLoader } from "./loader";
 import SessionAttendanceLayout from "./layout";
 import SessionNumberLayout from "./sessionNumberLayout";
@@ -25,7 +25,7 @@ export const sessionAttendanceRoute: RouteObject = {
 				</React.Suspense>
 			),
 			children: [
-				{ index: true, element: <Main /> },
+				{ index: true, element: <Navigate to="imat" /> },
 				{ path: "imat", ...imatRoute },
 				{ path: "summary", ...summaryRoute },
 				{ path: "registration", ...registrationRoute },
