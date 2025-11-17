@@ -11,7 +11,7 @@ export default [
 			parser: "@typescript-eslint/parser",
 			parserOptions: {
 				sourceType: "module",
-				tsConfigRootDir: import.meta.dirname,
+				tsconfigRootDir: import.meta.dirname,
 			},
 			globals: globals.node,
 		},
