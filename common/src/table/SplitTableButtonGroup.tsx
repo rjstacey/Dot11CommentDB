@@ -13,14 +13,19 @@ export function SplitTableButtonGroup({
 	columns,
 	selectors,
 	actions,
+	className,
 	...props
 }: {
 	columns: ColumnProperties[];
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
 } & React.ComponentProps<typeof Col>) {
+	className = className ? className + " " : "";
 	return (
-		<Col className="d-flex align-items-center gap-2" {...props}>
+		<Col
+			className={className + "d-flex align-items-center gap-2"}
+			{...props}
+		>
 			<TableViewSelector selectors={selectors} actions={actions} />
 			<TableColumnSelector
 				columns={columns}

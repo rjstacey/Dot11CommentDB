@@ -20,10 +20,8 @@ import { EditTable as Table } from "@/components/Table";
 
 import StatusSelector from "./StatusSelector";
 import type { MultipleMember } from "./MemberEdit";
-import { hasChangesStyle } from "../utils";
-
-const MULTIPLE_STR = "(Multiple)";
-const BLANK_STR = "(Blank)";
+import { hasChangesStyle } from "@/components/utils";
+import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 
 const displayDate = (isoDateTime: string) =>
 	DateTime.fromISO(isoDateTime).toLocaleString(DateTime.DATE_MED);

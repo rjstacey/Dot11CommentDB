@@ -53,7 +53,7 @@ export function SessionAttendanceActions() {
 			<SessionAttendanceSubmenu style={{ order: 2 }} />
 			<div
 				style={{ order: 4 }}
-				className="d-flex justify-content-end align-items-center justify-self-stretch m-3 gap-2"
+				className="d-flex align-items-center gap-2 ms-3"
 			>
 				{actions}
 				<Button

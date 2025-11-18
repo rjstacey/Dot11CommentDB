@@ -17,6 +17,8 @@ export function SessionAttendanceSummaryTable() {
 	return (
 		<>
 			<SplitTableButtonGroup
+				xs="auto"
+				className="ms-auto"
 				style={{ order: 3 }}
 				selectors={sessionAttendanceSummarySelectors}
 				actions={sessionAttendanceSummaryActions}

@@ -22,6 +22,8 @@ export function SessionAttendanceTable() {
 	return (
 		<>
 			<SplitTableButtonGroup
+				xs="auto"
+				className="ms-auto"
 				style={{ order: 3 }}
 				selectors={sessionAttendeesSelectors}
 				actions={sessionAttendeesActions}

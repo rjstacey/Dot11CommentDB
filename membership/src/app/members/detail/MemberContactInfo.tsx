@@ -17,7 +17,7 @@ import {
 	ContactInfo,
 	memberContactInfoEmpty,
 } from "@/store/members";
-import { hasChangesStyle } from "../utils";
+import { hasChangesStyle } from "@/components/utils";
 import { EditTable as Table, TableColumn } from "@/components/Table";
 
 import type { MultipleMember } from "./MemberEdit";

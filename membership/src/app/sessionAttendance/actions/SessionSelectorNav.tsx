@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 
-import { Col, Form, Spinner } from "react-bootstrap";
+import { Form, Spinner } from "react-bootstrap";
 import { Select } from "@common";
 import { displayDateRange } from "@common";
 
@@ -34,11 +34,13 @@ function SessionSelector({
 	onChange,
 	readOnly,
 	style,
+	className,
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
 	readOnly?: boolean;
 	style?: React.CSSProperties;
+	className?: string;
 }) {
 	const { loading, valid } = useAppSelector(selectSessionsState);
 	const options = useAppSelector(selectRecentPlusOneSessions);
@@ -48,7 +50,8 @@ function SessionSelector({
 
 	return (
 		<Select
-			style={{ ...style, minWidth: 300 }}
+			style={style}
+			className={className}
 			values={values}
 			onChange={handleChange}
 			options={options}
@@ -57,14 +60,13 @@ function SessionSelector({
 			itemRenderer={renderSession}
 			selectItemRenderer={renderSession}
 			readOnly={readOnly}
-			portal={document.querySelector("#root")}
 			valueField="id"
 			labelField="name"
 		/>
 	);
 }
 
-export function SessionSelectorNav(props: React.ComponentProps<typeof Col>) {
+export function SessionSelectorNav(props: React.ComponentProps<"div">) {
 	const navigate = useNavigate();
 	const params = useParams();
 	const [searchParams] = useSearchParams();
@@ -88,40 +90,29 @@ export function SessionSelectorNav(props: React.ComponentProps<typeof Col>) {
 	const { loading } = useAppSelector(selectImatAttendanceSummaryState);
 
 	return (
-		<Col xs="auto" className="d-flex align-items-center gap-3" {...props}>
-			<Col xs="auto">
-				<SessionSelector
-					value={sessionNumber}
-					onChange={setSessionNumber}
+		<div className="d-flex align-items-center gap-3 me-3" {...props}>
+			<SessionSelector
+				style={{ width: 400 }}
+				value={sessionNumber}
+				onChange={setSessionNumber}
+			/>
+			<div className="d-flex flex-column" style={{ width: 200 }}>
+				<Form.Check
+					id="useDaily"
+					checked={useDaily}
+					onChange={toggleUseDaily}
+					disabled={loading}
+					label="Daily attendance"
 				/>
-			</Col>
-			<Col xs="auto" className="d-flex flex-column">
-				<Form.Group
-					controlId="useDaily"
-					className="d-flex align-items-center gap-2"
-				>
-					<Form.Check
-						checked={useDaily}
-						onChange={toggleUseDaily}
-						disabled={loading}
-						label="Daily attendance"
-					/>
-				</Form.Group>
-				<Form.Group
-					controlId="not_useDaily"
-					className="d-flex align-items-center gap-2"
-				>
-					<Form.Check
-						checked={!useDaily}
-						onChange={toggleUseDaily}
-						disabled={loading}
-						label="Attendance summary"
-					/>
-				</Form.Group>
-			</Col>
-			<Col>
-				<Spinner hidden={!loading} />
-			</Col>
-		</Col>
+				<Form.Check
+					id="not_useDaily"
+					checked={!useDaily}
+					onChange={toggleUseDaily}
+					disabled={loading}
+					label="Attendance summary"
+				/>
+			</div>
+			<Spinner hidden={!loading} />
+		</div>
 	);
 }

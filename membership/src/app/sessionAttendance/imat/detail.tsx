@@ -39,7 +39,6 @@ import {
 import {
 	MemberBasicInfo,
 	MemberDetailInfo,
-	//emailPattern,
 	type MultipleMember,
 	type EditAction,
 } from "../../members/detail/MemberEdit";
@@ -50,6 +49,8 @@ import {
 import { sessionAttendeeToNewMember, useAttendanceUpdate } from "./utils";
 
 import ShowAccess from "@/components/ShowAccess";
+import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
+import { hasChangesStyle } from "@/components/utils";
 
 /** Identify changes to an existing member */
 function sessionAttendeeMemberChanges(
@@ -75,51 +76,67 @@ function sessionAttendeeMemberChanges(
 
 function renderAttendancePercentage(pct: typeof MULTIPLE | null | number) {
 	return isMultiple(pct) ? (
-		<i>(Multiple)</i>
+		<i>{MULTIPLE_STR}</i>
 	) : pct === null ? (
-		<i>(Blank)</i>
+		<i>{BLANK_STR}</i>
 	) : (
 		pct.toFixed(1) + "%"
 	);
 }
 
+function setIndeterminate(
+	ref: HTMLInputElement | null,
+	value: boolean | typeof MULTIPLE | null
+) {
+	if (ref) ref.indeterminate = isMultiple(value) ? true : false;
+}
+
 function AttendanceInfo({
 	attendance,
+	savedAttendance,
 	updateAttendance,
 }: {
 	attendance: MultipleSessionAttendanceSummary;
 	savedAttendance: MultipleSessionAttendanceSummary;
 	updateAttendance: (changes: SessionAttendanceSummaryChanges) => void;
 }) {
+	function AttendanceCheck({
+		dataKey,
+		label,
+	}: {
+		dataKey: "IsRegistered" | "InPerson" | "DidAttend" | "DidNotAttend";
+		label: string;
+	}) {
+		const id = "attendance-" + dataKey;
+		return (
+			<Form.Check
+				key={id}
+				id={id}
+				style={hasChangesStyle(attendance, savedAttendance, dataKey)}
+				checked={!!attendance[dataKey]}
+				ref={(ref) => setIndeterminate(ref, attendance[dataKey])}
+				onChange={(e) =>
+					updateAttendance({
+						[dataKey]: e.target.checked,
+					})
+				}
+				label={label}
+			/>
+		);
+	}
+
 	return (
 		<>
 			<Form.Group as={Row} className="mb-3">
 				<Col>
-					<Form.Label as="span">Registration:</Form.Label>
+					<Form.Label as="span">Session registration:</Form.Label>
 				</Col>
 				<Col xs={12} md={8}>
-					<Form.Check
-						id="isregistered"
-						checked={!!attendance.IsRegistered}
-						//indeterminate={isMultiple(attendance.IsRegistered)}
-						onChange={(e) =>
-							updateAttendance({
-								IsRegistered: e.target.checked,
-							})
-						}
+					<AttendanceCheck
+						dataKey="IsRegistered"
 						label="Registered"
 					/>
-					<Form.Check
-						id="inperson"
-						checked={!!attendance.InPerson}
-						//indeterminate={isMultiple(attendance.InPerson)}
-						onChange={(e) =>
-							updateAttendance({
-								InPerson: e.target.checked,
-							})
-						}
-						label="In-person"
-					/>
+					<AttendanceCheck dataKey="InPerson" label="In-person" />
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
@@ -137,27 +154,39 @@ function AttendanceInfo({
 					<Form.Label as="span">Attendance override:</Form.Label>
 				</Col>
 				<Col xs={12} md={8}>
-					<Form.Check
-						id="didattend"
-						checked={!!attendance.DidAttend}
-						//indeterminate={isMultiple(attendance.DidAttend)}
-						onChange={(e) =>
-							updateAttendance({
-								DidAttend: e.target.checked,
-							})
-						}
-						label="Did attend"
-					/>
-					<Form.Check
-						id="didnotattend"
-						checked={!!attendance.DidNotAttend}
-						//indeterminate={isMultiple(attendance.DidNotAttend)}
-						onChange={(e) =>
-							updateAttendance({
-								DidNotAttend: e.target.checked,
-							})
-						}
+					<AttendanceCheck dataKey="DidAttend" label="Did attend" />
+					<AttendanceCheck
+						dataKey="DidNotAttend"
 						label="Did not attend"
+					/>
+				</Col>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Col>
+					<Form.Label as="span">Attendance notes:</Form.Label>
+				</Col>
+				<Col xs={12} md={8}>
+					<Form.Control
+						type="text"
+						id="attendance-notes"
+						style={hasChangesStyle(
+							attendance,
+							savedAttendance,
+							"Notes"
+						)}
+						value={
+							(!isMultiple(attendance.Notes) &&
+								attendance.Notes) ||
+							""
+						}
+						onChange={(e) =>
+							updateAttendance({ Notes: e.target.value })
+						}
+						placeholder={
+							isMultiple(attendance.Notes)
+								? MULTIPLE_STR
+								: BLANK_STR
+						}
 					/>
 				</Col>
 			</Form.Group>
@@ -179,7 +208,7 @@ function MemberEntrySubmit({
 		<Form.Group as={Row} className="mb-3">
 			<Col xs={6} className="d-flex justify-content-center">
 				<Button type="submit">
-					{busy ? <Spinner animation="border" size="sm" /> : null}
+					<Spinner size="sm" hidden={!busy} className="me-2" />
 					{action === "add" ? "Add" : "Update"}
 				</Button>
 			</Col>
@@ -207,8 +236,8 @@ export function MemberEntryForm({
 	readOnly,
 	basicOnly,
 }: {
-	add: () => void;
-	update: () => void;
+	add: () => Promise<void>;
+	update: () => Promise<void>;
 	cancel: () => void;
 	action: EditAction;
 	sapins: number[];
@@ -221,14 +250,17 @@ export function MemberEntryForm({
 	readOnly?: boolean;
 	basicOnly?: boolean;
 }) {
+	const [busy, setBusy] = React.useState(false);
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!e.currentTarget.checkValidity()) {
 			ConfirmModal.show("Fix errors", false);
 			return;
 		}
-		if (action === "add") add();
-		else if (action === "update") update();
+		setBusy(true);
+		if (action === "add") await add();
+		else if (action === "update") await update();
+		setBusy(false);
 	}
 
 	function changeMember(changes: Partial<Member>) {
@@ -281,7 +313,7 @@ export function MemberEntryForm({
 					/>
 				</Row>
 			)}
-			<MemberEntrySubmit action={action} busy={false} cancel={cancel} />
+			<MemberEntrySubmit action={action} busy={busy} cancel={cancel} />
 		</Form>
 	);
 }
@@ -526,7 +558,16 @@ export function MemberAttendanceDetail() {
 	};
 
 	const cancel = () => {
-		setState(initState);
+		setState((state) => {
+			const { action, savedMember, savedAttendance } = state;
+			if (action === "add") return state;
+			return {
+				...state,
+				action: "view",
+				editedMember: savedMember,
+				editedAttendance: savedAttendance,
+			};
+		});
 	};
 
 	let title: string;

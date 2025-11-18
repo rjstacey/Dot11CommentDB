@@ -11,8 +11,7 @@ import {
 } from "react-bootstrap";
 import { DateTime } from "luxon";
 
-import { ConfirmModal } from "@common";
-import { isMultiple, type Multiple, MULTIPLE } from "@common";
+import { ConfirmModal, isMultiple, type Multiple, MULTIPLE } from "@common";
 
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
@@ -33,7 +32,8 @@ import { MemberStatus } from "./MemberStatus";
 import { IeeeMemberSelector } from "./IeeeMemberSelector";
 import { MemberAllSelector } from "./MemberAllSelector";
 import { MemberContactInfo } from "./MemberContactInfo";
-import { hasChangesStyle } from "../utils";
+import { hasChangesStyle } from "@/components/utils";
+import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 
 export type MultipleMember = Multiple<
 	Omit<MemberCreate, "StatusChangeHistory" | "ContactEmails" | "ContactInfo">
@@ -46,9 +46,6 @@ export type MultipleMember = Multiple<
 };
 
 export type EditAction = "view" | "update" | "add";
-
-const BLANK_STR = "(Blank)";
-const MULTIPLE_STR = "(Multiple)";
 
 const displayDate = (isoDateTime: string) =>
 	DateTime.fromISO(isoDateTime).toLocaleString(DateTime.DATE_MED);

@@ -44,13 +44,7 @@ export const fields: Fields = {
 	ContactInfo: { label: "Contact Info" },
 	Status: { label: "Status" },
 	AttendancePercentage: { label: "Attendance", type: FieldType.NUMERIC },
-	InPerson: {
-		label: "In-Person",
-		options: [
-			{ value: true, label: "In-person x" },
-			{ value: false, label: "Remote x" },
-		],
-	},
+	InPerson: { label: "In-Person" },
 	IsRegistered: { label: "Registered" },
 	Notes: { label: "Notes" },
 };

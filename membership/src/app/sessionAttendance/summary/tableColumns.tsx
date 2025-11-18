@@ -63,7 +63,7 @@ export const tableColumns: ColumnProperties[] = [
 		flexGrow: 1,
 		flexShrink: 1,
 		dataRenderer: (d: number | null) =>
-			d === null ? "" : d.toFixed(0) + "%",
+			d === null ? "" : d.toFixed(1) + "%",
 	},
 	{
 		key: "IsRegistered",
@@ -81,7 +81,7 @@ export const tableColumns: ColumnProperties[] = [
 		flexGrow: 1,
 		flexShrink: 1,
 		dataRenderer: (d: boolean | null) =>
-			d === null ? "" : d ? "YES" : "NO",
+			d === null ? "" : d ? "In-person" : "Remote",
 	},
 	{
 		key: "Notes",

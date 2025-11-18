@@ -50,15 +50,13 @@ const renderAffiliation = ({
 	/>
 );
 
-let i = 0;
 const renderAttendance = ({
 	rowData,
 }: CellRendererProps<SyncedSessionAttendee>) => {
-	const newStr = rowData.AttendancePercentage.toFixed(0) + "%";
+	const newStr = rowData.AttendancePercentage.toFixed(1) + "%";
 	let oldStr: string | null = null;
 	if (rowData.CurrentAttendancePercentage !== null)
-		oldStr = rowData.CurrentAttendancePercentage.toFixed(0) + "%";
-	if (i++ < 1) console.log(newStr, oldStr);
+		oldStr = rowData.CurrentAttendancePercentage.toFixed(1) + "%";
 	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
 };
 
@@ -135,27 +133,20 @@ export const tableColumns: ColumnProperties[] = [
 		cellRenderer: renderAttendance,
 	},
 	{
+		key: "IsRegistered",
+		label: "Registered",
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+		dataRenderer: (d: boolean) => (d ? "YES" : "NO"),
+	},
+	{
 		key: "InPerson",
 		label: "In-Person",
 		width: 80,
 		flexGrow: 1,
 		flexShrink: 1,
 		dataRenderer: (d: boolean) => (d ? "In-person" : "Remote"),
-	},
-	{
-		key: "IsRegistered",
-		label: "Registered",
-		width: 80,
-		flexGrow: 1,
-		flexShrink: 1,
-		dataRenderer: (d: boolean) => (d ? "Registered" : ""),
-	},
-	{
-		key: "Matched",
-		label: "Matched",
-		width: 80,
-		flexGrow: 1,
-		flexShrink: 1,
 	},
 	{
 		key: "Notes",
@@ -185,7 +176,6 @@ const defaultTablesColumns = {
 		"Status",
 		"AttendancePercentage",
 		"Notes",
-		"Matched",
 	],
 };
 

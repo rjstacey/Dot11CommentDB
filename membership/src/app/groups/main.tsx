@@ -15,8 +15,9 @@ function Groups() {
 					selectors={groupsSelectors}
 					actions={groupsActions}
 					columns={tableColumns}
+					className="d-flex justify-content-end gap-2"
 				/>
-				<Col className="d-flex justify-content-end gap-2">
+				<Col xs="auto" className="d-flex justify-content-end gap-2">
 					<Button
 						variant="outline-primary"
 						className="bi-arrow-repeat"

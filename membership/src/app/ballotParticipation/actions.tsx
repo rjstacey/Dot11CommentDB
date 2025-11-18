@@ -50,6 +50,7 @@ export function BallotParticipationActions() {
 		<Row className="w-100 align-items-center gap-2">
 			<BallotSeriesSummary />
 			<SplitTableButtonGroup
+				xs="auto"
 				selectors={ballotParticipationSelectors}
 				actions={ballotParticipationActions}
 				columns={tableColumns}

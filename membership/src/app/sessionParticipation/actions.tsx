@@ -43,6 +43,7 @@ export function SessionParticipationActions() {
 			<SessionSummary />
 			<Col className="d-flex align-items-center justify-content-end gap-2">
 				<SplitTableButtonGroup
+					xs="auto"
 					selectors={sessionParticipationSelectors}
 					actions={sessionParticipationActions}
 					columns={tableColumns}

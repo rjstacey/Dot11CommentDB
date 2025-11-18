@@ -21,28 +21,33 @@ import {
 	renderHeaderNameAndEmail,
 } from "../members/tableColumns";
 
-const renderSessionAttendance = (
+function renderSessionAttendance(
 	notRelevant: boolean,
 	attendance: SessionAttendanceSummary
-) => (
-	<div
-		style={{
-			display: "flex",
-			flexDirection: "column",
-			alignItems: "flex-end",
-			color: notRelevant ? "gray" : "unset",
-		}}
-	>
-		<span>{(attendance.AttendancePercentage || 0).toFixed(1) + "%"}</span>
-		<span>
-			{attendance.DidAttend
-				? "Did attend"
-				: attendance.DidNotAttend
-					? "Did not attend"
-					: ""}
-		</span>
-	</div>
-);
+) {
+	const attendancePct = attendance.AttendancePercentage || 0;
+	const pct = attendancePct.toFixed(1) + "%";
+	const qualifies =
+		(attendancePct >= 75 || attendance.DidAttend) &&
+		!attendance.DidNotAttend;
+	const color = notRelevant ? "gray" : qualifies ? "green" : "red";
+	const prefixEl = attendance.DidAttend ? (
+		<i className="bi-check-circle me-2" />
+	) : attendance.DidNotAttend ? (
+		<i className="bi-x-circle me-2" />
+	) : null;
+	return (
+		<div
+			style={{
+				justifySelf: "flex-end",
+				color,
+			}}
+		>
+			{prefixEl}
+			<span>{pct}</span>
+		</div>
+	);
+}
 
 const tableColumns: ColumnProperties[] = [
 	{
@@ -114,8 +119,8 @@ export function useTableColumns() {
 					);
 					const notRelevant =
 						!!rowData.NonVoterDate &&
-						DateTime.fromISO(session.startDate) <
-							DateTime.fromISO(rowData.NonVoterDate);
+						DateTime.fromISO(rowData.NonVoterDate) >
+							DateTime.fromISO(session.endDate);
 					return attendance
 						? renderSessionAttendance(notRelevant, attendance)
 						: null;
