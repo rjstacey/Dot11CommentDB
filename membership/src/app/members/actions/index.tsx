@@ -1,6 +1,7 @@
 import { useLocation } from "react-router";
-import { Col, Button } from "react-bootstrap";
+import { Row, Col, Button } from "react-bootstrap";
 import type { EntityId } from "@reduxjs/toolkit";
+import { SplitTableButtonGroup } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectMembersState, Member, MembersDictionary } from "@/store/members";
@@ -9,6 +10,17 @@ import { MembersUpload } from "./MembersUpload";
 import { MembersSummary } from "./MembersSummary";
 import { MembersRoster } from "./MembersRoster";
 import { MembersExport } from "./MembersExport";
+import { MembersSubmenu } from "./submenu";
+import {
+	myProjectRosterSelectors,
+	myProjectRosterActions,
+	tableColumns as myProjectRosterColumns,
+} from "../roster/tableColumns";
+import {
+	membersSelectors,
+	membersActions,
+	tableColumns as membersColumns,
+} from "../tableColumns";
 
 import { refresh } from "../loader";
 
@@ -60,12 +72,18 @@ export function MembersActions() {
 	const { selected, entities: members } = useAppSelector(selectMembersState);
 
 	return (
-		<>
-			<MembersSummary xs="auto" style={{ order: 1 }} />
-			<Col
-				style={{ order: 4 }}
-				className="d-flex justify-content-end align-items-center justify-self-stretch m-3 gap-2"
-			>
+		<Row className="w-100 m-3">
+			<MembersSummary xs="auto" />
+			<MembersSubmenu />
+			<SplitTableButtonGroup
+				xs="auto"
+				selectors={
+					rosterShown ? myProjectRosterSelectors : membersSelectors
+				}
+				actions={rosterShown ? myProjectRosterActions : membersActions}
+				columns={rosterShown ? myProjectRosterColumns : membersColumns}
+			/>
+			<Col className="d-flex justify-content-end align-items-center justify-self-stretch ms-auto gap-2">
 				<MembersRoster />
 				<MembersExport />
 				<MembersUpload />
@@ -85,6 +103,6 @@ export function MembersActions() {
 					onClick={refresh}
 				/>
 			</Col>
-		</>
+		</Row>
 	);
 }

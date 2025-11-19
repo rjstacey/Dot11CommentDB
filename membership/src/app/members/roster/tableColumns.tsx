@@ -18,6 +18,8 @@ import {
 
 import { TruncatedDiff } from "@/components/TruncatedDiff";
 
+export { myProjectRosterSelectors, myProjectRosterActions };
+
 function renderDiffCell(s1: string, s2: string | null) {
 	return <TruncatedDiff newStr={s1} oldStr={s2} />;
 }

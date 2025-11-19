@@ -19,6 +19,8 @@ import {
 	Member,
 } from "@/store/members";
 
+export { membersSelectors, membersActions };
+
 const lineTruncStyle: React.CSSProperties = {
 	overflow: "hidden",
 	whiteSpace: "nowrap",
