@@ -41,7 +41,7 @@ export function getScrollbarSize(recalculate = false) {
 		}
 	}
 
-	return scrollbarSize;
+	return scrollbarSize + 1;
 }
 
 // string compare for sort operations
