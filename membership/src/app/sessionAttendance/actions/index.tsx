@@ -1,13 +1,31 @@
 import { useParams, useLocation } from "react-router";
-import { Button } from "react-bootstrap";
+import { Row, Button } from "react-bootstrap";
 
-import { SessionAttendanceSubmenu } from "../submenu";
+import { SplitTableButtonGroup } from "@common";
+import { SessionSelectorNav } from "./SessionSelectorNav";
+import { SessionAttendanceSubmenu } from "./submenu";
 import { ImportRegistration } from "./ImportRegistration";
 import { UpdateFromImatAttendance } from "./UpdateFromImatAttendance";
 import { UpdateSummary } from "./UpdateSummary";
 import { ExportAttendeesList } from "./ExportAttendeesList";
 import { refresh as imatRefresh } from "../imat/loader";
 import { refresh as summaryRefresh } from "../summary/loader";
+
+import {
+	tableColumns as imatTableColumns,
+	selectors as imatTableSelectors,
+	actions as imatTableActions,
+} from "../imat/tableColumns";
+import {
+	tableColumns as regTableColumns,
+	selectors as regTableSelectors,
+	actions as regTableActions,
+} from "../registration/tableColumns";
+import {
+	tableColumns as summaryTableColumns,
+	selectors as summaryTableSelectors,
+	actions as summaryTableActions,
+} from "../summary/tableColumns";
 
 function useRoute() {
 	const { pathname } = useLocation();
@@ -27,11 +45,45 @@ export function SessionAttendanceActions() {
 	let actions: JSX.Element | undefined = undefined;
 	if (route === "imat") {
 		refresh = imatRefresh;
-		actions = <UpdateFromImatAttendance />;
+		actions = (
+			<>
+				<SplitTableButtonGroup
+					xs="auto"
+					className="ms-auto"
+					selectors={imatTableSelectors}
+					actions={imatTableActions}
+					columns={imatTableColumns}
+				/>
+				<UpdateFromImatAttendance />
+			</>
+		);
+	} else if (route === "registration") {
+		actions = (
+			<>
+				<SplitTableButtonGroup
+					xs="auto"
+					className="ms-auto"
+					selectors={regTableSelectors}
+					actions={regTableActions}
+					columns={regTableColumns}
+				/>
+				<ImportRegistration
+					groupName={groupName}
+					sessionNumber={sessionNumber}
+				/>
+			</>
+		);
 	} else if (route === "summary") {
 		refresh = summaryRefresh;
 		actions = (
 			<>
+				<SplitTableButtonGroup
+					xs="auto"
+					className="ms-auto"
+					selectors={summaryTableSelectors}
+					actions={summaryTableActions}
+					columns={summaryTableColumns}
+				/>
 				<UpdateSummary />
 				<ExportAttendeesList
 					groupName={groupName}
@@ -39,31 +91,26 @@ export function SessionAttendanceActions() {
 				/>
 			</>
 		);
-	} else if (route === "registration") {
-		actions = (
-			<ImportRegistration
-				groupName={groupName}
-				sessionNumber={sessionNumber}
-			/>
-		);
 	}
 
 	return (
-		<>
-			<SessionAttendanceSubmenu style={{ order: 2 }} />
-			<div
-				style={{ order: 4 }}
-				className="d-flex align-items-center gap-2 ms-3"
-			>
-				{actions}
-				<Button
-					variant="outline-primary"
-					className="bi-arrow-repeat"
-					title="Refresh"
-					onClick={refresh}
-					disabled={!refresh}
-				/>
-			</div>
-		</>
+		<Row className="w-100 d-flex justify-content-end align-items-center m-3">
+			<SessionSelectorNav />
+			{sessionNumber && (
+				<>
+					<SessionAttendanceSubmenu />
+					<div className="col d-flex align-items-center gap-2 ms-3">
+						{actions}
+						<Button
+							variant="outline-primary"
+							className="bi-arrow-repeat"
+							title="Refresh"
+							onClick={refresh}
+							disabled={!refresh}
+						/>
+					</div>
+				</>
+			)}
+		</Row>
 	);
 }

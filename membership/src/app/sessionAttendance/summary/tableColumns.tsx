@@ -11,6 +11,11 @@ import {
 	sessionAttendanceSummaryActions,
 } from "@/store/sessionAttendanceSummary";
 
+export {
+	sessionAttendanceSummarySelectors as selectors,
+	sessionAttendanceSummaryActions as actions,
+};
+
 export const tableColumns: ColumnProperties[] = [
 	{
 		key: "__ctrl__",
@@ -28,6 +33,15 @@ export const tableColumns: ColumnProperties[] = [
 	},
 	{ key: "SAPIN", label: "SA PIN", width: 80, flexGrow: 1, flexShrink: 1 },
 	{
+		key: "CurrentSAPIN",
+		label: "Current SA PIN",
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+		cellRenderer: ({ rowData }) =>
+			rowData.CurrentSAPIN !== rowData.SAPIN ? rowData.CurrentSAPIN : "",
+	},
+	{
 		key: "Name",
 		label: "Name",
 		width: 200,
@@ -36,14 +50,14 @@ export const tableColumns: ColumnProperties[] = [
 	},
 	{
 		key: "LastName",
-		label: "Last name",
+		label: "Family name",
 		width: 200,
 		flexGrow: 1,
 		flexShrink: 1,
 	},
 	{
 		key: "FirstName",
-		label: "First name",
+		label: "Given name",
 		width: 200,
 		flexGrow: 1,
 		flexShrink: 1,
@@ -64,6 +78,13 @@ export const tableColumns: ColumnProperties[] = [
 		flexShrink: 1,
 		dataRenderer: (d: number | null) =>
 			d === null ? "" : d.toFixed(1) + "%",
+	},
+	{
+		key: "AttendanceOverride",
+		label: "Attendance override",
+		width: 100,
+		flexGrow: 1,
+		flexShrink: 1,
 	},
 	{
 		key: "IsRegistered",
@@ -96,6 +117,7 @@ const defaultTablesColumns = {
 	default: [
 		"__ctrl__",
 		"SAPIN",
+		"CurrentSAPIN",
 		"Name",
 		"Email",
 		"Status",

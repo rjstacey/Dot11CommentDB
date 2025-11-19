@@ -1,6 +1,6 @@
 {
 	"name": "@802tools/membership",
-	"version": "1.6.3",
+	"version": "1.6.4",
 	"private": true,
 	"homepage": "membership",
 	"type": "module",

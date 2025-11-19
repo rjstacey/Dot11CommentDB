@@ -43,8 +43,8 @@ const createViewMemberAttendanceSummary = `
 		a.groupId,
 		a.session_id,
 		a.AttendancePercentage,
-		a.InPerson,
 		a.IsRegistered,
+		a.InPerson,
 		a.DidAttend,
 		a.DidNotAttend,
 		a.Notes,
@@ -70,15 +70,16 @@ function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
 	let sql = 
 		"SELECT " +
 			"id, " +
+			"BIN_TO_UUID(groupId) as groupId, " +
 			"session_id, " +
+			"SAPIN, " +
+			"CurrentSAPIN, " +
 			"AttendancePercentage, " +
-			"InPerson, " +
 			"IsRegistered, " +
+			"InPerson, " +
 			"DidAttend, " +
 			"DidNotAttend, " +
-			"Notes, " +
-			"SAPIN, " +
-			"CurrentSAPIN " +
+			"Notes " +
 		"FROM memberAttendanceSummary";
 
 	const wheres = Object.entries(query).map(([key, value]) => {

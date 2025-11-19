@@ -27,12 +27,14 @@ import { SessionAttendeesExportQuery } from "@schemas/attendances";
 
 export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
-	"Name/Email": { label: "Name/Email" },
+	CurrentSAPIN: { label: "Current SA PIN", type: FieldType.NUMERIC },
 	Name: { label: "Name" },
 	LastName: { label: "Last name" },
 	FirstName: { label: "First name" },
 	Email: { label: "Email" },
+	Status: { label: "Status" },
 	AttendancePercentage: { label: "Attendance", type: FieldType.NUMERIC },
+	AttendanceOverride: { label: "Attendance override" },
 	IsRegistered: { label: "Registered" },
 	InPerson: { label: "In-Person" },
 	Notes: { label: "Notes" },
@@ -41,10 +43,27 @@ export const fields: Fields = {
 export type SyncedSessionAttendance = SessionAttendanceSummary & {
 	Status: string;
 	Name: string | null;
+	LastName: string | null;
+	FirstName: string | null;
 	Affiliation: string | null;
 	Employer: string | null;
 	Email: string | null;
 };
+
+/* Fields derived from other fields */
+export function getField(entity: SyncedSessionAttendance, key: string) {
+	if (key === "CurrentSAPIN") {
+		return entity.CurrentSAPIN !== entity.SAPIN ? entity.CurrentSAPIN : "";
+	}
+	if (key === "AttendanceOverride") {
+		return entity.DidAttend
+			? "Did attend"
+			: entity.DidNotAttend
+				? "Did not attend"
+				: "";
+	}
+	return entity[key as keyof SessionAttendanceSummary];
+}
 
 /*
  * Slice
@@ -152,6 +171,8 @@ const selectSyncedSessionAttendanceSummaryEntities = createSelector(
 				...entity,
 				Status: m?.Status || "",
 				Name: m?.Name || "",
+				LastName: m?.LastName || "",
+				FirstName: m?.FirstName || "",
 				Affiliation: m?.Affiliation || "",
 				Employer: m?.Employer || "",
 				Email: m?.Email || "",
@@ -166,6 +187,7 @@ export const sessionAttendanceSummarySelectors = getAppTableDataSelectors(
 	{
 		selectEntities: selectSyncedSessionAttendanceSummaryEntities,
 		selectIds: selectSessionAttendanceSummaryIds,
+		getField,
 	}
 );
 

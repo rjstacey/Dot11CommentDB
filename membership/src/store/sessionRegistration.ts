@@ -15,7 +15,6 @@ import {
 import type { RootState, AppThunk } from ".";
 import { setError } from ".";
 import {
-	SessionAttendanceSummary,
 	upsertAttendanceSummaries,
 	selectAttendanceSummaryEntitiesForSession,
 } from "./attendanceSummaries";
@@ -29,7 +28,8 @@ import { selectSessionByNumber } from "./sessions";
 export type { SessionRegistration };
 
 export const fields: Fields = {
-	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
+	CurrentSAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
+	SAPIN: { label: "SA PIN (Provided)", type: FieldType.NUMERIC },
 	Name: { label: "Name" },
 	LastName: { label: "Last name" },
 	FirstName: { label: "First name" },
@@ -38,21 +38,37 @@ export const fields: Fields = {
 	RegType: { label: "Registration type" },
 	Matched: { label: "Matched", type: FieldType.STRING },
 	AttendancePercentage: { label: "Attendance", type: FieldType.NUMERIC },
+	AttendanceOverride: { label: "Attendance override" },
 	IsRegistered: { label: "Registered" },
 	InPerson: { label: "In-Person" },
 	Notes: { label: "Notes" },
 };
 
-type SyncedSessionRegistration = SessionRegistration &
-	Pick<
-		SessionAttendanceSummary,
-		"InPerson" | "IsRegistered" | "AttendancePercentage" | "Notes"
-	>;
+type SyncedSessionRegistration = SessionRegistration & {
+	IsRegistered: boolean | null;
+	InPerson: boolean | null;
+	AttendancePercentage: number | null;
+	DidAttend: boolean | null;
+	DidNotAttend: boolean | null;
+	Notes: string | null;
+};
 
 export type SessionRegistrationUpdate = {
 	id: number;
 	changes: Partial<SessionRegistration>;
 };
+
+/* Fields derived from other fields */
+export function getField(entity: SyncedSessionRegistration, key: string) {
+	if (key === "AttendanceOverride") {
+		return entity.DidAttend
+			? "Did attend"
+			: entity.DidNotAttend
+				? "Did not attend"
+				: "";
+	}
+	return entity[key as keyof SyncedSessionRegistration];
+}
 
 /*
  * Slice
@@ -156,6 +172,8 @@ export const selectSyncedSessionRegistrationEntities = createSelector(
 				InPerson: a ? a.InPerson : null,
 				IsRegistered: a ? a.IsRegistered : null,
 				AttendancePercentage: a ? a.AttendancePercentage : null,
+				DidAttend: a ? a.DidAttend : null,
+				DidNotAttend: a ? a.DidNotAttend : null,
 				Notes: a ? a.Notes : null,
 			};
 			syncedEntities[id] = syncedEntity;
@@ -169,6 +187,7 @@ export const sessionRegistrationSelectors = getAppTableDataSelectors(
 	{
 		selectEntities: selectSyncedSessionRegistrationEntities,
 		selectIds: selectSessionRegistrationIds,
+		getField,
 	}
 );
 

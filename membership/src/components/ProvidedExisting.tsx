@@ -1,6 +1,6 @@
 import { BLANK_STR } from "./constants";
 
-export const TruncatedDiff = ({
+export const ProvidedExisting = ({
 	newStr,
 	oldStr,
 	className,
@@ -9,8 +9,7 @@ export const TruncatedDiff = ({
 	oldStr: string | null;
 	className?: string;
 }) => {
-	const newStyle: React.CSSProperties = {},
-		oldStyle: React.CSSProperties = {};
+	const newStyle: React.CSSProperties = {};
 
 	if (!newStr) {
 		newStr = BLANK_STR;
@@ -19,16 +18,19 @@ export const TruncatedDiff = ({
 
 	if (oldStr === "") {
 		oldStr = BLANK_STR;
-		oldStyle.fontStyle = "italic";
+	} else if (oldStr) {
+		oldStr = `(${oldStr})`;
 	}
 
 	let content: React.ReactNode;
 	if (oldStr !== null) {
 		content = (
 			<>
-				<del style={oldStyle}>{oldStr}</del>
+				<span style={newStyle}>{newStr}</span>
 				<br />
-				<ins style={newStyle}>{newStr}</ins>
+				<span style={{ fontStyle: "italic", fontWeight: "bold" }}>
+					{oldStr}
+				</span>
 			</>
 		);
 	} else {

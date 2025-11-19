@@ -1,54 +1,40 @@
 import { Row, Col } from "react-bootstrap";
-import {
-	AppTable,
-	ShowFilters,
-	GlobalFilter,
-	SplitTableButtonGroup,
-} from "@common";
+import { AppTable, ShowFilters, GlobalFilter } from "@common";
 import {
 	sessionRegistrationSelectors,
 	sessionRegistrationActions,
 	fields,
 } from "@/store/sessionRegistration";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
-import { Main } from "../main";
 
 export function SessionRegistrationTable() {
 	return (
 		<>
-			<SplitTableButtonGroup
-				xs="auto"
-				className="ms-auto"
-				style={{ order: 3 }}
-				selectors={sessionRegistrationSelectors}
-				actions={sessionRegistrationActions}
-				columns={tableColumns}
-			/>
-			<Main>
-				<Row className="align-items-center w-100">
-					<Col>
-						<ShowFilters
-							selectors={sessionRegistrationSelectors}
-							actions={sessionRegistrationActions}
-							fields={fields}
-						/>
-					</Col>
-					<Col xs={3} sm={2}>
-						<GlobalFilter
-							selectors={sessionRegistrationSelectors}
-							actions={sessionRegistrationActions}
-						/>
-					</Col>
-				</Row>
+			<Row className="align-items-center w-100">
+				<Col>
+					<ShowFilters
+						selectors={sessionRegistrationSelectors}
+						actions={sessionRegistrationActions}
+						fields={fields}
+					/>
+				</Col>
+				<Col xs={3} sm={2}>
+					<GlobalFilter
+						selectors={sessionRegistrationSelectors}
+						actions={sessionRegistrationActions}
+					/>
+				</Col>
+			</Row>
+			<div className="w-100 flex-grow-1">
 				<AppTable
 					columns={tableColumns}
-					headerHeight={40}
+					headerHeight={50}
 					estimatedRowHeight={50}
 					defaultTablesConfig={defaultTablesConfig}
 					selectors={sessionRegistrationSelectors}
 					actions={sessionRegistrationActions}
 				/>
-			</Main>
+			</div>
 		</>
 	);
 }

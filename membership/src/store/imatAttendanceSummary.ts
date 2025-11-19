@@ -31,6 +31,7 @@ import {
 export type { ImatAttendanceSummary };
 
 export const fields: Fields = {
+	CurrentSAPIN: { label: "Current SA PIN", type: FieldType.NUMERIC },
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
 	"Name/Email": { label: "Name/Email" },
 	Name: { label: "Name" },
@@ -44,6 +45,7 @@ export const fields: Fields = {
 	ContactInfo: { label: "Contact Info" },
 	Status: { label: "Status" },
 	AttendancePercentage: { label: "Attendance", type: FieldType.NUMERIC },
+	AttendanceOverride: { label: "Attendance override" },
 	InPerson: { label: "In-Person" },
 	IsRegistered: { label: "Registered" },
 	Notes: { label: "Notes" },
@@ -61,6 +63,21 @@ export type SyncedSessionAttendee = ImatAttendanceSummaryWithSummary & {
 	CurrentContactInfo: ContactInfo | null;
 	CurrentAttendancePercentage: number | null;
 };
+
+/* Fields derived from other fields */
+export function getField(entity: SyncedSessionAttendee, key: string) {
+	if (key === "SAPIN") {
+		return entity.SAPIN !== entity.CurrentSAPIN ? entity.SAPIN : "";
+	}
+	if (key === "AttendanceOverride") {
+		return entity.DidAttend
+			? "Did attend"
+			: entity.DidNotAttend
+				? "Did not attend"
+				: "";
+	}
+	return entity[key as keyof SessionAttendanceSummary];
+}
 
 /*
  * Slice
@@ -231,7 +248,7 @@ export const selectSyncedImatAttendanceSummaryEntities = createSelector(
 
 export const sessionAttendeesSelectors = getAppTableDataSelectors(
 	selectImatAttendanceSummaryState,
-	{ selectEntities: selectSyncedImatAttendanceSummaryEntities }
+	{ selectEntities: selectSyncedImatAttendanceSummaryEntities, getField }
 );
 
 /*

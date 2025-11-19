@@ -16,6 +16,18 @@ import {
 
 import { TruncatedDiff } from "@/components/TruncatedDiff";
 
+export {
+	sessionAttendeesSelectors as selectors,
+	sessionAttendeesActions as actions,
+};
+
+const renderSAPIN = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => {
+	const newStr = rowData.SAPIN.toString() || "";
+	let oldStr = rowData.CurrentSAPIN?.toString() || null;
+	if (oldStr && newStr === oldStr) oldStr = null;
+	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
+};
+
 const renderName = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => (
 	<TruncatedDiff
 		className="fw-bold"
@@ -75,7 +87,21 @@ export const tableColumns: ColumnProperties[] = [
 			/>
 		),
 	},
-	{ key: "SAPIN", label: "SA PIN", width: 80, flexGrow: 1, flexShrink: 1 },
+	{
+		key: "CurrentSAPIN",
+		label: "Member SA PIN",
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
+		key: "SAPIN",
+		label: "SA PIN",
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+		cellRenderer: renderSAPIN,
+	},
 	{
 		key: "Name",
 		label: "Name",
@@ -133,6 +159,13 @@ export const tableColumns: ColumnProperties[] = [
 		cellRenderer: renderAttendance,
 	},
 	{
+		key: "AttendanceOverride",
+		label: "Attendance override",
+		width: 100,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
 		key: "IsRegistered",
 		label: "Registered",
 		width: 80,
@@ -161,6 +194,7 @@ const defaultTablesColumns = {
 	Basic: [
 		"__ctrl__",
 		"SAPIN",
+		"CurrentSAPIN",
 		"Name",
 		"Email",
 		"Affiliation",
@@ -170,11 +204,13 @@ const defaultTablesColumns = {
 	Detail: [
 		"__ctrl__",
 		"SAPIN",
+		"CurrentSAPIN",
 		"Name",
 		"Email",
 		"Affiliation",
 		"Status",
 		"AttendancePercentage",
+		"AttendanceOverride",
 		"Notes",
 	],
 };

@@ -6,7 +6,7 @@ import {
 	TableConfig,
 	CellRendererProps,
 } from "@common";
-import { TruncatedDiff } from "@/components/TruncatedDiff";
+import { ProvidedExisting } from "@/components/ProvidedExisting";
 
 import {
 	sessionRegistrationSelectors,
@@ -14,11 +14,16 @@ import {
 	SessionRegistration,
 } from "@/store/sessionRegistration";
 
+export {
+	sessionRegistrationSelectors as selectors,
+	sessionRegistrationActions as actions,
+};
+
 const renderSAPIN = ({ rowData }: CellRendererProps<SessionRegistration>) => {
 	const newStr = rowData.SAPIN?.toString() || "";
 	let oldStr = rowData.CurrentSAPIN?.toString() || null;
 	if (oldStr && newStr === oldStr) oldStr = null;
-	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
+	return <ProvidedExisting newStr={newStr} oldStr={oldStr} />;
 };
 
 const renderEmail = ({ rowData }: CellRendererProps<SessionRegistration>) => {
@@ -26,7 +31,7 @@ const renderEmail = ({ rowData }: CellRendererProps<SessionRegistration>) => {
 	let oldStr = rowData.CurrentEmail;
 	if (oldStr && oldStr.toLocaleLowerCase() === newStr.toLocaleLowerCase())
 		oldStr = null;
-	return <TruncatedDiff newStr={rowData.Email} oldStr={oldStr} />;
+	return <ProvidedExisting newStr={rowData.Email} oldStr={oldStr} />;
 };
 
 function matchNames(name1: string, name2: string): boolean {
@@ -40,7 +45,7 @@ const renderName = ({ rowData }: CellRendererProps<SessionRegistration>) => {
 	let oldStr = rowData.CurrentName;
 	if (oldStr && matchNames(newStr, oldStr)) oldStr = null;
 	return (
-		<TruncatedDiff className="fw-bold" newStr={newStr} oldStr={oldStr} />
+		<ProvidedExisting className="fw-bold" newStr={newStr} oldStr={oldStr} />
 	);
 };
 
@@ -60,8 +65,15 @@ export const tableColumns: ColumnProperties[] = [
 		),
 	},
 	{
+		key: "CurrentSAPIN",
+		label: "Member SA PIN",
+		width: 80,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
 		key: "SAPIN",
-		label: "SA PIN",
+		label: "SA PIN (Member SAPIN)",
 		width: 80,
 		flexGrow: 1,
 		flexShrink: 1,
@@ -69,7 +81,7 @@ export const tableColumns: ColumnProperties[] = [
 	},
 	{
 		key: "Name",
-		label: "Name",
+		label: "Name (Member name)",
 		width: 200,
 		flexGrow: 1,
 		flexShrink: 1,
@@ -77,21 +89,21 @@ export const tableColumns: ColumnProperties[] = [
 	},
 	{
 		key: "LastName",
-		label: "Last name",
+		label: "Family name",
 		width: 200,
 		flexGrow: 1,
 		flexShrink: 1,
 	},
 	{
 		key: "FirstName",
-		label: "First name",
+		label: "Given name",
 		width: 200,
 		flexGrow: 1,
 		flexShrink: 1,
 	},
 	{
 		key: "Email",
-		label: "Email",
+		label: "Email (Member email)",
 		width: 200,
 		flexGrow: 1,
 		flexShrink: 1,
@@ -122,6 +134,13 @@ export const tableColumns: ColumnProperties[] = [
 			d === null ? "" : d.toFixed(1) + "%",
 	},
 	{
+		key: "AttendanceOverride",
+		label: "Attendance override",
+		width: 100,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{
 		key: "IsRegistered",
 		label: "Registered",
 		width: 80,
@@ -150,16 +169,17 @@ export const tableColumns: ColumnProperties[] = [
 ];
 
 const defaultTablesColumns = {
-	Basic: ["__ctrl__", "SAPIN", "Name", "Email", "Matched", "RegType"],
-	Detail: [
+	default: [
 		"__ctrl__",
 		"SAPIN",
+		"CurrentSAPIN",
 		"Name",
 		"Email",
 		"Affiliation",
 		"Matched",
 		"RegType",
 		"AttendancePercentage",
+		"AttendanceOverride",
 		"IsRegistered",
 		"InPerson",
 		"Notes",

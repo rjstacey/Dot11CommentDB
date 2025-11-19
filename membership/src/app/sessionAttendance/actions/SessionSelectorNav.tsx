@@ -90,7 +90,10 @@ export function SessionSelectorNav(props: React.ComponentProps<"div">) {
 	const { loading } = useAppSelector(selectImatAttendanceSummaryState);
 
 	return (
-		<div className="d-flex align-items-center gap-3 me-3" {...props}>
+		<div
+			className="col-auto d-flex align-items-center gap-3 me-3"
+			{...props}
+		>
 			<SessionSelector
 				style={{ width: 400 }}
 				value={sessionNumber}
