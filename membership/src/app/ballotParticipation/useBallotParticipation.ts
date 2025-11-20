@@ -1,17 +1,17 @@
 import * as React from "react";
 import { useAppSelector } from "@/store/hooks";
 import {
-	selectBallotParticipationState,
 	selectSyncedBallotSeriesEntities,
+	selectBallotParticipationEntities,
+	selectBallotEntities,
 } from "@/store/ballotParticipation";
 
-export function useBallotSeriesParticipation() {
-	const entities = useAppSelector(selectBallotParticipationState).entities;
+export function useBallotParticipation() {
+	const entities = useAppSelector(selectBallotParticipationEntities);
 	const ballotSeriesEntities = useAppSelector(
 		selectSyncedBallotSeriesEntities
 	);
-	const ballotEntities = useAppSelector(selectBallotParticipationState)
-		.ballots.entities;
+	const ballotEntities = useAppSelector(selectBallotEntities);
 
 	const getBallotParticipation = React.useCallback(
 		(SAPIN: number) => {

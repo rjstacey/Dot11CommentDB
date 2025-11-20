@@ -10,7 +10,7 @@ import Editor from "@/components/editor/Editor";
 import { htmlWithInlineStyle } from "@/components/editor/utils";
 
 import { useRenderSessionAttendances } from "../sessionParticipation/renderSessionAttendances";
-import { useRenderBallotParticipation } from "../ballotParticipation/renderBallotParticipation";
+import { useRenderBallotParticipation } from "../ballotParticipation/useRenderBallotParticipation";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {

@@ -12,7 +12,7 @@ import {
 
 import { EditTable as Table, TableColumn } from "@/components/Table";
 
-import { useBallotSeriesParticipation } from "./useBallotSeriesParticipation";
+import { useBallotParticipation } from "./useBallotParticipation";
 import { renderBallotParticipation } from "./renderBallotParticipation";
 
 const ballotSeriesParticipationColumns: TableColumn[] = [
@@ -67,7 +67,7 @@ function MemberBallotParticipation({
 	});
 
 	const { getBallotParticipation, ballotEntities, ballotSeriesEntities } =
-		useBallotSeriesParticipation();
+		useBallotParticipation();
 
 	React.useEffect(() => {
 		const summaries = getBallotParticipation(SAPIN);
