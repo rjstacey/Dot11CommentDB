@@ -5,16 +5,15 @@ import { displayDateRange, shallowDiff, useDebounce } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	getBallotId,
-	selectBallotParticipationState,
 	selectMemberBallotParticipationCount,
-	selectSyncedBallotSeriesEntities,
 	updateBallotParticipation,
 	BallotSeriesParticipationSummary,
 } from "@/store/ballotParticipation";
 
 import { EditTable as Table, TableColumn } from "@/components/Table";
 
-import { useRenderBallotParticipation } from "./renderBallotParticipation";
+import { useBallotSeriesParticipation } from "./useBallotSeriesParticipation";
+import { renderBallotParticipation } from "./renderBallotParticipation";
 
 const ballotSeriesParticipationColumns: TableColumn[] = [
 	{ key: "project", label: "Project" },
@@ -42,13 +41,6 @@ function MemberBallotParticipation({
 		selectMemberBallotParticipationCount(state, SAPIN)
 	);
 
-	const entities = useAppSelector(selectBallotParticipationState).entities;
-	const ballotSeriesEntities = useAppSelector(
-		selectSyncedBallotSeriesEntities
-	);
-	const ballotEntities = useAppSelector(selectBallotParticipationState)
-		.ballots.entities;
-
 	const [currentSAPIN, setCurrentSAPIN] = React.useState(SAPIN);
 	const [editedIds, setEditedIds] = React.useState<number[]>([]);
 	const [editedParticipation, setEditedParticipation] = React.useState<
@@ -74,24 +66,25 @@ function MemberBallotParticipation({
 		setSavedParticipation(editedParticipation);
 	});
 
+	const { getBallotParticipation, ballotEntities, ballotSeriesEntities } =
+		useBallotSeriesParticipation();
+
 	React.useEffect(() => {
-		const participation: Record<number, BallotSeriesParticipationSummary> =
-			{};
+		const summaries = getBallotParticipation(SAPIN);
+		// Normalize
+		const entities: Record<number, BallotSeriesParticipationSummary> = {};
 		const ids: number[] = [];
-		const entity = entities[SAPIN];
-		if (entity) {
-			for (const summary of entity.ballotSeriesParticipationSummaries) {
-				participation[summary.series_id] = summary;
-				ids.push(summary.series_id);
-			}
+		for (const summary of summaries) {
+			entities[summary.series_id] = summary;
+			ids.push(summary.series_id);
 		}
 		setCurrentSAPIN(SAPIN);
 		setEditedIds(ids);
-		setEditedParticipation(participation);
-		setSavedParticipation(participation);
+		setEditedParticipation(entities);
+		setSavedParticipation(entities);
 	}, [
 		SAPIN,
-		entities,
+		getBallotParticipation,
 		setCurrentSAPIN,
 		setEditedIds,
 		setEditedParticipation,
@@ -174,9 +167,13 @@ function MemberBallotParticipation({
 		triggerSave,
 	]);
 
-	const renderBallotParticipation = useRenderBallotParticipation();
 	function copyToClipboard() {
-		const html = renderBallotParticipation(SAPIN);
+		const summaries = getBallotParticipation(SAPIN);
+		const html = renderBallotParticipation(
+			summaries,
+			ballotEntities,
+			ballotSeriesEntities
+		);
 		const type = "text/html";
 		const blob = new Blob([html], { type });
 		const data = [new ClipboardItem({ [type]: blob })];

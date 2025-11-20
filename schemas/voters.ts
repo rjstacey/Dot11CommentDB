@@ -44,9 +44,15 @@ export const voterCreateSchema = voterSchema
 			.partial().shape
 	);
 export const voterCreatesSchema = voterCreateSchema.array();
+
+export const voterChangeSchema = voterSchema.pick({
+	Excused: true,
+	Status: true,
+});
+
 export const voterUpdateSchema = z.object({
 	id: voterIdSchema,
-	changes: voterSchema.partial(),
+	changes: voterChangeSchema.partial(),
 });
 export const voterUpdatesSchema = voterUpdateSchema.array();
 export const voterIdsSchema = voterIdSchema.array();
@@ -66,4 +72,5 @@ export type VoterMemberSnapshotParams = z.infer<
 export type Voter = z.infer<typeof voterSchema>;
 export type VoterQuery = z.infer<typeof voterQuerySchema>;
 export type VoterCreate = z.infer<typeof voterCreateSchema>;
+export type VoterChange = z.infer<typeof voterChangeSchema>;
 export type VoterUpdate = z.infer<typeof voterUpdateSchema>;

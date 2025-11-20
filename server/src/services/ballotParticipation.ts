@@ -1,15 +1,11 @@
 import db from "../utils/database.js";
 import type { RowDataPacket } from "mysql2";
 import { getBallots } from "./ballots.js";
-
-export type BallotSeries = {
-	id: number;
-	ballotIds: number[];
-	votingPoolId: number;
-	start: string;
-	end: string;
-	project: string;
-};
+import type {
+	BallotSeries,
+	BallotSeriesParticipationSummary,
+	RecentBallotSeriesParticipation,
+} from "@schemas/ballotParticipation.js";
 
 /**
  * Get recent ballot series
@@ -66,7 +62,7 @@ async function getActiveBallotSeries(
 			s1.ballotIds,
 			s1.Project AS project
 		FROM ballotsSeries s1
-		LEFT JOIN ballots ON s1.id=ballots.prev_id
+			LEFT JOIN ballots ON s1.id=ballots.prev_id
 		WHERE s1.workingGroupId=UUID_TO_BIN(${db.escape(
 			workingGroupId
 		)}) AND s1.IsComplete=0 AND s1.type=1 AND ballots.id IS NULL AND s1.Project NOT LIKE "%TEST%"
@@ -77,19 +73,6 @@ async function getActiveBallotSeries(
 
 	return ballotSeries;
 }
-
-type BallotSeriesParticipationSummary = {
-	SAPIN: number; // Current SAPIN
-	series_id: number; // Ballot series identifier
-	voterSAPIN: number; // SAPIN in voting pool
-	voter_id: string; // Voter identifier in voting pool
-	excused: boolean; // Excused from participation (recorded in voting pool)
-	vote: string | null; // Last vote
-	lastSAPIN: number | null; // SAPIN used for last vote
-	lastBallotId: number | null; // Ballot identifier for last vote
-	commentCount: number | null; // Number of comments submitted with last vote
-	totalCommentCount: number | null; // Total comments over ballot series
-};
 
 export function getBallotSeriesParticipationSummary(
 	series_id: number,
@@ -136,11 +119,6 @@ export function getBallotSeriesParticipationSummary(
 
 	return db.query<(RowDataPacket & BallotSeriesParticipationSummary)[]>(sql);
 }
-
-type RecentBallotSeriesParticipation = {
-	SAPIN: number;
-	ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[];
-};
 
 export async function getBallotSeriesParticipation(groupId: string) {
 	const ballotSeries = await getRecentCompletedBallotSeries(groupId);

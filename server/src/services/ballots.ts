@@ -22,15 +22,15 @@ export { BallotType };
  * Suppose you have a ballot series with id in [40, 39, 38].
  * Each ballot points to the prev in the series, with the initial ballot pointing to null.
  * This view will create a table:
- * +-----------+------------+----+---------+--------------+
- * | series_id | initial_id | id | prev_id | other fields |
- * |        40 |         38 | 40 |      39 | ...          |
- * |        40 |         38 | 39 |      38 |
- * |        40 |         38 | 38 |    NULL |
- * |        39 |         38 | 39 |      38 |
- * |        39 |         38 | 38 |    NULL |
- * |        38 |         38 | 38 |    NULL |
- * +-----------+----+---------+------------+---
+ * +-----------+------------+----+---------+
+ * | series_id | initial_id | id | prev_id |
+ * |        40 |         38 | 40 |      39 | -\
+ * |        40 |         38 | 39 |      38 |  | series ending with 40
+ * |        40 |         38 | 38 |    NULL | -/
+ * |        39 |         38 | 39 |      38 | -\
+ * |        39 |         38 | 38 |    NULL | -/ series ending with 39
+ * |        38 |         38 | 38 |    NULL | series ending with 38
+ * +-----------+------------+----+---------+
  * Each unique series_id will comprise a complete list of current and previous ballots in that series, where series_id is the
  * id of the last ballot in the series.
  */
@@ -47,7 +47,7 @@ const createViewBallotsSeries = `
 			(SELECT c2.id FROM cte c2 WHERE c2.series_id=c1.series_id AND c2.prev_id IS NULL) AS initial_id,
 			(SELECT c2.Start FROM cte c2 WHERE c2.series_id=c1.series_id AND c2.prev_id IS NULL) AS series_start,
 			(SELECT JSON_ARRAYAGG(c2.id) FROM cte c2 WHERE c2.series_id=c1.series_id GROUP BY c2.series_id ORDER BY c2.Start) AS ballotIds
-		FROM cte c1
+		FROM cte c1 ORDER BY c1.End;
 `;
 
 /* ballotsStage view
@@ -87,7 +87,7 @@ const createViewBallotsStage = `
 		SELECT
 			b.*,
 			(SELECT COUNT(*) FROM ballotsSeries s WHERE s.series_id=b.series_id GROUP BY s.series_id) - 1 AS stage
-		FROM ballotsSeries b;
+		FROM ballotsSeries b WHERE b.series_id=b.id;
 `;
 
 export async function init() {

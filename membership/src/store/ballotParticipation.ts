@@ -2,7 +2,6 @@ import {
 	createSelector,
 	createAction,
 	createEntityAdapter,
-	isPlainObject,
 	Action,
 	PayloadAction,
 	Dictionary,
@@ -10,13 +9,21 @@ import {
 } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
-import { fetcher } from "@common";
 import {
+	fetcher,
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
 	Fields,
 } from "@common";
+import { BallotType, type Ballot } from "@schemas/ballots";
+import {
+	type BallotSeries,
+	type BallotSeriesParticipationSummary,
+	type RecentBallotSeriesParticipation,
+	getBallotParticipationResponseSchema,
+} from "@schemas/ballotParticipation";
+import { VoterUpdate } from "@schemas/voters";
 
 import type { RootState, AppThunk } from ".";
 import { setError } from ".";
@@ -26,6 +33,13 @@ import {
 	ExpectedStatusType,
 	StatusType,
 } from "./members";
+
+export type {
+	Ballot,
+	BallotSeries,
+	BallotSeriesParticipationSummary,
+	RecentBallotSeriesParticipation,
+};
 
 export const fields: Fields = {
 	id: { label: "id", type: FieldType.NUMERIC },
@@ -44,60 +58,31 @@ export const fields: Fields = {
 	ballotSeries_2: { label: "Ballot series 3" },
 };
 
-type Ballot = {
-	id: number;
-	number: number;
-	Type: number;
-	Project: string;
-};
-
-export const BallotType = {
-	CC: 0, // comment collection
-	WG: 1, // WG ballot
-	SA: 2, // SA ballot
-	Motion: 5, // motion
-};
-
 export const BallotTypeLabels = {
 	[BallotType.CC]: "CC",
 	[BallotType.WG]: "LB",
 	[BallotType.SA]: "SA",
-	[BallotType.Motion]: "Motion",
 };
 
 export function getBallotId(ballot: Ballot) {
-	return BallotTypeLabels[ballot.Type] + (ballot.number || "(Blank)");
+	if (ballot.Type === BallotType.CC) {
+		return "CC" + (ballot.number || "(Blank)");
+	} else if (ballot.Type === BallotType.WG) {
+		return "LB" + (ballot.number || "(Blank)");
+	} else if (ballot.Type === BallotType.SA) {
+		return (
+			ballot.Project +
+			"-" +
+			(ballot.stage === 0 ? "I" : "R" + ballot.stage)
+		);
+	}
+
+	return ballot.id.toString();
 }
 
-export type BallotSeries = {
-	id: number;
-	ballotIds: number[];
-	votingPoolId: number;
-	start: string;
-	end: string;
-};
-
-type SyncedBallotSeries = BallotSeries & {
+export type SyncedBallotSeries = BallotSeries & {
 	ballotNames: string[];
 	project: string;
-};
-
-export type BallotSeriesParticipationSummary = {
-	SAPIN: number; // Current SAPIN
-	series_id: number; // Ballot series identifier
-	voterSAPIN: number; // SAPIN in voting pool
-	voter_id: string; // Voter identifier in voting pool
-	excused: boolean; // Excused from participation (recorded in voting pool)
-	vote: string | null; // Last vote
-	lastSAPIN: number | null; // SAPIN used for last vote
-	lastBallotId: number | null; // Ballot for last vote
-	commentCount: number | null; // Number of comments submitted with last vote
-	totalCommentCount: number | null; // Total comments over ballot series
-};
-
-export type RecentBallotSeriesParticipation = {
-	SAPIN: number;
-	ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[];
 };
 
 export type MemberParticipation = RecentBallotSeriesParticipation & {
@@ -251,19 +236,24 @@ export function memberBallotParticipationCount(
 	const h = member.StatusChangeHistory.find(
 		(h) => h.NewStatus === "Voter" && h.OldStatus !== "Voter"
 	);
-	if (h && h.Date)
+	if (h && h.Date) {
 		ballotSeriesParticipationSummaries =
 			ballotSeriesParticipationSummaries.filter(
 				(s) =>
 					DateTime.fromISO(ballotSeriesEntities[s.series_id]!.start) >
 					DateTime.fromISO(h.Date!)
 			);
+	}
+
+	ballotSeriesParticipationSummaries =
+		ballotSeriesParticipationSummaries.slice(-3); // Last 3 ballot series
 
 	const count = ballotSeriesParticipationSummaries.reduce(
 		(count, participation) =>
 			participation.vote || participation.excused ? count + 1 : count,
 		0
 	);
+
 	return {
 		count,
 		total: ballotSeriesParticipationSummaries.length,
@@ -371,24 +361,6 @@ export const ballotParticipationSelectors = getAppTableDataSelectors(
 /*
  * Thunk actions
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isGenericObject(o: unknown): o is Record<string, any> {
-	return isPlainObject(o);
-}
-
-function validResponse(response: unknown): response is {
-	ballots: Ballot[];
-	ballotSeries: BallotSeries[];
-	ballotSeriesParticipation: RecentBallotSeriesParticipation[];
-} {
-	return (
-		isGenericObject(response) &&
-		Array.isArray(response.ballots) &&
-		Array.isArray(response.ballotSeries) &&
-		Array.isArray(response.ballotSeriesParticipation)
-	);
-}
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 let loading = false;
@@ -410,11 +382,11 @@ export const loadBallotParticipation =
 		loadingPromise = fetcher
 			.get(url)
 			.then((response) => {
-				if (!validResponse(response))
-					throw new TypeError("Unexpected response to GET " + url);
-				dispatch(setBallots(response.ballots));
-				dispatch(setBallotSeries(response.ballotSeries));
-				dispatch(getSuccess(response.ballotSeriesParticipation));
+				const { ballots, ballotSeries, ballotSeriesParticipation } =
+					getBallotParticipationResponseSchema.parse(response);
+				dispatch(setBallots(ballots));
+				dispatch(setBallotSeries(ballotSeries));
+				dispatch(getSuccess(ballotSeriesParticipation));
 			})
 			.catch((error) => {
 				dispatch(getFailure());
@@ -442,17 +414,14 @@ export const updateBallotParticipation =
 			console.error(`Entry for ${sapin} does not exist`);
 			return;
 		}
-		const voterUpdates: Record<
-			number,
-			{ id: string; changes: { Excused: boolean } }[]
-		> = {};
+		const voterUpdates: Record<number, VoterUpdate[]> = {};
 		const updatedSummaries = entity.ballotSeriesParticipationSummaries.map(
 			(summary) => {
 				const update = updates.find((u) => u.id === summary.series_id);
 				if (!update) return summary;
 				const { changes } = update;
 				if ("excused" in changes) {
-					const update = {
+					const update: VoterUpdate = {
 						id: summary.voter_id,
 						changes: { Excused: changes.excused! },
 					};
