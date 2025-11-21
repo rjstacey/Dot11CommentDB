@@ -3,6 +3,7 @@ import { Button, FormCheck, FormControl } from "react-bootstrap";
 import { shallowDiff, useDebounce } from "@common";
 
 import type { RootState } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectMemberAttendanceStats,
 	selectSessionParticipationSessionIds,
@@ -22,7 +23,6 @@ import {
 import { selectSessionEntities } from "@/store/sessions";
 
 import { EditTable as Table, TableColumn } from "@/components/Table";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 import { renderSessionInfo } from "@/components/renderSessionInfo";
 import { useRenderSessionAttendances } from "./renderSessionAttendances";
