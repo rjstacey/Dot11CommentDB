@@ -247,8 +247,9 @@ export const selectMemberAttendanceStats = createSelector(
 			: [];
 		const member = memberEntities[SAPIN];
 		const since =
-			member?.StatusChangeHistory.find((h) => h.NewStatus === "Non-Voter")
-				?.Date || undefined;
+			member?.StatusChangeHistory.find(
+				(h) => h.NewStatus === "Non-Voter" || h.NewStatus === "Observer"
+			)?.Date || undefined;
 		return recentAttendanceStats(
 			attendances,
 			sessionIds,
@@ -292,7 +293,12 @@ function memberExpectedStatusFromAttendanceStats(
 
 	/* An Aspirant becomes a Potential Voter after attending 2 of the last 4 plenary sessions. One intervening
 	 * interim meeting may be substituted for a plenary meeting. */
-	if (count === 2 && (status === "Non-Voter" || status === "Aspirant"))
+	if (
+		count === 2 &&
+		(status === "Non-Voter" ||
+			status === "Observer" ||
+			status === "Aspirant")
+	)
 		return "Potential Voter";
 
 	/* A Potential Voter becomes a Voter at the next plenary session after attending 2 of the last 4 plenary
@@ -302,6 +308,7 @@ function memberExpectedStatusFromAttendanceStats(
 			(count === 3 && lastPfull) ||
 			count > 3) &&
 		(status === "Non-Voter" ||
+			status === "Observer" ||
 			status === "Aspirant" ||
 			status === "Potential Voter")
 	)
@@ -330,7 +337,9 @@ export const selectSessionParticipationWithMembershipAndSummary =
 					// Only care about attendance since becoming a 'Non-Voter'
 					nonVoterDate =
 						member.StatusChangeHistory.find(
-							(h) => h.NewStatus === "Non-Voter"
+							(h) =>
+								h.NewStatus === "Non-Voter" ||
+								h.NewStatus === "Observer"
 						)?.Date || undefined;
 					const stats = recentAttendanceStats(
 						entity.sessionAttendanceSummaries,
