@@ -1,12 +1,7 @@
 import * as React from "react";
-import { Select } from "@common";
-
-import { isMultiple, MULTIPLE } from "@common";
-
+import { Select, isMultiple, MULTIPLE } from "@common";
 import { statusOptions, StatusType } from "@/store/members";
-
-const MULTIPLE_STR = "(Multiple)";
-const BLANK_STR = "(Blank)";
+import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 
 function StatusSelector({
 	value,
@@ -25,10 +20,10 @@ function StatusSelector({
 
 	return (
 		<Select
+			style={{ width: 200 }}
 			values={values}
 			onChange={handleChange}
 			options={statusOptions}
-			portal={document.querySelector("#root")}
 			placeholder={isMultiple(value) ? MULTIPLE_STR : BLANK_STR}
 			{...otherProps}
 		/>

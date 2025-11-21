@@ -17,11 +17,11 @@ import { isMultiple } from "@common";
 import type { Member, StatusChangeEntry, StatusType } from "@/store/members";
 
 import { EditTable as Table } from "@/components/Table";
+import { hasChangesStyle } from "@/components/utils";
+import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 
 import StatusSelector from "./StatusSelector";
 import type { MultipleMember } from "./MemberEdit";
-import { hasChangesStyle } from "@/components/utils";
-import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 
 const displayDate = (isoDateTime: string) =>
 	DateTime.fromISO(isoDateTime).toLocaleString(DateTime.DATE_MED);
@@ -41,10 +41,10 @@ function MemberStatusChangeForm({
 	const date = entry.Date?.substring(0, 10);
 
 	return (
-		<Form className="p-3" style={{ width: "300px" }}>
+		<Form className="p-3" style={{ width: 350 }}>
 			<FormGroup as={Row} controlId="date" className="mb-2">
 				<FormLabel column>Date:</FormLabel>
-				<Col>
+				<Col xs="auto">
 					<FormControl
 						type="date"
 						value={date}
@@ -56,7 +56,7 @@ function MemberStatusChangeForm({
 				<FormLabel column htmlFor="oldStatus">
 					Old status:
 				</FormLabel>
-				<Col>
+				<Col xs="auto">
 					<StatusSelector
 						id="oldStatus"
 						value={entry.OldStatus}
@@ -69,7 +69,7 @@ function MemberStatusChangeForm({
 				<FormLabel column htmlFor="newStatus">
 					New status:
 				</FormLabel>
-				<Col>
+				<Col xs="auto">
 					<StatusSelector
 						id="newStatus"
 						value={entry.NewStatus}
@@ -80,7 +80,7 @@ function MemberStatusChangeForm({
 			</FormGroup>
 			<FormGroup as={Row} controlId="reason" className="mb-2">
 				<FormLabel column>Reason:</FormLabel>
-				<Col>
+				<Col xs="auto">
 					<FormControl
 						type="text"
 						value={entry.Reason}
