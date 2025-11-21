@@ -49,12 +49,8 @@ export { AccessLevel };
 export type ExpectedStatusType = StatusType | "";
 
 export function isActiveMember(member: Member) {
-	return (
-		member.Status === "Voter" ||
-		member.Status === "Potential Voter" ||
-		member.Status === "Aspirant" ||
-		member.Status === "ExOfficio" ||
-		member.Status === "Observer"
+	return (activeMemberStatusValues as readonly string[]).includes(
+		member.Status
 	);
 }
 
