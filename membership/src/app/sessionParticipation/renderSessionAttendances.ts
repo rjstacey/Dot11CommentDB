@@ -1,30 +1,17 @@
 import * as React from "react";
 
-import { displayDateRange } from "@common";
-
 import { useAppSelector } from "@/store/hooks";
 import {
 	selectMemberAttendances,
 	getNullAttendanceSummary,
 } from "@/store/attendanceSummaries";
 import { selectSessionParticipationSessionIds } from "@/store/sessionParticipation";
-import { selectSessionEntities, Session } from "@/store/sessions";
+import { selectSessionEntities } from "@/store/sessions";
 
 import { renderTable } from "@/components/renderTable";
+import { renderSessionInfoHtml } from "@/components/renderSessionInfo";
 
 const headings = ["Session", "Attendance", "Notes"];
-
-function renderSessionSummary(session: Session | undefined) {
-	if (!session) return "Unknown";
-	return `
-            <span>
-                ${session.number}
-                ${session.type === "p" ? "Plenary: " : "Interim: "}
-                ${displayDateRange(session.startDate, session.endDate)}
-            </span><br>
-            <span style="font-size: 12px">${session.name}</span>
-    `;
-}
 
 export function useRenderSessionAttendances() {
 	const sessionIds = useAppSelector(selectSessionParticipationSessionIds);
@@ -55,7 +42,7 @@ export function useRenderSessionAttendances() {
 				}
 
 				return [
-					renderSessionSummary(session),
+					renderSessionInfoHtml(session),
 					(a.AttendancePercentage || 0).toFixed(1) + "%",
 					notes,
 				];

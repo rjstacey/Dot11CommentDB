@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Button, FormCheck, FormControl } from "react-bootstrap";
-import { displayDateRange, shallowDiff, useDebounce } from "@common";
+import { shallowDiff, useDebounce } from "@common";
 
 import type { RootState } from "@/store";
 import {
@@ -21,11 +21,10 @@ import {
 } from "@/store/attendanceSummaries";
 import { selectSessionEntities } from "@/store/sessions";
 
-import styles from "../sessionAttendance/actions/actions.module.css";
-
 import { EditTable as Table, TableColumn } from "@/components/Table";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
+import { renderSessionInfo } from "@/components/renderSessionInfo";
 import { useRenderSessionAttendances } from "./renderSessionAttendances";
 
 function useSessionAttendances(SAPIN: number) {
@@ -158,21 +157,6 @@ export function MemberSessionParticipation({
 	]);
 
 	const columns = React.useMemo(() => {
-		function renderSessionSummary(id: number) {
-			const session = sessionEntities[id];
-			if (!session) return "Unknown";
-			return (
-				<div className={styles.sessionItem}>
-					<span>
-						{session.number}{" "}
-						{session.type === "p" ? "Plenary: " : "Interim: "}{" "}
-						{displayDateRange(session.startDate, session.endDate)}
-					</span>
-					<span>{session.name}</span>
-				</div>
-			);
-		}
-
 		function update(
 			session_id: number,
 			changes: Partial<SessionAttendanceSummary>
@@ -191,7 +175,8 @@ export function MemberSessionParticipation({
 				  ) => JSX.Element | string | number)
 				| undefined;
 			if (col.key === "Session")
-				renderCell = (entry) => renderSessionSummary(entry.session_id);
+				renderCell = (entry) =>
+					renderSessionInfo(sessionEntities[entry.session_id]);
 			if (col.key === "AttendancePercentage")
 				renderCell = (entry) =>
 					`${(entry.AttendancePercentage || 0).toFixed(0)}%`;

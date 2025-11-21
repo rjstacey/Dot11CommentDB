@@ -1,33 +1,20 @@
 import * as React from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-
 import { Form, Spinner } from "react-bootstrap";
 import { Select } from "@common";
-import { displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
 	selectSessionsState,
 	selectRecentPlusOneSessions,
 	Session,
-	displaySessionType,
 } from "@/store/sessions";
 import { selectImatAttendanceSummaryState } from "@/store/imatAttendanceSummary";
 
-import styles from "./actions.module.css";
+import { renderSessionInfo } from "@/components/renderSessionInfo";
 
-const renderSession = ({ item: session }: { item: Session }) => (
-	<div className={styles.sessionItem}>
-		<span>
-			{session.number +
-				" " +
-				displaySessionType(session.type) +
-				", " +
-				displayDateRange(session.startDate, session.endDate)}
-		</span>
-		<span>{session.name}</span>
-	</div>
-);
+const renderSession = ({ item: session }: { item: Session }) =>
+	renderSessionInfo(session);
 
 function SessionSelector({
 	value,
