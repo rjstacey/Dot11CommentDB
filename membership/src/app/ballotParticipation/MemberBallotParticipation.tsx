@@ -183,7 +183,7 @@ function MemberBallotParticipation({
 	return (
 		<>
 			<div className="d-flex align-items-center justify-content-between">
-				<div>{`Recent ballot series participation: ${count}/${total}`}</div>
+				<div>{`Recent ballot series participation: ${count} / ${total}`}</div>
 				<Button
 					variant="outline-primary"
 					className="bi-copy"

@@ -289,7 +289,7 @@ export function MemberSessionParticipation({
 	return (
 		<>
 			<div className="d-flex align-items-center justify-content-between">
-				<div>{`Recent session attendance: ${count}/${total}`}</div>
+				<div>{`Recent session attendance: ${count} / ${total}`}</div>
 				<Button
 					variant="outline-primary"
 					className="bi-copy"
