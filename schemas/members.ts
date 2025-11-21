@@ -26,7 +26,7 @@ const statusExtendedSchema = z.enum([
 
 const statusChangeEntrySchema = z.object({
 	id: z.number(),
-	Date: z.union([datetimeSchema, z.string().date()]).nullable(),
+	Date: z.union([datetimeSchema, z.iso.date()]).nullable(),
 	OldStatus: z.string(),
 	NewStatus: z.string(),
 	Reason: z.string(),
