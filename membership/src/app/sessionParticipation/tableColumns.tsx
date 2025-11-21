@@ -44,7 +44,7 @@ function renderSessionAttendance(
 			}}
 		>
 			{prefixEl}
-			<span>{pct}</span>
+			{pct}
 		</div>
 	);
 }
