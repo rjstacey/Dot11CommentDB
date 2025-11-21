@@ -7,6 +7,7 @@ import {
 	CellRendererProps,
 	TablesConfig,
 	TableConfig,
+	IdSelector,
 } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectRecentSessions } from "@/store/sessions";
@@ -52,10 +53,21 @@ function renderSessionAttendance(
 const tableColumns: ColumnProperties[] = [
 	{
 		key: "__ctrl__",
-		width: 30,
+		width: 60,
 		flexGrow: 1,
 		flexShrink: 0,
-		headerRenderer: SelectHeaderCell,
+		headerRenderer: (p) => (
+			<SelectHeaderCell
+				customSelectorElement=<IdSelector
+					dataKey="SAPIN"
+					style={{ width: "400px" }}
+					selectors={sessionParticipationSelectors}
+					actions={sessionParticipationActions}
+					focusOnMount
+				/>
+				{...p}
+			/>
+		),
 		cellRenderer: (p) => (
 			<SelectCell
 				selectors={sessionParticipationSelectors}

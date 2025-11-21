@@ -5,6 +5,7 @@ import {
 	TablesConfig,
 	TableConfig,
 	CellRendererProps,
+	IdSelector,
 } from "@common";
 import { ProvidedExisting } from "@/components/ProvidedExisting";
 
@@ -52,10 +53,21 @@ const renderName = ({ rowData }: CellRendererProps<SessionRegistration>) => {
 export const tableColumns: ColumnProperties[] = [
 	{
 		key: "__ctrl__",
-		width: 40,
+		width: 60,
 		flexGrow: 0,
 		flexShrink: 0,
-		headerRenderer: SelectHeaderCell,
+		headerRenderer: (p) => (
+			<SelectHeaderCell
+				customSelectorElement=<IdSelector
+					dataKey="SAPIN"
+					style={{ width: "400px" }}
+					selectors={sessionRegistrationSelectors}
+					actions={sessionRegistrationActions}
+					focusOnMount
+				/>
+				{...p}
+			/>
+		),
 		cellRenderer: (p) => (
 			<SelectCell
 				selectors={sessionRegistrationSelectors}

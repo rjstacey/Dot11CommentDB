@@ -5,6 +5,7 @@ import {
 	TablesConfig,
 	TableConfig,
 	CellRendererProps,
+	IdSelector,
 } from "@common";
 
 import {
@@ -75,10 +76,21 @@ const renderAttendance = ({
 export const tableColumns: ColumnProperties[] = [
 	{
 		key: "__ctrl__",
-		width: 40,
+		width: 60,
 		flexGrow: 0,
 		flexShrink: 0,
-		headerRenderer: SelectHeaderCell,
+		headerRenderer: (p) => (
+			<SelectHeaderCell
+				customSelectorElement=<IdSelector
+					dataKey="SAPIN"
+					style={{ width: "400px" }}
+					selectors={sessionAttendeesSelectors}
+					actions={sessionAttendeesActions}
+					focusOnMount
+				/>
+				{...p}
+			/>
+		),
 		cellRenderer: (p) => (
 			<SelectCell
 				selectors={sessionAttendeesSelectors}
