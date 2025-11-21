@@ -18,7 +18,6 @@ import {
 	setUiProperties,
 	selectUiProperties,
 	selectMemberEntities,
-	selectMemberWithParticipationSummary,
 	type Member,
 	type MemberCreate,
 	type ContactInfo,
@@ -121,14 +120,6 @@ export function MemberDetailInfo({
 		dispatch(setUiProperties({ tabKey }));
 	};
 
-	const memberEntitiesWithParticipation = useAppSelector(
-		selectMemberWithParticipationSummary
-	);
-	const memberWithParticipation = memberEntitiesWithParticipation[sapin];
-	const sessionSumary = memberWithParticipation?.AttendancesSummary || "";
-	const ballotSummary =
-		memberWithParticipation?.BallotParticipationSummary || "";
-
 	return (
 		<Tabs onSelect={setTabKey} activeKey={tabKey} fill>
 			<Tab eventKey="contact-info" title="Contact Info">
@@ -150,7 +141,7 @@ export function MemberDetailInfo({
 			{!basicOnly && (
 				<Tab
 					eventKey="session-participation"
-					title={`Session participation ${sessionSumary}`}
+					title="Session participation"
 				>
 					<MemberSessionParticipation
 						SAPIN={sapin}
@@ -161,7 +152,7 @@ export function MemberDetailInfo({
 			{!basicOnly && (
 				<Tab
 					eventKey="ballot-participation"
-					title={`Ballot participation ${ballotSummary}`}
+					title="Ballot participation"
 				>
 					<MemberBallotParticipation
 						SAPIN={sapin}
