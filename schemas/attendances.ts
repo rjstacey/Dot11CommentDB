@@ -46,7 +46,7 @@ export const sessionAttendanceSummaryCreateSchema =
 export const sessionAttendanceSummaryCreatesSchema =
 	sessionAttendanceSummaryCreateSchema.array();
 
-export const sessionAttendanceSummaryChangesSchema =
+export const sessionAttendanceSummaryChangeSchema =
 	sessionAttendanceSummarySchema
 		.pick({
 			session_id: true,
@@ -61,7 +61,7 @@ export const sessionAttendanceSummaryChangesSchema =
 		.partial();
 export const sessionAttendanceSummaryUpdateSchema = z.object({
 	id: z.number(),
-	changes: sessionAttendanceSummaryChangesSchema,
+	changes: sessionAttendanceSummaryChangeSchema,
 });
 export const sessionAttendanceSummaryUpdatesSchema =
 	sessionAttendanceSummaryUpdateSchema.array();
@@ -90,8 +90,8 @@ export type SessionAttendanceSummaryQuery = z.infer<
 export type SessionAttendanceSummaryCreate = z.infer<
 	typeof sessionAttendanceSummaryCreateSchema
 >;
-export type SessionAttendanceSummaryChanges = z.infer<
-	typeof sessionAttendanceSummaryChangesSchema
+export type SessionAttendanceSummaryChange = z.infer<
+	typeof sessionAttendanceSummaryChangeSchema
 >;
 export type SessionAttendanceSummaryUpdate = z.infer<
 	typeof sessionAttendanceSummaryUpdateSchema

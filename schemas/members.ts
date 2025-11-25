@@ -1,4 +1,4 @@
-import { date, z } from "zod";
+import { z } from "zod";
 import { datetimeSchema } from "./common.js";
 
 export const activeMemberStatusValues = [
@@ -79,7 +79,7 @@ const groupMemberSchema = z.object({
 	InRoster: z.boolean(), // Present in MyProject roster
 });
 
-export const memberSchema = userSchema.merge(groupMemberSchema);
+export const memberSchema = userSchema.extend(groupMemberSchema.shape);
 export const membersSchema = memberSchema.array();
 
 export const memberQuerySchema = z
@@ -101,21 +101,21 @@ export const memberCreateSchema = userSchema
 		Email: true,
 		Employer: true,
 	})
-	.merge(
+	.extend(
 		userSchema
 			.pick({
 				ContactInfo: true,
 				ContactEmails: true,
 			})
-			.partial()
+			.partial().shape
 	)
-	.merge(
+	.extend(
 		groupMemberSchema.pick({
 			Affiliation: true,
 			Status: true,
-		})
+		}).shape
 	)
-	.merge(
+	.extend(
 		groupMemberSchema
 			.pick({
 				StatusChangeDate: true,
@@ -125,13 +125,16 @@ export const memberCreateSchema = userSchema
 				MemberID: true,
 				Notes: true,
 			})
-			.partial()
+			.partial().shape
 	);
 
 export const memberCreatesSchema = z.array(memberCreateSchema);
+export const memberChangeSchema = memberSchema
+	.extend({ StatusChangeReason: z.string() })
+	.partial();
 export const memberUpdateSchema = z.object({
 	id: z.number(),
-	changes: memberSchema.extend({ StatusChangeReason: z.string() }).partial(),
+	changes: memberChangeSchema,
 });
 export const memberUpdatesSchema = z.array(memberUpdateSchema);
 export const memberIdsSchema = z.array(z.number());
@@ -173,5 +176,6 @@ export type GroupMember = z.infer<typeof groupMemberSchema>;
 export type Member = z.infer<typeof memberSchema>;
 export type MemberQuery = z.infer<typeof memberQuerySchema>;
 export type MemberCreate = z.infer<typeof memberCreateSchema>;
+export type MemberChange = z.infer<typeof memberChangeSchema>;
 export type MemberUpdate = z.infer<typeof memberUpdateSchema>;
 export type UserMember = z.infer<typeof userMemberSchema>;

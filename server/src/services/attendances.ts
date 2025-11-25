@@ -17,7 +17,7 @@ import type {
 	SessionAttendanceSummary,
 	SessionAttendanceSummaryCreate,
 	SessionAttendanceSummaryUpdate,
-	SessionAttendanceSummaryChanges,
+	SessionAttendanceSummaryChange,
 	SessionAttendanceSummaryQuery,
 } from "@schemas/attendances.js";
 import { parseRegistrationSpreadsheet } from "./registrationSpreadsheet.js";
@@ -369,7 +369,7 @@ export async function exportAttendeesForDVL(
 /**
  * Filter the changes object so that it contains only valid fields
  */
-function attendanceSummaryChanges(a: SessionAttendanceSummaryChanges) {
+function attendanceSummaryChanges(a: SessionAttendanceSummaryChange) {
 	const changes = {
 		session_id: a.session_id,
 		SAPIN: a.SAPIN,
