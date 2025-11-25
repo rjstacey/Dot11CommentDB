@@ -4,15 +4,21 @@ import { selectUserMembersAccess, AccessLevel } from "@/store/members";
 
 import ShowAccess from "@/components/ShowAccess";
 import { AttendanceEditForm } from "./AttendanceEditForm";
-import { useMemberAttendanceEdit } from "./useMemberAttendanceEdit";
+import { useMemberAttendanceEdit } from "@/edit/useMemberAttendanceEdit";
 
 export function MemberAttendanceDetail() {
 	const sessionNumber = Number(useParams().sessionNumber);
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 
-	const { state, submit, cancel, changeMember, changeAttendance } =
-		useMemberAttendanceEdit(sessionNumber, readOnly);
+	const {
+		state,
+		submit,
+		cancel,
+		changeMember,
+		changeAttendance,
+		hasChanges,
+	} = useMemberAttendanceEdit(sessionNumber, readOnly);
 
 	let title: string;
 	if (state.action === "add") {
@@ -44,6 +50,7 @@ export function MemberAttendanceDetail() {
 					editedAttendance={state.editedAttendance!}
 					savedAttendance={state.savedAttendance!}
 					onChangeAttendance={changeAttendance}
+					hasChanges={hasChanges}
 					submit={submit}
 					cancel={cancel}
 					readOnly={readOnly}

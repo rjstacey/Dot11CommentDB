@@ -24,11 +24,12 @@ export function AttendanceEditForm({
 	editedAttendance,
 	savedAttendance,
 	onChangeAttendance,
+	hasChanges,
 	submit,
 	cancel,
 	readOnly,
 }: {
-	submit?: () => Promise<void>;
+	submit: () => Promise<void>;
 	cancel: () => void;
 	action: EditAction;
 	sapins: number[];
@@ -38,6 +39,7 @@ export function AttendanceEditForm({
 	editedAttendance: MultipleSessionAttendanceSummary;
 	savedAttendance: MultipleSessionAttendanceSummary;
 	onChangeAttendance: (changes: SessionAttendanceSummaryChange) => void;
+	hasChanges: () => boolean;
 	readOnly?: boolean;
 }) {
 	const [busy, setBusy] = React.useState(false);
@@ -48,11 +50,9 @@ export function AttendanceEditForm({
 			ConfirmModal.show("Fix errors", false);
 			return;
 		}
-		if (submit) {
-			setBusy(true);
-			await submit();
-			setBusy(false);
-		}
+		setBusy(true);
+		await submit();
+		setBusy(false);
 	}
 
 	return (
@@ -70,11 +70,13 @@ export function AttendanceEditForm({
 					readOnly={readOnly}
 				/>
 			</Row>
-			<SubmitCancelRow
-				submitLabel={action === "add" ? "Add" : "Update"}
-				cancel={cancel}
-				busy={busy}
-			/>
+			{hasChanges() && (
+				<SubmitCancelRow
+					submitLabel={action === "add" ? "Add" : "Update"}
+					cancel={cancel}
+					busy={busy}
+				/>
+			)}
 		</Form>
 	);
 }

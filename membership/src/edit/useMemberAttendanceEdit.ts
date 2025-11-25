@@ -38,7 +38,7 @@ import {
 	useMembersAdd,
 	useMembersUpdate,
 	type MultipleMember,
-} from "../../members/detail/useMemberActions";
+} from "./useMemberActions";
 import {
 	useAttendanceUpdate,
 	type MultipleSessionAttendanceSummary,
@@ -361,9 +361,10 @@ export function useMemberAttendanceEdit(
 			setState(initState);
 		};
 
-		let submit: (() => Promise<void>) | undefined;
-		if (state.action === "add") submit = add;
-		else if (state.action === "update" && hasChanges()) submit = update;
+		const submit = async () => {
+			if (state.action === "add") return add();
+			else if (state.action === "update") return update();
+		};
 
 		const cancel = () => {
 			setState((state) => {
@@ -378,7 +379,7 @@ export function useMemberAttendanceEdit(
 			});
 		};
 
-		return { submit, cancel, changeMember, changeAttendance };
+		return { submit, cancel, hasChanges, changeMember, changeAttendance };
 	}, [membersAdd, membersUpdate, attendanceUpdate, initState, readOnly]);
 
 	return { state, ...actions };

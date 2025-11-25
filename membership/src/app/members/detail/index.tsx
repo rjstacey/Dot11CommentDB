@@ -5,8 +5,8 @@ import { useAppSelector } from "@/store/hooks";
 import { selectUserMembersAccess, AccessLevel } from "@/store/members";
 
 import ShowAccess from "@/components/ShowAccess";
+import { useMemberEdit } from "@/edit/useMembersEdit";
 import { MemberEditForm } from "./MemberEditForm";
-import { useMemberEdit } from "./useMembersEdit";
 
 export function MemberDetail({
 	selected,

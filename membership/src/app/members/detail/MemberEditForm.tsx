@@ -6,12 +6,12 @@ import { ConfirmModal } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import type { MemberChange, MemberCreate } from "@/store/members";
 import { selectIeeeMemberEntities } from "@/store/ieeeMembers";
+import type { EditAction, MultipleMember } from "@/edit/useMembersEdit";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 import { IeeeMemberSelector } from "./IeeeMemberSelector";
 import { MemberEditTabs } from "./MemberEditTabs";
-import type { EditAction, MultipleMember } from "./useMembersEdit";
 
 export function MemberEditForm({
 	action,
@@ -30,7 +30,7 @@ export function MemberEditForm({
 	saved?: MultipleMember;
 	hasChanges: () => boolean;
 	onChange: (changes: MemberChange) => void;
-	submit?: () => Promise<void>;
+	submit: () => Promise<void>;
 	cancel: () => void;
 	readOnly?: boolean;
 }) {
@@ -43,11 +43,9 @@ export function MemberEditForm({
 			ConfirmModal.show("Fix errors", false);
 			return;
 		}
-		if (submit) {
-			setBusy(true);
-			await submit();
-			setBusy(false);
-		}
+		setBusy(true);
+		await submit();
+		setBusy(false);
 	};
 
 	function setMember(sapin: number) {
