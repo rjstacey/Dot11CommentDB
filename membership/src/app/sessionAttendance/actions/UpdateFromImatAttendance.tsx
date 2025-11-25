@@ -21,7 +21,7 @@ import {
 } from "@/store/members";
 import { importAttendanceSummary } from "@/store/attendanceSummaries";
 
-import { sessionAttendeeToNewMember } from "../imat/utils";
+import { sessionAttendeeToNewMember } from "../imat/useAttendanceActions";
 
 function UpdateForm({ close }: { close: () => void }) {
 	const { groupName, selected, ids, entities } = useAppSelector(

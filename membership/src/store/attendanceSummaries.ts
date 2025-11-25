@@ -20,7 +20,7 @@ import { selectSessionByNumber, updateSession } from "./sessions";
 import {
 	SessionAttendanceSummary,
 	SessionAttendanceSummaryCreate,
-	SessionAttendanceSummaryChanges,
+	SessionAttendanceSummaryChange,
 	SessionAttendanceSummaryUpdate,
 	sessionAttendanceSummariesSchema,
 } from "@schemas/attendances";
@@ -28,7 +28,7 @@ import {
 export type {
 	SessionAttendanceSummary,
 	SessionAttendanceSummaryCreate,
-	SessionAttendanceSummaryChanges,
+	SessionAttendanceSummaryChange,
 	SessionAttendanceSummaryUpdate,
 };
 

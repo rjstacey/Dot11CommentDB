@@ -1,6 +1,6 @@
 import type { EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
-import { shallowDiff } from "@common";
+import { Multiple, shallowDiff } from "@common";
 
 import type { AppThunk } from "@/store";
 import { useAppDispatch } from "@/store/hooks";
@@ -10,7 +10,7 @@ import {
 	addAttendanceSummaries,
 	deleteAttendanceSummaries,
 	SessionAttendanceSummary,
-	SessionAttendanceSummaryChanges,
+	SessionAttendanceSummaryChange,
 	SessionAttendanceSummaryCreate,
 	SessionAttendanceSummaryUpdate,
 } from "@/store/attendanceSummaries";
@@ -24,7 +24,8 @@ import {
 import type { Session } from "@/store/sessions";
 import type { ImatAttendanceSummary } from "@/store/imatAttendanceSummary";
 
-import type { MultipleSessionAttendanceSummary } from "./detail";
+export type MultipleSessionAttendanceSummary =
+	Multiple<SessionAttendanceSummary>;
 
 /** Create a new member from attendee */
 export function sessionAttendeeToNewMember(
@@ -82,7 +83,7 @@ export function useAttendanceUpdate() {
 		const changes = shallowDiff(
 			saved,
 			edited
-		) as SessionAttendanceSummaryChanges;
+		) as SessionAttendanceSummaryChange;
 		const p: AppThunk[] = [];
 		const updates: SessionAttendanceSummaryUpdate[] = [];
 		const adds: SessionAttendanceSummaryCreate[] = [];

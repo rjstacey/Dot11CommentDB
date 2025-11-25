@@ -146,9 +146,8 @@ export default slice;
  * Slice actions
  */
 export const sessionAttendeesActions = slice.actions;
-export const { setSelected } = slice.actions;
+export const { setSelected, setUiProperties } = slice.actions;
 export const clearImatAttendanceSummary = createAction(dataSet + "/clear");
-
 const { getSuccess, getFailure } = slice.actions;
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{
@@ -250,6 +249,8 @@ export const sessionAttendeesSelectors = getAppTableDataSelectors(
 	selectImatAttendanceSummaryState,
 	{ selectEntities: selectSyncedImatAttendanceSummaryEntities, getField }
 );
+
+export const selectUiProperties = sessionAttendeesSelectors.selectUiProperties;
 
 /*
  * Thunk actions

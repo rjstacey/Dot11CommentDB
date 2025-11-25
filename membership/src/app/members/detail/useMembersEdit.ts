@@ -1,146 +1,269 @@
 import * as React from "react";
-import { shallowDiff, deepMerge, deepDiff } from "@common";
-import type { AppThunk } from "@/store";
-import { useAppDispatch } from "@/store/hooks";
+import { shallowEqual } from "react-redux";
+import type { EntityId } from "@reduxjs/toolkit";
+
+import { ConfirmModal, deepMergeTagMultiple } from "@common";
+
+import { useAppSelector } from "@/store/hooks";
 import {
-	addMembers,
-	updateMembers,
-	deleteMembers,
-	addMemberStatusChangeEntries,
-	updateMemberStatusChangeEntries,
-	deleteMemberStatusChangeEntries,
+	ContactInfo,
+	memberContactInfoEmpty,
+	selectMembersState,
 	type Member,
 	type MemberCreate,
+	type MemberChange,
 } from "@/store/members";
 
-import type { MultipleMember } from "./MemberEdit";
+import {
+	useMembersAdd,
+	useMembersUpdate,
+	useMembersDelete,
+	type MultipleMember,
+} from "./useMemberActions";
 
-type NormalizeOptions<T> = {
-	selectId?: (entry: T) => string | number;
+export type { MultipleMember };
+
+const defaultMember: MemberCreate & { ContactInfo: ContactInfo } = {
+	SAPIN: 0,
+	Name: "",
+	FirstName: "",
+	LastName: "",
+	MI: "",
+	Email: "",
+	Status: "Non-Voter",
+	Affiliation: "",
+	Employer: "",
+	ContactInfo: memberContactInfoEmpty,
+	StatusChangeOverride: false,
 };
 
-function normalize<T>(arr: T[], options?: NormalizeOptions<T>) {
-	const selectId =
-		options?.selectId ||
-		((entry: T) => (entry as { id: string | number }).id);
-	const ids: (number | string)[] = [];
-	const entities: Record<number | string, T> = {};
-	arr.forEach((entity) => {
-		const id = selectId(entity);
-		entities[id] = entity;
-		ids.push(id);
-	});
-	return { ids, entities };
-}
+export type EditAction = "view" | "update" | "add";
 
-function arrayDiff<T extends { id: number }>(
-	originalArr1: T[],
-	updatedArr2: T[]
-): {
-	updates: { id: number; changes: Partial<T> }[];
-	adds: T[];
-	deletes: number[];
+export type MemberEditState = {
+	action: EditAction;
+	edited: MultipleMember | null;
+	saved: MultipleMember | null;
+	originals: MemberCreate[];
+	message: string;
 };
-function arrayDiff<T extends { id: string }>(
-	originalArr1: T[],
-	updatedArr2: T[]
-): {
-	updates: { id: string; changes: Partial<T> }[];
-	adds: T[];
-	deletes: string[];
-};
-function arrayDiff<T extends { id: number | string }>(
-	originalArr1: T[],
-	updatedArr2: T[]
-): {
-	updates: { id: number | string; changes: Partial<T> }[];
-	adds: T[];
-	deletes: (number | string)[];
-} {
-	const updates: { id: number | string; changes: Partial<T> }[] = [];
-	const deletes: (number | string)[] = [];
-	const { ids: ids1, entities: entities1 } = normalize(originalArr1);
-	const { ids: _ids2, entities: entities2 } = normalize(updatedArr2);
-	let ids2 = _ids2;
-	ids1.forEach((id1) => {
-		if (entities2[id1]) {
-			const changes = shallowDiff(entities1[id1], entities2[id1]);
-			if (Object.keys(changes).length > 0)
-				updates.push({ id: id1, changes });
-		} else {
-			deletes.push(id1);
+
+function useInitState(selected: EntityId[]) {
+	const { entities, loading, valid } = useAppSelector(selectMembersState);
+	return React.useCallback((): MemberEditState => {
+		const action: EditAction = "view",
+			originals: MemberCreate[] = [];
+		let edited: MultipleMember | null = null,
+			message: string = "";
+
+		if (loading && !valid) {
+			message = "Loading...";
 		}
-		ids2 = ids2.filter((id2) => id2 !== id1);
-	});
-	const adds: T[] = ids2.map((id2) => entities2[id2]);
-	return { updates, adds, deletes };
+		if (selected.length === 0) {
+			message = "Nothing selected";
+		} else {
+			for (const sapin of selected as number[]) {
+				const member = entities[sapin];
+				if (!member) {
+					console.warn("Can't get member with SAPIN=" + sapin);
+					continue;
+				}
+				edited = deepMergeTagMultiple(
+					edited || {},
+					member
+				) as MultipleMember;
+				originals.push(member);
+			}
+			if (originals.length === 0) {
+				message = "Nothing selected";
+			}
+		}
+		return {
+			action,
+			edited,
+			saved: edited,
+			originals,
+			message,
+		};
+	}, [loading, valid, selected, entities]);
 }
 
-export function useMembersUpdate() {
-	const dispatch = useAppDispatch();
-	return React.useCallback(
-		async (
-			edited: MultipleMember,
-			saved: MultipleMember,
-			members: MemberCreate[]
-		) => {
-			const changes = shallowDiff(saved, edited) as Partial<Member>;
-			const p: AppThunk[] = [];
-			if ("StatusChangeHistory" in changes) {
-				const { updates, adds, deletes } = arrayDiff(
-					saved.StatusChangeHistory,
-					edited.StatusChangeHistory
+export function useMemberEdit({
+	selected,
+	setSelected,
+	readOnly,
+}: {
+	selected: EntityId[];
+	setSelected: (ids: EntityId[]) => void;
+	readOnly?: boolean;
+}) {
+	const initState = useInitState(selected); // Callback to initialize state
+	const [state, setState] = React.useState<MemberEditState>(initState);
+
+	React.useEffect(() => {
+		const { action, originals } = state;
+		const ids = originals.map((m) => m.SAPIN);
+		if (action === "view" && selected.join() !== ids.join()) {
+			setState(initState);
+		} else if (
+			(action === "update" && selected.join() !== ids.join()) ||
+			(action === "add" && selected.length > 0)
+		) {
+			ConfirmModal.show(
+				"Changes not applied! Do you want to discard changes?"
+			).then((ok) => {
+				if (ok) setState(initState);
+				else setSelected(ids);
+			});
+		}
+	}, [state, selected, setSelected, initState]);
+
+	const membersAdd = useMembersAdd();
+	const membersUpdate = useMembersUpdate();
+	const membersDelete = useMembersDelete();
+
+	const actions = React.useMemo(() => {
+		const onChange = (changes: MemberChange) => {
+			if (readOnly || state.edited === null || state.saved === null) {
+				console.warn("Update in bad state");
+				return;
+			}
+			setState((state) => {
+				let { action, edited } = state;
+				const { saved } = state;
+				edited = { ...edited!, ...changes };
+				if (shallowEqual(edited, saved!)) {
+					if (action !== "add") action = "view";
+					edited = saved!;
+				} else {
+					if (action !== "add") action = "update";
+				}
+				return {
+					...state,
+					action,
+					edited,
+					saved,
+				};
+			});
+		};
+
+		const hasChanges = () => state.edited !== state.saved;
+
+		const clickAdd = async () => {
+			if (state.action === "update") {
+				const ok = await ConfirmModal.show(
+					`Changes not applied! Do you want to discard changes?`
 				);
-				members.forEach((m) => {
-					if (updates.length > 0)
-						p.push(
-							updateMemberStatusChangeEntries(m.SAPIN, updates)
-						);
-					if (deletes.length > 0)
-						p.push(
-							deleteMemberStatusChangeEntries(m.SAPIN, deletes)
-						);
-					if (adds.length > 0)
-						p.push(addMemberStatusChangeEntries(m.SAPIN, adds));
-				});
-				delete changes.StatusChangeHistory;
+				if (!ok) return;
 			}
-			if (Object.keys(changes).length > 0) {
-				const updates = members.map((m) => ({ id: m.SAPIN, changes }));
-				p.push(updateMembers(updates));
+
+			const entry: MemberCreate & {
+				StatusChangeHistory: Member["StatusChangeHistory"];
+				ContactEmails: Member["ContactEmails"];
+				ContactInfo: Member["ContactInfo"];
+				ReplacedBySAPIN: Member["ReplacedBySAPIN"];
+				ObsoleteSAPINs: Member["ObsoleteSAPINs"];
+			} = {
+				...defaultMember,
+				StatusChangeHistory: [],
+				ContactEmails: [],
+				ReplacedBySAPIN: null,
+				ObsoleteSAPINs: [],
+			};
+			setSelected([]);
+			setState({
+				action: "add",
+				edited: entry,
+				saved: entry,
+				originals: [entry],
+				message: "",
+			});
+		};
+
+		const clickDelete = async () => {
+			const { originals } = state;
+			if (originals.length > 0) {
+				const str =
+					"Are you sure you want to delete:\n" +
+					originals.map((o) => `${o.SAPIN} ${o.Name}`).join("\n");
+				const ok = await ConfirmModal.show(str);
+				if (ok) {
+					setSelected([]);
+					setState({
+						action: "view",
+						edited: null,
+						saved: null,
+						originals: [],
+						message: "Nothing selected...",
+					});
+					await membersDelete(originals);
+				}
 			}
-			await Promise.all(p.map(dispatch));
-		},
-		[dispatch]
-	);
-}
+		};
 
-export function useMembersAdd() {
-	const dispatch = useAppDispatch();
-	return React.useCallback(
-		async (
-			edited: MultipleMember,
-			saved: MultipleMember,
-			members: MemberCreate[]
-		) => {
-			const changes = deepDiff(saved, edited);
-			const newMembers = changes
-				? members.map((m) => deepMerge(m, changes))
-				: members;
-			const ids = await dispatch(addMembers(newMembers));
-			return ids;
-		},
-		[dispatch]
-	);
-}
+		const add = async () => {
+			const { edited, saved, originals } = state;
+			if (edited === null || saved === null) {
+				console.warn("Add with unexpected state");
+				return;
+			}
+			setState({
+				action: "view",
+				edited: null,
+				saved: null,
+				originals: [],
+				message: "Adding...",
+			});
+			const ids = await membersAdd(edited, saved, originals);
+			setSelected(ids);
+		};
 
-export function useMembersDelete() {
-	const dispatch = useAppDispatch();
-	return React.useCallback(
-		async (members: MemberCreate[]) => {
-			const sapins = members.map((m) => m.SAPIN);
-			await dispatch(deleteMembers(sapins));
-		},
-		[dispatch]
-	);
+		const update = async () => {
+			const { action, edited, saved, originals } = state;
+			if (action !== "update" || edited === null || saved === null) {
+				console.warn("Update with unexpected state");
+				return;
+			}
+			setSelected([]);
+			setState({
+				action: "view",
+				saved: null,
+				edited: null,
+				originals: [],
+				message: "Updating...",
+			});
+			await membersUpdate(edited, saved, originals);
+			setSelected(selected);
+		};
+
+		const submit = async () => {
+			if (state.action === "add") return add();
+			else if (state.action === "update") return update();
+		};
+
+		const cancel = () => {
+			setState(initState);
+		};
+
+		return {
+			hasChanges,
+			submit,
+			cancel,
+			onChange,
+			clickAdd,
+			clickDelete,
+		};
+	}, [
+		state,
+		readOnly,
+		setSelected,
+		membersDelete,
+		membersAdd,
+		membersUpdate,
+		initState,
+	]);
+
+	return {
+		state,
+		...actions,
+	};
 }

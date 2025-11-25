@@ -14,14 +14,18 @@ import { DateTime } from "luxon";
 
 import { isMultiple } from "@common";
 
-import type { Member, StatusChangeEntry, StatusType } from "@/store/members";
+import type {
+	MemberChange,
+	StatusChangeEntry,
+	StatusType,
+} from "@/store/members";
 
 import { EditTable as Table } from "@/components/Table";
 import { hasChangesStyle } from "@/components/utils";
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 
 import StatusSelector from "./StatusSelector";
-import type { MultipleMember } from "./MemberEdit";
+import type { MultipleMember } from "./useMembersEdit";
 
 const displayDate = (isoDateTime: string) =>
 	DateTime.fromISO(isoDateTime).toLocaleString(DateTime.DATE_MED);
@@ -142,29 +146,29 @@ const statusChangeHistoryColumns = [
 	},
 ];
 
-export function MemberStatus({
-	member,
+export function MemberStatusEdit({
+	edited,
 	saved,
-	updateMember,
+	onChange,
 	readOnly,
 }: {
-	member: MultipleMember;
+	edited: MultipleMember;
 	saved?: MultipleMember;
-	updateMember: (changes: Partial<Member>) => void;
+	onChange: (changes: MemberChange) => void;
 	readOnly?: boolean;
 }) {
-	const statusChangeHistory = member.StatusChangeHistory;
+	const statusChangeHistory = edited.StatusChangeHistory;
 	let statusChangeDate = "";
-	if (!isMultiple(member.StatusChangeDate) && member.StatusChangeDate)
+	if (!isMultiple(edited.StatusChangeDate) && edited.StatusChangeDate)
 		statusChangeDate =
-			DateTime.fromISO(member.StatusChangeDate).toISODate() || "";
+			DateTime.fromISO(edited.StatusChangeDate).toISODate() || "";
 
 	const columns = React.useMemo(() => {
 		function update(id: number, changes: Partial<StatusChangeEntry>) {
 			const StatusChangeHistory = statusChangeHistory.map((h) =>
 				h.id === id ? { ...h, ...changes } : h
 			);
-			updateMember({ StatusChangeHistory });
+			onChange({ StatusChangeHistory });
 		}
 
 		function addClick() {
@@ -173,19 +177,19 @@ export function MemberStatus({
 			const entry: StatusChangeEntry = {
 				id,
 				Date: new Date().toISOString(),
-				NewStatus: member.Status as StatusType,
-				OldStatus: member.Status as StatusType,
+				NewStatus: edited.Status as StatusType,
+				OldStatus: edited.Status as StatusType,
 				Reason: "New member",
 			};
 			const StatusChangeHistory = [entry].concat(...statusChangeHistory);
-			updateMember({ StatusChangeHistory });
+			onChange({ StatusChangeHistory });
 		}
 
 		function remove(id: number) {
 			const StatusChangeHistory = statusChangeHistory.filter(
 				(h) => h.id !== id
 			);
-			updateMember({ StatusChangeHistory });
+			onChange({ StatusChangeHistory });
 		}
 
 		const columns = statusChangeHistoryColumns.map((col) => {
@@ -220,21 +224,21 @@ export function MemberStatus({
 			return col;
 		});
 		return columns;
-	}, [member, statusChangeHistory, readOnly, updateMember]);
+	}, [edited, statusChangeHistory, readOnly, onChange]);
 
 	return (
-		<div>
-			<Row>
+		<>
+			<Row className="mb-3">
 				<FormGroup as={Col}>
 					<FormLabel htmlFor="status">Status:</FormLabel>
 					<StatusSelector
 						id="status"
 						style={{
 							flexBasis: 200,
-							...hasChangesStyle(member, saved, "Status"),
+							...hasChangesStyle(edited, saved, "Status"),
 						}}
-						value={member.Status}
-						onChange={(value) => updateMember({ Status: value })}
+						value={edited.Status}
+						onChange={(value) => onChange({ Status: value })}
 						readOnly={readOnly}
 					/>
 				</FormGroup>
@@ -242,14 +246,14 @@ export function MemberStatus({
 					<FormLabel>Override</FormLabel>
 					<FormCheck
 						style={hasChangesStyle(
-							member,
+							edited,
 							saved,
 							"StatusChangeOverride"
 						)}
-						checked={Boolean(member.StatusChangeOverride)}
-						//indeterminate={isMultiple(member.StatusChangeOverride)}
+						checked={Boolean(edited.StatusChangeOverride)}
+						//indeterminate={isMultiple(edited.StatusChangeOverride)}
 						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-							updateMember({
+							onChange({
 								StatusChangeOverride: e.target.checked,
 							})
 						}
@@ -261,29 +265,35 @@ export function MemberStatus({
 					<FormControl
 						type="date"
 						style={hasChangesStyle(
-							member,
+							edited,
 							saved,
 							"StatusChangeDate"
 						)}
 						value={statusChangeDate}
 						onChange={(e) =>
-							updateMember({
+							onChange({
 								StatusChangeDate: e.target.value,
 							})
 						}
 						placeholder={
-							isMultiple(member.StatusChangeDate)
+							isMultiple(edited.StatusChangeDate)
 								? MULTIPLE_STR
 								: undefined
 						}
 					/>
 				</FormGroup>
 			</Row>
-			<Table
-				style={hasChangesStyle(member, saved, "StatusChangeHistory")}
-				columns={columns}
-				values={statusChangeHistory}
-			/>
-		</div>
+			<Row className="mb-3">
+				<Table
+					style={hasChangesStyle(
+						edited,
+						saved,
+						"StatusChangeHistory"
+					)}
+					columns={columns}
+					values={statusChangeHistory}
+				/>
+			</Row>
+		</>
 	);
 }

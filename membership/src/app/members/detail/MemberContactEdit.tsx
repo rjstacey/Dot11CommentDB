@@ -13,6 +13,7 @@ import { DateTime } from "luxon";
 
 import {
 	Member,
+	MemberChange,
 	ContactEmail,
 	ContactInfo,
 	memberContactInfoEmpty,
@@ -20,7 +21,7 @@ import {
 import { hasChangesStyle } from "@/components/utils";
 import { EditTable as Table, TableColumn } from "@/components/Table";
 
-import type { MultipleMember } from "./MemberEdit";
+import type { MultipleMember } from "./useMembersEdit";
 
 type ContactInfoFieldType = {
 	key: keyof ContactInfo;
@@ -50,17 +51,17 @@ const contactEmailColumns: TableColumn[] = [
 ];
 
 function MemberContactEmails({
-	member,
+	edited,
 	saved,
 	onChange,
 	readOnly,
 }: {
-	member: MultipleMember;
+	edited: MultipleMember;
 	saved?: MultipleMember;
-	onChange: (changes: Partial<Member>) => void;
+	onChange: (changes: MemberChange) => void;
 	readOnly?: boolean;
 }) {
-	const contactEmails = member.ContactEmails;
+	const contactEmails = edited.ContactEmails;
 
 	const columns = React.useMemo(() => {
 		const disableAdd =
@@ -175,7 +176,7 @@ function MemberContactEmails({
 
 	return (
 		<Table
-			style={hasChangesStyle(member, saved, "ContactEmails")}
+			style={hasChangesStyle(edited, saved, "ContactEmails")}
 			columns={columns}
 			values={contactEmails}
 			rowId="id"
@@ -193,7 +194,7 @@ const ContactInfoFields: ContactInfoFieldType[] = [
 	{ key: "Phone", label: "Phone" },
 ];
 
-export function MemberContactInfo({
+export function MemberContactEdit({
 	edited,
 	saved,
 	onChange,
@@ -245,7 +246,7 @@ export function MemberContactInfo({
 	return (
 		<Container fluid>
 			<MemberContactEmails
-				member={edited}
+				edited={edited}
 				saved={saved}
 				onChange={onChange}
 				readOnly={readOnly}
