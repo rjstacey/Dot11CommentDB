@@ -12,16 +12,16 @@ import {
 import { DateTime } from "luxon";
 
 import {
+	memberContactInfoEmpty,
 	Member,
 	MemberChange,
 	ContactEmail,
 	ContactInfo,
-	memberContactInfoEmpty,
+	MemberCreate,
 } from "@/store/members";
+import type { MultipleMember } from "@/edit/useMembersEdit";
 import { hasChangesStyle } from "@/components/utils";
 import { EditTable as Table, TableColumn } from "@/components/Table";
-
-import type { MultipleMember } from "./useMembersEdit";
 
 type ContactInfoFieldType = {
 	key: keyof ContactInfo;
@@ -56,12 +56,12 @@ function MemberContactEmails({
 	onChange,
 	readOnly,
 }: {
-	edited: MultipleMember;
+	edited: MultipleMember | MemberCreate;
 	saved?: MultipleMember;
 	onChange: (changes: MemberChange) => void;
 	readOnly?: boolean;
 }) {
-	const contactEmails = edited.ContactEmails;
+	const contactEmails = edited.ContactEmails ?? [];
 
 	const columns = React.useMemo(() => {
 		const disableAdd =
@@ -200,7 +200,7 @@ export function MemberContactEdit({
 	onChange,
 	readOnly,
 }: {
-	edited: MultipleMember;
+	edited: MultipleMember | MemberCreate;
 	saved?: MultipleMember;
 	onChange: (changes: Partial<Member>) => void;
 	readOnly?: boolean;

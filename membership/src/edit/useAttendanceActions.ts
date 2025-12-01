@@ -95,7 +95,7 @@ export function useAttendanceUpdate() {
 					if (isNullAttendanceSummary(a)) deletes.push(entry.id);
 					else updates.push({ id: entry.id, changes });
 				} else {
-					adds.push(a);
+					adds.push(entry);
 				}
 			}
 			if (adds.length > 0) p.push(addAttendanceSummaries(adds));

@@ -9,7 +9,7 @@ import { ConfirmModal } from "@common";
 import Editor from "@/components/editor/Editor";
 import { htmlWithInlineStyle } from "@/components/editor/utils";
 
-import { useRenderSessionAttendances } from "../sessionParticipation/renderSessionAttendances";
+import { useRenderSessionParticipation } from "../sessionParticipation/useRenderSessionParticipation";
 import { useRenderBallotParticipation } from "../ballotParticipation/useRenderBallotParticipation";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -51,7 +51,9 @@ function substitute(
 	key: string,
 	member: Member,
 	session: Session | undefined,
-	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>,
+	renderSessionParticipation: ReturnType<
+		typeof useRenderSessionParticipation
+	>,
 	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
 ): string {
 	if (Object.keys(member).includes(key))
@@ -60,7 +62,7 @@ function substitute(
 	if (key === "OldStatus") return "" + (getField(member, key) || "(Blank)");
 
 	if (key === "AttendancesSummary")
-		return renderSessionAttendances(member.SAPIN);
+		return renderSessionParticipation(member.SAPIN);
 
 	if (key.startsWith("Session")) {
 		if (!session) return "(Blank)";
@@ -86,7 +88,9 @@ function doSubstitution(
 	email: EmailTemplate,
 	member: Member,
 	session: Session | undefined,
-	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>,
+	renderSessionParticipation: ReturnType<
+		typeof useRenderSessionParticipation
+	>,
 	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
 ) {
 	let to = email.to || SELECTED_MEMBERS_KEY;
@@ -120,7 +124,7 @@ function doSubstitution(
 			match[1],
 			member,
 			session,
-			renderSessionAttendances,
+			renderSessionParticipation,
 			renderBallotParticipation
 		);
 		bodyRemaining = bodyRemaining.substring(match.index + match[0].length);
@@ -137,14 +141,16 @@ function genEmails({
 	emailTemplate,
 	members,
 	session,
-	renderSessionAttendances,
+	renderSessionParticipation,
 	renderBallotParticipation,
 }: {
 	user: User;
 	emailTemplate: EmailTemplate;
 	members: Member[];
 	session: Session | undefined;
-	renderSessionAttendances: ReturnType<typeof useRenderSessionAttendances>;
+	renderSessionParticipation: ReturnType<
+		typeof useRenderSessionParticipation
+	>;
 	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>;
 }) {
 	return Promise.all(
@@ -153,7 +159,7 @@ function genEmails({
 				emailTemplate,
 				member,
 				session,
-				renderSessionAttendances,
+				renderSessionParticipation,
 				renderBallotParticipation
 			);
 
@@ -241,7 +247,7 @@ function NotificationEmail() {
 	const user = useAppSelector(selectUser);
 	const members = useAppSelector(selectSelectedMembers);
 	const session = useAppSelector(selectMostRecentAttendedSession);
-	const renderSessionAttendances = useRenderSessionAttendances();
+	const renderSessionParticipation = useRenderSessionParticipation();
 	const renderBallotParticipation = useRenderBallotParticipation();
 
 	React.useEffect(() => {
@@ -252,7 +258,7 @@ function NotificationEmail() {
 				edited,
 				members[0],
 				session,
-				renderSessionAttendances,
+				renderSessionParticipation,
 				renderBallotParticipation
 			);
 			setPreview(email);
@@ -261,7 +267,7 @@ function NotificationEmail() {
 		edited,
 		members,
 		session,
-		renderSessionAttendances,
+		renderSessionParticipation,
 		renderBallotParticipation,
 	]);
 
@@ -307,7 +313,7 @@ function NotificationEmail() {
 			emailTemplate: saved!,
 			members,
 			session,
-			renderSessionAttendances,
+			renderSessionParticipation,
 			renderBallotParticipation,
 		});
 		// Send in batches of 50

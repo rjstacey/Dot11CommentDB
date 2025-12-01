@@ -37,12 +37,25 @@ const defaultMember: MemberCreate & { ContactInfo: ContactInfo } = {
 	StatusChangeOverride: false,
 };
 
-export type EditAction = "view" | "update" | "add";
+export type EditAction = "add" | "update" | null;
 
-export type MemberEditState = {
-	action: EditAction;
-	edited: MultipleMember | null;
-	saved: MultipleMember | null;
+export type MemberEditState = (
+	| {
+			action: "add";
+			edited: MemberCreate;
+			saved: null;
+	  }
+	| {
+			action: "update";
+			edited: MultipleMember;
+			saved: MultipleMember;
+	  }
+	| {
+			action: null;
+			edited: null;
+			saved: null;
+	  }
+) & {
 	originals: MemberCreate[];
 	message: string;
 };
@@ -50,40 +63,42 @@ export type MemberEditState = {
 function useInitState(selected: EntityId[]) {
 	const { entities, loading, valid } = useAppSelector(selectMembersState);
 	return React.useCallback((): MemberEditState => {
-		const action: EditAction = "view",
-			originals: MemberCreate[] = [];
-		let edited: MultipleMember | null = null,
-			message: string = "";
-
+		const state: MemberEditState = {
+			action: null,
+			edited: null,
+			saved: null,
+			originals: [],
+			message: "",
+		};
 		if (loading && !valid) {
-			message = "Loading...";
+			state.message = "Loading...";
+			return state;
 		}
-		if (selected.length === 0) {
-			message = "Nothing selected";
-		} else {
-			for (const sapin of selected as number[]) {
-				const member = entities[sapin];
-				if (!member) {
-					console.warn("Can't get member with SAPIN=" + sapin);
-					continue;
-				}
-				edited = deepMergeTagMultiple(
-					edited || {},
-					member
-				) as MultipleMember;
-				originals.push(member);
+		let edited = {} as MultipleMember;
+		const originals: MemberCreate[] = [];
+		for (const sapin of selected as number[]) {
+			const member = entities[sapin];
+			if (!member) {
+				console.warn("Can't get member with SAPIN=" + sapin);
+				continue;
 			}
-			if (originals.length === 0) {
-				message = "Nothing selected";
-			}
+			edited = deepMergeTagMultiple(
+				edited || {},
+				member
+			) as MultipleMember;
+			originals.push(member);
+		}
+		if (originals.length === 0) {
+			state.message = "Nothing selected";
+			return state;
 		}
 		return {
-			action,
+			action: "update",
 			edited,
 			saved: edited,
 			originals,
-			message,
-		};
+			message: "",
+		} satisfies MemberEditState;
 	}, [loading, valid, selected, entities]);
 }
 
@@ -100,9 +115,13 @@ export function useMemberEdit({
 	const [state, setState] = React.useState<MemberEditState>(initState);
 
 	React.useEffect(() => {
-		const { action, originals } = state;
+		const { action, edited, saved, originals } = state;
 		const ids = originals.map((m) => m.SAPIN);
-		if (action === "view" && selected.join() !== ids.join()) {
+		if (
+			action === "update" &&
+			edited === saved &&
+			selected.join() !== ids.join()
+		) {
 			setState(initState);
 		} else if (
 			(action === "update" && selected.join() !== ids.join()) ||
@@ -121,149 +140,136 @@ export function useMemberEdit({
 	const membersUpdate = useMembersUpdate();
 	const membersDelete = useMembersDelete();
 
-	const actions = React.useMemo(() => {
-		const onChange = (changes: MemberChange) => {
-			if (readOnly || state.edited === null || state.saved === null) {
-				console.warn("Update in bad state");
-				return;
-			}
+	const onChange = React.useCallback(
+		(changes: MemberChange) =>
 			setState((state) => {
-				let { action, edited } = state;
-				const { saved } = state;
-				edited = { ...edited!, ...changes };
-				if (shallowEqual(edited, saved!)) {
-					if (action !== "add") action = "view";
-					edited = saved!;
-				} else {
-					if (action !== "add") action = "update";
+				if (
+					readOnly ||
+					state.action === null ||
+					state.edited === null
+				) {
+					console.warn("Update in bad state");
+					return state;
 				}
-				return {
-					...state,
-					action,
-					edited,
-					saved,
-				};
-			});
-		};
-
-		const hasChanges = () => state.edited !== state.saved;
-
-		const clickAdd = async () => {
-			if (state.action === "update") {
-				const ok = await ConfirmModal.show(
-					`Changes not applied! Do you want to discard changes?`
-				);
-				if (!ok) return;
-			}
-
-			const entry: MemberCreate & {
-				StatusChangeHistory: Member["StatusChangeHistory"];
-				ContactEmails: Member["ContactEmails"];
-				ContactInfo: Member["ContactInfo"];
-				ReplacedBySAPIN: Member["ReplacedBySAPIN"];
-				ObsoleteSAPINs: Member["ObsoleteSAPINs"];
-			} = {
-				...defaultMember,
-				StatusChangeHistory: [],
-				ContactEmails: [],
-				ReplacedBySAPIN: null,
-				ObsoleteSAPINs: [],
-			};
-			setSelected([]);
-			setState({
-				action: "add",
-				edited: entry,
-				saved: entry,
-				originals: [entry],
-				message: "",
-			});
-		};
-
-		const clickDelete = async () => {
-			const { originals } = state;
-			if (originals.length > 0) {
-				const str =
-					"Are you sure you want to delete:\n" +
-					originals.map((o) => `${o.SAPIN} ${o.Name}`).join("\n");
-				const ok = await ConfirmModal.show(str);
-				if (ok) {
-					setSelected([]);
-					setState({
-						action: "view",
-						edited: null,
-						saved: null,
-						originals: [],
-						message: "Nothing selected...",
-					});
-					await membersDelete(originals);
+				if (state.action === "add") {
+					const edited = { ...state.edited, ...changes };
+					return { ...state, edited };
 				}
+				let edited = { ...state.edited, ...changes };
+				if (shallowEqual(edited, state.saved)) edited = state.saved;
+				return { ...state, edited };
+			}),
+		[setState, readOnly]
+	);
+
+	const hasChanges = React.useCallback(
+		() => state.action === "add" || state.edited !== state.saved,
+		[state]
+	);
+
+	const clickAdd = React.useCallback(async () => {
+		if (state.action === "update" && state.edited !== state.saved) {
+			const ok = await ConfirmModal.show(
+				`Changes not applied! Do you want to discard changes?`
+			);
+			if (!ok) return;
+		}
+
+		const entry: MemberCreate & {
+			StatusChangeHistory: Member["StatusChangeHistory"];
+			ContactEmails: Member["ContactEmails"];
+			ContactInfo: Member["ContactInfo"];
+			ReplacedBySAPIN: Member["ReplacedBySAPIN"];
+			ObsoleteSAPINs: Member["ObsoleteSAPINs"];
+		} = {
+			...defaultMember,
+			StatusChangeHistory: [],
+			ContactEmails: [],
+			ReplacedBySAPIN: null,
+			ObsoleteSAPINs: [],
+		};
+		setSelected([]);
+		setState({
+			action: "add",
+			edited: entry,
+			saved: null,
+			originals: [entry],
+			message: "",
+		});
+	}, [setState, setSelected, state.action]);
+
+	const clickDelete = React.useCallback(async () => {
+		const { originals } = state;
+		if (originals.length > 0) {
+			const str =
+				"Are you sure you want to delete:\n" +
+				originals.map((o) => `${o.SAPIN} ${o.Name}`).join("\n");
+			const ok = await ConfirmModal.show(str);
+			if (ok) {
+				setSelected([]);
+				setState({
+					action: null,
+					edited: null,
+					saved: null,
+					originals: [],
+					message: "Nothing selected...",
+				});
+				await membersDelete(originals);
 			}
-		};
+		}
+	}, [setState, setSelected, membersDelete, state]);
 
-		const add = async () => {
-			const { edited, saved, originals } = state;
-			if (edited === null || saved === null) {
-				console.warn("Add with unexpected state");
-				return;
-			}
-			setState({
-				action: "view",
-				edited: null,
-				saved: null,
-				originals: [],
-				message: "Adding...",
-			});
-			const ids = await membersAdd(edited, saved, originals);
-			setSelected(ids);
-		};
+	const add = React.useCallback(async () => {
+		const { edited, saved, originals } = state;
+		if (edited === null || saved === null) {
+			console.warn("Add with unexpected state");
+			return;
+		}
+		setState({
+			action: null,
+			edited: null,
+			saved: null,
+			originals: [],
+			message: "Adding...",
+		});
+		const ids = await membersAdd(edited, saved, originals);
+		setSelected(ids);
+	}, [setSelected, membersAdd, state]);
 
-		const update = async () => {
-			const { action, edited, saved, originals } = state;
-			if (action !== "update" || edited === null || saved === null) {
-				console.warn("Update with unexpected state");
-				return;
-			}
-			setSelected([]);
-			setState({
-				action: "view",
-				saved: null,
-				edited: null,
-				originals: [],
-				message: "Updating...",
-			});
-			await membersUpdate(edited, saved, originals);
-			setSelected(selected);
-		};
+	const update = React.useCallback(async () => {
+		const { action, edited, saved, originals } = state;
+		if (action !== "update" || edited === null || saved === null) {
+			console.warn("Update with unexpected state");
+			return;
+		}
+		setSelected([]);
+		setState({
+			action: null,
+			saved: null,
+			edited: null,
+			originals: [],
+			message: "Updating...",
+		});
+		await membersUpdate(edited, saved, originals);
+		setSelected(originals.map((m) => m.SAPIN));
+	}, [setSelected, membersUpdate, state]);
 
-		const submit = async () => {
-			if (state.action === "add") return add();
-			else if (state.action === "update") return update();
-		};
+	const submit = React.useCallback(async () => {
+		if (state.action === "add") return add();
+		else if (state.action === "update") return update();
+	}, [state, add, update]);
 
-		const cancel = () => {
-			setState(initState);
-		};
-
-		return {
-			hasChanges,
-			submit,
-			cancel,
-			onChange,
-			clickAdd,
-			clickDelete,
-		};
-	}, [
-		state,
-		readOnly,
-		setSelected,
-		membersDelete,
-		membersAdd,
-		membersUpdate,
-		initState,
-	]);
+	const cancel = React.useCallback(() => {
+		setState(initState);
+	}, [initState]);
 
 	return {
 		state,
-		...actions,
+		hasChanges,
+		submit,
+		cancel,
+		onChange,
+		clickAdd,
+		clickDelete,
 	};
 }

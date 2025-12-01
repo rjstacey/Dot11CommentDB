@@ -5,7 +5,7 @@ import { ConfirmModal } from "@common";
 
 import { AttendanceTabs } from "./AttendanceTabs";
 import type { SessionAttendanceSummaryChange } from "@/store/attendanceSummaries";
-import type { MemberChange } from "@/store/members";
+import type { MemberChange, MemberCreate } from "@/store/members";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
@@ -13,17 +13,17 @@ import type {
 	EditAction,
 	MultipleMember,
 	MultipleSessionAttendanceSummary,
-} from "./useMemberAttendanceEdit";
+} from "@/edit/useSessionAttendanceEdit";
 
 export function AttendanceEditForm({
 	action,
-	sapins,
+	sapin,
 	editedMember,
 	savedMember,
-	onChangeMember,
+	memberOnChange,
 	editedAttendance,
 	savedAttendance,
-	onChangeAttendance,
+	attendanceOnChange,
 	hasChanges,
 	submit,
 	cancel,
@@ -32,13 +32,13 @@ export function AttendanceEditForm({
 	submit: () => Promise<void>;
 	cancel: () => void;
 	action: EditAction;
-	sapins: number[];
-	editedMember: MultipleMember;
+	sapin: number;
+	editedMember: MultipleMember | MemberCreate;
 	savedMember?: MultipleMember;
-	onChangeMember: (changes: MemberChange) => void;
+	memberOnChange: (changes: MemberChange) => void;
 	editedAttendance: MultipleSessionAttendanceSummary;
 	savedAttendance: MultipleSessionAttendanceSummary;
-	onChangeAttendance: (changes: SessionAttendanceSummaryChange) => void;
+	attendanceOnChange: (changes: SessionAttendanceSummaryChange) => void;
 	hasChanges: () => boolean;
 	readOnly?: boolean;
 }) {
@@ -60,19 +60,19 @@ export function AttendanceEditForm({
 			<Row>
 				<AttendanceTabs
 					action={action}
-					sapins={sapins}
+					sapin={sapin}
 					editedMember={editedMember}
 					savedMember={savedMember}
-					onChangeMember={onChangeMember}
+					memberOnChange={memberOnChange}
 					editedAttendance={editedAttendance}
 					savedAttendance={savedAttendance}
-					onChangeAttendance={onChangeAttendance}
+					attendanceOnChange={attendanceOnChange}
 					readOnly={readOnly}
 				/>
 			</Row>
 			{hasChanges() && (
 				<SubmitCancelRow
-					submitLabel={action === "add" ? "Add" : "Update"}
+					submitLabel={action === "addOne" ? "Add" : "Update"}
 					cancel={cancel}
 					busy={busy}
 				/>

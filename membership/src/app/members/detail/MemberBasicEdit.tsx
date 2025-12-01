@@ -6,16 +6,17 @@ import { isMultiple } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
+	MemberCreate,
 	selectMemberEntities,
 	type Member,
 	type MemberChange,
 } from "@/store/members";
+import type { MultipleMember } from "@/edit/useMembersEdit";
 
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 import { hasChangesStyle } from "@/components/utils";
 
 import { MemberAllSelector } from "./MemberAllSelector";
-import type { MultipleMember } from "./useMembersEdit";
 
 const displayDate = (isoDateTime: string) =>
 	DateTime.fromISO(isoDateTime).toLocaleString(DateTime.DATE_MED);
@@ -62,13 +63,13 @@ function ExpandingInput({
 	...props
 }: {
 	dataKey: keyof Omit<
-		MultipleMember,
+		MemberCreate,
 		| "ContactInfo"
 		| "ContactEmails"
 		| "ObsoleteSAPINs"
 		| "StatusChangeHistory"
 	>;
-	edited: MultipleMember;
+	edited: MultipleMember | MemberCreate;
 	saved?: MultipleMember;
 	onChange: (changes: MemberChange) => void;
 	invalidFeedback?: string;
@@ -113,7 +114,7 @@ export function MemberBasicEdit({
 	basicOnly,
 }: {
 	sapins: number[];
-	edited: MultipleMember;
+	edited: MultipleMember | MemberCreate;
 	saved?: MultipleMember;
 	onChange: (changes: Partial<Member>) => void;
 	readOnly?: boolean;
@@ -177,6 +178,11 @@ export function MemberBasicEdit({
 				</Col>
 			</>
 		);
+	}
+
+	let editedForUpdate: MultipleMember | undefined;
+	if (Object.prototype.hasOwnProperty.call(edited, "ReplacedBySAPIN")) {
+		editedForUpdate = edited as MultipleMember;
 	}
 
 	return (
@@ -317,16 +323,16 @@ export function MemberBasicEdit({
 					/>
 				</Col>
 			</Form.Group>
-			{edited.Status === "Obsolete" && (
+			{editedForUpdate && editedForUpdate.Status === "Obsolete" && (
 				<Form.Group as={Row}>
 					<Form.Label column>Replaced by:</Form.Label>
 					<Col>
 						<MemberAllSelector
 							style={{ maxWidth: 400, flex: 1 }}
 							value={
-								isMultiple(edited.ReplacedBySAPIN)
+								isMultiple(editedForUpdate.ReplacedBySAPIN)
 									? null
-									: edited.ReplacedBySAPIN || null
+									: editedForUpdate.ReplacedBySAPIN || null
 							}
 							onChange={(value) =>
 								change({
@@ -334,7 +340,7 @@ export function MemberBasicEdit({
 								})
 							}
 							placeholder={
-								isMultiple(edited.ReplacedBySAPIN)
+								isMultiple(editedForUpdate.ReplacedBySAPIN)
 									? MULTIPLE_STR
 									: BLANK_STR
 							}
@@ -343,22 +349,19 @@ export function MemberBasicEdit({
 					</Col>
 				</Form.Group>
 			)}
-			{!hasMany && (
-				<>
-					{edited.ObsoleteSAPINs &&
-						!isMultiple(edited.ObsoleteSAPINs) &&
-						edited.ObsoleteSAPINs.length > 0 && (
-							<Row>
-								<Col>
-									<Form.Label as="span">Replaces:</Form.Label>
-									<ShortMemberSummary
-										sapins={edited.ObsoleteSAPINs}
-									/>
-								</Col>
-							</Row>
-						)}
-				</>
-			)}
+			{!hasMany &&
+				editedForUpdate &&
+				!isMultiple(editedForUpdate.ObsoleteSAPINs) &&
+				editedForUpdate.ObsoleteSAPINs.length > 0 && (
+					<Row>
+						<Col>
+							<Form.Label as="span">Replaces:</Form.Label>
+							<ShortMemberSummary
+								sapins={editedForUpdate.ObsoleteSAPINs}
+							/>
+						</Col>
+					</Row>
+				)}
 		</>
 	);
 }

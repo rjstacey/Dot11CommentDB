@@ -6,7 +6,7 @@ import { SessionAttendanceSummaryChange } from "@/store/attendanceSummaries";
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 import { hasChangesStyle } from "@/components/utils";
 
-import type { MultipleSessionAttendanceSummary } from "./useMemberAttendanceEdit";
+import type { MultipleSessionAttendanceSummary } from "@/edit/useSessionAttendanceEdit";
 
 function renderAttendancePercentage(pct: typeof MULTIPLE | null | number) {
 	return isMultiple(pct) ? (

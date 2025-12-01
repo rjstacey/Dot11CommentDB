@@ -4,17 +4,15 @@ import { Row, Col, Form } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
-import type { MemberChange, MemberCreate } from "@/store/members";
+import type { MemberCreate, MemberChange } from "@/store/members";
 import { selectIeeeMemberEntities } from "@/store/ieeeMembers";
-import type { EditAction, MultipleMember } from "@/edit/useMembersEdit";
+import type { MultipleMember } from "@/edit/useMembersEdit";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
-
 import { IeeeMemberSelector } from "./IeeeMemberSelector";
-import { MemberEditTabs } from "./MemberEditTabs";
+import { MemberBasicEdit } from "./MemberBasicEdit";
 
-export function MemberEditForm({
-	action,
+export function MemberAddForm({
 	sapins,
 	edited,
 	saved,
@@ -24,9 +22,8 @@ export function MemberEditForm({
 	cancel,
 	readOnly,
 }: {
-	action: EditAction;
 	sapins: number[];
-	edited: MultipleMember;
+	edited: MemberCreate;
 	saved?: MultipleMember;
 	hasChanges: () => boolean;
 	onChange: (changes: MemberChange) => void;
@@ -62,24 +59,21 @@ export function MemberEditForm({
 
 	return (
 		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
-			{action === "add" && (
-				<Row>
-					<Form.Label column htmlFor="add-existing-ieee-member">
-						Add existing IEEE member:
-					</Form.Label>
-					<Col xs="auto">
-						<IeeeMemberSelector
-							id="add-existing-ieee-member"
-							value={edited.SAPIN as number}
-							onChange={(sapin) => setMember(sapin)}
-						/>
-					</Col>
-				</Row>
-			)}
+			<Row className="mb-3">
+				<Form.Label column htmlFor="add-existing-ieee-member">
+					Add existing IEEE member:
+				</Form.Label>
+				<Col xs="auto">
+					<IeeeMemberSelector
+						id="add-existing-ieee-member"
+						value={edited.SAPIN as number}
+						onChange={(sapin) => setMember(sapin)}
+					/>
+				</Col>
+			</Row>
 
 			<Row className="d-flex flex-column align-items-start w-100">
-				<MemberEditTabs
-					action={action}
+				<MemberBasicEdit
 					sapins={sapins}
 					edited={edited}
 					saved={saved}
@@ -89,7 +83,7 @@ export function MemberEditForm({
 			</Row>
 			{hasChanges() && (
 				<SubmitCancelRow
-					submitLabel={action === "add" ? "Add" : "Update"}
+					submitLabel={"Add"}
 					cancel={cancel}
 					busy={busy}
 				/>

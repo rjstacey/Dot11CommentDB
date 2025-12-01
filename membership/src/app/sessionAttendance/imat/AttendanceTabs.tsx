@@ -5,7 +5,7 @@ import {
 	setUiProperties,
 	selectUiProperties,
 } from "@/store/imatAttendanceSummary";
-import type { MemberChange } from "@/store/members";
+import type { MemberChange, MemberCreate } from "@/store/members";
 import { SessionAttendanceSummaryChange } from "@/store/attendanceSummaries";
 
 import { MemberBasicEdit } from "../../members/detail/MemberBasicEdit";
@@ -16,26 +16,26 @@ import type {
 	EditAction,
 	MultipleMember,
 	MultipleSessionAttendanceSummary,
-} from "./useMemberAttendanceEdit";
+} from "@/edit/useSessionAttendanceEdit";
 
 export function AttendanceTabs({
-	sapins,
+	sapin,
 	editedMember,
 	savedMember,
-	onChangeMember,
+	memberOnChange,
 	editedAttendance,
 	savedAttendance,
-	onChangeAttendance,
+	attendanceOnChange,
 	readOnly,
 }: {
 	action: EditAction;
-	sapins: number[];
-	editedMember: MultipleMember;
+	sapin: number;
+	editedMember: MultipleMember | MemberCreate;
 	savedMember?: MultipleMember;
-	onChangeMember: (changes: MemberChange) => void;
+	memberOnChange: (changes: MemberChange) => void;
 	editedAttendance: MultipleSessionAttendanceSummary;
 	savedAttendance: MultipleSessionAttendanceSummary;
-	onChangeAttendance: (changes: SessionAttendanceSummaryChange) => void;
+	attendanceOnChange: (changes: SessionAttendanceSummaryChange) => void;
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
@@ -53,10 +53,10 @@ export function AttendanceTabs({
 		<Tabs onSelect={setTabKey} activeKey={tabKey} fill>
 			<Tab eventKey="basic" title="Basic">
 				<MemberBasicEdit
-					sapins={sapins}
+					sapins={[sapin]}
 					edited={editedMember}
 					saved={savedMember}
-					onChange={onChangeMember}
+					onChange={memberOnChange}
 					readOnly={readOnly}
 				/>
 			</Tab>
@@ -64,21 +64,21 @@ export function AttendanceTabs({
 				<MemberContactEdit
 					edited={editedMember}
 					saved={savedMember}
-					onChange={onChangeMember}
+					onChange={memberOnChange}
 				/>
 			</Tab>
 			<Tab eventKey="status" title="Status">
 				<MemberStatusEdit
 					edited={editedMember}
 					saved={savedMember}
-					onChange={onChangeMember}
+					onChange={memberOnChange}
 				/>
 			</Tab>
 			<Tab eventKey="attendance" title="Attendance">
 				<AttendanceInfoEdit
 					edited={editedAttendance}
 					saved={savedAttendance}
-					onChange={onChangeAttendance}
+					onChange={attendanceOnChange}
 				/>
 			</Tab>
 		</Tabs>

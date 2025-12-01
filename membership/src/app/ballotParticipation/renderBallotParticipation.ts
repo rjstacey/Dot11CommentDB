@@ -9,9 +9,10 @@ import {
 import { Dictionary } from "@reduxjs/toolkit";
 
 export function renderBallotParticipation(
-	participation: BallotSeriesParticipationSummary[],
+	series_ids: number[],
+	participation: Record<number, BallotSeriesParticipationSummary>,
 	ballotEntities: Dictionary<Ballot>,
-	ballotSeriesEntities: Dictionary<SyncedBallotSeries>
+	ballotSeriesEntities: Record<number, SyncedBallotSeries>
 ) {
 	const headings = [
 		"Project",
@@ -20,7 +21,9 @@ export function renderBallotParticipation(
 		"Last vote",
 		"Notes",
 	];
-	const values = participation.map((entry) => {
+	const values = series_ids.map((id) => {
+		const entry = participation[id];
+
 		function renderDateRange(entity: BallotSeriesParticipationSummary) {
 			const ballotSeries = ballotSeriesEntities[entity.series_id]!;
 			return displayDateRange(ballotSeries.start, ballotSeries.end);

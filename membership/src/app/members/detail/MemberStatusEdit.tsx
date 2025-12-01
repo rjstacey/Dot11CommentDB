@@ -16,6 +16,7 @@ import { isMultiple } from "@common";
 
 import type {
 	MemberChange,
+	MemberCreate,
 	StatusChangeEntry,
 	StatusType,
 } from "@/store/members";
@@ -25,7 +26,7 @@ import { hasChangesStyle } from "@/components/utils";
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 
 import StatusSelector from "./StatusSelector";
-import type { MultipleMember } from "./useMembersEdit";
+import type { MultipleMember } from "@/edit/useMembersEdit";
 
 const displayDate = (isoDateTime: string) =>
 	DateTime.fromISO(isoDateTime).toLocaleString(DateTime.DATE_MED);
@@ -152,12 +153,12 @@ export function MemberStatusEdit({
 	onChange,
 	readOnly,
 }: {
-	edited: MultipleMember;
+	edited: MultipleMember | MemberCreate;
 	saved?: MultipleMember;
 	onChange: (changes: MemberChange) => void;
 	readOnly?: boolean;
 }) {
-	const statusChangeHistory = edited.StatusChangeHistory;
+	const statusChangeHistory = edited.StatusChangeHistory ?? [];
 	let statusChangeDate = "";
 	if (!isMultiple(edited.StatusChangeDate) && edited.StatusChangeDate)
 		statusChangeDate =

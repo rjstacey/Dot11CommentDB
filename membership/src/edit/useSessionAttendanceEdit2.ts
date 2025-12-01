@@ -217,7 +217,7 @@ function useInitState(sessionNumber: number) {
 	} satisfies MemberAttendanceEditState;
 }
 
-export function useMemberAttendanceEdit(
+export function useSessionAttendanceEdit(
 	sessionNumber: number,
 	readOnly: boolean
 ) {
@@ -255,8 +255,8 @@ export function useMemberAttendanceEdit(
 	const membersUpdate = useMembersUpdate();
 	const attendanceUpdate = useAttendanceUpdate();
 
-	const actions = React.useMemo(() => {
-		const changeMember = (changes: MemberChange) => {
+	const changeMember = React.useCallback(
+		(changes: MemberChange) => {
 			if (
 				readOnly ||
 				state.editedMember === null ||
@@ -287,9 +287,12 @@ export function useMemberAttendanceEdit(
 					savedMember,
 				};
 			});
-		};
+		},
+		[readOnly, state.editedMember, state.savedMember]
+	);
 
-		const changeAttendance = (changes: SessionAttendanceSummaryChange) => {
+	const changeAttendance = React.useCallback(
+		(changes: SessionAttendanceSummaryChange) => {
 			if (readOnly || state.editedAttendance === null) {
 				throw new Error("Update with unexpected state");
 			}
@@ -311,76 +314,82 @@ export function useMemberAttendanceEdit(
 					savedAttendance,
 				} satisfies MemberAttendanceEditState;
 			});
-		};
+		},
+		[readOnly, state.editedAttendance, state.savedAttendance]
+	);
 
-		const hasChanges = () =>
+	const hasChanges = React.useCallback(
+		() =>
 			state.editedMember !== state.savedMember ||
-			state.editedAttendance !== state.savedAttendance;
+			state.editedAttendance !== state.savedAttendance,
+		[
+			state.editedMember,
+			state.savedMember,
+			state.editedAttendance,
+			state.savedAttendance,
+		]
+	);
 
-		const add = async () => {
-			const { action, editedMember, savedMember, members } = state;
-			if (
-				action !== "add" ||
-				editedMember === null ||
-				savedMember === null
-			) {
-				console.warn("Add with unexpected state");
-				return;
-			}
-			const ids = await membersAdd(editedMember, savedMember, members);
-			dispatch(setSelected(ids));
-			setState(initState);
-		};
+	const add = React.useCallback(async () => {
+		const { action, editedMember, savedMember, members } = state;
+		if (action !== "add" || editedMember === null || savedMember === null) {
+			console.warn("Add with unexpected state");
+			return;
+		}
+		const ids = await membersAdd(editedMember, savedMember, members);
+		dispatch(setSelected(ids));
+		setState(initState);
+	}, [membersAdd, state, dispatch, setState, initState]);
 
-		const update = async () => {
-			const {
-				action,
-				editedMember,
-				savedMember,
-				members,
-				editedAttendance,
-				savedAttendance,
-				attendances,
-			} = state;
-			if (
-				action !== "update" ||
-				editedMember === null ||
-				savedMember === null ||
-				editedAttendance === null ||
-				savedAttendance === null
-			) {
-				console.warn("Update with unexpected state");
-				return;
-			}
-			await membersUpdate(editedMember, savedMember, members);
-			await attendanceUpdate(
-				editedAttendance,
-				savedAttendance,
-				attendances
-			);
-			setState(initState);
-		};
+	const update = React.useCallback(async () => {
+		const {
+			action,
+			editedMember,
+			savedMember,
+			members,
+			editedAttendance,
+			savedAttendance,
+			attendances,
+		} = state;
+		if (
+			action !== "update" ||
+			editedMember === null ||
+			savedMember === null ||
+			editedAttendance === null ||
+			savedAttendance === null
+		) {
+			console.warn("Update with unexpected state");
+			return;
+		}
+		await membersUpdate(editedMember, savedMember, members);
+		await attendanceUpdate(editedAttendance, savedAttendance, attendances);
+		setState(initState);
+	}, [membersUpdate, attendanceUpdate, state, setState, initState]);
 
-		const submit = async () => {
-			if (state.action === "add") return add();
-			else if (state.action === "update") return update();
-		};
+	const submit = React.useCallback(async () => {
+		if (state.action === "add") return add();
+		else if (state.action === "update") return update();
+	}, [state.action, add, update]);
 
-		const cancel = () => {
-			setState((state) => {
-				const { action, savedMember, savedAttendance } = state;
-				if (action === "add") return state;
-				return {
-					...state,
-					action: "view",
-					editedMember: savedMember,
-					editedAttendance: savedAttendance,
-				};
-			});
-		};
+	const cancel = React.useCallback(() => {
+		setState((state) => {
+			const { action, savedMember, savedAttendance } = state;
+			if (action === "add") return state;
+			return {
+				...state,
+				action: "view",
+				editedMember: savedMember,
+				editedAttendance: savedAttendance,
+			};
+		});
+	}, [setState]);
 
-		return { submit, cancel, hasChanges, changeMember, changeAttendance };
-	}, [membersAdd, membersUpdate, attendanceUpdate, initState, readOnly]);
-
-	return { state, ...actions };
+	return {
+		state,
+		submit,
+		cancel,
+		hasChanges,
+		changeMember,
+		changeAttendance,
+	};
 }

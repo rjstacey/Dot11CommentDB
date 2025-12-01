@@ -6,7 +6,9 @@ import { selectUserMembersAccess, AccessLevel } from "@/store/members";
 
 import ShowAccess from "@/components/ShowAccess";
 import { useMemberEdit } from "@/edit/useMembersEdit";
-import { MemberEditForm } from "./MemberEditForm";
+import { MemberAddForm } from "./MemberAddForm";
+import { MemberUpdateOneForm } from "./MemberUpdateOneForm";
+import { MemberUpdateManyForm } from "./MemberUpdateManyForm";
 
 export function MemberDetail({
 	selected,
@@ -33,12 +35,56 @@ export function MemberDetail({
 	});
 
 	let title: string;
+	let content: React.ReactNode;
 	if (state.action === "add") {
 		title = "Add member" + (state.originals.length > 1 ? "s" : "");
-	} else if (state.action === "update") {
-		title = "Update member" + (state.originals.length > 1 ? "s" : "");
+		content = (
+			<MemberAddForm
+				sapins={state.originals.map((m) => m.SAPIN)}
+				edited={state.edited!}
+				saved={state.saved!}
+				onChange={onChange}
+				hasChanges={hasChanges}
+				submit={submit}
+				cancel={cancel}
+				readOnly={readOnly}
+			/>
+		);
+	} else if (state.action === "update" && state.originals.length === 1) {
+		title = "Update member";
+		content = (
+			<MemberUpdateOneForm
+				sapins={state.originals.map((m) => m.SAPIN)}
+				edited={state.edited!}
+				saved={state.saved!}
+				onChange={onChange}
+				hasChanges={hasChanges}
+				submit={submit}
+				cancel={cancel}
+				readOnly={readOnly}
+			/>
+		);
+	} else if (state.action === "update" && state.originals.length > 1) {
+		title = "Update members";
+		content = (
+			<MemberUpdateManyForm
+				sapins={state.originals.map((m) => m.SAPIN)}
+				edited={state.edited!}
+				saved={state.saved!}
+				onChange={onChange}
+				hasChanges={hasChanges}
+				submit={submit}
+				cancel={cancel}
+				readOnly={readOnly}
+			/>
+		);
 	} else {
 		title = "Member detail";
+		content = (
+			<div className="details-panel-placeholder">
+				<span>{state.message}</span>
+			</div>
+		);
 	}
 
 	return (
@@ -59,33 +105,13 @@ export function MemberDetail({
 							variant="outline-danger"
 							className="bi-trash"
 							title="Delete member"
-							disabled={
-								(state.action === "view" &&
-									Boolean(state.message)) ||
-								readOnly
-							}
+							disabled={state.action === null || readOnly}
 							onClick={clickDelete}
 						/>
 					</div>
 				)}
 			</div>
-			{state.action === "view" && state.message ? (
-				<div className="details-panel-placeholder">
-					<span>{state.message}</span>
-				</div>
-			) : (
-				<MemberEditForm
-					action={state.action}
-					sapins={state.originals.map((m) => m.SAPIN)}
-					edited={state.edited!}
-					saved={state.saved!}
-					onChange={onChange}
-					hasChanges={hasChanges}
-					submit={submit}
-					cancel={cancel}
-					readOnly={readOnly}
-				/>
-			)}
+			{content}
 			<ShowAccess access={access} />
 		</>
 	);

@@ -1,13 +1,12 @@
-import { useParams } from "react-router";
 import { useAppSelector } from "@/store/hooks";
 import { selectUserMembersAccess, AccessLevel } from "@/store/members";
 
 import ShowAccess from "@/components/ShowAccess";
 import { AttendanceEditForm } from "./AttendanceEditForm";
-import { useMemberAttendanceEdit } from "@/edit/useMemberAttendanceEdit";
+import { useSessionAttendanceEdit } from "@/edit/useSessionAttendanceEdit";
+import { AttendanceUpdateForm } from "./AttendnaceUpdateForm";
 
 export function MemberAttendanceDetail() {
-	const sessionNumber = Number(useParams().sessionNumber);
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 
@@ -15,18 +14,52 @@ export function MemberAttendanceDetail() {
 		state,
 		submit,
 		cancel,
-		changeMember,
-		changeAttendance,
 		hasChanges,
-	} = useMemberAttendanceEdit(sessionNumber, readOnly);
+		memberOnChange,
+		attendanceOnChange,
+	} = useSessionAttendanceEdit(readOnly);
 
-	let title: string;
-	if (state.action === "add") {
-		title = "Add member" + (state.members.length > 1 ? "s" : "");
-	} else if (state.action === "update") {
-		title = "Update member" + (state.members.length > 1 ? "s" : "");
-	} else {
-		title = "Member detail";
+	let title: string = "Member detail";
+	if (state.action === "updateOne" && hasChanges()) {
+		title = "Update member";
+	} else if (state.action === "addOne") {
+		title = "Add member";
+	}
+
+	let content: React.ReactNode;
+	if (state.action === null) {
+		content = (
+			<div className="details-panel-placeholder">
+				<span>{state.message}</span>
+			</div>
+		);
+	} else if (state.action === "addOne" || state.action === "updateOne") {
+		content = (
+			<AttendanceEditForm
+				action={state.action}
+				sapin={state.sapin}
+				editedMember={state.memberEdit}
+				savedMember={state.memberSaved}
+				memberOnChange={memberOnChange}
+				editedAttendance={state.attendanceEdit}
+				savedAttendance={state.attendanceSaved}
+				attendanceOnChange={attendanceOnChange}
+				hasChanges={hasChanges}
+				submit={submit}
+				cancel={cancel}
+				readOnly={readOnly}
+			/>
+		);
+	} else if (state.action === "updateMany") {
+		content = (
+			<AttendanceUpdateForm
+				adds={state.adds}
+				updates={state.updates}
+				hasChanges={hasChanges}
+				submit={submit}
+				cancel={cancel}
+			/>
+		);
 	}
 
 	return (
@@ -34,28 +67,7 @@ export function MemberAttendanceDetail() {
 			<div className="d-flex align-items-center justify-content-between mb-3">
 				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
 			</div>
-			{state.action === "view" && state.message ? (
-				<div className="details-panel-placeholder">
-					<span>{state.message}</span>
-				</div>
-			) : (
-				<AttendanceEditForm
-					action={state.action}
-					sapins={state.members.map((m) => m.SAPIN)}
-					editedMember={state.editedMember!}
-					savedMember={
-						state.action !== "add" ? state.savedMember! : undefined
-					}
-					onChangeMember={changeMember}
-					editedAttendance={state.editedAttendance!}
-					savedAttendance={state.savedAttendance!}
-					onChangeAttendance={changeAttendance}
-					hasChanges={hasChanges}
-					submit={submit}
-					cancel={cancel}
-					readOnly={readOnly}
-				/>
-			)}
+			{content}
 			<ShowAccess access={access} />
 		</>
 	);
