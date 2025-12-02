@@ -1,14 +1,18 @@
 import { useAppSelector } from "@/store/hooks";
 import { selectUserMembersAccess, AccessLevel } from "@/store/members";
+import { selectImatAttendanceSummarySelected } from "@/store/imatAttendanceSummary";
 
 import ShowAccess from "@/components/ShowAccess";
 import { AttendanceEditForm } from "./AttendanceEditForm";
 import { useSessionAttendanceEdit } from "@/edit/useSessionAttendanceEdit";
-import { AttendanceUpdateForm } from "./AttendnaceUpdateForm";
+import { AttendanceUpdateForm } from "./AttendanceUpdateForm";
 
 export function MemberAttendanceDetail() {
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
+	const selected = useAppSelector(
+		selectImatAttendanceSummarySelected
+	) as number[];
 
 	const {
 		state,
@@ -17,7 +21,7 @@ export function MemberAttendanceDetail() {
 		hasChanges,
 		memberOnChange,
 		attendanceOnChange,
-	} = useSessionAttendanceEdit(readOnly);
+	} = useSessionAttendanceEdit(selected, readOnly);
 
 	let title: string = "Member detail";
 	if (state.action === "updateOne" && hasChanges()) {
@@ -37,7 +41,7 @@ export function MemberAttendanceDetail() {
 		content = (
 			<AttendanceEditForm
 				action={state.action}
-				sapin={state.sapin}
+				sapin={state.ids[0]}
 				editedMember={state.memberEdit}
 				savedMember={state.memberSaved}
 				memberOnChange={memberOnChange}

@@ -7,90 +7,44 @@ import {
 	Spinner,
 	DropdownButton,
 } from "react-bootstrap";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useSessionAttendanceEdit } from "@/edit/useSessionAttendanceEdit";
+import { useAppSelector } from "@/store/hooks";
 import {
-	selectImatAttendanceSummaryState,
-	selectImatAttendanceSummarySession,
+	selectImatAttendanceSummaryIds,
+	selectImatAttendanceSummarySelected,
 } from "@/store/imatAttendanceSummary";
-import {
-	selectMemberEntities,
-	addMembers,
-	updateMembers,
-	Member,
-	MemberUpdate,
-} from "@/store/members";
-import { importAttendanceSummary } from "@/store/attendanceSummaries";
-
-import { sessionAttendeeToNewMember } from "@/edit/useAttendanceActions";
 
 function UpdateForm({ close }: { close: () => void }) {
-	const { groupName, selected, ids, entities } = useAppSelector(
-		selectImatAttendanceSummaryState
-	);
-	const session = useAppSelector(selectImatAttendanceSummarySession)!;
-
 	const [selectedOnly, setSelectedOnly] = React.useState(false);
 	const [importAttendance, setImportAttendance] = React.useState(true);
 	const [importNew, setImportNew] = React.useState(true);
 	const [importUpdates, setImportUpdates] = React.useState(true);
 	const [busy, setBusy] = React.useState(false);
+	const selected = useAppSelector(
+		selectImatAttendanceSummarySelected
+	) as number[];
+	const ids = useAppSelector(selectImatAttendanceSummaryIds) as number[];
 
-	const dispatch = useAppDispatch();
-	const memberEntities = useAppSelector(selectMemberEntities);
-
-	const list = selectedOnly ? selected : ids;
-
-	const adds = React.useMemo(
-		() =>
-			list
-				.map((id) => entities[id]!)
-				.filter(
-					(attendee) => attendee && !memberEntities[attendee.SAPIN]
-				)
-				.map((attendee) =>
-					sessionAttendeeToNewMember(attendee, session)
-				),
-		[list, entities, memberEntities, session]
+	const { state, submit } = useSessionAttendanceEdit(
+		selectedOnly ? selected : ids,
+		false
 	);
-
-	const updates = React.useMemo(() => {
-		const updates: MemberUpdate[] = [];
-		list.map((id) => entities[id]!)
-			.filter((attendee) => attendee && memberEntities[attendee.SAPIN])
-			.forEach((a) => {
-				const m = memberEntities[a.SAPIN]!;
-				const changes: Partial<Member> = {
-					Name: m.Name !== a.Name ? a.Name : undefined,
-					Email: m.Email !== a.Email ? a.Email : undefined,
-					Affiliation:
-						m.Affiliation !== a.Affiliation
-							? a.Affiliation
-							: undefined,
-					Employer:
-						m.Employer !== a.Employer ? a.Employer : undefined,
-				};
-				let key: keyof Member;
-				for (key in changes)
-					if (typeof changes[key] === "undefined")
-						delete changes[key];
-				if (Object.keys(changes).length > 0)
-					updates.push({ id: m.SAPIN, changes });
-			});
-		return updates;
-	}, [list, entities, memberEntities]);
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
-		if (importAttendance)
-			await dispatch(
-				importAttendanceSummary(groupName!, session.number!)
-			);
-		if (importNew) await dispatch(addMembers(adds));
-		if (importUpdates) await dispatch(updateMembers(updates));
+		submit(importNew, importUpdates, importAttendance);
 		setBusy(false);
 		close();
 	}
+
+	let numAdds = 0;
+	if (state.action === "addOne") numAdds = 1;
+	else if (state.action === "updateMany") numAdds = state.adds.length;
+
+	let numUpdates = 0;
+	if (state.action === "updateOne") numUpdates = 1;
+	else if (state.action === "updateMany") numUpdates = state.updates.length;
 
 	return (
 		<Form
@@ -100,9 +54,16 @@ function UpdateForm({ close }: { close: () => void }) {
 		>
 			<Form.Group as={Row} className="mb-3">
 				<Form.Check
+					checked={selectedOnly}
+					onChange={() => setSelectedOnly(!selectedOnly)}
+					label="Selected entries only"
+				/>
+			</Form.Group>
+			<Form.Group as={Row} className="mb-3">
+				<Form.Check
 					checked={importAttendance}
 					onChange={() => setImportAttendance(!importAttendance)}
-					label="Import session attendance"
+					label="Update session attendance"
 				/>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
@@ -111,7 +72,7 @@ function UpdateForm({ close }: { close: () => void }) {
 					onChange={() => setImportNew(!importNew)}
 					label="Add new members"
 				/>
-				<Form.Text>{`${adds.length} new members`}</Form.Text>
+				<Form.Text>{`${numAdds} new members`}</Form.Text>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
 				<Form.Check
@@ -119,20 +80,13 @@ function UpdateForm({ close }: { close: () => void }) {
 					onChange={() => setImportUpdates(!importUpdates)}
 					label="Update member details"
 				/>
-				<Form.Text>{`${updates.length} members to be updated`}</Form.Text>
-			</Form.Group>
-			<Form.Group as={Row} className="mb-3">
-				<Form.Check
-					checked={selectedOnly}
-					onChange={() => setSelectedOnly(!selectedOnly)}
-					label="Selected entries only"
-				/>
+				<Form.Text>{`${numUpdates} members to be updated`}</Form.Text>
 			</Form.Group>
 			<Row>
 				<Col className="d-flex justify-content-end">
 					<Button type="submit">
 						<Spinner size="sm" hidden={!busy} className="me-2" />
-						<span>Update</span>
+						<span>Submit</span>
 					</Button>
 				</Col>
 			</Row>

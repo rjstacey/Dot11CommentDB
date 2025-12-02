@@ -20,7 +20,6 @@ import {
 import type { Session } from "@/store/sessions";
 import {
 	selectImatAttendanceSummaryState,
-	selectImatAttendanceSummarySelected,
 	selectImatAttendanceSummaryEntities,
 	selectImatAttendanceSummarySession,
 	type ImatAttendanceSummary,
@@ -41,7 +40,7 @@ import {
 export type { MultipleMember, MultipleSessionAttendanceSummary };
 
 /** Create a new member from attendee */
-function sessionAttendeeToNewMember(
+export function sessionAttendeeToNewMember(
 	attendee: ImatAttendanceSummary,
 	session: Session
 ) {
@@ -126,8 +125,7 @@ export type EditAction = "addOne" | "updateOne" | "updateMany" | null;
 export type MemberAttendanceEditState =
 	| {
 			action: "addOne";
-			selected: number[];
-			sapin: number;
+			ids: number[];
 			memberEdit: MemberCreate;
 			memberSaved: undefined;
 			attendanceEdit: MultipleSessionAttendanceSummary;
@@ -136,8 +134,7 @@ export type MemberAttendanceEditState =
 	  }
 	| {
 			action: "updateOne";
-			selected: number[];
-			sapin: number;
+			ids: number[];
 			memberEdit: MultipleMember;
 			memberSaved: MultipleMember;
 			attendanceEdit: MultipleSessionAttendanceSummary;
@@ -146,17 +143,18 @@ export type MemberAttendanceEditState =
 	  }
 	| {
 			action: "updateMany";
-			selected: number[];
+			ids: number[];
 			adds: MemberCreate[];
 			updates: MemberUpdate[];
+			attendances: SessionAttendanceSummary[];
 	  }
 	| {
 			action: null;
-			selected: number[];
+			ids: number[];
 			message: string;
 	  };
 
-function useInitState(selected: number[]): MemberAttendanceEditState {
+function useInitState(ids: number[]): MemberAttendanceEditState {
 	const session = useAppSelector(selectImatAttendanceSummarySession);
 	if (!session) throw new Error("No session for IMAT attendance summary");
 	const { loading, valid } = useAppSelector(selectImatAttendanceSummaryState);
@@ -172,17 +170,17 @@ function useInitState(selected: number[]): MemberAttendanceEditState {
 		if (loading && !valid) {
 			return {
 				action: null,
-				selected,
+				ids,
 				message: "Loading...",
 			} satisfies MemberAttendanceEditState;
-		} else if (selected.length === 0) {
+		} else if (ids.length === 0) {
 			return {
 				action: null,
-				selected,
+				ids,
 				message: "Nothing selected",
 			} satisfies MemberAttendanceEditState;
-		} else if (selected.length === 1) {
-			const sapin = selected[0] as number;
+		} else if (ids.length === 1) {
+			const sapin = ids[0] as number;
 			const member = memberEntities[sapin];
 			const attendee = attendeeEntities[sapin];
 			if (!attendee) throw new Error("Invalid selection");
@@ -206,8 +204,7 @@ function useInitState(selected: number[]): MemberAttendanceEditState {
 				const memberSaved = member;
 				return {
 					action: "updateOne",
-					selected,
-					sapin,
+					ids,
 					memberEdit,
 					memberSaved,
 					attendanceEdit,
@@ -218,8 +215,7 @@ function useInitState(selected: number[]): MemberAttendanceEditState {
 				const newMember = sessionAttendeeToNewMember(attendee, session);
 				return {
 					action: "addOne",
-					selected,
-					sapin,
+					ids,
 					memberEdit: newMember,
 					memberSaved: undefined,
 					attendanceEdit,
@@ -230,7 +226,8 @@ function useInitState(selected: number[]): MemberAttendanceEditState {
 		} else {
 			const updates: MemberUpdate[] = [];
 			const adds: MemberCreate[] = [];
-			for (const sapin of selected as number[]) {
+			const attendances: SessionAttendanceSummary[] = [];
+			for (const sapin of ids) {
 				const member = memberEntities[sapin];
 				const attendee = attendeeEntities[sapin];
 				if (!attendee) throw new Error("Invalid selection");
@@ -248,18 +245,31 @@ function useInitState(selected: number[]): MemberAttendanceEditState {
 					);
 					adds.push(newMember);
 				}
+				const attendanceSummary =
+					attendanceSummaryEntities[sapin] ||
+					getNullAttendanceSummary(session.id, sapin);
+				const changes = sessionAttendeeAttendanceChanges(
+					attendanceSummary,
+					attendee
+				);
+				const attendanceEdit: SessionAttendanceSummary =
+					Object.keys(changes).length > 0
+						? { ...attendanceSummary, ...changes }
+						: attendanceSummary;
+				attendances.push(attendanceEdit);
 			}
 			return {
 				action: "updateMany",
-				selected,
+				ids,
 				adds,
 				updates,
+				attendances,
 			} satisfies MemberAttendanceEditState;
 		}
 	}, [
 		loading,
 		valid,
-		selected,
+		ids,
 		memberEntities,
 		attendeeEntities,
 		attendanceSummaryEntities,
@@ -267,19 +277,17 @@ function useInitState(selected: number[]): MemberAttendanceEditState {
 	]);
 }
 
-export function useSessionAttendanceEdit(readOnly: boolean) {
+export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 	const dispatch = useAppDispatch();
-	const selected = useAppSelector(
-		selectImatAttendanceSummarySelected
-	) as number[];
-	const initState = useInitState(selected);
+
+	const initState = useInitState(ids);
 
 	const [state, setState] =
 		React.useState<MemberAttendanceEditState>(initState);
 
 	React.useEffect(() => {
-		if (!isEqual(selected, state.selected)) setState(initState);
-	}, [selected, state.selected, setState, initState]);
+		if (!isEqual(ids, state.ids)) setState(initState);
+	}, [ids, state.ids, setState, initState]);
 
 	const memberOnChange = React.useCallback(
 		(changes: MemberChange) => {
@@ -346,32 +354,59 @@ export function useSessionAttendanceEdit(readOnly: boolean) {
 
 	const attendanceUpdate = useAttendanceUpdate();
 
-	const submit = React.useCallback(async () => {
-		const { action } = state;
-		if (action === "addOne") {
-			await dispatch(addMembers([state.memberEdit]));
-			setState(initState);
-		} else if (action === "updateOne") {
-			const changes = deepDiff(
-				state.memberSaved,
-				state.memberEdit
-			) as MemberChange;
-			await dispatch(updateMembers([{ id: state.sapin, changes }]));
-			await attendanceUpdate(
-				state.attendanceEdit,
-				state.attendanceSaved,
-				state.attendances
-			);
-			setState({
-				...state,
-				memberEdit: state.memberSaved,
-				attendanceEdit: state.attendanceSaved,
-			});
-		} else if (action === "updateMany") {
-			await dispatch(addMembers(state.adds));
-			await dispatch(updateMembers(state.updates));
-		}
-	}, [attendanceUpdate, state, dispatch, setState, initState]);
+	const submit = React.useCallback(
+		async (
+			doAddMembers = true,
+			doUpdateMembers = true,
+			doUpdateAttendance = true
+		) => {
+			const { action } = state;
+			if (action === "addOne") {
+				if (doAddMembers)
+					await dispatch(addMembers([state.memberEdit]));
+				if (doUpdateAttendance)
+					await attendanceUpdate(
+						state.attendances,
+						state.attendanceEdit,
+						state.attendanceSaved
+					);
+				setState(initState);
+			} else if (action === "updateOne") {
+				let memberEdit = state.memberEdit;
+				let attendanceEdit = state.attendanceEdit;
+				if (doUpdateMembers) {
+					const changes = deepDiff(
+						state.memberSaved,
+						state.memberEdit
+					) as MemberChange;
+					await dispatch(
+						updateMembers([{ id: state.ids[0], changes }])
+					);
+					memberEdit = state.memberSaved;
+				}
+				if (doUpdateAttendance) {
+					await attendanceUpdate(
+						state.attendances,
+						state.attendanceEdit,
+						state.attendanceSaved
+					);
+					attendanceEdit = state.attendanceSaved;
+				}
+				setState({
+					...state,
+					memberEdit,
+					attendanceEdit,
+				});
+			} else if (action === "updateMany") {
+				if (doAddMembers) await dispatch(addMembers(state.adds));
+				if (doUpdateMembers)
+					await dispatch(updateMembers(state.updates));
+				if (doUpdateAttendance)
+					await attendanceUpdate(state.attendances);
+			}
+		},
+		[attendanceUpdate, state, dispatch, setState, initState]
+	);
 
 	const cancel = React.useCallback(() => {
 		setState((state) => {
