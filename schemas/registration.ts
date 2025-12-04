@@ -15,11 +15,11 @@ const sessionRegistraionSchema = z.object({
 	CurrentSAPIN: z.number().nullable(),
 });
 
-export const sessionRegistraionsSchema = sessionRegistraionSchema.array();
+export const sessionRegistrationsSchema = sessionRegistraionSchema.array();
 
 export const uploadSessionRegistrationResponseSchema = z.object({
 	attendances: sessionAttendanceSummariesSchema,
-	registrations: sessionRegistraionsSchema,
+	registrations: sessionRegistrationsSchema,
 });
 
 export type SessionRegistration = z.infer<typeof sessionRegistraionSchema>;

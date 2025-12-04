@@ -14,16 +14,12 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { setError } from ".";
+import { selectAttendanceSummaryEntitiesForSession } from "./attendanceSummaries";
 import {
-	upsertAttendanceSummaries,
-	selectAttendanceSummaryEntitiesForSession,
-} from "./attendanceSummaries";
-import {
-	uploadSessionRegistrationResponseSchema,
+	sessionRegistrationsSchema,
 	SessionRegistration,
-	UploadSessionRegistrationResponse,
 } from "@schemas/registration";
-import { selectSessionByNumber } from "./sessions";
+import { selectSessionByNumber, selectSessionEntities } from "./sessions";
 
 export type { SessionRegistration };
 
@@ -127,8 +123,11 @@ export default slice;
 
 /** Slice actions */
 export const sessionRegistrationActions = slice.actions;
-export const { setSelected, updateMany: updateManySessionRestrations } =
-	slice.actions;
+export const {
+	setSelected,
+	updateOne: updateOneSessionRegistration,
+	updateMany: updateManySessionRegistrations,
+} = slice.actions;
 export const clearSessionRegistration = createAction(dataSet + "/clear");
 
 const { getSuccess, getFailure } = slice.actions;
@@ -148,16 +147,22 @@ export const selectSessionRegistrationEntities = (state: RootState) =>
 	selectSessionRegistrationState(state).entities;
 export const selectSessionRegistrationSessionId = (state: RootState) =>
 	selectSessionRegistrationState(state).sessionId;
-export const selectSessionRegistrationSummarySessionId = (state: RootState) =>
-	selectSessionRegistrationState(state).sessionId;
-
+export const selectSessionRegistrationSession = (state: RootState) => {
+	const sessionId = selectSessionRegistrationSessionId(state);
+	if (sessionId) return selectSessionEntities(state)[sessionId];
+};
+export const selectSessionRegistrationSelected = createSelector(
+	(state: RootState) => selectSessionRegistrationState(state).selected,
+	selectSessionRegistrationEntities,
+	(selected, entities) => selected.filter((id) => Boolean(entities[id]))
+);
 export const selectSyncedSessionRegistrationEntities = createSelector(
 	selectSessionRegistrationIds,
 	selectSessionRegistrationEntities,
 	(state: RootState) =>
 		selectAttendanceSummaryEntitiesForSession(
 			state,
-			selectSessionRegistrationSummarySessionId(state)
+			selectSessionRegistrationSessionId(state)
 		),
 	(ids, entities, attendanceSummaryEntities) => {
 		const syncedEntities: Record<EntityId, SyncedSessionRegistration> = {};
@@ -192,7 +197,7 @@ export const sessionRegistrationSelectors = getAppTableDataSelectors(
 );
 
 /** Thunk actions */
-export const uploadSessionRegistration =
+export const loadSessionRegistration =
 	(groupName: string, sessionNumber: number, file: File): AppThunk =>
 	async (dispatch, getState) => {
 		const session = selectSessionByNumber(getState(), sessionNumber);
@@ -202,17 +207,16 @@ export const uploadSessionRegistration =
 			);
 			return;
 		}
-		const url = `/api/${groupName}/attendances/${session.id}/upload?format=registration`;
+		const url = `/api/${groupName}/attendances/${session.id}/load?format=registration`;
 		dispatch(getPending({ groupName, sessionId: session.id }));
-		let r: UploadSessionRegistrationResponse;
+		let r: SessionRegistration[];
 		try {
 			const response = await fetcher.postFile(url, file);
-			r = uploadSessionRegistrationResponseSchema.parse(response);
+			r = sessionRegistrationsSchema.parse(response);
 		} catch (error) {
 			dispatch(getFailure());
 			dispatch(setError("POST " + url, error));
 			return;
 		}
-		dispatch(getSuccess(r.registrations));
-		dispatch(upsertAttendanceSummaries(r.attendances));
+		dispatch(getSuccess(r));
 	};

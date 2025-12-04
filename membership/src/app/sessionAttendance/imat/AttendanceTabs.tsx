@@ -51,7 +51,7 @@ export function AttendanceTabs({
 
 	return (
 		<Tabs onSelect={setTabKey} activeKey={tabKey} fill>
-			<Tab eventKey="basic" title="Basic">
+			<Tab eventKey="basic" title="Basic" className="p-3">
 				<MemberBasicEdit
 					sapins={[sapin]}
 					edited={editedMember}
@@ -60,21 +60,21 @@ export function AttendanceTabs({
 					readOnly={readOnly}
 				/>
 			</Tab>
-			<Tab eventKey="contact" title="Contact">
+			<Tab eventKey="contact" title="Contact" className="p-3">
 				<MemberContactEdit
 					edited={editedMember}
 					saved={savedMember}
 					onChange={memberOnChange}
 				/>
 			</Tab>
-			<Tab eventKey="status" title="Status">
+			<Tab eventKey="status" title="Status" className="p-3">
 				<MemberStatusEdit
 					edited={editedMember}
 					saved={savedMember}
 					onChange={memberOnChange}
 				/>
 			</Tab>
-			<Tab eventKey="attendance" title="Attendance">
+			<Tab eventKey="attendance" title="Attendance" className="p-3">
 				<AttendanceInfoEdit
 					edited={editedAttendance}
 					saved={savedAttendance}

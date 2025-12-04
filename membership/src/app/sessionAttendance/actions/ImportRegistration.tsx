@@ -8,7 +8,7 @@ import {
 	DropdownButton,
 } from "react-bootstrap";
 import { useAppDispatch } from "@/store/hooks";
-import { uploadSessionRegistration } from "@/store/sessionRegistration";
+import { loadSessionRegistration } from "@/store/sessionRegistration";
 
 function ImportRegistrationForm({
 	groupName,
@@ -27,7 +27,7 @@ function ImportRegistrationForm({
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(
-			uploadSessionRegistration(groupName, sessionNumber, file!)
+			loadSessionRegistration(groupName, sessionNumber, file!)
 		);
 		setBusy(false);
 		close();

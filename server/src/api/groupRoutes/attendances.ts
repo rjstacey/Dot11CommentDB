@@ -19,6 +19,7 @@ import {
 	deleteAttendances,
 	importAttendances,
 	uploadRegistration,
+	loadRegistration,
 	exportAttendeesForMinutes,
 	deleteAllSessionAttendances,
 	exportAttendeesForDVL,
@@ -130,6 +131,32 @@ async function postSessionIdUpload(
 	}
 }
 
+async function postSessionIdLoad(
+	req: Request,
+	res: Response,
+	next: NextFunction
+) {
+	try {
+		const user = req.user;
+		const group = req.group!;
+		const session_id = sessionIdOrThrow(req);
+		const format = req.query.format;
+		if (format && format !== "registration")
+			throw new BadRequestError("Invalid format parameter");
+		const { filename, buffer } = fileBufferOrThrow(req);
+		const data = await loadRegistration(
+			user,
+			group,
+			session_id,
+			filename,
+			buffer
+		);
+		res.json(data);
+	} catch (error) {
+		next(error);
+	}
+}
+
 async function get(req: Request, res: Response, next: NextFunction) {
 	try {
 		const groupId = req.group!.id;
@@ -197,7 +224,8 @@ router
 	.delete("/:session_id", removeSessionId)
 	.get("/:session_id/export", getSessionIdExport)
 	.post("/:session_id/import", postSessionIdImport)
-	.post("/:session_id/upload", postSessionIdUpload);
+	.post("/:session_id/upload", postSessionIdUpload)
+	.post("/:session_id/load", postSessionIdLoad);
 router.route("/").get(get).post(addMany).patch(updateMany).delete(removeMany);
 
 export default router;

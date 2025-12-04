@@ -9,7 +9,7 @@ import { selectIeeeMemberEntities } from "@/store/ieeeMembers";
 import type { MultipleMember } from "@/edit/useMembersEdit";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
-import { IeeeMemberSelector } from "./IeeeMemberSelector";
+import { IeeeMemberSelector } from "@/components/IeeeMemberSelector";
 import { MemberBasicEdit } from "./MemberBasicEdit";
 
 export function MemberAddForm({

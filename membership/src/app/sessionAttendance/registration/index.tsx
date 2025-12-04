@@ -1,11 +1,18 @@
 import { Row, Col } from "react-bootstrap";
-import { AppTable, ShowFilters, GlobalFilter } from "@common";
+import {
+	AppTable,
+	ShowFilters,
+	GlobalFilter,
+	Panel,
+	SplitPanel,
+} from "@common";
 import {
 	sessionRegistrationSelectors,
 	sessionRegistrationActions,
 	fields,
 } from "@/store/sessionRegistration";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
+import { RegistrationDetail } from "./detail";
 
 export function SessionRegistrationTable() {
 	return (
@@ -25,16 +32,24 @@ export function SessionRegistrationTable() {
 					/>
 				</Col>
 			</Row>
-			<div className="w-100 flex-grow-1">
-				<AppTable
-					columns={tableColumns}
-					headerHeight={50}
-					estimatedRowHeight={50}
-					defaultTablesConfig={defaultTablesConfig}
-					selectors={sessionRegistrationSelectors}
-					actions={sessionRegistrationActions}
-				/>
-			</div>
+			<SplitPanel
+				selectors={sessionRegistrationSelectors}
+				actions={sessionRegistrationActions}
+			>
+				<Panel>
+					<AppTable
+						columns={tableColumns}
+						headerHeight={50}
+						estimatedRowHeight={50}
+						defaultTablesConfig={defaultTablesConfig}
+						selectors={sessionRegistrationSelectors}
+						actions={sessionRegistrationActions}
+					/>
+				</Panel>
+				<Panel className="details-panel">
+					<RegistrationDetail />
+				</Panel>
+			</SplitPanel>
 		</>
 	);
 }

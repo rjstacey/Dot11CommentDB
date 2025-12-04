@@ -258,6 +258,46 @@ export async function uploadRegistration(
 	return { registrations, attendances };
 }
 
+export async function loadRegistration(
+	user: UserContext,
+	group: Group,
+	session_id: number,
+	filename: string,
+	buffer: Buffer
+) {
+	const [session] = await getSessions({ id: session_id });
+	if (!session)
+		throw new NotFoundError(`Session id=${session_id} does not exist`);
+
+	const ssRegistrations = await parseRegistrationSpreadsheet(
+		filename,
+		buffer
+	);
+	const users = await getUsers();
+	const registrations = ssRegistrations.map((r) => {
+		const email = r.Email.toLowerCase();
+		const sapin = r.SAPIN;
+		let Matched: null | "SAPIN" | "EMAIL" = null;
+		let user = users.find((u) => u.SAPIN === sapin);
+		if (user) {
+			Matched = "SAPIN";
+		} else {
+			user = users.find((u) => u.Email.toLowerCase() === email);
+			if (user) Matched = "EMAIL";
+		}
+		const entity: SessionRegistration = {
+			...r,
+			Matched,
+			CurrentSAPIN: user ? user.SAPIN : null,
+			CurrentName: user ? user.Name : null,
+			CurrentEmail: user ? user.Email : null,
+		};
+		return entity;
+	});
+
+	return registrations;
+}
+
 export type MemberAttendance = SessionAttendanceSummary & {
 	Name: string;
 	Affiliation: string;

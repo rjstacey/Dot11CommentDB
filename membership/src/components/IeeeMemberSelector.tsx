@@ -20,18 +20,23 @@ function itemRenderer({ item: member }: { item: IeeeMember }) {
 export function IeeeMemberSelector({
 	value, // value is SAPIN
 	onChange,
+	showAll,
 	...props
 }: {
 	value: number;
 	onChange: (value: number) => void;
+	showAll?: boolean;
 } & Pick<
 	React.ComponentProps<typeof Select>,
 	"id" | "className" | "placeholder" | "readOnly" | "disabled" | "isInvalid"
 >) {
 	const memberSapins = useAppSelector(selectMemberIds);
-	const options = useAppSelector(selectIeeeMembers).filter(
-		(o) => !memberSapins.includes(o.SAPIN)
-	);
+	let options = useAppSelector(selectIeeeMembers);
+	if (!showAll) {
+		options = options.filter(
+			(o) => o.SAPIN === value || !memberSapins.includes(o.SAPIN)
+		);
+	}
 	const values = options.filter((o) => o.SAPIN === value);
 	const handleChange = (values: typeof options) =>
 		onChange(values.length > 0 ? values[0].SAPIN : 0);
