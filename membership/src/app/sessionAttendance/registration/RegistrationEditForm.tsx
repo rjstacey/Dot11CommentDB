@@ -11,7 +11,7 @@ import {
 	updateOneSessionRegistration,
 	type SessionRegistration,
 } from "@/store/sessionRegistration";
-import type { IeeeMember } from "@/store/ieeeMembers";
+import type { MemberCreate } from "@/store/members";
 import type { MultipleSessionAttendanceSummary } from "@/edit/useSessionRegistrationEdit";
 
 export function RegistrationEditForm({
@@ -24,7 +24,7 @@ export function RegistrationEditForm({
 	submit,
 	cancel,
 }: {
-	member: IeeeMember;
+	member: MemberCreate;
 	registration: SessionRegistration;
 	edited: MultipleSessionAttendanceSummary;
 	saved: MultipleSessionAttendanceSummary;
@@ -62,6 +62,7 @@ export function RegistrationEditForm({
 							<th>SAPIN</th>
 							<th>Name</th>
 							<th>Email</th>
+							<th>Status</th>
 							<th></th>
 						</tr>
 					</thead>
@@ -72,12 +73,14 @@ export function RegistrationEditForm({
 							<td>{registration.Name}</td>
 							<td>{registration.Email}</td>
 							<td></td>
+							<td></td>
 						</tr>
 						<tr>
 							<th>Member:</th>
 							<td>{member.SAPIN}</td>
 							<td>{member.Name}</td>
 							<td>{member.Email}</td>
+							<td>{member.Status}</td>
 							<td>
 								<Button
 									variant="outline-danger"

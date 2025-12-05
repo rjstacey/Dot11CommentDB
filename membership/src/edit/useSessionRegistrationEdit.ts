@@ -8,7 +8,8 @@ import {
 	selectSessionRegistrationSession,
 	type SessionRegistration,
 } from "@/store/sessionRegistration";
-import { selectIeeeMemberEntities, type IeeeMember } from "@/store/ieeeMembers";
+import { selectIeeeMemberEntities } from "@/store/ieeeMembers";
+import { selectMemberEntities, type MemberCreate } from "@/store/members";
 import {
 	getNullAttendanceSummary,
 	selectAttendanceSummaryEntitiesForSession,
@@ -59,7 +60,7 @@ export type SessionRegistrationEditState =
 			action: "updateOne";
 			ids: number[];
 			registration: SessionRegistration;
-			member: IeeeMember;
+			member: MemberCreate;
 			attendanceEdit: MultipleSessionAttendanceSummary;
 			attendanceSaved: MultipleSessionAttendanceSummary;
 			attendances: SessionAttendanceSummary[];
@@ -88,6 +89,7 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 		selectSessionRegistrationEntities
 	);
 	const ieeeMemberEntities = useAppSelector(selectIeeeMemberEntities);
+	const memberEntities = useAppSelector(selectMemberEntities);
 	const attendanceSummaryEntities = useAppSelector((state) =>
 		selectAttendanceSummaryEntitiesForSession(state, session.id)
 	);
@@ -110,39 +112,52 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 			const registration = registrationEntities[id];
 			if (!registration) throw new Error("Invalid selection");
 			if (registration.CurrentSAPIN) {
-				const member = ieeeMemberEntities[registration.CurrentSAPIN]!;
-				const attendanceSummary =
-					attendanceSummaryEntities[registration.CurrentSAPIN] ||
-					getNullAttendanceSummary(
-						session.id,
-						registration.CurrentSAPIN
+				let member: MemberCreate | undefined =
+					memberEntities[registration.CurrentSAPIN];
+				if (!member) {
+					const ieeeMember =
+						ieeeMemberEntities[registration.CurrentSAPIN];
+					if (ieeeMember) {
+						member = {
+							...ieeeMember,
+							Affiliation: "",
+							Status: "Non-Voter",
+						};
+					}
+				}
+				if (member) {
+					const attendanceSummary =
+						attendanceSummaryEntities[registration.CurrentSAPIN] ||
+						getNullAttendanceSummary(
+							session.id,
+							registration.CurrentSAPIN
+						);
+					const attendanceSaved: MultipleSessionAttendanceSummary =
+						attendanceSummary;
+					const changes = sessionRegistrationAttendanceChanges(
+						attendanceSummary,
+						registration
 					);
-				const attendanceSaved: MultipleSessionAttendanceSummary =
-					attendanceSummary;
-				const changes = sessionRegistrationAttendanceChanges(
-					attendanceSummary,
-					registration
-				);
-				const attendanceEdit: MultipleSessionAttendanceSummary =
-					Object.keys(changes).length > 0
-						? { ...attendanceSummary, ...changes }
-						: attendanceSummary;
-				return {
-					action: "updateOne",
-					ids,
-					registration,
-					member,
-					attendanceEdit,
-					attendanceSaved,
-					attendances: [attendanceSummary],
-				} satisfies SessionRegistrationEditState;
-			} else {
-				return {
-					action: "unmatched",
-					ids,
-					registration,
-				} satisfies SessionRegistrationEditState;
+					const attendanceEdit: MultipleSessionAttendanceSummary =
+						Object.keys(changes).length > 0
+							? { ...attendanceSummary, ...changes }
+							: attendanceSummary;
+					return {
+						action: "updateOne",
+						ids,
+						registration,
+						member,
+						attendanceEdit,
+						attendanceSaved,
+						attendances: [attendanceSummary],
+					} satisfies SessionRegistrationEditState;
+				}
 			}
+			return {
+				action: "unmatched",
+				ids,
+				registration,
+			} satisfies SessionRegistrationEditState;
 		} else {
 			const attendances: SessionAttendanceSummary[] = [];
 			for (const id of ids) {
@@ -188,10 +203,6 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 
 	const [state, setState] =
 		React.useState<SessionRegistrationEditState>(initState);
-
-	/*React.useEffect(() => {
-		if (!isEqual(ids, state.ids)) setState(initState);
-	}, [ids, state.ids, setState, initState]);*/
 
 	React.useEffect(() => {
 		setState(initState);
