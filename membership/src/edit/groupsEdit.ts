@@ -169,48 +169,40 @@ export function useGroupsEdit(readOnly: boolean) {
 	const groupAdd = useGroupAdd();
 	const groupsUpdate = useGroupsUpdate();
 
-	const add = async () => {
-		if (readOnly || state.action !== "add") {
-			console.warn("add: bad state");
+	const submit = React.useCallback(async () => {
+		if (readOnly || state.action === null) {
+			console.warn("submit: bad state");
 			return;
 		}
-		const { edited } = state;
-		for (const group of Object.values(entities)) {
-			if (
-				group &&
-				group.parent_id === groupId &&
-				group.name === edited.name
-			) {
-				dispatch(
-					setError(
-						"Unable to add group",
-						"Entry already exists for " + (group.name || BLANK_STR)
-					)
-				);
-				return;
+		if (state.action === "add") {
+			const { edited } = state;
+			for (const group of Object.values(entities)) {
+				if (
+					group &&
+					group.parent_id === groupId &&
+					group.name === edited.name
+				) {
+					dispatch(
+						setError(
+							"Unable to add group",
+							"Entry already exists for " +
+								(group.name || BLANK_STR)
+						)
+					);
+					return;
+				}
 			}
+			const group = await groupAdd(edited);
+			dispatch(setSelected(group ? [group.id] : []));
+		} else if (state.action === "update") {
+			const { edited, saved, groups } = state;
+			await groupsUpdate(edited, saved, groups);
+			setState({
+				...state,
+				saved: edited,
+			});
 		}
-		const group = await groupAdd(edited);
-		dispatch(setSelected(group ? [group.id] : []));
-	};
-
-	const update = React.useCallback(async () => {
-		if (readOnly || state.action !== "update") {
-			console.warn("update: bad state");
-			return;
-		}
-		const { edited, saved, groups } = state;
-		await groupsUpdate(edited, saved, groups);
-		setState({
-			...state,
-			saved: edited,
-		});
-	}, [readOnly, state, groupsUpdate, setState]);
-
-	const submit = React.useCallback(() => {
-		if (state.action === "add") return add();
-		if (state.action === "update") return update();
-	}, [state.action, add, update]);
+	}, [readOnly, state]);
 
 	const cancel = async () => {
 		setState(initState);
