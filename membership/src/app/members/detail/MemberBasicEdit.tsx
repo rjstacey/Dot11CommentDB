@@ -11,7 +11,7 @@ import {
 	type Member,
 	type MemberChange,
 } from "@/store/members";
-import type { MultipleMember } from "@/edit/useMembersEdit";
+import type { MultipleMember } from "@/edit/members";
 
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 import { hasChangesStyle } from "@/components/utils";

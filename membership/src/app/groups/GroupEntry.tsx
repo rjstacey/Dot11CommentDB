@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Form, Row, Col, Button, Spinner } from "react-bootstrap";
-import { isMultiple, Multiple } from "@common";
+import { Form, Row, Col } from "react-bootstrap";
+import { isMultiple } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -8,7 +8,7 @@ import {
 	GroupCreate,
 	selectGroupEntities,
 } from "@/store/groups";
-import type { Officer } from "@/store/officers";
+import { GroupEntry, MultipleGroupEntry } from "@/edit/groups";
 
 import { GroupTypeSelector } from "./GroupTypeSelector";
 import { GroupStatusSelector } from "./GroupStatusSelector";
@@ -17,15 +17,8 @@ import GroupSelector from "@/components/GroupSelector";
 import ImatCommitteeSelector from "./ImatCommitteeSelector";
 import ColorPicker from "@/components/ColorPicker";
 
-export type GroupEntry = GroupCreate & { officers: Officer[] };
-export type MultipleGroupEntry = Multiple<GroupCreate> & {
-	officers: Officer[];
-};
-
-export type EditAction = "view" | "update" | "add";
-
-const MULTIPLE_STR = "(Multiple)";
-const BLANK_STR = "(Blank)";
+import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
+import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 function checkEntry(entry: MultipleGroupEntry): string | undefined {
 	if (!entry.name) return "Set group name";
@@ -37,55 +30,24 @@ function checkEntry(entry: MultipleGroupEntry): string | undefined {
 	}
 }
 
-function GroupEntrySubmit({
-	action,
-	busy,
-	submit,
-	cancel,
-}: {
-	action: EditAction;
-	busy?: boolean;
-	submit?: () => void;
-	cancel?: () => void;
-}) {
-	return (
-		<Form.Group as={Row} className="mb-3">
-			<Col xs={6} className="d-flex justify-content-center">
-				{submit && (
-					<Button type="submit">
-						{busy ? <Spinner animation="border" size="sm" /> : null}
-						{action === "add" ? "Add" : "Update"}
-					</Button>
-				)}
-			</Col>
-			<Col xs={6} className="d-flex justify-content-center">
-				{cancel && (
-					<Button variant="secondary" onClick={cancel}>
-						Cancel
-					</Button>
-				)}
-			</Col>
-		</Form.Group>
-	);
-}
-
 export function GroupEntryForm({
 	action,
 	entry,
-	changeEntry,
-	busy,
+	hasChanges,
+	onChange,
 	submit,
 	cancel,
 	readOnly,
 }: {
-	action: EditAction;
+	action: "update" | "add";
 	entry: MultipleGroupEntry;
-	changeEntry: (changes: Partial<GroupEntry>) => void;
-	busy?: boolean;
-	submit?: () => void;
-	cancel?: () => void;
+	hasChanges: () => boolean;
+	onChange: (changes: Partial<GroupEntry>) => void;
+	submit: () => void;
+	cancel: () => void;
 	readOnly?: boolean;
 }) {
+	const [busy, setBusy] = React.useState(false);
 	const [validated, setValidated] = React.useState<boolean | undefined>(
 		undefined
 	);
@@ -112,7 +74,7 @@ export function GroupEntryForm({
 				changes.type = null;
 			}
 		}
-		changeEntry(changes);
+		onChange(changes);
 	}
 
 	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -123,7 +85,9 @@ export function GroupEntryForm({
 			return;
 		}
 		setValidated(true);
-		submit?.();
+		setBusy(true);
+		submit();
+		setBusy(false);
 	};
 
 	return (
@@ -264,8 +228,8 @@ export function GroupEntryForm({
 								entry.type === "wg"
 									? "Working Group"
 									: entry.type === "tg"
-									? "Project"
-									: undefined
+										? "Project"
+										: undefined
 							}
 							placeholder={
 								isMultiple(entry.symbol)
@@ -285,12 +249,13 @@ export function GroupEntryForm({
 					onChange={(officers) => change({ officers })}
 				/>
 			)}
-			<GroupEntrySubmit
-				action={action}
-				busy={busy}
-				submit={submit}
-				cancel={cancel}
-			/>
+			{hasChanges() && (
+				<SubmitCancelRow
+					submitLabel={action === "add" ? "Add" : "Update"}
+					busy={busy}
+					cancel={cancel}
+				/>
+			)}
 		</Form>
 	);
 }

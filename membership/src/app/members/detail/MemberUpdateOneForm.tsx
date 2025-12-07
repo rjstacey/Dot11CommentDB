@@ -9,9 +9,9 @@ import {
 	selectUiProperties,
 	type MemberChange,
 } from "@/store/members";
-import type { MultipleMember } from "@/edit/useMembersEdit";
-import { useSessionParticipationEdit } from "@/edit/useSessionParticipationEdit";
-import { useBallotParticipationEdit } from "@/edit/useBallotParticipationEdit";
+import type { MultipleMember } from "@/edit/members";
+import { useSessionParticipationEdit } from "@/edit/sessionParticipation";
+import { useBallotParticipationEdit } from "@/edit/ballotParticipation";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import { MemberBasicEdit } from "./MemberBasicEdit";

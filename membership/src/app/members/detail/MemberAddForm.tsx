@@ -6,7 +6,7 @@ import { ConfirmModal } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import type { MemberCreate, MemberChange } from "@/store/members";
 import { selectIeeeMemberEntities } from "@/store/ieeeMembers";
-import type { MultipleMember } from "@/edit/useMembersEdit";
+import type { MultipleMember } from "@/edit/members";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import { IeeeMemberSelector } from "@/components/IeeeMemberSelector";

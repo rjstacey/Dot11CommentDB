@@ -19,7 +19,7 @@ import {
 	useMembersUpdate,
 	useMembersDelete,
 	type MultipleMember,
-} from "./useMemberActions";
+} from "./memberActions";
 
 export type { MultipleMember };
 

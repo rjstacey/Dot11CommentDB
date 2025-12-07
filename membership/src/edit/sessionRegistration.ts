@@ -17,11 +17,11 @@ import {
 	type SessionAttendanceSummaryChange,
 } from "@/store/attendanceSummaries";
 
-import { type MultipleMember } from "./useMemberActions";
+import { type MultipleMember } from "./memberActions";
 import {
 	useAttendanceUpdate,
 	type MultipleSessionAttendanceSummary,
-} from "./useAttendanceActions";
+} from "./attendanceActions";
 
 export type { MultipleMember, MultipleSessionAttendanceSummary };
 
