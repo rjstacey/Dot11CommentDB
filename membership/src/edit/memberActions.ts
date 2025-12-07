@@ -1,11 +1,5 @@
 import * as React from "react";
-import {
-	shallowDiff,
-	deepMerge,
-	deepDiff,
-	MULTIPLE,
-	type Multiple,
-} from "@common";
+import { shallowDiff, MULTIPLE, type Multiple } from "@common";
 import type { AppThunk } from "@/store";
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -130,24 +124,7 @@ export function useMembersUpdate() {
 	);
 }
 
-export function useMembersAddMany() {
-	const dispatch = useAppDispatch();
-	return React.useCallback(
-		async (
-			edited: MultipleMember,
-			saved: MultipleMember,
-			members: MemberCreate[]
-		) => {
-			const changes = deepDiff(saved, edited);
-			if (changes) members = members.map((m) => deepMerge(m, changes));
-			const ids = await dispatch(addMembers(members));
-			return ids;
-		},
-		[dispatch]
-	);
-}
-
-export function useMembersAddOne() {
+export function useMembersAdd() {
 	const dispatch = useAppDispatch();
 	return React.useCallback(
 		async (member: MemberCreate) => {

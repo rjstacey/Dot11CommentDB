@@ -14,7 +14,7 @@ import {
 } from "@/store/members";
 
 import {
-	useMembersAddOne,
+	useMembersAdd,
 	useMembersUpdate,
 	useMembersDelete,
 	type MultipleMember,
@@ -131,7 +131,7 @@ export function useMembersEdit({
 		}
 	}, [selected]);
 
-	const membersAdd = useMembersAddOne();
+	const membersAdd = useMembersAdd();
 	const membersUpdate = useMembersUpdate();
 	const membersDelete = useMembersDelete();
 
