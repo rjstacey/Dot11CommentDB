@@ -20,20 +20,20 @@ export function AffiliationMapEntryForm({
 	entry: AffiliationMap | AffiliationMapCreate;
 	hasChanges: () => boolean;
 	onChange: (changes: Partial<AffiliationMap>) => void;
-	submit: () => void;
+	submit: () => Promise<void>;
 	cancel: () => void;
 	readOnly?: boolean;
 }) {
 	const [busy, setBusy] = React.useState(false);
 
-	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!e.currentTarget.checkValidity()) {
 			ConfirmModal.show("Fix errors", false);
 			return;
 		}
 		setBusy(true);
-		submit();
+		await submit();
 		setBusy(false);
 	}
 
