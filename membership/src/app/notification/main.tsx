@@ -1,12 +1,13 @@
 import * as React from "react";
-import { Button } from "react-bootstrap";
-import { displayDateRange } from "@common";
+import { Button, Row, Col } from "react-bootstrap";
 import {
 	AppTable,
 	ShowFilters,
 	SplitPanel,
 	Panel,
 	SplitTableButtonGroup,
+	GlobalFilter,
+	displayDateRange,
 } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -38,10 +39,10 @@ function MostRecentBallotSummary() {
 	}
 
 	return (
-		<div style={{ display: "flex", flexDirection: "column" }}>
+		<Col className="d-flex flex-column">
 			<span>Most recent ballot series:</span>
 			{content}
-		</div>
+		</Col>
 	);
 }
 
@@ -74,39 +75,53 @@ function MostRecentSessionSummary() {
 	}
 
 	return (
-		<div style={{ display: "flex", flexDirection: "column" }}>
+		<Col className="d-flex flex-column">
 			<span>Most recent session:</span>
 			{content}
-		</div>
+		</Col>
 	);
 }
 
-function Members() {
+function NotificationMain() {
 	return (
 		<>
-			<div className="top-row">
+			<Row className="w-100 m-3">
 				<MostRecentBallotSummary />
 				<MostRecentSessionSummary />
 				<SplitTableButtonGroup
+					xs="auto"
 					columns={tableColumns}
 					selectors={membersSelectors}
 					actions={membersActions}
 				/>
-				<Button
-					variant="outline-primary"
-					className="bi-arrow-repeat"
-					title="Refresh"
-					onClick={refresh}
-				/>
-			</div>
+				<Col
+					xs="auto"
+					className="d-flex justify-content-end align-items-center justify-self-stretch ms-auto gap-2"
+				>
+					<Button
+						variant="outline-primary"
+						className="bi-arrow-repeat"
+						title="Refresh"
+						onClick={refresh}
+					/>
+				</Col>
+			</Row>
 
-			<div style={{ display: "flex", width: "100%" }}>
-				<ShowFilters
-					selectors={membersSelectors}
-					actions={membersActions}
-					fields={fields}
-				/>
-			</div>
+			<Row className="align-items-center w-100">
+				<Col>
+					<ShowFilters
+						selectors={membersSelectors}
+						actions={membersActions}
+						fields={fields}
+					/>
+				</Col>
+				<Col xs={3} sm={2}>
+					<GlobalFilter
+						selectors={membersSelectors}
+						actions={membersActions}
+					/>
+				</Col>
+			</Row>
 
 			<SplitPanel selectors={membersSelectors} actions={membersActions}>
 				<Panel>
@@ -127,4 +142,4 @@ function Members() {
 	);
 }
 
-export default Members;
+export default NotificationMain;

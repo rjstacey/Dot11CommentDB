@@ -81,29 +81,38 @@ export function MemberDetail({
 		);
 	}
 
+	let actions: React.ReactNode = null;
+	if (!readOnly) {
+		actions = (
+			<>
+				<Button
+					variant="outline-primary"
+					className="bi-plus-lg"
+					title="Add member"
+					disabled={readOnly}
+					active={state.action === "add"}
+					onClick={onAdd}
+				>
+					{" Add"}
+				</Button>
+				<Button
+					variant="outline-danger"
+					className="bi-trash"
+					title="Delete member"
+					disabled={state.action === null || readOnly}
+					onClick={onDelete}
+				>
+					{" Delete"}
+				</Button>
+			</>
+		);
+	}
+
 	return (
 		<>
 			<div className="title-row">
 				<h3>{title}</h3>
-				{!readOnly && (
-					<div>
-						<Button
-							variant="outline-primary"
-							className="bi-plus-lg"
-							title="Add member"
-							disabled={readOnly}
-							active={state.action === "add"}
-							onClick={onAdd}
-						/>
-						<Button
-							variant="outline-danger"
-							className="bi-trash"
-							title="Delete member"
-							disabled={state.action === null || readOnly}
-							onClick={onDelete}
-						/>
-					</div>
-				)}
+				<div>{actions}</div>
 			</div>
 			{content}
 			<ShowAccess access={access} />

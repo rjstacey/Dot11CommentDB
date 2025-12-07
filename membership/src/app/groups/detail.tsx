@@ -44,27 +44,38 @@ function GroupsDetail() {
 		);
 	}
 
+	let actions: React.ReactNode = null;
+	if (!readOnly) {
+		actions = (
+			<>
+				<Button
+					variant="outline-primary"
+					className="bi-plus-lg"
+					title="Add group"
+					disabled={disableAdd}
+					active={state.action === "add"}
+					onClick={onAdd}
+				>
+					{" Add"}
+				</Button>
+				<Button
+					variant="outline-danger"
+					className="bi-trash"
+					title="Delete group"
+					disabled={disableDelete}
+					onClick={onDelete}
+				>
+					{" Delete"}
+				</Button>
+			</>
+		);
+	}
+
 	return (
 		<>
 			<div className="title-row">
 				<h3>{title}</h3>
-				<div>
-					<Button
-						variant="outline-primary"
-						className="bi-plus-lg"
-						title="Add group"
-						disabled={disableAdd}
-						active={state.action === "add"}
-						onClick={onAdd}
-					/>
-					<Button
-						variant="outline-danger"
-						className="bi-trash"
-						title="Delete group"
-						disabled={disableDelete}
-						onClick={onDelete}
-					/>
-				</div>
+				<div>{actions}</div>
 			</div>
 			{content}
 			<ShowAccess access={access} />

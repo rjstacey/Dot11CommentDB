@@ -33,12 +33,12 @@ div#root {
 		align-items: center;
 		justify-content: space-between;
 
-		& :first-child {
+		& > :first-child {
 			color: #0099cc;
 			margin: 0;
 		}
 
-		& :last-child {
+		& > :last-child {
 			display: flex;
 			gap: 0.5rem;
 		}
