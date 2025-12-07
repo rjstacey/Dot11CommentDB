@@ -12,7 +12,7 @@ import {
 	type SessionRegistration,
 } from "@/store/sessionRegistration";
 import type { MemberCreate } from "@/store/members";
-import type { MultipleSessionAttendanceSummary } from "@/edit/sessionRegistration";
+import type { MultipleSessionAttendanceSummary } from "@/edit/sessionRegistrationEdit";
 
 export function RegistrationEditForm({
 	member,

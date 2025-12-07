@@ -10,8 +10,8 @@ import {
 	type MemberChange,
 } from "@/store/members";
 import type { MultipleMember } from "@/edit/membersEdit";
-import { useSessionParticipationEdit } from "@/edit/sessionParticipation";
-import { useBallotParticipationEdit } from "@/edit/ballotParticipation";
+import { useSessionParticipationEdit } from "@/edit/sessionParticipationEdit";
+import { useBallotParticipationEdit } from "@/edit/ballotParticipationEdit";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import { MemberBasicEdit } from "./MemberBasicEdit";
