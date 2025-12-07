@@ -75,7 +75,7 @@ export function MemberDetail({
 	} else {
 		title = "Member detail";
 		content = (
-			<div className="details-panel-placeholder">
+			<div className="placeholder">
 				<span>{state.message}</span>
 			</div>
 		);
@@ -83,10 +83,10 @@ export function MemberDetail({
 
 	return (
 		<>
-			<div className="d-flex align-items-center justify-content-between">
-				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
+			<div className="title-row">
+				<h3>{title}</h3>
 				{!readOnly && (
-					<div className="d-flex gap-2">
+					<div>
 						<Button
 							variant="outline-primary"
 							className="bi-plus-lg"

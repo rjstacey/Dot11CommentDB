@@ -9,7 +9,7 @@ import { AffiliationMapEntryForm } from "./AffiliationMapEntryForm";
 import { AffiliationMapMatches } from "./AffiliationMapMatches";
 import { AffiliationMapUnmatched } from "./AffiliationMapUnmatched";
 
-function GroupDetail() {
+function AffiliationMapDetail() {
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 
@@ -31,7 +31,7 @@ function GroupDetail() {
 		title = "";
 		content = (
 			<>
-				<div className="details-panel-placeholder">{state.message}</div>
+				<div className="placeholder">{state.message}</div>
 				{state.ids.length === 0 && <AffiliationMapUnmatched />}
 			</>
 		);
@@ -55,9 +55,9 @@ function GroupDetail() {
 
 	return (
 		<>
-			<div className="d-flex align-items-center justify-content-between mb-3">
-				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
-				<div className="d-flex gap-2">
+			<div className="title-row">
+				<h3>{title}</h3>
+				<div>
 					<Button
 						variant="outline-primary"
 						className="bi-plus-lg"
@@ -85,4 +85,4 @@ function GroupDetail() {
 	);
 }
 
-export default GroupDetail;
+export default AffiliationMapDetail;

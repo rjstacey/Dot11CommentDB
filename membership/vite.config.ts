@@ -65,7 +65,7 @@ export default defineConfig(({ command, mode }) => {
 		],
 		resolve: {
 			alias: {
-				"@": "/src",
+				"@": path.resolve(__dirname, "./src"),
 				"@schemas": path.resolve(__dirname, "../schemas"),
 				"@common": path.resolve(__dirname, "../common/src"),
 			},

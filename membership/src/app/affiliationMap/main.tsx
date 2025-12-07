@@ -7,7 +7,7 @@ import {
 } from "@/store/affiliationMap";
 import { refresh } from "../members/loader";
 
-import AffiliationMapDetail from "./AffiliationMapDetail";
+import AffiliationMapDetail from "./detail";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
 function AffiliationMapUnit() {

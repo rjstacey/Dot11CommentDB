@@ -23,7 +23,7 @@ export function MemberAttendanceDetail() {
 		attendanceOnChange,
 	} = useSessionAttendanceEdit(selected, readOnly);
 
-	let title: string = "Member detail";
+	let title = "Member detail";
 	if (state.action === "updateOne" && hasChanges()) {
 		title = "Update member";
 	} else if (state.action === "addOne") {
@@ -33,7 +33,7 @@ export function MemberAttendanceDetail() {
 	let content: React.ReactNode;
 	if (state.action === null) {
 		content = (
-			<div className="details-panel-placeholder">
+			<div className="placeholder">
 				<span>{state.message}</span>
 			</div>
 		);
@@ -68,8 +68,8 @@ export function MemberAttendanceDetail() {
 
 	return (
 		<>
-			<div className="d-flex align-items-center justify-content-between mb-3">
-				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
+			<div className="title-row">
+				<h3>{title}</h3>
 			</div>
 			{content}
 			<ShowAccess access={access} />

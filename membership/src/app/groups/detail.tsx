@@ -28,9 +28,7 @@ function GroupsDetail() {
 	let content: React.ReactNode;
 	if (state.action === null) {
 		title = "Group detail";
-		content = (
-			<div className="details-panel-placeholder">{state.message}</div>
-		);
+		content = <div className="placeholder">{state.message}</div>;
 	} else {
 		title = state.action === "add" ? "Add group" : "Update group";
 		content = (
@@ -48,9 +46,9 @@ function GroupsDetail() {
 
 	return (
 		<>
-			<div className="d-flex align-items-center justify-content-between mb-3">
-				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
-				<div className="d-flex gap-2">
+			<div className="title-row">
+				<h3>{title}</h3>
+				<div>
 					<Button
 						variant="outline-primary"
 						className="bi-plus-lg"

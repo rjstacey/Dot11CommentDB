@@ -18,14 +18,14 @@ export function RegistrationDetail() {
 	const { state, submit, cancel, hasChanges, onChange } =
 		useSessionRegistrationEdit(selected, readOnly);
 
-	let title: string = "Registration detail";
+	let title = "Registration detail";
 	if (state.action === "updateOne" && hasChanges()) {
 		title = "Update registration";
 	}
 	let content: React.ReactNode;
 	if (state.action === null) {
 		content = (
-			<div className="details-panel-placeholder">
+			<div className="placeholder">
 				<span>{state.message}</span>
 			</div>
 		);
@@ -63,8 +63,8 @@ export function RegistrationDetail() {
 
 	return (
 		<>
-			<div className="d-flex align-items-center justify-content-between mb-3">
-				<h3 style={{ color: "#0099cc", margin: 0 }}>{title}</h3>
+			<div className="title-row">
+				<h3>{title}</h3>
 			</div>
 			{content}
 			<ShowAccess access={access} />

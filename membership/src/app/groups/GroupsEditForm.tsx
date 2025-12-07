@@ -43,7 +43,7 @@ export function GroupsEditForm({
 	entry: MultipleGroupEntry;
 	hasChanges: () => boolean;
 	onChange: (changes: Partial<GroupEntry>) => void;
-	submit: () => void;
+	submit: () => Promise<void>;
 	cancel: () => void;
 	readOnly?: boolean;
 }) {
@@ -77,7 +77,7 @@ export function GroupsEditForm({
 		onChange(changes);
 	}
 
-	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const errorText = checkEntry(entry);
 		if (errorText) {
@@ -86,7 +86,7 @@ export function GroupsEditForm({
 		}
 		setValidated(true);
 		setBusy(true);
-		submit();
+		await submit();
 		setBusy(false);
 	};
 
