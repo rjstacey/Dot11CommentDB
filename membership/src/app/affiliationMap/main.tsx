@@ -10,11 +10,12 @@ import { refresh } from "../members/loader";
 import AffiliationMapDetail from "./detail";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
-function AffiliationMapUnit() {
+function AffiliationMapMain() {
 	return (
 		<>
 			<Row className="w-100 d-flex justify-content-end align-items-center m-3">
 				<SplitTableButtonGroup
+					xs="auto"
 					selectors={affiliationMapSelectors}
 					actions={affiliationMapActions}
 					columns={tableColumns}
@@ -51,4 +52,4 @@ function AffiliationMapUnit() {
 	);
 }
 
-export default AffiliationMapUnit;
+export default AffiliationMapMain;
