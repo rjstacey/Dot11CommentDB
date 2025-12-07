@@ -1,15 +1,15 @@
 import * as React from "react";
-import { AffiliationMap, matchRegExp } from "@/store/affiliationMap";
+import { AffiliationMapCreate, matchRegExp } from "@/store/affiliationMap";
 import { useAppSelector } from "@/store/hooks";
 import { selectActiveMembers } from "@/store/members";
 
-function AffiliationMapMatches({ map }: { map: AffiliationMap }) {
+export function AffiliationMapMatches({ map }: { map: AffiliationMapCreate }) {
 	const members = useAppSelector(selectActiveMembers);
 	const matchedMembers = React.useMemo(() => {
 		const re = matchRegExp(map.match);
 		if (!re) return [];
 		return members.filter((m) => re.test(m.Affiliation));
-	}, [members, map]);
+	}, [members, map.match]);
 
 	return (
 		<div style={{ display: "flex", flexDirection: "column" }}>
@@ -20,5 +20,3 @@ function AffiliationMapMatches({ map }: { map: AffiliationMap }) {
 		</div>
 	);
 }
-
-export default AffiliationMapMatches;

@@ -1,210 +1,56 @@
 import * as React from "react";
 import { Button } from "react-bootstrap";
-import { shallowEqual } from "react-redux";
-import type { EntityId } from "@reduxjs/toolkit";
 
-import { ConfirmModal } from "@common";
-
-import {
-	useAffiliationMapAdd,
-	useAffiliationMapUpdate,
-	useAffiliationMapsDelete,
-} from "./utils";
-import { EditAction, AffiliationMapEntryForm } from "./AffiliationMapEntry";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-	AffiliationMap,
-	selectAffiliationMapState,
-	setSelected,
-} from "@/store/affiliationMap";
-import AffiliationMapTest from "./AffiliationMapMatches";
-import AffiliationMapUnmatched from "./AffiliationMapUnmatched";
-
-type AffiliationMapDetailState = {
-	action: EditAction | null;
-	edited: AffiliationMap | undefined;
-	saved: AffiliationMap | undefined;
-	id: EntityId | undefined;
-	placeholder: string;
-};
+import { useAppSelector } from "@/store/hooks";
+import { AccessLevel, selectUserMembersAccess } from "@/store/members";
+import { useAffiliationMapEdit } from "@/edit/affiliationMapEdit";
+import ShowAccess from "@/components/ShowAccess";
+import { AffiliationMapEntryForm } from "./AffiliationMapEntryForm";
+import { AffiliationMapMatches } from "./AffiliationMapMatches";
+import { AffiliationMapUnmatched } from "./AffiliationMapUnmatched";
 
 function GroupDetail() {
-	const dispatch = useAppDispatch();
+	const access = useAppSelector(selectUserMembersAccess);
+	const readOnly = access < AccessLevel.rw;
 
-	const readOnly = false;
+	const {
+		state,
+		hasChanges,
+		onChange,
+		submit,
+		cancel,
+		onAdd,
+		disableAdd,
+		onDelete,
+		disableDelete,
+	} = useAffiliationMapEdit(readOnly);
 
-	const { entities, selected, loading, valid } = useAppSelector(
-		selectAffiliationMapState
-	);
-
-	const initState = React.useCallback((): AffiliationMapDetailState => {
-		let action: EditAction | null = null;
-		let id: EntityId | undefined;
-		let entry: AffiliationMap | undefined;
-		let placeholder = "";
-
-		if (loading && !valid) placeholder = "Loading...";
-		else if (selected.length > 1) placeholder = "Multiple selected";
-		else if (selected.length === 0) placeholder = "Nothing selected";
-		else {
-			action = "view";
-			id = selected[0];
-			entry = entities[id];
-		}
-
-		return {
-			action,
-			edited: entry,
-			saved: entry,
-			id,
-			placeholder,
-		};
-	}, [loading, valid, selected, entities]);
-
-	const [state, setState] = React.useState(initState);
-	const [busy, setBusy] = React.useState(false);
-
-	React.useEffect(() => {
-		if (
-			(state.action === null && selected.length === 1) ||
-			(state.action === "view" &&
-				(selected.length !== 1 || state.id !== selected[0]))
-		) {
-			setState(initState);
-		} else if (
-			state.action === "update" &&
-			(selected.length !== 1 || state.id !== selected[0])
-		) {
-			ConfirmModal.show(
-				"Changes not applied! Do you want to discard changes?"
-			).then((ok) => {
-				if (ok) setState(initState);
-				else dispatch(setSelected([state.id!]));
-			});
-		} else if (state.action === "add" && selected.length > 0) {
-			if (state.edited !== state.saved) {
-				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
-				).then((ok) => {
-					if (ok) setState(initState);
-					else dispatch(setSelected([]));
-				});
-			} else {
-				setState(initState);
-			}
-		}
-	}, [state, selected, initState, dispatch]);
-
-	const changeEntry = (changes: Partial<AffiliationMap>) => {
-		if (readOnly || state.edited === null || state.saved === null) {
-			console.warn("Update with insufficient access");
-			return;
-		}
-		setState((state) => {
-			let { action, edited } = state;
-			const { saved } = state;
-			edited = { ...edited!, ...changes };
-			if (shallowEqual(edited, saved!)) {
-				if (action !== "add") action = "view";
-				edited = saved!;
-			} else {
-				if (action !== "add") action = "update";
-			}
-			return {
-				...state,
-				action,
-				edited,
-				saved,
-			};
-		});
-	};
-
-	const mapAdd = useAffiliationMapAdd();
-
-	const add = async () => {
-		if (readOnly || !state.edited) {
-			console.warn("Add with unexpected state");
-			return;
-		}
-		const { edited } = state;
-		setState((state) => ({
-			...state,
-			saved: state.edited,
-		}));
-		setBusy(true);
-		const newMap = await mapAdd(edited);
-		setBusy(false);
-		if (newMap) dispatch(setSelected([newMap.id]));
-	};
-
-	const mapUpdate = useAffiliationMapUpdate();
-
-	const update = async () => {
-		if (readOnly || !state.edited || !state.saved) {
-			console.warn("Update with unexpected state");
-			return;
-		}
-		const { edited, saved } = state;
-		setBusy(true);
-		await mapUpdate(edited, saved);
-		setBusy(false);
-		setState((state) => ({
-			...state,
-			action: "view",
-			saved: edited,
-		}));
-	};
-
-	const cancel = async () => {
-		setState(initState);
-	};
-
-	const clickAdd = async () => {
-		if (state.action === "update") {
-			const ok = await ConfirmModal.show(
-				`Changes not applied! Do you want to discard changes?`
-			);
-			if (!ok) return;
-		}
-		dispatch(setSelected([]));
-		const entry: AffiliationMap = {
-			id: 0,
-			groupId: "",
-			match: "",
-			shortAffiliation: "",
-		};
-		setState({
-			action: "add",
-			edited: entry,
-			saved: entry,
-			id: undefined,
-			placeholder: "",
-		});
-	};
-
-	const mapsDelete = useAffiliationMapsDelete();
-
-	const clickDelete = async () => {
-		if (readOnly) {
-			console.warn("Delete with unexpected state");
-			return;
-		}
-		const str = "Are you sure you want to the selected mappings?";
-		const ok = await ConfirmModal.show(str);
-		if (ok) {
-			await mapsDelete(selected);
-			setSelected([]);
-		}
-	};
-
-	let title = "",
-		submit: (() => void) | undefined;
-	if (state.action === "add") {
-		title = "Add map";
-		submit = add;
-	} else if (state.action === "update") {
-		title = "Update map";
-		submit = update;
+	let title = "";
+	let content: React.ReactNode;
+	if (state.action === null) {
+		title = "";
+		content = (
+			<>
+				<div className="details-panel-placeholder">{state.message}</div>
+				{state.ids.length === 0 && <AffiliationMapUnmatched />}
+			</>
+		);
+	} else {
+		title = state.action === "add" ? "Add map" : "Update map";
+		content = (
+			<>
+				<AffiliationMapEntryForm
+					action={state.action}
+					entry={state.edited}
+					hasChanges={hasChanges}
+					onChange={onChange}
+					submit={submit}
+					cancel={cancel}
+					readOnly={readOnly}
+				/>
+				<AffiliationMapMatches map={state.edited} />
+			</>
+		);
 	}
 
 	return (
@@ -216,9 +62,9 @@ function GroupDetail() {
 						variant="outline-primary"
 						className="bi-plus-lg"
 						title="Add map"
-						disabled={loading || readOnly}
+						disabled={disableAdd}
 						active={state.action === "add"}
-						onClick={clickAdd}
+						onClick={onAdd}
 					>
 						{" Add"}
 					</Button>
@@ -226,34 +72,15 @@ function GroupDetail() {
 						variant="outline-danger"
 						className="bi-trash"
 						title="Delete map"
-						disabled={loading || selected.length === 0 || readOnly}
-						onClick={clickDelete}
+						disabled={disableDelete}
+						onClick={onDelete}
 					>
 						{" Delete"}
 					</Button>
 				</div>
 			</div>
-			{state.action === null ? (
-				<>
-					<div className="details-panel-placeholder">
-						{state.placeholder}
-					</div>
-					{selected.length === 0 && <AffiliationMapUnmatched />}
-				</>
-			) : (
-				<>
-					<AffiliationMapEntryForm
-						action={state.action}
-						entry={state.edited!}
-						change={changeEntry}
-						submit={submit}
-						cancel={submit ? cancel : undefined}
-						busy={busy}
-						readOnly={readOnly}
-					/>
-					<AffiliationMapTest map={state.edited!} />
-				</>
-			)}
+			{content}
+			<ShowAccess access={access} />
 		</>
 	);
 }

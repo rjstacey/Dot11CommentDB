@@ -3,7 +3,7 @@ import { selectAffiliationMaps, matchRegExp } from "@/store/affiliationMap";
 import { useAppSelector } from "@/store/hooks";
 import { selectActiveMembers } from "@/store/members";
 
-function AffiliationMapUnmatched() {
+export function AffiliationMapUnmatched() {
 	const maps = useAppSelector(selectAffiliationMaps);
 	const members = useAppSelector(selectActiveMembers);
 	const unmatchedMembers = React.useMemo(() => {
@@ -25,5 +25,3 @@ function AffiliationMapUnmatched() {
 		</div>
 	);
 }
-
-export default AffiliationMapUnmatched;
