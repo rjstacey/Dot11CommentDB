@@ -19,7 +19,7 @@ import {
 	ContactInfo,
 	MemberCreate,
 } from "@/store/members";
-import type { MultipleMember } from "@/edit/members";
+import type { MultipleMember } from "@/edit/membersEdit";
 import { hasChangesStyle } from "@/components/utils";
 import { EditTable as Table, TableColumn } from "@/components/Table";
 

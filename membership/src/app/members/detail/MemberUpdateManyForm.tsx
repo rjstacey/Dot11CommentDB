@@ -4,7 +4,7 @@ import { Row, Form } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 
 import { type MemberChange } from "@/store/members";
-import type { MultipleMember } from "@/edit/members";
+import type { MultipleMember } from "@/edit/membersEdit";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import { MemberBasicEdit } from "./MemberBasicEdit";

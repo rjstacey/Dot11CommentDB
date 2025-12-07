@@ -130,7 +130,7 @@ export function useMembersUpdate() {
 	);
 }
 
-export function useMembersAdd() {
+export function useMembersAddMany() {
 	const dispatch = useAppDispatch();
 	return React.useCallback(
 		async (
@@ -139,10 +139,19 @@ export function useMembersAdd() {
 			members: MemberCreate[]
 		) => {
 			const changes = deepDiff(saved, edited);
-			const newMembers = changes
-				? members.map((m) => deepMerge(m, changes))
-				: members;
-			const ids = await dispatch(addMembers(newMembers));
+			if (changes) members = members.map((m) => deepMerge(m, changes));
+			const ids = await dispatch(addMembers(members));
+			return ids;
+		},
+		[dispatch]
+	);
+}
+
+export function useMembersAddOne() {
+	const dispatch = useAppDispatch();
+	return React.useCallback(
+		async (member: MemberCreate) => {
+			const ids = await dispatch(addMembers([member]));
 			return ids;
 		},
 		[dispatch]

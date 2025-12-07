@@ -8,7 +8,7 @@ import {
 	GroupCreate,
 	selectGroupEntities,
 } from "@/store/groups";
-import { GroupEntry, MultipleGroupEntry } from "@/edit/groups";
+import { GroupEntry, MultipleGroupEntry } from "@/edit/groupsEdit";
 
 import { GroupTypeSelector } from "./GroupTypeSelector";
 import { GroupStatusSelector } from "./GroupStatusSelector";
@@ -30,7 +30,7 @@ function checkEntry(entry: MultipleGroupEntry): string | undefined {
 	}
 }
 
-export function GroupEntryForm({
+export function GroupsEditForm({
 	action,
 	entry,
 	hasChanges,

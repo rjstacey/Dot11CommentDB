@@ -17,13 +17,12 @@ import {
 	type SessionAttendanceSummaryChange,
 } from "@/store/attendanceSummaries";
 
-import { type MultipleMember } from "./memberActions";
 import {
 	useAttendanceUpdate,
 	type MultipleSessionAttendanceSummary,
 } from "./attendanceActions";
 
-export type { MultipleMember, MultipleSessionAttendanceSummary };
+export type { MultipleSessionAttendanceSummary };
 
 /** Identify changes to attendance summary */
 function sessionRegistrationAttendanceChanges(

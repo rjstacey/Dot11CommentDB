@@ -31,7 +31,7 @@ import {
 	type SessionAttendanceSummaryChange,
 } from "@/store/attendanceSummaries";
 
-import { type MultipleMember } from "./memberActions";
+import type { MultipleMember } from "./memberActions";
 import {
 	useAttendanceUpdate,
 	type MultipleSessionAttendanceSummary,

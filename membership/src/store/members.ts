@@ -199,6 +199,9 @@ const selectMembersAge = (state: RootState) => {
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
+export const selectMembersSelected = (state: RootState) =>
+	selectMembersState(state).selected as number[];
+
 export const selectActiveMembers = createSelector(
 	selectMemberIds,
 	selectMemberEntities,

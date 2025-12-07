@@ -119,6 +119,8 @@ export const selectMyProjectRosterIds = (state: RootState) =>
 	selectMyProjectRosterState(state).ids;
 export const selectMyProjectRosterEntities = (state: RootState) =>
 	selectMyProjectRosterState(state).entities;
+export const selectMyProjectRosterSelected = (state: RootState) =>
+	selectMyProjectRosterState(state).selected as number[];
 
 const selectSyncedMyProjectRosterEntities = createSelector(
 	selectMyProjectRosterIds,

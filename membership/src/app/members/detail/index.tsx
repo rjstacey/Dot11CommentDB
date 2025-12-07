@@ -1,11 +1,10 @@
 import { Button } from "react-bootstrap";
-import type { EntityId } from "@reduxjs/toolkit";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectUserMembersAccess, AccessLevel } from "@/store/members";
 
 import ShowAccess from "@/components/ShowAccess";
-import { useMemberEdit } from "@/edit/members";
+import { useMembersEdit } from "@/edit/membersEdit";
 import { MemberAddForm } from "./MemberAddForm";
 import { MemberUpdateOneForm } from "./MemberUpdateOneForm";
 import { MemberUpdateManyForm } from "./MemberUpdateManyForm";
@@ -14,25 +13,18 @@ export function MemberDetail({
 	selected,
 	setSelected,
 }: {
-	selected: EntityId[];
-	setSelected: (ids: EntityId[]) => void;
+	selected: number[];
+	setSelected: (ids: number[]) => void;
 }) {
 	const access = useAppSelector(selectUserMembersAccess);
-	const readOnly = access < AccessLevel.rw;
+	const readOnly = access <= AccessLevel.ro;
 
-	const {
-		state,
-		onChange,
-		hasChanges,
-		submit,
-		cancel,
-		clickAdd,
-		clickDelete,
-	} = useMemberEdit({
-		selected,
-		setSelected,
-		readOnly,
-	});
+	const { state, onChange, hasChanges, submit, cancel, onAdd, onDelete } =
+		useMembersEdit({
+			selected,
+			setSelected,
+			readOnly,
+		});
 
 	let title: string;
 	let content: React.ReactNode;
@@ -50,34 +42,36 @@ export function MemberDetail({
 				readOnly={readOnly}
 			/>
 		);
-	} else if (state.action === "update" && state.originals.length === 1) {
-		title = "Update member";
-		content = (
-			<MemberUpdateOneForm
-				sapins={state.originals.map((m) => m.SAPIN)}
-				edited={state.edited!}
-				saved={state.saved!}
-				onChange={onChange}
-				hasChanges={hasChanges}
-				submit={submit}
-				cancel={cancel}
-				readOnly={readOnly}
-			/>
-		);
-	} else if (state.action === "update" && state.originals.length > 1) {
-		title = "Update members";
-		content = (
-			<MemberUpdateManyForm
-				sapins={state.originals.map((m) => m.SAPIN)}
-				edited={state.edited!}
-				saved={state.saved!}
-				onChange={onChange}
-				hasChanges={hasChanges}
-				submit={submit}
-				cancel={cancel}
-				readOnly={readOnly}
-			/>
-		);
+	} else if (state.action === "update") {
+		if (state.originals.length === 1) {
+			title = "Update member";
+			content = (
+				<MemberUpdateOneForm
+					sapins={state.originals.map((m) => m.SAPIN)}
+					edited={state.edited!}
+					saved={state.saved!}
+					onChange={onChange}
+					hasChanges={hasChanges}
+					submit={submit}
+					cancel={cancel}
+					readOnly={readOnly}
+				/>
+			);
+		} else {
+			title = "Update members";
+			content = (
+				<MemberUpdateManyForm
+					sapins={state.originals.map((m) => m.SAPIN)}
+					edited={state.edited!}
+					saved={state.saved!}
+					onChange={onChange}
+					hasChanges={hasChanges}
+					submit={submit}
+					cancel={cancel}
+					readOnly={readOnly}
+				/>
+			);
+		}
 	} else {
 		title = "Member detail";
 		content = (
@@ -99,14 +93,14 @@ export function MemberDetail({
 							title="Add member"
 							disabled={readOnly}
 							active={state.action === "add"}
-							onClick={clickAdd}
+							onClick={onAdd}
 						/>
 						<Button
 							variant="outline-danger"
 							className="bi-trash"
 							title="Delete member"
 							disabled={state.action === null || readOnly}
-							onClick={clickDelete}
+							onClick={onDelete}
 						/>
 					</div>
 				)}

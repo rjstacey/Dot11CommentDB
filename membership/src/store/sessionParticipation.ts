@@ -111,7 +111,7 @@ export const selectSessionParticipationState = (state: RootState) =>
 export const selectSessionParticipationSessionIds = (state: RootState) =>
 	selectSessionParticipationState(state).sessionIds;
 export const selectSessionParticipationSelected = (state: RootState) =>
-	selectSessionParticipationState(state).selected;
+	selectSessionParticipationState(state).selected as number[];
 
 export const selectSessionParticipationIds = createSelector(
 	selectMemberAttendances,

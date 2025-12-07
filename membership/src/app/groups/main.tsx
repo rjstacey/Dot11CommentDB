@@ -4,7 +4,7 @@ import { AppTable, SplitPanel, Panel, SplitTableButtonGroup } from "@common";
 import { groupsSelectors, groupsActions } from "@/store/groups";
 
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
-import GroupDetail from "./GroupDetail";
+import GroupsDetail from "./detail";
 import { refresh } from "./loader";
 
 function Groups() {
@@ -39,7 +39,7 @@ function Groups() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<GroupDetail />
+					<GroupsDetail />
 				</Panel>
 			</SplitPanel>
 		</>

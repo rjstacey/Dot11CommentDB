@@ -1,21 +1,20 @@
-import * as React from "react";
-import { shallowEqual } from "react-redux";
-import type { EntityId } from "@reduxjs/toolkit";
+import React from "react";
+import isEqual from "lodash.isequal";
 
 import { ConfirmModal, deepMergeTagMultiple } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
-	ContactInfo,
 	memberContactInfoEmpty,
 	selectMembersState,
 	type Member,
 	type MemberCreate,
 	type MemberChange,
+	type ContactInfo,
 } from "@/store/members";
 
 import {
-	useMembersAdd,
+	useMembersAddOne,
 	useMembersUpdate,
 	useMembersDelete,
 	type MultipleMember,
@@ -39,11 +38,11 @@ const defaultMember: MemberCreate & { ContactInfo: ContactInfo } = {
 
 export type EditAction = "add" | "update" | null;
 
-export type MemberEditState = (
+export type MembersEditState = (
 	| {
 			action: "add";
 			edited: MemberCreate;
-			saved: null;
+			saved: undefined;
 	  }
 	| {
 			action: "update";
@@ -52,31 +51,25 @@ export type MemberEditState = (
 	  }
 	| {
 			action: null;
-			edited: null;
-			saved: null;
+			message: string;
 	  }
 ) & {
 	originals: MemberCreate[];
-	message: string;
 };
 
-function useInitState(selected: EntityId[]) {
+function useInitState(selected: number[]) {
 	const { entities, loading, valid } = useAppSelector(selectMembersState);
-	return React.useCallback((): MemberEditState => {
-		const state: MemberEditState = {
-			action: null,
-			edited: null,
-			saved: null,
-			originals: [],
-			message: "",
-		};
+	return React.useCallback((): MembersEditState => {
 		if (loading && !valid) {
-			state.message = "Loading...";
-			return state;
+			return {
+				action: null,
+				message: "Loading...",
+				originals: [],
+			} satisfies MembersEditState;
 		}
 		let edited = {} as MultipleMember;
 		const originals: MemberCreate[] = [];
-		for (const sapin of selected as number[]) {
+		for (const sapin of selected) {
 			const member = entities[sapin];
 			if (!member) {
 				console.warn("Can't get member with SAPIN=" + sapin);
@@ -89,42 +82,44 @@ function useInitState(selected: EntityId[]) {
 			originals.push(member);
 		}
 		if (originals.length === 0) {
-			state.message = "Nothing selected";
-			return state;
+			return {
+				action: null,
+				message: "Nothing selected",
+				originals: [],
+			} satisfies MembersEditState;
 		}
 		return {
 			action: "update",
 			edited,
 			saved: edited,
 			originals,
-			message: "",
-		} satisfies MemberEditState;
+		} satisfies MembersEditState;
 	}, [loading, valid, selected, entities]);
 }
 
-export function useMemberEdit({
+export function useMembersEdit({
 	selected,
 	setSelected,
 	readOnly,
 }: {
-	selected: EntityId[];
-	setSelected: (ids: EntityId[]) => void;
+	selected: number[];
+	setSelected: (ids: number[]) => void;
 	readOnly?: boolean;
 }) {
 	const initState = useInitState(selected); // Callback to initialize state
-	const [state, setState] = React.useState<MemberEditState>(initState);
+	const [state, setState] = React.useState<MembersEditState>(initState);
 
 	React.useEffect(() => {
-		const { action, edited, saved, originals } = state;
+		const { action, originals } = state;
 		const ids = originals.map((m) => m.SAPIN);
 		if (
 			action === "update" &&
-			edited === saved &&
-			selected.join() !== ids.join()
+			state.edited === state.saved &&
+			isEqual(selected, ids)
 		) {
 			setState(initState);
 		} else if (
-			(action === "update" && selected.join() !== ids.join()) ||
+			(action === "update" && isEqual(selected, ids)) ||
 			(action === "add" && selected.length > 0)
 		) {
 			ConfirmModal.show(
@@ -134,9 +129,9 @@ export function useMemberEdit({
 				else setSelected(ids);
 			});
 		}
-	}, [state, selected, setSelected, initState]);
+	}, [selected]);
 
-	const membersAdd = useMembersAdd();
+	const membersAdd = useMembersAddOne();
 	const membersUpdate = useMembersUpdate();
 	const membersDelete = useMembersDelete();
 
@@ -156,18 +151,20 @@ export function useMemberEdit({
 					return { ...state, edited };
 				}
 				let edited = { ...state.edited, ...changes };
-				if (shallowEqual(edited, state.saved)) edited = state.saved;
+				if (isEqual(edited, state.saved)) edited = state.saved;
 				return { ...state, edited };
 			}),
-		[setState, readOnly]
+		[readOnly, setState]
 	);
 
 	const hasChanges = React.useCallback(
-		() => state.action === "add" || state.edited !== state.saved,
+		() =>
+			state.action === "add" ||
+			(state.action === "update" && state.edited !== state.saved),
 		[state]
 	);
 
-	const clickAdd = React.useCallback(async () => {
+	const onAdd = React.useCallback(async () => {
 		if (state.action === "update" && state.edited !== state.saved) {
 			const ok = await ConfirmModal.show(
 				`Changes not applied! Do you want to discard changes?`
@@ -192,13 +189,12 @@ export function useMemberEdit({
 		setState({
 			action: "add",
 			edited: entry,
-			saved: null,
+			saved: undefined,
 			originals: [entry],
-			message: "",
 		});
-	}, [setState, setSelected, state.action]);
+	}, [setState, setSelected, state]);
 
-	const clickDelete = React.useCallback(async () => {
+	const onDelete = React.useCallback(async () => {
 		const { originals } = state;
 		if (originals.length > 0) {
 			const str =
@@ -209,55 +205,40 @@ export function useMemberEdit({
 				setSelected([]);
 				setState({
 					action: null,
-					edited: null,
-					saved: null,
-					originals: [],
 					message: "Nothing selected...",
+					originals: [],
 				});
 				await membersDelete(originals);
 			}
 		}
 	}, [setState, setSelected, membersDelete, state]);
 
-	const add = React.useCallback(async () => {
-		const { edited, saved, originals } = state;
-		if (edited === null || saved === null) {
-			console.warn("Add with unexpected state");
-			return;
-		}
-		setState({
-			action: null,
-			edited: null,
-			saved: null,
-			originals: [],
-			message: "Adding...",
-		});
-		const ids = await membersAdd(edited, saved, originals);
-		setSelected(ids);
-	}, [setSelected, membersAdd, state]);
-
-	const update = React.useCallback(async () => {
-		const { action, edited, saved, originals } = state;
-		if (action !== "update" || edited === null || saved === null) {
-			console.warn("Update with unexpected state");
-			return;
-		}
-		setSelected([]);
-		setState({
-			action: null,
-			saved: null,
-			edited: null,
-			originals: [],
-			message: "Updating...",
-		});
-		await membersUpdate(edited, saved, originals);
-		setSelected(originals.map((m) => m.SAPIN));
-	}, [setSelected, membersUpdate, state]);
-
 	const submit = React.useCallback(async () => {
-		if (state.action === "add") return add();
-		else if (state.action === "update") return update();
-	}, [state, add, update]);
+		if (readOnly || state.action === null) {
+			console.warn("submit: bad state");
+			return;
+		}
+		if (state.action === "add") {
+			const { edited } = state;
+			setState({
+				action: null,
+				message: "Adding...",
+				originals: [],
+			});
+			const ids = await membersAdd(edited);
+			setSelected(ids);
+		} else if (state.action === "update") {
+			const { edited, saved, originals } = state;
+			setSelected([]);
+			setState({
+				action: null,
+				message: "Updating...",
+				originals: [],
+			});
+			await membersUpdate(edited, saved, originals);
+			setSelected(originals.map((m) => m.SAPIN));
+		}
+	}, [state]);
 
 	const cancel = React.useCallback(() => {
 		setState(initState);
@@ -269,7 +250,7 @@ export function useMemberEdit({
 		submit,
 		cancel,
 		onChange,
-		clickAdd,
-		clickDelete,
+		onAdd,
+		onDelete,
 	};
 }

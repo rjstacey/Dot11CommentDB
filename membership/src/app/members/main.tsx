@@ -10,7 +10,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	fields,
-	selectMembersState,
+	selectMembersSelected,
 	setSelected,
 	membersSelectors,
 	membersActions,
@@ -21,7 +21,7 @@ import { MemberDetail } from "./detail";
 
 export function MembersTable() {
 	const dispatch = useAppDispatch();
-	const { selected } = useAppSelector(selectMembersState);
+	const selected = useAppSelector(selectMembersSelected);
 
 	return (
 		<>

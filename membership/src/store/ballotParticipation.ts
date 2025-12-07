@@ -149,21 +149,15 @@ const slice = createAppTableDataSlice({
 export default slice;
 
 /* Slice actions */
-const {
-	getSuccess,
-	getFailure,
-	setBallotSeries,
-	setBallots,
-	setOne,
-	setSelected,
-} = slice.actions;
+const { getSuccess, getFailure, setBallotSeries, setBallots, setOne } =
+	slice.actions;
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string }>(dataSet + "/getPending");
 export const clearBallotParticipation = createAction(dataSet + "/clear");
 
 export const ballotParticipationActions = slice.actions;
-export { setSelected };
+export const setBallotParticipationSelected = slice.actions.setSelected;
 
 /*
  * Selectors
@@ -191,7 +185,8 @@ export const selectBallotIds = (state: RootState) =>
 	selectBallotParticipationState(state).ballots.ids;
 export const selectBallotEntities = (state: RootState) =>
 	selectBallotParticipationState(state).ballots.entities;
-
+export const selectBallotParticipationSelected = (state: RootState) =>
+	selectBallotParticipationState(state).selected as number[];
 export const selectMostRecentBallotSeries = (state: RootState) => {
 	const ballotSeries = selectRecentBallotSeries(state);
 	return ballotSeries[ballotSeries.length - 1];

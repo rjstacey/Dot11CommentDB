@@ -10,8 +10,8 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	fields,
-	setSelected,
-	selectBallotParticipationState,
+	setBallotParticipationSelected,
+	selectBallotParticipationSelected,
 	ballotParticipationSelectors,
 	ballotParticipationActions,
 } from "@/store/ballotParticipation";
@@ -21,7 +21,7 @@ import { useTableColumns } from "./tableColumns";
 
 export function BallotParticipationTable() {
 	const dispatch = useAppDispatch();
-	const { selected } = useAppSelector(selectBallotParticipationState);
+	const selected = useAppSelector(selectBallotParticipationSelected);
 
 	const [columns, defaultTablesConfig] = useTableColumns();
 
@@ -60,7 +60,9 @@ export function BallotParticipationTable() {
 				<Panel className="details-panel">
 					<MemberDetail
 						selected={selected}
-						setSelected={(ids) => dispatch(setSelected(ids))}
+						setSelected={(ids) =>
+							dispatch(setBallotParticipationSelected(ids))
+						}
 					/>
 				</Panel>
 			</SplitPanel>

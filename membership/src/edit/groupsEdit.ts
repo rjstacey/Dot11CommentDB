@@ -1,5 +1,5 @@
 import * as React from "react";
-import { shallowEqual } from "react-redux";
+import isEqual from "lodash.isequal";
 
 import { ConfirmModal, deepMergeTagMultiple } from "@common";
 
@@ -39,7 +39,7 @@ const defaultEntry: GroupEntry = {
 	officers: [],
 };
 
-type GroupEditState =
+type GroupsEditState =
 	| {
 			action: null;
 			message: string;
@@ -47,7 +47,7 @@ type GroupEditState =
 	| {
 			action: "add";
 			edited: MultipleGroupEntry;
-			saved: null;
+			saved: undefined;
 	  }
 	| {
 			action: "update";
@@ -56,7 +56,7 @@ type GroupEditState =
 			groups: Group[];
 	  };
 
-export function useGroupEdit(readOnly: boolean) {
+export function useGroupsEdit(readOnly: boolean) {
 	const dispatch = useAppDispatch();
 
 	const { entities, selected, loading, valid } =
@@ -65,19 +65,19 @@ export function useGroupEdit(readOnly: boolean) {
 	const officerIds = useAppSelector(selectOfficerIds);
 	const groupId = useAppSelector(selectTopLevelGroupId);
 
-	const initState = React.useCallback((): GroupEditState => {
+	const initState = React.useCallback((): GroupsEditState => {
 		const groups = selected.map((id) => entities[id]!).filter(Boolean);
 
 		if (loading && !valid) {
 			return {
 				action: null,
 				message: "Loading...",
-			} satisfies GroupEditState;
+			} satisfies GroupsEditState;
 		} else if (groups.length === 0) {
 			return {
 				action: null,
 				message: "Nothing selected",
-			} satisfies GroupEditState;
+			} satisfies GroupsEditState;
 		} else {
 			let edited = {} as MultipleGroupEntry;
 			for (const group of groups) {
@@ -155,10 +155,10 @@ export function useGroupEdit(readOnly: boolean) {
 				}
 				if (state.action === "add") {
 					const edited = { ...state.edited, ...changes };
-					return { ...state, edited } satisfies GroupEditState;
+					return { ...state, edited } satisfies GroupsEditState;
 				} else {
 					let edited = { ...state.edited, ...changes };
-					if (shallowEqual(edited, state.saved)) edited = state.saved;
+					if (isEqual(edited, state.saved)) edited = state.saved;
 					return { ...state, edited };
 				}
 			});
@@ -216,7 +216,8 @@ export function useGroupEdit(readOnly: boolean) {
 		setState(initState);
 	};
 
-	const clickAdd = React.useCallback(async () => {
+	const disableAdd = readOnly || loading;
+	const onAdd = React.useCallback(async () => {
 		if (state.action === "update" && state.edited !== state.saved) {
 			const ok = await ConfirmModal.show(
 				`Changes not applied! Do you want to discard changes?`
@@ -234,15 +235,16 @@ export function useGroupEdit(readOnly: boolean) {
 		setState({
 			action: "add",
 			edited: entry,
-			saved: null,
+			saved: undefined,
 		});
 	}, [state, dispatch, setState]);
 
 	const groupsDelete = useGroupsDelete();
 
-	const clickDelete = async () => {
-		if (readOnly || state.action !== "update") {
-			console.warn("clickDelete: bad state");
+	const disableDelete = readOnly || loading || state.action !== "update";
+	const onDelete = React.useCallback(async () => {
+		if (disableDelete) {
+			console.warn("onDelete: bad state");
 			return;
 		}
 		const { groups } = state;
@@ -266,7 +268,7 @@ export function useGroupEdit(readOnly: boolean) {
 				setSelected([]);
 			}
 		}
-	};
+	}, [disableDelete, state, dispatch, groupsDelete, setSelected]);
 
 	return {
 		state,
@@ -274,7 +276,9 @@ export function useGroupEdit(readOnly: boolean) {
 		onChange,
 		submit,
 		cancel,
-		clickAdd,
-		clickDelete,
+		onAdd,
+		disableAdd,
+		onDelete,
+		disableDelete,
 	};
 }

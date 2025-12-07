@@ -1,6 +1,5 @@
 import * as React from "react";
-import { shallowEqual } from "react-redux";
-import type { EntityId } from "@reduxjs/toolkit";
+import isEqual from "lodash.isequal";
 
 import { ConfirmModal, shallowDiff } from "@common";
 
@@ -35,7 +34,7 @@ export type AffiliationMapEditState = (
 			edited: AffiliationMap;
 			saved: AffiliationMap;
 	  }
-) & { ids: EntityId[] };
+) & { ids: number[] };
 
 export function useAffiliationMapEdit(readOnly: boolean) {
 	const dispatch = useAppDispatch();
@@ -60,7 +59,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 					action: "update",
 					edited: entity,
 					saved: entity,
-					ids: selected,
+					ids: selected as number[],
 				};
 			} else {
 				message = "Selected entity not found";
@@ -70,7 +69,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 		return {
 			action: null,
 			message,
-			ids: selected,
+			ids: selected as number[],
 		};
 	}, [loading, valid, selected, entities]);
 
@@ -118,7 +117,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 					};
 				} else {
 					let edited = { ...state.edited, ...changes };
-					if (shallowEqual(edited, state.saved)) edited = state.saved;
+					if (isEqual(edited, state.saved)) edited = state.saved;
 					return {
 						...state,
 						edited,

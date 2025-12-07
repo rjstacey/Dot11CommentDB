@@ -10,7 +10,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	fields,
-	selectMyProjectRosterState,
+	selectMyProjectRosterSelected,
 	setSelected,
 	myProjectRosterSelectors,
 	myProjectRosterActions,
@@ -21,7 +21,7 @@ import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
 export function RosterTable() {
 	const dispatch = useAppDispatch();
-	const { selected } = useAppSelector(selectMyProjectRosterState);
+	const selected = useAppSelector(selectMyProjectRosterSelected);
 
 	return (
 		<>

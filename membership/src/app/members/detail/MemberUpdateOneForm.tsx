@@ -9,7 +9,7 @@ import {
 	selectUiProperties,
 	type MemberChange,
 } from "@/store/members";
-import type { MultipleMember } from "@/edit/members";
+import type { MultipleMember } from "@/edit/membersEdit";
 import { useSessionParticipationEdit } from "@/edit/sessionParticipation";
 import { useBallotParticipationEdit } from "@/edit/ballotParticipation";
 
