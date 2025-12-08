@@ -56,18 +56,13 @@ type GroupsEditState =
 			groups: Group[];
 	  };
 
-export function useGroupsEdit(readOnly: boolean) {
-	const dispatch = useAppDispatch();
-
-	const { entities, selected, loading, valid } =
-		useAppSelector(selectGroupsState);
+function useInitState(selected: string[]) {
+	const { entities, loading, valid } = useAppSelector(selectGroupsState);
 	const officerEntities = useAppSelector(selectOfficerEntities);
 	const officerIds = useAppSelector(selectOfficerIds);
-	const groupId = useAppSelector(selectTopLevelGroupId);
 
-	const initState = React.useCallback((): GroupsEditState => {
+	return React.useCallback((): GroupsEditState => {
 		const groups = selected.map((id) => entities[id]!).filter(Boolean);
-
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -107,6 +102,16 @@ export function useGroupsEdit(readOnly: boolean) {
 			};
 		}
 	}, [selected, entities, officerIds, officerEntities]);
+}
+
+export function useGroupsEdit(readOnly: boolean) {
+	const dispatch = useAppDispatch();
+
+	const { entities, loading } = useAppSelector(selectGroupsState);
+	const selected = useAppSelector(selectGroupsState).selected as string[];
+	const groupId = useAppSelector(selectTopLevelGroupId);
+
+	const initState = useInitState(selected);
 
 	const [state, setState] = React.useState(initState);
 
@@ -121,12 +126,12 @@ export function useGroupsEdit(readOnly: boolean) {
 				});
 			}
 		} else if (state.action === "update") {
+			if (state.edited === state.saved) {
+				setState(initState);
+				return;
+			}
 			const ids = state.groups.map((g) => g.id);
-			if (selected.join() !== ids.join()) {
-				if (state.edited === state.saved) {
-					setState(initState);
-					return;
-				}
+			if (!isEqual(selected, ids)) {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?"
 				).then((ok) => {
@@ -134,10 +139,10 @@ export function useGroupsEdit(readOnly: boolean) {
 					else dispatch(setSelected(ids));
 				});
 			}
-		} else if (selected.length > 0) {
+		} else {
 			setState(initState);
 		}
-	}, [state, selected, initState]);
+	}, [selected, initState]);
 
 	const hasChanges = React.useCallback(() => {
 		return (
@@ -208,9 +213,9 @@ export function useGroupsEdit(readOnly: boolean) {
 		}
 	}, [readOnly, state]);
 
-	const cancel = async () => {
+	const cancel = React.useCallback(async () => {
 		setState(initState);
-	};
+	}, [initState]);
 
 	const disableAdd = readOnly || loading;
 	const onAdd = React.useCallback(async () => {
@@ -237,7 +242,7 @@ export function useGroupsEdit(readOnly: boolean) {
 
 	const groupsDelete = useGroupsDelete();
 
-	const disableDelete = readOnly || loading || state.action !== "update";
+	const disableDelete = readOnly || state.action !== "update";
 	const onDelete = React.useCallback(async () => {
 		if (disableDelete) {
 			console.warn("onDelete: bad state");

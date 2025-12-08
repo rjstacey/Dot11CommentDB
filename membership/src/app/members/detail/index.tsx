@@ -19,12 +19,21 @@ export function MemberDetail({
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access <= AccessLevel.ro;
 
-	const { state, onChange, hasChanges, submit, cancel, onAdd, onDelete } =
-		useMembersEdit({
-			selected,
-			setSelected,
-			readOnly,
-		});
+	const {
+		state,
+		onChange,
+		hasChanges,
+		submit,
+		cancel,
+		onAdd,
+		onDelete,
+		disableAdd,
+		disableDelete,
+	} = useMembersEdit({
+		selected,
+		setSelected,
+		readOnly,
+	});
 
 	let title: string;
 	let content: React.ReactNode;
@@ -89,7 +98,7 @@ export function MemberDetail({
 					variant="outline-primary"
 					className="bi-plus-lg"
 					title="Add member"
-					disabled={readOnly}
+					disabled={disableAdd}
 					active={state.action === "add"}
 					onClick={onAdd}
 				>
@@ -99,7 +108,7 @@ export function MemberDetail({
 					variant="outline-danger"
 					className="bi-trash"
 					title="Delete member"
-					disabled={state.action === null || readOnly}
+					disabled={disableDelete}
 					onClick={onDelete}
 				>
 					{" Delete"}
