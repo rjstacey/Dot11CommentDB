@@ -46,7 +46,7 @@ type GroupsEditState =
 	  }
 	| {
 			action: "add";
-			edited: MultipleGroupEntry;
+			edited: GroupEntry;
 			saved: undefined;
 	  }
 	| {
@@ -192,15 +192,19 @@ export function useGroupsEdit(readOnly: boolean) {
 					return;
 				}
 			}
+			setState({
+				action: null,
+				message: "Adding...",
+			});
 			const group = await groupAdd(edited);
 			dispatch(setSelected(group ? [group.id] : []));
 		} else if (state.action === "update") {
 			const { edited, saved, groups } = state;
-			await groupsUpdate(edited, saved, groups);
 			setState({
 				...state,
 				saved: edited,
 			});
+			await groupsUpdate(edited, saved, groups);
 		}
 	}, [readOnly, state]);
 

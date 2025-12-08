@@ -83,9 +83,9 @@ export function useGroupsUpdate() {
 export function useGroupAdd() {
 	const dispatch = useAppDispatch();
 	return React.useCallback(
-		async (edited: MultipleGroupEntry) => {
+		async (edited: GroupEntry) => {
 			let { officers, ...newGroup } = edited; // eslint-disable-line
-			const group = await dispatch(addGroup(newGroup as GroupCreate));
+			const group = await dispatch(addGroup(newGroup));
 			if (group) {
 				if (officers.length) {
 					officers = officers.map((o) => ({
