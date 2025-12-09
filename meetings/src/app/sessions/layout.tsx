@@ -1,11 +1,11 @@
 import SessionsActions from "./actions";
-import SessionsTable from "./table";
+import SessionsMain from "./main";
 
 function SessionsLayout() {
 	return (
 		<>
 			<SessionsActions />
-			<SessionsTable />
+			<SessionsMain />
 		</>
 	);
 }

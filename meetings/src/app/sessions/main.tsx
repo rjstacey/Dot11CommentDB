@@ -1,6 +1,6 @@
 import { AppTable, SplitPanel, Panel } from "@common";
 import { sessionsSelectors, sessionsActions } from "@/store/sessions";
-import { SessionDetail } from "./SessionDetails";
+import { SessionsDetails } from "./details";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
 function SessionsTable() {
@@ -17,7 +17,7 @@ function SessionsTable() {
 				/>
 			</Panel>
 			<Panel className="details-panel">
-				<SessionDetail />
+				<SessionsDetails />
 			</Panel>
 		</SplitPanel>
 	);

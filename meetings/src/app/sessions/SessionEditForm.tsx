@@ -1,9 +1,8 @@
 import * as React from "react";
 import { Form, Tabs, Tab } from "react-bootstrap";
-import { deepMergeTagMultiple, shallowDiff } from "@common";
+import { shallowDiff } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-	updateSession,
 	setUiProperties,
 	selectSessionsState,
 	Session,
@@ -11,7 +10,7 @@ import {
 	Timeslot,
 } from "@/store/sessions";
 
-import type { MultipleSession } from "./SessionDetails";
+import type { MultipleSession } from "@/edit/sessionsEdit";
 import { SessionBasicsEdit } from "./SessionBasicsEdit";
 import RoomDetails from "./RoomDetails";
 import TimeslotDetails from "./TimeslotDetails";
@@ -19,22 +18,26 @@ import SessionCredit from "./SessionCredit";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 export function SessionEditForm({
-	sessions,
-	setBusy,
+	edited,
+	saved,
+	onChange,
+	hasChanges,
+	submit,
+	cancel,
 	readOnly,
 }: {
-	sessions: Session[];
-	setBusy: (busy: boolean) => void;
+	edited: MultipleSession;
+	saved: MultipleSession;
+	onChange: (changes: Partial<Session>) => void;
+	hasChanges: () => boolean;
+	submit: () => Promise<void>;
+	cancel: () => void;
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
-	const uiProperties = useAppSelector(selectSessionsState).ui;
-
-	const [edited, setEdited] = React.useState<MultipleSession | null>(null);
-	const [saved, setSaved] = React.useState<MultipleSession | null>(null);
-	const [editedSessions, setEditedSessions] = React.useState<Session[]>([]);
-
+	const [busy, setBusy] = React.useState(false);
 	const [formValid, setFormValid] = React.useState(false);
+	const uiProperties = useAppSelector(selectSessionsState).ui;
 
 	React.useEffect(() => {
 		let valid = true;
@@ -48,60 +51,22 @@ export function SessionEditForm({
 		setFormValid(valid);
 	}, [edited, saved]);
 
-	React.useEffect(() => {
-		if (
-			sessions.map((s) => s.id).join() ===
-			editedSessions.map((s) => s.id).join()
-		)
-			return;
-		let diff: MultipleSession | null = null;
-		sessions.forEach((s) => {
-			diff = deepMergeTagMultiple(diff || {}, s) as MultipleSession;
-		});
-		setEdited(diff);
-		setSaved(diff);
-		setEditedSessions(sessions);
-	}, [sessions, editedSessions]);
-
-	const hasChanges = React.useMemo(() => {
-		const changes = shallowDiff(saved!, edited!) as Partial<Session>;
-		return Object.keys(changes).length > 0;
-	}, [saved, edited]);
-
-	function submitForm(e: React.FormEvent) {
+	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
-		const changes = shallowDiff(saved!, edited!) as Partial<Session>;
-		if (Object.keys(changes).length > 0) {
-			setBusy(true);
-			editedSessions.forEach((s) =>
-				dispatch(updateSession(s.id, changes))
-			);
-			setBusy(false);
-		}
-		setSaved(edited);
+		setBusy(true);
+		await submit();
+		setBusy(false);
 	}
-
-	function handleUpdate(changes: Partial<Session>) {
-		setEdited((edited) => ({ ...edited!, ...changes }));
-	}
-
-	function handleCancel() {
-		setEdited(saved);
-	}
-
-	const session = editedSessions.length === 1 ? editedSessions[0] : null;
-
-	if (!edited || !saved) return null;
 
 	return (
-		<Form noValidate onSubmit={submitForm} className="main">
+		<Form noValidate onSubmit={handleSubmit} className="main">
 			<SessionBasicsEdit
 				session={edited}
 				original={saved}
-				updateSession={handleUpdate}
+				updateSession={onChange}
 				readOnly={readOnly}
 			/>
-			{session && (session.type === "p" || session.type === "i") && (
+			{(edited.type === "p" || edited.type === "i") && (
 				<Tabs
 					onSelect={(tabIndex) => {
 						dispatch(setUiProperties({ tabIndex }));
@@ -112,7 +77,7 @@ export function SessionEditForm({
 						<RoomDetails
 							rooms={edited.rooms as Room[]}
 							original={saved.rooms as Room[]}
-							setRooms={(rooms) => handleUpdate({ rooms })}
+							setRooms={(rooms) => onChange({ rooms })}
 							readOnly={readOnly}
 						/>
 					</Tab>
@@ -121,7 +86,7 @@ export function SessionEditForm({
 							timeslots={edited.timeslots as Timeslot[]}
 							original={saved.timeslots as Timeslot[]}
 							setTimeslots={(timeslots) =>
-								handleUpdate({ timeslots })
+								onChange({ timeslots })
 							}
 							readOnly={readOnly}
 						/>
@@ -130,17 +95,18 @@ export function SessionEditForm({
 						<SessionCredit
 							session={edited as Session}
 							original={saved as Session}
-							updateSession={handleUpdate}
+							updateSession={onChange}
 							readOnly={readOnly}
 						/>
 					</Tab>
 				</Tabs>
 			)}
-			{hasChanges && (
+			{hasChanges() && (
 				<SubmitCancelRow
 					submitLabel="Update"
-					cancel={handleCancel}
+					cancel={cancel}
 					disabled={!formValid}
+					busy={busy}
 				/>
 			)}
 		</Form>

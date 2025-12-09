@@ -2,8 +2,6 @@ import * as React from "react";
 import { Form, Tabs, Tab } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-	addSession,
-	setSelected,
 	setUiProperties,
 	selectSessionsState,
 	SessionCreate,
@@ -16,36 +14,21 @@ import TimeslotDetails from "./TimeslotDetails";
 import SessionCredit from "./SessionCredit";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
-const defaultSession: SessionCreate = {
-	number: null,
-	name: "",
-	type: "p",
-	isCancelled: false,
-	imatMeetingId: null,
-	startDate: new Date().toISOString().substring(0, 10),
-	endDate: new Date().toISOString().substring(0, 10),
-	timezone: "America/New_York",
-	groupId: null,
-	rooms: [],
-	timeslots: [],
-	defaultCredits: [],
-	OrganizerID: "",
-};
-
 export function SessionAddForm({
-	close,
-	setBusy,
-	readOnly,
+	submit,
+	cancel,
+	edited: session,
+	onChange,
 }: {
-	close?: () => void;
-	setBusy: (busy: boolean) => void;
-	readOnly?: boolean;
+	submit: () => Promise<void>;
+	cancel: () => void;
+	edited: SessionCreate;
+	onChange: (changes: Partial<SessionCreate>) => void;
 }) {
 	const dispatch = useAppDispatch();
-	const uiProperties = useAppSelector(selectSessionsState).ui;
-
-	const [session, setSession] = React.useState(defaultSession);
+	const [busy, setBusy] = React.useState(false);
 	const [formValid, setFormValid] = React.useState(false);
+	const uiProperties = useAppSelector(selectSessionsState).ui;
 
 	React.useEffect(() => {
 		let valid = true;
@@ -61,21 +44,13 @@ export function SessionAddForm({
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		setBusy(true);
-		const id = await dispatch(addSession(session));
-		dispatch(setSelected(id ? [id] : []));
+		await submit();
 		setBusy(false);
-		close?.();
 	}
 
 	return (
 		<Form noValidate onSubmit={handleSubmit}>
-			<SessionBasicsEdit
-				session={session}
-				updateSession={(changes) =>
-					setSession((session) => ({ ...session, ...changes }))
-				}
-				readOnly={false}
-			/>
+			<SessionBasicsEdit session={session} updateSession={onChange} />
 			<Tabs
 				onSelect={(tabIndex) => {
 					dispatch(setUiProperties({ tabIndex }));
@@ -85,41 +60,28 @@ export function SessionAddForm({
 				<Tab title="Rooms" eventKey={0}>
 					<RoomDetails
 						rooms={session.rooms}
-						setRooms={(rooms) =>
-							setSession((session) => ({ ...session, rooms }))
-						}
-						readOnly={readOnly}
+						setRooms={(rooms) => onChange({ rooms })}
 					/>
 				</Tab>
 				<Tab title="Timeslots" eventKey={1}>
 					<TimeslotDetails
 						timeslots={session.timeslots}
-						setTimeslots={(timeslots) =>
-							setSession((session) => ({ ...session, timeslots }))
-						}
-						readOnly={readOnly}
+						setTimeslots={(timeslots) => onChange({ timeslots })}
 					/>
 				</Tab>
 				<Tab title="Credit" eventKey={2}>
 					<SessionCredit
 						session={session as Session}
-						updateSession={(changes) =>
-							setSession((session) => ({
-								...session,
-								...changes,
-							}))
-						}
-						readOnly={readOnly}
+						updateSession={onChange}
 					/>
 				</Tab>
 			</Tabs>
-			{!readOnly && (
-				<SubmitCancelRow
-					submitLabel="Add"
-					cancel={close}
-					disabled={!formValid}
-				/>
-			)}
+			<SubmitCancelRow
+				submitLabel="Add"
+				cancel={cancel}
+				disabled={!formValid}
+				busy={busy}
+			/>
 		</Form>
 	);
 }
