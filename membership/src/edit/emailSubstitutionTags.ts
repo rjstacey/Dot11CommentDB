@@ -3,7 +3,7 @@ import { displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import type { User } from "@/store";
-import { selectMostRecentAttendedSession, Session } from "@/store/sessions";
+import { selectMostRecentAttendedSession } from "@/store/sessions";
 import { fields, getField, type Member } from "@/store/members";
 import type { EmailTemplate } from "@/store/emailTemplates";
 
@@ -22,47 +22,43 @@ export const substitutionTags = Object.keys(fields).concat(
 	"SessionDate"
 );
 
-function substitute(
-	key: string,
-	member: Member,
-	session: Session | undefined,
-	renderSessionParticipation: ReturnType<
-		typeof useRenderSessionParticipation
-	>,
-	renderBallotParticipation: ReturnType<typeof useRenderBallotParticipation>
-): string {
-	if (Object.keys(member).includes(key))
-		return "" + member[key as keyof Member] || "(Blank)";
-
-	if (key === "OldStatus") return "" + (getField(member, key) || "(Blank)");
-
-	if (key === "AttendancesSummary")
-		return renderSessionParticipation(member.SAPIN);
-
-	if (key.startsWith("Session")) {
-		if (!session) return "(Blank)";
-		let s = "";
-		if (key === "SessionName") s = session.name;
-		if (key === "SessionNumber") s = "" + session.number;
-		if (key === "SessionDate")
-			s = displayDateRange(session.startDate, session.endDate);
-		return s || "(Blank)";
-	}
-
-	if (key === "BallotParticipationSummary")
-		return renderBallotParticipation(member.SAPIN);
-
-	console.log(`Error: Invalid key {{${key}}}`);
-
-	return "";
-}
-
 const SUBSTITUTION_TAG_PATTERN = "{{([A-Za-z_-]+)}}";
 
 export function useEmailSubstitution() {
 	const session = useAppSelector(selectMostRecentAttendedSession);
 	const renderSessionParticipation = useRenderSessionParticipation();
 	const renderBallotParticipation = useRenderBallotParticipation();
+
+	const substitute = React.useCallback(
+		(key: string, member: Member): string => {
+			if (Object.keys(member).includes(key))
+				return "" + member[key as keyof Member] || "(Blank)";
+
+			if (key === "OldStatus")
+				return "" + (getField(member, key) || "(Blank)");
+
+			if (key === "AttendancesSummary")
+				return renderSessionParticipation(member.SAPIN);
+
+			if (key.startsWith("Session")) {
+				if (!session) return "(Blank)";
+				let s = "";
+				if (key === "SessionName") s = session.name;
+				if (key === "SessionNumber") s = "" + session.number;
+				if (key === "SessionDate")
+					s = displayDateRange(session.startDate, session.endDate);
+				return s || "(Blank)";
+			}
+
+			if (key === "BallotParticipationSummary")
+				return renderBallotParticipation(member.SAPIN);
+
+			console.log(`Error: Invalid key {{${key}}}`);
+
+			return "";
+		},
+		[session, renderSessionParticipation, renderBallotParticipation]
+	);
 
 	return React.useCallback(
 		(email: EmailTemplate, member: Member) => {
@@ -93,13 +89,7 @@ export function useEmailSubstitution() {
 				const match = regexp.exec(bodyRemaining);
 				if (match === null) break;
 				body += bodyRemaining.substring(0, match.index);
-				body += substitute(
-					match[1],
-					member,
-					session,
-					renderSessionParticipation,
-					renderBallotParticipation
-				);
+				body += substitute(match[1], member);
 				bodyRemaining = bodyRemaining.substring(
 					match.index + match[0].length
 				);
@@ -110,6 +100,6 @@ export function useEmailSubstitution() {
 			email = { ...email, body };
 			return email;
 		},
-		[session, renderSessionParticipation, renderBallotParticipation]
+		[substitute]
 	);
 }
