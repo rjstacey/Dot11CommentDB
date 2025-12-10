@@ -45,7 +45,7 @@ import { selectWebexAccountDefaultId } from "@/store/webexAccounts";
 
 import ShowAccess from "@/components/ShowAccess";
 
-import { defaultWebexMeeting } from "../webexMeetings/convertWebexMeetingEntry";
+import { defaultWebexMeeting } from "@/edit/convertWebexMeetingEntry";
 
 import MeetingEntryForm from "./MeetingEntry";
 import {

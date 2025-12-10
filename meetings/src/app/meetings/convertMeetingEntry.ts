@@ -7,7 +7,7 @@ import { webexMeetingToWebexMeetingParams } from "@/store/webexMeetings";
 import type {
 	MultipleWebexMeetingEntry,
 	PartialWebexMeetingEntry,
-} from "../webexMeetings/convertWebexMeetingEntry";
+} from "@/edit/convertWebexMeetingEntry";
 
 export type MeetingEntry = Omit<
 	MeetingCreate,

@@ -1,7 +1,7 @@
 import { Outlet } from "react-router";
 import WebexMeetingsActions from "./actions";
 
-function WebexMeetingsLayout() {
+export function WebexMeetingsLayout() {
 	return (
 		<>
 			<WebexMeetingsActions />
@@ -9,5 +9,3 @@ function WebexMeetingsLayout() {
 		</>
 	);
 }
-
-export default WebexMeetingsLayout;

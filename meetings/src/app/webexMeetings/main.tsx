@@ -6,7 +6,7 @@ import {
 	SyncedWebexMeeting,
 } from "@/store/webexMeetings";
 
-import WebexMeetingDetail from "./WebexMeetingDetail";
+import { WebexMeetingDetails } from "./details";
 
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
@@ -35,7 +35,7 @@ function webexMeetingsRowGetter({
 	return b;
 }
 
-function WebexMeetings() {
+export function WebexMeetingsMain() {
 	return (
 		<>
 			<SplitPanel
@@ -54,11 +54,9 @@ function WebexMeetings() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<WebexMeetingDetail />
+					<WebexMeetingDetails />
 				</Panel>
 			</SplitPanel>
 		</>
 	);
 }
-
-export default WebexMeetings;

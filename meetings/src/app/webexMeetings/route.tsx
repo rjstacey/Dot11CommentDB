@@ -14,8 +14,8 @@ import {
 import { WebexMeetingsQuery } from "@/store/webexMeetingsSelectors";
 import { setCurrentSessionId, setShowDateRange } from "@/store/current";
 
-import WebexMeetingsLayout from "./layout";
-import WebexMeetingsTable from "./table";
+import { WebexMeetingsLayout } from "./layout";
+import { WebexMeetingsMain } from "./main";
 import { rootLoader } from "../rootLoader";
 
 export function refresh() {
@@ -79,7 +79,7 @@ const route: RouteObject = {
 	children: [
 		{
 			path: ":sessionNumber",
-			element: <WebexMeetingsTable />,
+			element: <WebexMeetingsMain />,
 			loader: webexMeetingsLoader,
 		},
 	],

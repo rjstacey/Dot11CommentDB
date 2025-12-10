@@ -19,7 +19,7 @@ import ImatMeetingSelector from "@/components/ImatMeetingSelector";
 import {
 	WebexMeetingAccount,
 	WebexMeetingParamsEdit,
-} from "../webexMeetings/WebexMeetingDetail";
+} from "../webexMeetings/WebexMeetingEditForm";
 import { PartialWebexMeetingEntry } from "../webexMeetings/convertWebexMeetingEntry";
 import {
 	isSessionMeeting,

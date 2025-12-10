@@ -1,40 +1,14 @@
 import * as React from "react";
-import { Container, Row, Col, Form, Button, Spinner } from "react-bootstrap";
-import { connect, ConnectedProps } from "react-redux";
-import { DateTime } from "luxon";
+import { Row, Col, Form } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
-import {
-	Select,
-	ConfirmModal,
-	deepDiff,
-	deepMerge,
-	deepMergeTagMultiple,
-	isMultiple,
-	MULTIPLE,
-	Multiple,
-	InputTime,
-} from "@common";
+import { Select, isMultiple, Multiple, InputTime } from "@common";
 
-import { type RootState } from "@/store";
 import {
-	selectWebexMeetingsState,
-	selectSyncedWebexMeetingEntities,
-	selectUserWebexMeetingsAccess,
-	addWebexMeeting,
-	updateWebexMeetings,
-	deleteWebexMeetings,
-	setSelected,
-	WebexMeeting,
 	WebexMeetingOptions,
 	WebexAudioConnectionOptions,
-	WebexMeetingUpdate,
 	WebexEntryExitTone,
-	SyncedWebexMeeting,
-	AccessLevel,
 } from "@/store/webexMeetings";
-import { updateMeetings, Meeting } from "@/store/meetings";
-import { selectWebexAccountDefaultId } from "@/store/webexAccounts";
 import { selectCurrentSession } from "@/store/sessions";
 
 import WebexAccountSelector from "@/components/WebexAccountSelector";
@@ -45,8 +19,6 @@ import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 import {
 	defaultWebexMeeting,
-	convertEntryToWebexMeeting,
-	convertWebexMeetingToEntry,
 	WebexMeetingEntry,
 	PartialWebexMeetingEntry,
 	MultipleWebexMeetingEntry,
@@ -711,57 +683,58 @@ function AssociatedMeetingSelector({
 	);
 }
 
-function WebexMeetingEntryForm({
+export function WebexMeetingEditForm({
 	action,
 	entry,
-	changeEntry,
+	onChange,
 	submit,
 	cancel,
+	hasChanges,
 	readOnly,
 }: {
 	action: "add" | "update";
-	busy: boolean;
 	entry: MultipleWebexMeetingEntry;
-	changeEntry: (changes: PartialWebexMeetingEntry) => void;
-	submit?: () => void;
-	cancel?: () => void;
+	onChange: (changes: PartialWebexMeetingEntry) => void;
+	submit: () => Promise<void>;
+	cancel: () => void;
+	hasChanges: () => boolean;
 	readOnly?: boolean;
 }) {
-	const [formValid, setFormValid] = React.useState(false);
+	const [busy, setBusy] = React.useState(false);
+	const [formInvalid, setFormInvalid] = React.useState(false);
 
 	React.useLayoutEffect(() => {
-		let valid = true;
-		if (
+		setFormInvalid(
 			!entry.date ||
-			!entry.startTime ||
-			!entry.endTime ||
-			!entry.timezone ||
-			!entry.accountId
-		)
-			valid = false;
-		if (formValid !== valid) setFormValid(valid);
+				!entry.startTime ||
+				!entry.endTime ||
+				!entry.timezone ||
+				!entry.accountId
+		);
 	}, [entry]);
 
-	function submitForm(e: React.ChangeEvent<HTMLFormElement>) {
+	async function onSubmit(e: React.ChangeEvent<HTMLFormElement>) {
 		e.preventDefault();
-		submit?.();
+		setBusy(true);
+		await submit();
+		setBusy(false);
 	}
 
 	return (
-		<Form noValidate onSubmit={submitForm} className="p-3">
+		<Form noValidate onSubmit={onSubmit} className="p-3">
 			<WebexMeetingAccount
 				entry={entry}
-				changeEntry={changeEntry}
+				changeEntry={onChange}
 				readOnly={readOnly}
 			/>
 			<WebexMeetingTitleDateTimeEdit
 				entry={entry}
-				changeEntry={changeEntry}
+				changeEntry={onChange}
 				readOnly={readOnly}
 			/>
 			<WebexMeetingParamsEdit
 				entry={entry}
-				changeEntry={changeEntry}
+				changeEntry={onChange}
 				readOnly={readOnly}
 			/>
 			<Row>
@@ -777,7 +750,7 @@ function WebexMeetingEntryForm({
 								: entry.meetingId || null
 						}
 						onChange={(meetingId) =>
-							changeEntry({ meetingId: meetingId || undefined })
+							onChange({ meetingId: meetingId || undefined })
 						}
 						placeholder={
 							isMultiple(entry.meetingId)
@@ -788,353 +761,14 @@ function WebexMeetingEntryForm({
 					/>
 				</Col>
 			</Row>
-			{submit && (
+			{hasChanges() && (
 				<SubmitCancelRow
 					submitLabel={action === "add" ? "Add" : "Update"}
 					cancel={cancel}
-					disabled={!formValid}
+					disabled={formInvalid}
+					busy={busy}
 				/>
 			)}
 		</Form>
 	);
 }
-
-type Actions = "add" | "update";
-
-type WebexMeetingDetailState = {
-	action: Actions;
-	entry: MultipleWebexMeetingEntry;
-	saved: MultipleWebexMeetingEntry;
-	webexMeetings: WebexMeeting[];
-	busy: boolean;
-};
-
-class WebexMeetingDetail extends React.Component<
-	WebexMeetingDetailConnectedProps,
-	WebexMeetingDetailState
-> {
-	constructor(props: WebexMeetingDetailConnectedProps) {
-		super(props);
-		this.state = this.initState("update");
-	}
-
-	componentDidUpdate() {
-		const { selected, setSelected } = this.props;
-		const { action, webexMeetings } = this.state;
-		const ids = webexMeetings.map((b) => b.id);
-
-		const changeWithConfirmation = async () => {
-			if (action === "update" && this.hasUpdates()) {
-				const ok = await ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
-				);
-				if (!ok) {
-					setSelected(ids);
-					return;
-				}
-			}
-			this.reinitState("update");
-		};
-
-		if (selected.join() !== ids.join()) changeWithConfirmation();
-	}
-
-	initState = (action: Actions): WebexMeetingDetailState => {
-		const { entities, selected, defaultWebexAccountId } = this.props;
-
-		const webexMeetings: SyncedWebexMeeting[] = selected
-			.filter((id) => entities[id])
-			.map((id) => {
-				// Redo 'start' and 'end' - there is an extra zero on the milliseconds
-				let webexMeeting = entities[id]!;
-				webexMeeting = {
-					...webexMeeting,
-					start: DateTime.fromISO(webexMeeting.start, {
-						zone: webexMeeting.timezone,
-					}).toISO()!,
-					end: DateTime.fromISO(webexMeeting.end, {
-						zone: webexMeeting.timezone,
-					}).toISO()!,
-				};
-				//return webexMeetingToWebexMeetingParams(webexMeeting);
-				return webexMeeting;
-			});
-		let entry: MultipleWebexMeetingEntry;
-		if (action === "update") {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const entryMerge: any = webexMeetings.reduce(
-				(entry, webexMeeting) =>
-					deepMergeTagMultiple(
-						entry,
-						convertWebexMeetingToEntry(webexMeeting)
-					),
-				{}
-			);
-			const meetingOptions: WebexMeetingOptions =
-				!entryMerge.meetingOptions ||
-				Object.values(entryMerge.meetingOptions).includes(MULTIPLE)
-					? defaultWebexMeeting.meetingOptions
-					: entryMerge.meetingOptions;
-			const audioConnectionOptions: WebexAudioConnectionOptions =
-				!entryMerge.audioConnectionOptions ||
-				Object.values(entryMerge.audioConnectionOptions).includes(
-					MULTIPLE
-				)
-					? defaultWebexMeeting.audioConnectionOptions
-					: entryMerge.audioConnectionOptions;
-			entry = { ...entryMerge, meetingOptions, audioConnectionOptions };
-		} else {
-			entry = {
-				...defaultWebexMeeting,
-				meetingOptions: defaultWebexMeeting.meetingOptions!,
-				audioConnectionOptions:
-					defaultWebexMeeting.audioConnectionOptions!,
-				accountId: defaultWebexAccountId,
-			};
-		}
-		//console.log(action, entry)
-		return {
-			action,
-			entry,
-			saved: entry,
-			webexMeetings,
-			busy: false,
-		};
-	};
-
-	reinitState = (action: Actions) => {
-		this.setState(this.initState(action));
-	};
-
-	getUpdates = () => {
-		const { entry, saved, webexMeetings } = this.state;
-
-		// Find differences
-		const diff: PartialWebexMeetingEntry = deepDiff(saved, entry) || {};
-		const webexMeetingUpdates: WebexMeetingUpdate[] = [];
-		const meetingUpdates: { id: number; changes: Partial<Meeting> }[] = [];
-		console.log(diff);
-		for (const webexMeeting of webexMeetings) {
-			const local: WebexMeetingEntry = deepMerge(
-				convertWebexMeetingToEntry(webexMeeting),
-				diff
-			);
-			const updated = convertEntryToWebexMeeting(local);
-			const changes: Partial<SyncedWebexMeeting> =
-				deepDiff(webexMeeting, updated) || {};
-			console.log(local, updated, changes);
-			if (changes.meetingId) {
-				// Associating with a meeting
-				meetingUpdates.push({
-					id: changes.meetingId,
-					changes: {
-						webexAccountId: updated.accountId,
-						webexMeetingId: webexMeeting.id,
-					},
-				});
-				delete changes.meetingId;
-			}
-			if (Object.keys(changes).length > 0) {
-				webexMeetingUpdates.push({ ...updated, id: webexMeeting.id });
-			}
-		}
-		return { webexMeetingUpdates, meetingUpdates };
-	};
-
-	hasUpdates = () => this.state.saved !== this.state.entry;
-
-	changeEntry = (changes: PartialWebexMeetingEntry) => {
-		//console.log('change', changes)
-		this.setState((state) => {
-			let entry: MultipleWebexMeetingEntry = deepMerge(
-				state.entry,
-				changes
-			);
-			// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
-			changes = deepDiff(state.saved, entry) || {};
-			if (Object.keys(changes).length === 0) entry = state.saved;
-			return { ...state, entry };
-		});
-	};
-
-	clickAdd = async () => {
-		if (this.props.access <= AccessLevel.ro) {
-			console.warn("Insufficient access for clickAdd()");
-			return;
-		}
-
-		const { setSelected } = this.props;
-		const { action } = this.state;
-
-		if (action === "update" && this.hasUpdates()) {
-			const ok = await ConfirmModal.show(
-				`Changes not applied! Do you want to discard changes?`
-			);
-			if (!ok) return;
-		}
-
-		this.reinitState("add");
-		setSelected([]);
-	};
-
-	clickDelete = async () => {
-		if (this.props.access <= AccessLevel.ro) {
-			console.warn("Insufficient access for clickDelete()");
-			return;
-		}
-
-		const { deleteWebexMeetings } = this.props;
-		const { webexMeetings } = this.state;
-		const ids = webexMeetings.map((m) => m.id);
-		const ok = await ConfirmModal.show(
-			"Are you sure you want to delete the " +
-				(ids.length > 1
-					? ids.length + " selected entries?"
-					: "selected entry?")
-		);
-		if (!ok) return;
-		await deleteWebexMeetings(webexMeetings);
-		this.reinitState("update");
-	};
-
-	add = async () => {
-		const { setSelected, addWebexMeeting, updateMeetings } = this.props;
-		const entry = this.state.entry as WebexMeetingEntry;
-		this.setState({ busy: true });
-
-		const webexMeeting = convertEntryToWebexMeeting(entry);
-		const id = await addWebexMeeting(entry.accountId!, webexMeeting);
-		if (entry.meetingId)
-			await updateMeetings([
-				{
-					id: entry.meetingId,
-					changes: {
-						webexAccountId: entry.accountId,
-						webexMeetingId: id,
-					},
-				},
-			]);
-		setSelected(id ? [id] : []);
-		this.reinitState("update");
-	};
-
-	update = async () => {
-		const { updateWebexMeetings, updateMeetings } = this.props;
-		this.setState({ busy: true });
-
-		const { webexMeetingUpdates, meetingUpdates } = this.getUpdates();
-		console.log(webexMeetingUpdates, meetingUpdates);
-		if (webexMeetingUpdates.length > 0)
-			await updateWebexMeetings(webexMeetingUpdates);
-		if (meetingUpdates.length > 0) await updateMeetings(meetingUpdates);
-		this.reinitState("update");
-	};
-
-	cancel = () => {
-		this.reinitState("update");
-	};
-
-	render() {
-		const { loading, access } = this.props;
-		const { action, busy, entry, webexMeetings } = this.state;
-
-		let notAvailableStr = "";
-		if (loading) notAvailableStr = "Loading...";
-		else if (action === "update" && webexMeetings.length === 0)
-			notAvailableStr = "Nothing selected";
-
-		let submit, cancel;
-		let title = "";
-		if (!notAvailableStr) title = "Webex meeting";
-		if (action === "add") {
-			submit = this.add;
-			cancel = this.cancel;
-			title = "Add Webex meeting";
-		} else if (this.hasUpdates()) {
-			submit = this.update;
-			cancel = this.cancel;
-			title = "Update Webex meeting";
-		}
-
-		const readOnly = access <= AccessLevel.ro;
-
-		const actionButtons = (
-			<Col
-				xs="auto"
-				className="d-flex justify-content-end align-items-center gap-2"
-			>
-				<Spinner
-					animation="border"
-					role="status"
-					size="sm"
-					hidden={!busy && !loading}
-				/>
-				<Button
-					variant="outline-primary"
-					className="bi-plus-lg"
-					title="Add Webex meeting"
-					disabled={loading || readOnly}
-					onClick={this.clickAdd}
-				>
-					{" Add"}
-				</Button>
-				<Button
-					variant="outline-primary"
-					className="bi-trash"
-					title="Delete webex meeting"
-					disabled={loading || webexMeetings.length === 0 || readOnly}
-					onClick={this.clickDelete}
-				>
-					{" Delete"}
-				</Button>
-			</Col>
-		);
-
-		return (
-			<Container fluid>
-				<Row className="ps-3 pe-3">
-					<Col>
-						<h3 className="title">{title}</h3>
-					</Col>
-					{actionButtons}
-				</Row>
-				{notAvailableStr ? (
-					<div className="placeholder">{notAvailableStr}</div>
-				) : (
-					<WebexMeetingEntryForm
-						action={action}
-						busy={busy}
-						entry={entry}
-						changeEntry={this.changeEntry}
-						submit={submit}
-						cancel={cancel}
-						readOnly={readOnly}
-					/>
-				)}
-			</Container>
-		);
-	}
-}
-
-const connector = connect(
-	(state: RootState) => ({
-		loading: selectWebexMeetingsState(state).loading,
-		selected: selectWebexMeetingsState(state).selected,
-		entities: selectSyncedWebexMeetingEntities(state),
-		defaultWebexAccountId: selectWebexAccountDefaultId(state),
-		access: selectUserWebexMeetingsAccess(state),
-	}),
-	{
-		setSelected,
-		addWebexMeeting,
-		updateWebexMeetings,
-		deleteWebexMeetings,
-		updateMeetings,
-	}
-);
-
-type WebexMeetingDetailConnectedProps = ConnectedProps<typeof connector>;
-
-const ConnectedWebexMeetingDetail = connector(WebexMeetingDetail);
-
-export default ConnectedWebexMeetingDetail;
