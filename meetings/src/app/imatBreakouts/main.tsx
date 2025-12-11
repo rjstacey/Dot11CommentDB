@@ -13,7 +13,7 @@ import {
 } from "@/store/imatBreakouts";
 import type { ImatMeeting } from "@/store/imatMeetings";
 
-import ImatBreakoutsDetails from "./ImatBreakoutDetails";
+import { ImatBreakoutsDetails } from "./details";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
 export function ImatMeetingInfo({
