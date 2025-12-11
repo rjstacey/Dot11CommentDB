@@ -493,9 +493,10 @@ export function ImatBreakoutsDetails() {
 		else if (hasChanges()) title = "Update breakout";
 		content = (
 			<BreakoutEditForm
-				entry={state.edited}
-				changeEntry={onChangeBreakout}
 				action={state.action}
+				entry={state.edited}
+				onChange={onChangeBreakout}
+				hasChanges={hasChanges}
 				submit={submit}
 				cancel={cancel}
 				readOnly={readOnly}
