@@ -20,12 +20,12 @@ import {
 	WebexMeetingAccount,
 	WebexMeetingParamsEdit,
 } from "../webexMeetings/WebexMeetingEditForm";
-import { PartialWebexMeetingEntry } from "../webexMeetings/convertWebexMeetingEntry";
+import { WebexMeetingEntryPartial } from "@/edit/convertWebexMeetingEntry";
 import {
 	isSessionMeeting,
-	type MultipleMeetingEntry,
-	type PartialMeetingEntry,
-} from "./convertMeetingEntry";
+	type MeetingEntryMultiple,
+	type MeetingEntryPartial,
+} from "@/edit/convertMeetingEntry";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 const MULTIPLE_STR = "(Multiple)";
@@ -397,23 +397,25 @@ function SessionMeetingTime({
 	);
 }
 
-export function MeetingEntryForm({
+export function MeetingsEditForm({
 	entry,
 	changeEntry,
 	action,
 	submit,
 	cancel,
+	hasChanges,
 	readOnly,
 }: {
-	entry: MultipleMeetingEntry;
-	changeEntry: (changes: PartialMeetingEntry) => void;
+	entry: MeetingEntryMultiple;
+	changeEntry: (changes: MeetingEntryPartial) => void;
 	action: "add-by-slot" | "add-by-date" | "update";
-	busy?: boolean;
-	submit?: () => void;
-	cancel?: () => void;
+	submit: () => Promise<void>;
+	cancel: () => void;
+	hasChanges: () => boolean;
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
+	const [busy, setBusy] = React.useState(false);
 	const session = useAppSelector(selectCurrentSession);
 	const groupEntities = useAppSelector(selectGroupEntities);
 
@@ -428,26 +430,18 @@ export function MeetingEntryForm({
 		errMsg = "Duration not set";
 	else if (!entry.timezone) errMsg = "Time zone not set";
 
-	let submitForm, submitLabel;
-	if (submit) {
-		if (action === "add-by-slot") {
-			submitLabel = "Add";
-		} else if (action === "add-by-date") {
-			submitLabel = "Add";
-		} else {
-			submitLabel = "Update";
+	async function onSubmit(e: React.ChangeEvent<HTMLFormElement>) {
+		e.preventDefault();
+		if (errMsg) {
+			dispatch(setError("Fix error", errMsg));
+			return;
 		}
-		submitForm = (e: React.ChangeEvent<HTMLFormElement>) => {
-			e.preventDefault();
-			if (errMsg) {
-				dispatch(setError("Fix error", errMsg));
-				return;
-			}
-			submit();
-		};
+		setBusy(true);
+		await submit();
+		setBusy(false);
 	}
 
-	function handleChange(changes: PartialMeetingEntry) {
+	function handleChange(changes: MeetingEntryPartial) {
 		changes = { ...changes };
 		if ("organizationId" in changes) {
 			const subgroup =
@@ -470,9 +464,9 @@ export function MeetingEntryForm({
 	}
 
 	function handleWebexMeetingChange(
-		webexMeetingChanges: PartialWebexMeetingEntry
+		webexMeetingChanges: WebexMeetingEntryPartial
 	) {
-		const changes: PartialMeetingEntry = {
+		const changes: MeetingEntryPartial = {
 			webexMeeting: webexMeetingChanges,
 		};
 		if ("accountId" in webexMeetingChanges)
@@ -481,7 +475,7 @@ export function MeetingEntryForm({
 	}
 
 	return (
-		<Form onSubmit={submitForm} className="p-3">
+		<Form onSubmit={onSubmit} className="p-3">
 			{action === "update" && (
 				<Form.Group
 					as={Row}
@@ -750,11 +744,13 @@ export function MeetingEntryForm({
 					/>
 				</Col>
 			</Form.Group>
-			{submit && (
-				<SubmitCancelRow submitLabel={submitLabel} cancel={cancel} />
+			{hasChanges() && (
+				<SubmitCancelRow
+					submitLabel={action === "update" ? "Update" : "Add"}
+					cancel={cancel}
+					busy={busy}
+				/>
 			)}
 		</Form>
 	);
 }
-
-export default MeetingEntryForm;

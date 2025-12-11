@@ -4,11 +4,12 @@ import {
 	defaultWebexMeetingParams,
 	WebexMeetingOptions,
 	WebexAudioConnectionOptions,
+	WebexMeeting,
+	WebexMeetingCreate,
 	WebexMeetingChange,
-	SyncedWebexMeeting,
 } from "@/store/webexMeetings";
 
-export const defaultWebexMeeting: WebexMeetingEntry = {
+export const defaultWebexMeeting: WebexMeetingEntryCreate = {
 	...defaultWebexMeetingParams,
 	accountId: null,
 	title: "",
@@ -16,13 +17,9 @@ export const defaultWebexMeeting: WebexMeetingEntry = {
 	date: "",
 	startTime: "",
 	endTime: "02:00",
-	//templateId: null,
 };
 
-export type WebexMeetingEntry = Omit<
-	WebexMeetingChange,
-	"accountId" | "id" | "start" | "end"
-> & {
+type ToEntry<T> = Omit<T, "accountId" | "start" | "end"> & {
 	accountId: number | null;
 	date: string;
 	startTime: string;
@@ -30,24 +27,33 @@ export type WebexMeetingEntry = Omit<
 	meetingId?: number;
 };
 
-export type PartialWebexMeetingEntry = Partial<
+type FromEntry<T> = Omit<T, "accountId" | "date" | "startTime" | "endTime"> & {
+	accountId: number;
+	start: string;
+	end: string;
+};
+
+export type WebexMeetingEntry = ToEntry<WebexMeetingChange>;
+export type WebexMeetingEntryCreate = ToEntry<WebexMeetingCreate>;
+
+export type WebexMeetingEntryPartial = Partial<
 	Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">
 > & {
 	meetingOptions?: Partial<WebexMeetingOptions>;
 	audioConnectionOptions?: Partial<WebexAudioConnectionOptions>;
 };
 
-export type MultipleWebexMeetingEntry = Multiple<
+export type WebexMeetingEntryMultiple = Multiple<
 	Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">
 > & {
 	meetingOptions: Multiple<WebexMeetingOptions>;
 	audioConnectionOptions: Multiple<WebexAudioConnectionOptions>;
 };
 
-export function convertWebexMeetingToEntry(
-	webexMeeting: SyncedWebexMeeting
-): WebexMeetingEntry {
-	const { start, end, ...rest } = webexMeeting;
+export function convertWebexMeetingToEntry<
+	T extends WebexMeetingCreate | WebexMeeting,
+>(webexMeeting: T): ToEntry<T> {
+	const { start, end, accountId, ...rest } = webexMeeting;
 
 	const zone = webexMeeting.timezone;
 	const startDT = DateTime.fromISO(start, { zone });
@@ -61,15 +67,16 @@ export function convertWebexMeetingToEntry(
 
 	return {
 		...rest,
+		accountId,
 		date,
 		startTime,
 		endTime,
 	};
 }
 
-export function convertEntryToWebexMeeting(
-	entry: WebexMeetingEntry
-): Omit<WebexMeetingChange, "id"> {
+export function convertEntryToWebexMeeting<
+	T extends WebexMeetingEntryCreate | WebexMeetingEntry,
+>(entry: T): FromEntry<T> {
 	const { date, startTime, endTime, accountId, ...rest } = entry;
 	const webexMeeting = { ...rest };
 

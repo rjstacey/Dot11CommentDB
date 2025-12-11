@@ -1,68 +1,20 @@
 import * as React from "react";
-import { connect, ConnectedProps } from "react-redux";
-import { Row, Col, Button, Container, Spinner } from "react-bootstrap";
-import {
-	ConfirmModal,
-	deepDiff,
-	deepMerge,
-	deepMergeTagMultiple,
-	isMultiple,
-	MULTIPLE,
-} from "@common";
-
-import { type RootState, setError } from "@/store";
-import { selectCurrentGroupDefaults } from "@/store/current";
-import { selectGroupEntities, selectTopLevelGroupId } from "@/store/groups";
-import {
-	selectUserMeetingsAccess,
-	SyncedMeeting,
-	MeetingUpdate,
-	AccessLevel,
-} from "@/store/meetings";
-
-import {
-	selectCurrentSession,
-	fromSlotId,
-	Session,
-	toSlotId,
-} from "@/store/sessions";
-
-import {
-	addMeetings,
-	updateMeetings,
-	deleteMeetings,
-	setSelectedMeetings,
-	setSelectedSlots,
-	selectMeetingsState,
-	selectSyncedMeetingEntities,
-	selectSelectedMeetings,
-	selectSelectedSlots,
-	Meeting,
-	MeetingCreate,
-} from "@/store/meetings";
-import { selectCalendarAccountDefaultId } from "@/store/calendarAccounts";
-import { selectWebexAccountDefaultId } from "@/store/webexAccounts";
+import { Row, Col, Button, Container } from "react-bootstrap";
+import { selectUserMeetingsAccess, AccessLevel } from "@/store/meetings";
 
 import ShowAccess from "@/components/ShowAccess";
+import { MeetingsEditForm } from "./MeetingEditForm";
+import { isSessionMeeting } from "../../edit/convertMeetingEntry";
+import { useMeetingsEdit } from "@/edit/meetingsEdit";
+import { useAppSelector } from "@/store/hooks";
 
-import { defaultWebexMeeting } from "@/edit/convertWebexMeetingEntry";
-
-import MeetingEntryForm from "./MeetingEntry";
-import {
-	convertEntryToMeeting,
-	convertMeetingToEntry,
-	isSessionMeeting,
-	type MeetingEntry,
-	type MultipleMeetingEntry,
-	type PartialMeetingEntry,
-} from "./convertMeetingEntry";
-
+/*
 type Actions = "add-by-slot" | "add-by-date" | "update";
 
 type MeetingDetailsState = {
 	action: Actions;
-	entry: MultipleMeetingEntry;
-	saved: MultipleMeetingEntry;
+	entry: MeetingEntryMultiple;
+	saved: MeetingEntryMultiple;
 	session: Session | undefined;
 	meetings: SyncedMeeting[];
 	slots: string[];
@@ -578,3 +530,107 @@ type MeetingDetailsConnectedProps = ConnectedProps<typeof connector>;
 const ConnectedMeetingDetails = connector(MeetingDetails);
 
 export default ConnectedMeetingDetails;
+*/
+
+export function MeetingsDetails() {
+	const access = useAppSelector(selectUserMeetingsAccess);
+	const readOnly = access <= AccessLevel.ro;
+
+	const {
+		state,
+		hasChanges,
+		onChange,
+		submit,
+		cancel,
+		onSync,
+		onAdd,
+		onDelete,
+	} = useMeetingsEdit(readOnly);
+
+	const isSession = isSessionMeeting(state.session);
+
+	let title = "";
+	if (state.action === "add-by-slot") {
+		title = "Add session meeting to selected slots";
+	} else if (state.action === "add-by-date") {
+		title = isSession ? "Add session meeting" : "Add telecon";
+	} else if (state.action === "update") {
+		if (hasChanges())
+			title = isSession ? "Update session meeting" : "Update telecon";
+		else title = isSession ? "Session meeting" : "Telecon";
+	}
+
+	const actionButtons = (
+		<Col
+			xs="auto"
+			className="d-flex justify-content-end align-items-center gap-2"
+		>
+			<Button
+				variant="outline-primary"
+				className="bi-cloud-upload"
+				title="Sync meeting"
+				disabled={
+					state.action !== "update" ||
+					state.meetings.length === 0 ||
+					readOnly
+				}
+				onClick={onSync}
+			>
+				{" Sync"}
+			</Button>
+			<Button
+				variant="outline-primary"
+				className="bi-plus-lg"
+				title="Add meeting"
+				disabled={state.action === "add-by-slot" || readOnly}
+				active={state.action === "add-by-date"}
+				onClick={onAdd}
+			>
+				{" Add"}
+			</Button>
+			<Button
+				variant="outline-primary"
+				className="bi-trash"
+				title="Delete meeting"
+				disabled={
+					state.action !== "update" ||
+					state.meetings.length === 0 ||
+					readOnly
+				}
+				onClick={onDelete}
+			>
+				{" Delete"}
+			</Button>
+		</Col>
+	);
+
+	let content: React.ReactNode;
+	if (state.action === null) {
+		content = <div className="placeholder">{state.message}</div>;
+	} else {
+		content = (
+			<MeetingsEditForm
+				entry={state.edited}
+				changeEntry={onChange}
+				hasChanges={hasChanges}
+				action={state.action}
+				submit={submit}
+				cancel={cancel}
+				readOnly={readOnly}
+			/>
+		);
+	}
+
+	return (
+		<Container fluid>
+			<Row className="mb-3">
+				<Col>
+					<h3 className="title">{title}</h3>
+				</Col>
+				{actionButtons}
+			</Row>
+			{content}
+			<ShowAccess access={access} />
+		</Container>
+	);
+}

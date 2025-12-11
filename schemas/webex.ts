@@ -81,10 +81,10 @@ export const webexMeetingCreateSchema = webexMeetingAlwaysSchema.extend({
 	agenda: z.string().optional(),
 	/** Date and time for the start of meeting in any ISO 8601 compliant format. `start` cannot be before current date and time or after `end`.
 	 *  Duration between start and end cannot be shorter than 10 minutes or longer than 24 hours. */
-	start: z.string().datetime({ offset: true }),
+	start: z.iso.datetime({ offset: true }),
 	/** Date and time for the end of meeting in any ISO 8601 compliant format. `end` cannot be before current date and time or before start.
 	 *  Duration between start and end cannot be shorter than 10 minutes or longer than 24 hours.*/
-	end: z.string().datetime({ offset: true }),
+	end: z.iso.datetime({ offset: true }),
 	/** Time zone in which the meeting was originally scheduled (conforming with the IANA time zone database). */
 	timezone: z.string().optional(),
 	/** Meeting password. Must conform to the site's password complexity settings. */
@@ -130,7 +130,7 @@ export const webexMeetingChangeSchema = webexMeetingCreateSchema
 	.omit({ templateId: true })
 	.partial()
 	.extend({ id: z.string() })
-	.merge(webexMeetingAlwaysSchema);
+	.extend(webexMeetingAlwaysSchema.shape);
 export const webexMeetingChangesSchema = webexMeetingChangeSchema.array();
 
 const callInNumberSchema = z.object({
@@ -162,6 +162,7 @@ const telephonySchema = z.object({
 
 export const webexMeetingSchema = webexMeetingCreateSchema
 	.omit({ templateId: true })
+	//.required()
 	.extend({ id: z.string() })
 	.extend({
 		/** Meeting number. Applies to meeting series, scheduled meeting, and meeting instances, but not to meeting instances which have ended.*/

@@ -20,8 +20,9 @@ import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import {
 	defaultWebexMeeting,
 	WebexMeetingEntry,
-	PartialWebexMeetingEntry,
-	MultipleWebexMeetingEntry,
+	WebexMeetingEntryPartial,
+	WebexMeetingEntryMultiple,
+	WebexMeetingEntryCreate,
 } from "@/edit/convertWebexMeetingEntry";
 
 const MULTIPLE_STR = "(Multiple)";
@@ -520,11 +521,11 @@ export function WebexMeetingParamsEdit({
 	changeEntry,
 	readOnly,
 }: {
-	entry: MultipleWebexMeetingEntry;
-	changeEntry: (changes: PartialWebexMeetingEntry) => void;
+	entry: WebexMeetingEntryCreate | WebexMeetingEntryMultiple;
+	changeEntry: (changes: WebexMeetingEntryPartial) => void;
 	readOnly?: boolean;
 }) {
-	function handleChange(changes: PartialWebexMeetingEntry) {
+	function handleChange(changes: WebexMeetingEntryPartial) {
 		if (changes.enabledJoinBeforeHost === false) {
 			changes.joinBeforeHostMinutes = 0;
 			changes.enableConnectAudioBeforeHost = false;
@@ -640,7 +641,7 @@ export function WebexMeetingParamsEdit({
 				readOnly={readOnly}
 			/>
 			<WebexMeetingOptionsEdit
-				entry={entry.meetingOptions || {}}
+				entry={entry.meetingOptions}
 				changeEntry={(meetingOptions) =>
 					changeEntry({ meetingOptions })
 				}
@@ -693,8 +694,8 @@ export function WebexMeetingEditForm({
 	readOnly,
 }: {
 	action: "add" | "update";
-	entry: MultipleWebexMeetingEntry;
-	onChange: (changes: PartialWebexMeetingEntry) => void;
+	entry: WebexMeetingEntryCreate | WebexMeetingEntryMultiple;
+	onChange: (changes: WebexMeetingEntryPartial) => void;
 	submit: () => Promise<void>;
 	cancel: () => void;
 	hasChanges: () => boolean;

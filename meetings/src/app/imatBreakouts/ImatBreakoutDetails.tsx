@@ -23,10 +23,10 @@ import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import {
 	convertEntryToMeeting,
 	type MeetingEntry,
-	type MultipleMeetingEntry,
-	type PartialMeetingEntry,
-} from "../meetings/convertMeetingEntry";
-import MeetingEntryForm from "../meetings/MeetingEntry";
+	type MeetingEntryMultiple,
+	type MeetingEntryPartial,
+} from "../../edit/convertMeetingEntry";
+import { MeetingsEditForm } from "../meetings/MeetingEditForm";
 
 import { RootState } from "@/store";
 import {
@@ -85,7 +85,7 @@ function convertBreakoutToMeetingEntry(
 
 	const organizationId = group?.id || groupId;
 
-	const entry: MultipleMeetingEntry = {
+	const entry: MeetingEntryMultiple = {
 		summary: breakout.name,
 		//start: start.toISO(),
 		//end: end.toISO(),
@@ -768,8 +768,8 @@ type BreakoutDetailsAddState = {
 /** action "import" => import breakout as a meeting */
 type BreakoutDetailsImportState = {
 	action: "import";
-	entry: MultipleMeetingEntry;
-	saved: MultipleMeetingEntry;
+	entry: MeetingEntryMultiple;
+	saved: MeetingEntryMultiple;
 } & BreakoutDetailsCommonState;
 
 /** action "update" => view or update one or more entries */
@@ -927,10 +927,10 @@ class BreakoutDetails extends React.Component<
 		});
 	};
 
-	changeMeetingEntry = (changes: PartialMeetingEntry) => {
+	changeMeetingEntry = (changes: MeetingEntryPartial) => {
 		this.setState((importState) => {
 			const state = importState as BreakoutDetailsImportState;
-			let entry = deepMerge(state.entry, changes) as MultipleMeetingEntry;
+			let entry = deepMerge(state.entry, changes) as MeetingEntryMultiple;
 			const diff = deepDiff(state.saved, entry) || {};
 			if (Object.keys(diff).length === 0) entry = state.saved;
 			return { ...state, entry };
@@ -1108,13 +1108,13 @@ class BreakoutDetails extends React.Component<
 				{notAvailableStr ? (
 					<div className="placeholder">{notAvailableStr}</div>
 				) : action === "import" ? (
-					<MeetingEntryForm
+					<MeetingsEditForm
 						entry={entry}
 						changeEntry={this.changeMeetingEntry}
-						busy={busy}
 						action="add-by-date"
-						submit={submit}
-						cancel={cancel}
+						submit={this.add}
+						cancel={this.cancel}
+						hasChanges={() => true}
 					/>
 				) : (
 					<BreakoutEntryForm

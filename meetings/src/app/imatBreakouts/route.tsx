@@ -12,8 +12,8 @@ import {
 	selectBreakoutsState,
 } from "@/store/imatBreakouts";
 
-import ImatBreakoutsLayout from "./layout";
-import ImatBreakoutsTable from "./table";
+import { ImatBreakoutsLayout } from "./layout";
+import { ImatBreakoutsMain } from "./main";
 import { rootLoader } from "../rootLoader";
 
 export function refresh() {
@@ -72,7 +72,7 @@ const route: RouteObject = {
 		},
 		{
 			path: ":meetingNumber",
-			element: <ImatBreakoutsTable />,
+			element: <ImatBreakoutsMain />,
 			loader: breakoutNumberLoader,
 		},
 	],

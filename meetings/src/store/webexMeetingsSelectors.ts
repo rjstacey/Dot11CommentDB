@@ -23,7 +23,7 @@ export type {
 	WebexMeetingOptions,
 	WebexAudioConnectionOptions,
 	WebexMeetingChange,
-	WebexMeetingCreate,
+	WebexMeetingCreate2 as WebexMeetingCreate,
 	WebexEntryExitTone,
 	WebexMeetingsQuery,
 };
@@ -40,9 +40,14 @@ export type SyncedWebexMeeting = WebexMeeting & {
 	meetingId?: number;
 };
 
+type WebexMeetingCreate2 = WebexMeetingCreate &
+	Required<
+		Pick<WebexMeetingCreate, "audioConnectionOptions" | "meetingOptions">
+	>;
+
 export const defaultWebexMeetingParams = {
 	accountId: 0,
-	id: "",
+	//id: "",
 	title: "",
 	start: "",
 	end: "",
@@ -71,7 +76,7 @@ export const defaultWebexMeetingParams = {
 		enabledFileTransfer: false,
 	},
 	//templateId: null,
-} satisfies WebexMeetingChange;
+} satisfies WebexMeetingCreate2;
 
 export function displayMeetingNumber(meetingNumber: string) {
 	const s = meetingNumber; //.toString();

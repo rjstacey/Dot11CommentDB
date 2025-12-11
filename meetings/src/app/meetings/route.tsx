@@ -15,8 +15,8 @@ import {
 } from "@/store/meetings";
 import { setCurrentSessionId, setShowDateRange } from "@/store/current";
 
-import { MainLayout } from "./main";
-import MeetingsTable from "./table";
+import { MeetingsLayout } from "./layout";
+import { MeetingsMain } from "./main";
 import { rootLoader } from "../rootLoader";
 
 export function refresh() {
@@ -77,11 +77,11 @@ const meetingsLoader: LoaderFunction<LoaderData> = async (
 };
 
 const route: RouteObject = {
-	element: <MainLayout />,
+	element: <MeetingsLayout />,
 	children: [
 		{
 			path: ":sessionNumber",
-			element: <MeetingsTable />,
+			element: <MeetingsMain />,
 			loader: meetingsLoader,
 		},
 	],

@@ -13,7 +13,7 @@ import {
 } from "@/store/imatBreakouts";
 import type { ImatMeeting } from "@/store/imatMeetings";
 
-import ImatBreakoutDetails from "./ImatBreakoutDetails";
+import ImatBreakoutsDetails from "./ImatBreakoutDetails";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
 export function ImatMeetingInfo({
@@ -56,7 +56,7 @@ function breakoutsRowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 	return b;
 }
 
-function Breakouts() {
+export function ImatBreakoutsMain() {
 	return (
 		<SplitPanel
 			selectors={imatBreakoutsSelectors}
@@ -75,10 +75,8 @@ function Breakouts() {
 				/>
 			</Panel>
 			<Panel className="details-panel">
-				<ImatBreakoutDetails />
+				<ImatBreakoutsDetails />
 			</Panel>
 		</SplitPanel>
 	);
 }
-
-export default Breakouts;

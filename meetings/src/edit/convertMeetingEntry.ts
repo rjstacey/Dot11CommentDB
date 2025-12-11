@@ -5,8 +5,8 @@ import type { MeetingCreate, SyncedMeeting } from "@/store/meetings";
 import type { WebexMeetingChange } from "@/store/webexMeetings";
 import { webexMeetingToWebexMeetingParams } from "@/store/webexMeetings";
 import type {
-	MultipleWebexMeetingEntry,
-	PartialWebexMeetingEntry,
+	WebexMeetingEntryMultiple,
+	WebexMeetingEntryPartial,
 } from "@/edit/convertWebexMeetingEntry";
 
 export type MeetingEntry = Omit<
@@ -21,18 +21,41 @@ export type MeetingEntry = Omit<
 	webexMeeting?: WebexMeetingChange;
 };
 
-export type PartialMeetingEntry = Partial<
+export type MeetingEntryPartial = Partial<
 	Omit<MeetingEntry, "webexMeeting"> & {
-		webexMeeting: PartialWebexMeetingEntry;
+		webexMeeting: WebexMeetingEntryPartial;
 	}
 >;
 
-export type MultipleMeetingEntry = Multiple<
+export type MeetingEntryMultiple = Multiple<
 	Omit<MeetingEntry, "webexMeeting">
 > & {
 	dates: string[];
 	slots: (string | null)[];
-	webexMeeting?: MultipleWebexMeetingEntry;
+	webexMeeting?: WebexMeetingEntryMultiple;
+};
+
+export const defaultMeetingEntry: Omit<
+	MeetingEntry,
+	"date" | "organizationId"
+> = {
+	roomId: 0,
+	startSlotId: null,
+	sessionId: 0,
+	timezone: "America/New_York",
+	startTime: "00:00",
+	endTime: "00:00",
+	duration: "",
+	hasMotions: false,
+	summary: "",
+	isCancelled: false,
+	webexAccountId: null,
+	webexMeetingId: null,
+	calendarAccountId: null,
+	calendarEventId: null,
+	imatMeetingId: null,
+	imatBreakoutId: null,
+	imatGracePeriod: 10,
 };
 
 export const isSessionMeeting = (session: Session | undefined) =>

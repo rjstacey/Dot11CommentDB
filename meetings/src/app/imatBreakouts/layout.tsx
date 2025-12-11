@@ -1,7 +1,7 @@
 import { Outlet } from "react-router";
 import ImatBreakoutsActions from "./actions";
 
-function ImatBreakoutsLayout() {
+export function ImatBreakoutsLayout() {
 	return (
 		<>
 			<ImatBreakoutsActions />
@@ -9,5 +9,3 @@ function ImatBreakoutsLayout() {
 		</>
 	);
 }
-
-export default ImatBreakoutsLayout;

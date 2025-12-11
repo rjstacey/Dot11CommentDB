@@ -29,8 +29,9 @@ import {
 	convertEntryToWebexMeeting,
 	convertWebexMeetingToEntry,
 	type WebexMeetingEntry,
-	type PartialWebexMeetingEntry,
-	type MultipleWebexMeetingEntry,
+	type WebexMeetingEntryPartial,
+	type WebexMeetingEntryMultiple,
+	type WebexMeetingEntryCreate,
 } from "./convertWebexMeetingEntry";
 
 type WebexMeetingEditState =
@@ -40,13 +41,13 @@ type WebexMeetingEditState =
 	  }
 	| {
 			action: "add";
-			edited: MultipleWebexMeetingEntry;
+			edited: WebexMeetingEntryCreate;
 			saved: undefined;
 	  }
 	| {
 			action: "update";
-			edited: MultipleWebexMeetingEntry;
-			saved: MultipleWebexMeetingEntry;
+			edited: WebexMeetingEntryMultiple;
+			saved: WebexMeetingEntryMultiple;
 			webexMeetings: WebexMeeting[];
 	  };
 
@@ -174,20 +175,20 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 	);
 
 	const onChange = React.useCallback(
-		(changes: PartialWebexMeetingEntry) => {
+		(changes: WebexMeetingEntryPartial) => {
 			setState((state) => {
 				if (readOnly) {
 					console.warn("onChange: state is readOnly");
 					return state;
 				}
 				if (state.action === "add") {
-					const edited: MultipleWebexMeetingEntry = deepMerge(
+					const edited: WebexMeetingEntryCreate = deepMerge(
 						state.edited,
 						changes
 					);
 					return { ...state, edited } satisfies WebexMeetingEditState;
 				} else if (state.action === "update") {
-					let edited: MultipleWebexMeetingEntry = deepMerge(
+					let edited: WebexMeetingEntryMultiple = deepMerge(
 						state.edited,
 						changes
 					);
@@ -205,7 +206,7 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 
 	const submit = React.useCallback(async () => {
 		if (state.action === "add") {
-			const entry = state.edited as WebexMeetingEntry;
+			const entry = state.edited;
 			const webexMeeting = convertEntryToWebexMeeting(entry);
 			const id = await dispatch(
 				addWebexMeeting(entry.accountId!, webexMeeting)
@@ -231,7 +232,7 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 			const { edited, saved, webexMeetings } = state;
 
 			// Find differences
-			const diff: PartialWebexMeetingEntry =
+			const diff: WebexMeetingEntryPartial =
 				deepDiff(saved, edited) || {};
 			const webexMeetingUpdates: WebexMeetingUpdate[] = [];
 			const meetingUpdates: {
@@ -286,7 +287,7 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 			);
 			if (!ok) return;
 		}
-		const edited = {
+		const edited: WebexMeetingEntryCreate = {
 			...defaultWebexMeeting,
 			meetingOptions: defaultWebexMeeting.meetingOptions!,
 			audioConnectionOptions: defaultWebexMeeting.audioConnectionOptions!,
