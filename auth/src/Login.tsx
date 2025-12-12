@@ -53,7 +53,10 @@ async function login(username: string, password: string) {
 	user.logoutUrl = logoutUrl;
 	try {
 		localStorage.setItem(LOGIN_STORAGE, JSON.stringify(user));
-	} catch (err) {}
+	} catch (error) {
+		window.alert(error);
+		return null;
+	}
 	return user;
 }
 
