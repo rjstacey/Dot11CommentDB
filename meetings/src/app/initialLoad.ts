@@ -1,7 +1,6 @@
 import type { RouteObject } from "react-router";
 import { getUserLocalStorage, loginAndReturn, fetcher, User } from "@common";
 import { store, persistReady, resetStore, setUser, selectUser } from "@/store";
-import { loadGroups } from "@/store/groups";
 
 /** Prepare the store and fetcher */
 async function init() {
@@ -24,8 +23,6 @@ async function init() {
 	const storeUser = selectUser(getState());
 	if (storeUser.SAPIN !== user.SAPIN) dispatch(resetStore());
 	dispatch(setUser(user)); // Make sure we have the latest user info
-
-	await dispatch(loadGroups());
 }
 
 const initialLoad = init();

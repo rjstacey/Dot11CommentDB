@@ -16,7 +16,8 @@ import {
 	PersistConfig,
 } from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
-import { get, set, del } from "idb-keyval";
+import storage from "redux-persist/lib/storage";
+//import { get, set, del } from "idb-keyval";
 
 import { errorsSlice, userSlice, createPersistReady } from "@common";
 
@@ -110,12 +111,7 @@ if (process.env.NODE_ENV !== "production")
 const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	key: "meetings",
 	version,
-	storage: {
-		// IndexedDB for storage using idb-keyval
-		setItem: set,
-		getItem: get,
-		removeItem: del,
-	},
+	storage,
 	whitelist: [
 		userSlice.name,
 		timeZonesSlice.name,

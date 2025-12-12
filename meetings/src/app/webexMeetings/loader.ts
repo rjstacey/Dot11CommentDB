@@ -1,5 +1,4 @@
-import { LoaderFunction, RouteObject } from "react-router";
-
+import type { LoaderFunction } from "react-router";
 import { store, setError } from "@/store";
 import {
 	selectTopLevelGroupByName,
@@ -9,32 +8,31 @@ import {
 import { loadSessions, selectSessionByNumber } from "@/store/sessions";
 import { loadImatMeetings } from "@/store/imatMeetings";
 import {
-	selectMeetingsState,
-	loadMeetings,
-	MeetingsQuery,
-} from "@/store/meetings";
+	loadWebexMeetings,
+	selectWebexMeetingsState,
+} from "@/store/webexMeetings";
+import { WebexMeetingsQuery } from "@/store/webexMeetingsSelectors";
 import { setCurrentSessionId, setShowDateRange } from "@/store/current";
-
-import { MeetingsLayout } from "./layout";
-import { MeetingsMain } from "./main";
 
 export function refresh() {
 	const { dispatch, getState } = store;
 
-	const { groupName, query } = selectMeetingsState(getState());
+	const { groupName, query } = selectWebexMeetingsState(getState());
 	if (!groupName) throw Error("Refresh error: groupName not set");
-	dispatch(loadMeetings(groupName, query, true));
+	dispatch(loadWebexMeetings(groupName, query, true));
 }
 
-const rootLoader: LoaderFunction = async ({ params }) => {
+export const rootLoader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	store.dispatch(loadSessions(groupName));
 	return null;
 };
 
-const meetingsLoader: LoaderFunction = async (args) => {
-	const { params, request } = args;
+export const webexMeetingsLoader: LoaderFunction = async ({
+	params,
+	request,
+}) => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const url = new URL(request.url);
@@ -57,7 +55,7 @@ const meetingsLoader: LoaderFunction = async (args) => {
 		if (session) {
 			dispatch(setCurrentSessionId(session.id));
 			dispatch(setShowDateRange(showDateRange));
-			const query: MeetingsQuery = {};
+			const query: WebexMeetingsQuery = {};
 			if (showDateRange) {
 				query.fromDate = session.startDate;
 				query.toDate = session.endDate;
@@ -65,7 +63,7 @@ const meetingsLoader: LoaderFunction = async (args) => {
 			} else {
 				query.sessionId = session.id;
 			}
-			dispatch(loadMeetings(groupName, query));
+			dispatch(loadWebexMeetings(groupName, query));
 			return session;
 		} else {
 			dispatch(
@@ -75,17 +73,3 @@ const meetingsLoader: LoaderFunction = async (args) => {
 	}
 	return null;
 };
-
-const route: RouteObject = {
-	element: <MeetingsLayout />,
-	loader: rootLoader,
-	children: [
-		{
-			path: ":sessionNumber",
-			element: <MeetingsMain />,
-			loader: meetingsLoader,
-		},
-	],
-};
-
-export default route;

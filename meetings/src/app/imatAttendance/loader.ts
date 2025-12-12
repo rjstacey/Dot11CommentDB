@@ -14,6 +14,7 @@ import {
 	clearBreakoutAttendance,
 	loadBreakoutAttendance,
 } from "@/store/imatBreakoutAttendance";
+import { loadBreakouts } from "@/store/imatBreakouts";
 
 export function refresh(
 	meetingNumber: number | undefined,
@@ -77,6 +78,7 @@ export const imatBreakoutAttendanceLoader: LoaderFunction = async ({
 	if (!groupName || !meetingNumber || !breakoutNumber)
 		throw new Error("Route error: groupName or meetingNumber not set");
 	const { dispatch } = store;
+	dispatch(loadBreakouts(groupName, meetingNumber));
 	dispatch(loadBreakoutAttendance(groupName, meetingNumber, breakoutNumber));
 	return null;
 };

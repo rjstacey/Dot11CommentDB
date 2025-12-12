@@ -16,7 +16,12 @@ import MainLayout from "./main";
 import BranchLayout from "./branch";
 import ReportsChart from "./chart";
 
-export type LoaderData = Session | null;
+const rootLoader: LoaderFunction = async ({ params }) => {
+	const { groupName } = params;
+	if (!groupName) throw new Error("Route error: groupName not set");
+	store.dispatch(loadSessions(groupName));
+	return null;
+};
 
 const sessionsLoader: LoaderFunction = async ({
 	params,
@@ -57,6 +62,7 @@ const sessionsLoader: LoaderFunction = async ({
 
 const route: RouteObject = {
 	element: <MainLayout />,
+	loader: rootLoader,
 	children: [
 		{
 			path: ":sessionNumber",
