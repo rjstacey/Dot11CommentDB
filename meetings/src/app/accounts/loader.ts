@@ -6,7 +6,6 @@ import {
 	AccessLevel,
 } from "@/store/groups";
 
-import { rootLoader } from "../rootLoader";
 import {
 	loadCalendarAccounts,
 	clearCalendarAccounts,
@@ -36,10 +35,8 @@ export function refreshWebexAccounts() {
 	);
 }
 
-export const loader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	const { groupName } = args.params;
+export const loader: LoaderFunction = async ({ params }) => {
+	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;

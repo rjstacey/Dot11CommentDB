@@ -16,7 +16,6 @@ import { setCurrentSessionId, setShowDateRange } from "@/store/current";
 
 import { WebexMeetingsLayout } from "./layout";
 import { WebexMeetingsMain } from "./main";
-import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -28,11 +27,10 @@ export function refresh() {
 
 export type LoaderData = Session | null;
 
-const webexMeetingsLoader: LoaderFunction = async (
-	args
-): Promise<LoaderData> => {
-	await rootLoader(args);
-	const { params, request } = args;
+const webexMeetingsLoader: LoaderFunction = async ({
+	params,
+	request,
+}): Promise<LoaderData> => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const url = new URL(request.url);

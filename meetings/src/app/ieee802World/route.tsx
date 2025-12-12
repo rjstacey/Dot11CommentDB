@@ -1,21 +1,17 @@
-import { LoaderFunction, RouteObject } from "react-router";
-
+import type { LoaderFunction, RouteObject } from "react-router";
 import { store } from "@/store";
 import { load802WorldSchedule } from "@/store/ieee802World";
 
 import Ieee802World from "./Ieee802World";
-import { rootLoader } from "../rootLoader";
 
-const ieee802WorldLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
+const loader: LoaderFunction = async () => {
 	store.dispatch(load802WorldSchedule());
 	return null;
 };
 
 const route: RouteObject = {
 	element: <Ieee802World />,
-	loader: ieee802WorldLoader,
+	loader,
 };
 
 export default route;

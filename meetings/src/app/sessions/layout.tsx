@@ -1,7 +1,7 @@
-import SessionsActions from "./actions";
-import SessionsMain from "./main";
+import { SessionsActions } from "./actions";
+import { SessionsMain } from "./main";
 
-function SessionsLayout() {
+export function SessionsLayout() {
 	return (
 		<>
 			<SessionsActions />
@@ -9,5 +9,3 @@ function SessionsLayout() {
 		</>
 	);
 }
-
-export default SessionsLayout;

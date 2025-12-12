@@ -17,7 +17,6 @@ import { setCurrentSessionId, setShowDateRange } from "@/store/current";
 
 import { MeetingsLayout } from "./layout";
 import { MeetingsMain } from "./main";
-import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -32,8 +31,6 @@ export type LoaderData = Session | null;
 const meetingsLoader: LoaderFunction<LoaderData> = async (
 	args
 ): Promise<LoaderData> => {
-	await rootLoader(args);
-
 	const { params, request } = args;
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");

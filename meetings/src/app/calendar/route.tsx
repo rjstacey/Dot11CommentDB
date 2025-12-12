@@ -8,7 +8,6 @@ import {
 } from "@/store/calendarAccounts";
 
 import Calendar from "./Calendar";
-import { rootLoader } from "../rootLoader";
 
 export type LoaderData = string | null;
 
@@ -23,10 +22,8 @@ function getPrimaryCalendarId(
 	return null;
 }
 
-const loader: LoaderFunction<LoaderData> = async (args) => {
-	await rootLoader(args);
-
-	const { groupName } = args.params;
+const loader: LoaderFunction<LoaderData> = async ({ params }) => {
+	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const { dispatch, getState } = store;
 	const { valid, ids, entities } = selectCalendarAccountsState(getState());

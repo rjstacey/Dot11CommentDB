@@ -3,9 +3,9 @@ import { SplitTableButtonGroup } from "@common";
 import { sessionsSelectors, sessionsActions } from "@/store/sessions";
 
 import { tableColumns } from "./tableColumns";
-import { refresh } from "./route";
+import { refresh } from "./loader";
 
-function SessionsActions() {
+export function SessionsActions() {
 	return (
 		<Row className="w-100 m-3 justify-content-end">
 			<SplitTableButtonGroup
@@ -28,5 +28,3 @@ function SessionsActions() {
 		</Row>
 	);
 }
-
-export default SessionsActions;

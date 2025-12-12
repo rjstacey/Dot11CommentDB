@@ -1,4 +1,4 @@
-import { RouteObject, LoaderFunction } from "react-router";
+import type { RouteObject, LoaderFunction } from "react-router";
 
 import { store } from "../store";
 import {
@@ -10,9 +10,8 @@ import { loadCalendarAccounts } from "@/store/calendarAccounts";
 import { loadWebexAccounts } from "@/store/webexAccounts";
 import { loadMembers } from "@/store/members";
 import { loadOfficers } from "@/store/officers";
+import { loadTimeZones } from "@/store/timeZones";
 
-import { rootLoader } from "./rootLoader";
-import { oauthRedirectLoader } from "./oauthRedirectLoader";
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
 import RootMain from "./root";
@@ -28,9 +27,19 @@ import imatAttendanceRoute from "./imatAttendance/route";
 import calendarRoute from "./calendar/route";
 import ieee802WorldRoute from "./ieee802World/route";
 
-const groupLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
+import { oauthRedirectLoader } from "./oauthRedirectLoader";
+import { installLoaderWrapper } from "./initialLoad";
 
+const rootLoader: LoaderFunction = async () => {
+	const { dispatch } = store;
+
+	dispatch(loadTimeZones());
+	await dispatch(loadGroups());
+
+	return null;
+};
+
+const groupLoader: LoaderFunction = async (args) => {
 	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
@@ -126,5 +135,7 @@ export const routes: RouteObject[] = [
 		element: <span>Not found</span>,
 	},
 ];
+
+installLoaderWrapper(routes);
 
 export default routes;

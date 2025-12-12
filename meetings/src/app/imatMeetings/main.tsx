@@ -5,7 +5,7 @@ import {
 } from "@/store/imatMeetings";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
-function ImatMeetingsTable() {
+export function ImatMeetingsMain() {
 	return (
 		<div className="table-container centered-rows">
 			<AppTable
@@ -20,5 +20,3 @@ function ImatMeetingsTable() {
 		</div>
 	);
 }
-
-export default ImatMeetingsTable;

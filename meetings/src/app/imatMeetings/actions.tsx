@@ -9,7 +9,7 @@ import {
 import { tableColumns } from "./tableColumns";
 import { refresh } from "./route";
 
-function ImatMeetingsActions() {
+export function ImatMeetingsActions() {
 	return (
 		<Row className="w-100 m-3">
 			<SplitTableButtonGroup
@@ -28,5 +28,3 @@ function ImatMeetingsActions() {
 		</Row>
 	);
 }
-
-export default ImatMeetingsActions;

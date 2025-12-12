@@ -1,13 +1,11 @@
-import ImatMeetingsActions from "./actions";
-import ImatMeetingsTable from "./table";
+import { ImatMeetingsActions } from "./actions";
+import { ImatMeetingsMain } from "./main";
 
-function ImatMeetingsLayout() {
+export function ImatMeetingsLayout() {
 	return (
 		<>
 			<ImatMeetingsActions />
-			<ImatMeetingsTable />
+			<ImatMeetingsMain />
 		</>
 	);
 }
-
-export default ImatMeetingsLayout;

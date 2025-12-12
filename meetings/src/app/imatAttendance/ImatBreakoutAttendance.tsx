@@ -46,7 +46,7 @@ const columns: ColumnPropertiesWithWidth[] = [
 	},
 ];
 
-function BreakoutAttendance() {
+export function ImatBreakoutAttendance() {
 	return (
 		<div className="table-container centered-rows">
 			<AppTable
@@ -61,5 +61,3 @@ function BreakoutAttendance() {
 		</div>
 	);
 }
-
-export default BreakoutAttendance;

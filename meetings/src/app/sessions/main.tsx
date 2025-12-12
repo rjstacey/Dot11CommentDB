@@ -3,7 +3,7 @@ import { sessionsSelectors, sessionsActions } from "@/store/sessions";
 import { SessionsDetails } from "./details";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
-function SessionsTable() {
+export function SessionsMain() {
 	return (
 		<SplitPanel selectors={sessionsSelectors} actions={sessionsActions}>
 			<Panel>
@@ -22,5 +22,3 @@ function SessionsTable() {
 		</SplitPanel>
 	);
 }
-
-export default SessionsTable;

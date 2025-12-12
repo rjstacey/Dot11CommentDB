@@ -15,16 +15,12 @@ import {
 import MainLayout from "./main";
 import BranchLayout from "./branch";
 import ReportsChart from "./chart";
-import { rootLoader } from "../rootLoader";
 
 export type LoaderData = Session | null;
 
-const sessionsLoader: LoaderFunction = async (
-	args
-): Promise<Session | null> => {
-	await rootLoader(args);
-
-	const { params } = args;
+const sessionsLoader: LoaderFunction = async ({
+	params,
+}): Promise<Session | null> => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const sessionNumber = Number(params.sessionNumber);

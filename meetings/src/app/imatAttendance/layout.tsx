@@ -1,7 +1,7 @@
 import { Outlet } from "react-router";
-import ImatAttendanceActions from "./actions";
+import { ImatAttendanceActions } from "./actions";
 
-function ImatAttendanceLayout() {
+export function ImatAttendanceLayout() {
 	return (
 		<>
 			<ImatAttendanceActions />
@@ -9,5 +9,3 @@ function ImatAttendanceLayout() {
 		</>
 	);
 }
-
-export default ImatAttendanceLayout;
