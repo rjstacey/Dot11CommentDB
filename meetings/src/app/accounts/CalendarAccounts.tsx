@@ -206,7 +206,7 @@ export function CalendarAccounts() {
 					<Button
 						variant="light"
 						className="bi-plus-lg"
-						onClick={() => handleAdd()}
+						onClick={handleAdd}
 					>
 						{" Add account"}
 					</Button>
