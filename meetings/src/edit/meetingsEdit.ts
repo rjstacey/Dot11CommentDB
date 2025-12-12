@@ -7,13 +7,13 @@ import {
 	ConfirmModal,
 	MULTIPLE,
 	isMultiple,
-	setError,
 } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectGroupEntities, selectTopLevelGroupId } from "@/store/groups";
 import { selectWebexAccountDefaultId } from "@/store/webexAccounts";
 import { selectCalendarAccountDefaultId } from "@/store/calendarAccounts";
 
+import { setError } from "@/store";
 import {
 	selectMeetingsState,
 	selectSyncedMeetingEntities,
@@ -51,10 +51,15 @@ type MeetingsEditState = (
 			message: string;
 	  }
 	| {
-			action: "add-by-date" | "add-by-slot";
+			action: "add-by-slot";
 			edited: MeetingEntryMultiple;
 			saved: undefined;
 			slots: string[];
+	  }
+	| {
+			action: "add-by-date";
+			edited: MeetingEntryMultiple;
+			saved: undefined;
 	  }
 	| {
 			action: "update";
@@ -131,6 +136,7 @@ function useMeetingsEditState() {
 				dates: [...new Set(dates)], // Unique dates
 				slots: selectedSlots,
 				roomId,
+				isSessionMeeting: true,
 				startSlotId: slotId,
 				sessionId: session.id,
 				timezone: session.timezone,
@@ -306,7 +312,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 
 	const submit = React.useCallback(async () => {
 		if (state.action === "add-by-date" || state.action === "add-by-slot") {
-			const { action, slots, session } = state;
+			const { action, session } = state;
 			let entry = state.edited;
 
 			// If a webex account is given, then add a webex meeting
@@ -322,6 +328,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 
 			let meetings: MeetingCreate[];
 			if (action === "add-by-slot") {
+				const { slots } = state;
 				const {
 					dates,
 					startSlotId,
@@ -453,7 +460,6 @@ export function useMeetingsEdit(readOnly: boolean) {
 			action: "add-by-date",
 			edited,
 			saved: undefined,
-			slots: [],
 		}));
 		dispatch(setSelectedMeetings([]));
 	}, [readOnly, dispatch]);

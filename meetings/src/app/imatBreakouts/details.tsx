@@ -4,7 +4,7 @@ import { Button, Container, Row, Col } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectUserMeetingsAccess, AccessLevel } from "@/store/meetings";
 
-import { MeetingsEditForm } from "../meetings/MeetingEditForm";
+import { MeetingsEditForm } from "../meetings/details/MeetingsEditForm";
 import { BreakoutEditForm } from "./BreakoutEditForm";
 import { useImatBreakoutsEdit } from "@/edit/imatBreakoutsEdit";
 
@@ -480,12 +480,14 @@ export function ImatBreakoutsDetails() {
 		title = "Import as meeting";
 		content = (
 			<MeetingsEditForm
-				entry={state.edited}
-				changeEntry={onChangeMeeting}
 				action="add-by-date"
+				entry={state.edited}
+				session={state.session}
+				onChange={onChangeMeeting}
+				hasChanges={hasChanges}
 				submit={submit}
 				cancel={cancel}
-				hasChanges={hasChanges}
+				readOnly={readOnly}
 			/>
 		);
 	} else if (state.action === "add" || state.action === "update") {

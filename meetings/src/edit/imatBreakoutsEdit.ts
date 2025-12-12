@@ -95,6 +95,7 @@ function convertBreakoutToMeetingEntry(
 		date: start.toISODate()!,
 		dates: [start.toISODate()!],
 		slots: [],
+		isSessionMeeting: true,
 		startTime: breakout.startTime,
 		endTime: breakout.endTime,
 		startSlotId: null,
@@ -149,6 +150,7 @@ type ImatBreakoutsEditState = (
 			action: "import";
 			edited: MeetingEntryMultiple;
 			saved: undefined;
+			session: Session;
 	  }
 	| {
 			action: "add";
@@ -461,6 +463,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				action: "import",
 				edited,
 				saved: undefined,
+				session,
 			} satisfies ImatBreakoutsEditState;
 		});
 	}, [imatMeeting, session, groupId, groupEntities, setState]);

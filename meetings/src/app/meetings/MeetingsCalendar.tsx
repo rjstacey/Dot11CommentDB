@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	toSlotId,
 	selectCurrentSession,
-	selectCurrentSessionDates,
+	getSessionDates,
 	Room,
 	Timeslot,
 } from "@/store/sessions";
@@ -64,8 +64,8 @@ function SelectAllMeetings({ style }: { style?: React.CSSProperties }) {
 					allSelected
 						? "Clear all"
 						: isIndeterminate
-						? "Clear selected"
-						: "Select all"
+							? "Clear selected"
+							: "Select all"
 				}
 				checked={allSelected}
 				ref={(ref) => {
@@ -399,10 +399,11 @@ function SessionDayBody({
 }
 
 function MeetingsCalendar({ nDays }: { nDays: number }) {
-	const dates = useAppSelector(selectCurrentSessionDates);
+	const session = useAppSelector(selectCurrentSession);
+	const dates = session ? getSessionDates(session) : [];
 	const [day, setDay] = React.useState(0);
 
-	let rooms = useAppSelector(selectCurrentSession)?.rooms || [];
+	let rooms = session?.rooms || [];
 	if (rooms.length === 0) rooms = defaultRooms;
 
 	function clickLeft() {

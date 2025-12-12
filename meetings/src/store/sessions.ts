@@ -77,6 +77,19 @@ export function getCredit(creditStr: string): {
 	};
 }
 
+export function getSessionDates(session: Session): string[] {
+	let dates: string[] = [];
+	const start = DateTime.fromISO(session.startDate);
+	const end = DateTime.fromISO(session.endDate).plus({ days: 1 });
+	const nDays = end.diff(start, "days").days;
+	if (nDays > 0) {
+		dates = new Array(nDays)
+			.fill(null)
+			.map((d, i) => start.plus({ days: i }).toISODate()!);
+	}
+	return dates;
+}
+
 export const fields = {
 	id: { label: "ID", isId: true, type: FieldType.NUMERIC },
 	number: { label: "Session number", type: FieldType.NUMERIC },
@@ -197,24 +210,6 @@ export const selectSessionByNumber = (state: RootState, number: number) => {
 	const sessions = selectSessions(state);
 	return sessions.find((session) => session.number === number);
 };
-
-export const selectCurrentSessionDates = createSelector(
-	selectCurrentSession,
-	(session) => {
-		let dates: string[] = [];
-		if (session) {
-			const start = DateTime.fromISO(session.startDate);
-			const end = DateTime.fromISO(session.endDate).plus({ days: 1 });
-			const nDays = end.diff(start, "days").days;
-			if (nDays > 0) {
-				dates = new Array(nDays)
-					.fill(null)
-					.map((d, i) => start.plus({ days: i }).toISODate()!);
-			}
-		}
-		return dates;
-	}
-);
 
 type SyncedSession = Session & {
 	groupName: string;

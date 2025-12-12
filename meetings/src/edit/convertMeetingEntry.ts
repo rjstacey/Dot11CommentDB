@@ -9,14 +9,45 @@ import type {
 	WebexMeetingEntryPartial,
 } from "@/edit/convertWebexMeetingEntry";
 
+/* There are three edit modes:
+ * add-by-slot
+ * In this mode a number of slots are selected and then an entry created. The date, start time and end time/duration are determined by the slots selected.
+ *
+ * add-by-date
+ * In this mode an entry is created. Multiple dates may be set. The start time and end time/duration are the same for all dates.
+ *
+ * update
+ * In this mode one or more entries are updated.
+ *
+ * There are two types of meeting: a session meeting and a telecon meeting.
+ * A session meeting has a start time and end time. The timezone is the session timezone.
+ * A telecon meeting has a start time and duration. The timezone is per meeting.
+ */
+/*
+type MeetingTime = {
+	dates: string[];
+	startSlotId: number | null;
+	startTime: string;
+	endTime: string;
+};
+
+type TeleconTime = {
+	timezone: string;
+	dates: string[];
+	startTime: string;
+	duration: string;
+};
+*/
+
 export type MeetingEntry = Omit<
 	MeetingCreate,
 	"id" | "start" | "end" | "webexMeeting"
 > & {
 	date: string;
+	isSessionMeeting: boolean;
+	startSlotId: number | null;
 	startTime: string;
 	endTime: string;
-	startSlotId: number | null;
 	duration: string;
 	webexMeeting?: WebexMeetingChange;
 };
@@ -35,17 +66,17 @@ export type MeetingEntryMultiple = Multiple<
 	webexMeeting?: WebexMeetingEntryMultiple;
 };
 
-export const defaultMeetingEntry: Omit<
-	MeetingEntry,
-	"date" | "organizationId"
-> = {
+export const defaultMeetingEntry: MeetingEntry = {
+	date: "",
+	organizationId: "",
 	roomId: 0,
+	isSessionMeeting: true,
 	startSlotId: null,
-	sessionId: 0,
-	timezone: "America/New_York",
 	startTime: "00:00",
 	endTime: "00:00",
-	duration: "",
+	duration: "0",
+	sessionId: 0,
+	timezone: "America/New_York",
 	hasMotions: false,
 	summary: "",
 	isCancelled: false,
@@ -135,11 +166,13 @@ export function convertMeetingToEntry(
 
 	const entry: MeetingEntry = {
 		...rest,
+		roomId,
+		isSessionMeeting: isSessionMeeting(session)!,
 		date,
+		startSlotId,
 		startTime,
 		endTime,
-		startSlotId,
-		roomId,
+		timezone: zone,
 		duration,
 	};
 
@@ -153,22 +186,15 @@ export function convertEntryToMeeting(
 	entry: MeetingEntry,
 	session?: Session
 ): MeetingCreate {
-	const {
-		date,
-		startTime,
-		endTime: endTimeIn,
-		startSlotId,
-		duration,
-		...rest
-	} = entry;
-	let endTime = endTimeIn;
+	const { isSessionMeeting, date, startTime, ...rest } = entry;
 
-	let zone;
-	if (isSessionMeeting(session)) {
-		zone = session!.timezone;
+	let zone, endTime;
+	if (entry.isSessionMeeting) {
+		zone = session?.timezone || entry.timezone;
+		endTime = entry.endTime;
 	} else {
 		zone = entry.timezone;
-		endTime = endTimeFromDuration(startTime, duration);
+		endTime = endTimeFromDuration(startTime, entry.duration);
 	}
 	const start = DateTime.fromISO(date, { zone }).set(fromTimeStr(startTime));
 	let end = DateTime.fromISO(date, { zone }).set(fromTimeStr(endTime));
