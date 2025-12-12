@@ -1,22 +1,22 @@
 import type { User } from "@schemas/user.js";
-const LOGIN_STORAGE = "User";
+const USER_STORAGE_ITEM = "User";
 
 export function setUserLocalStorage(user: User) {
-	localStorage.setItem(LOGIN_STORAGE, JSON.stringify(user));
+	localStorage.setItem(USER_STORAGE_ITEM, JSON.stringify(user));
 }
 
 export function clearUserLocalStorage() {
-	localStorage.removeItem(LOGIN_STORAGE);
+	localStorage.removeItem(USER_STORAGE_ITEM);
 }
 
 export function getUserLocalStorage() {
 	// Get user from local storage. This may fail if the browser has certain privacy settings.
 	let user: User | undefined;
 	try {
-		const s = localStorage.getItem(LOGIN_STORAGE);
+		const s = localStorage.getItem(USER_STORAGE_ITEM);
 		if (s) user = JSON.parse(s);
-	} catch (err) {
-		/* ignore errors */
+	} catch (error) {
+		window.alert(error);
 	}
 	return user
 		? Promise.resolve(user)
