@@ -2,7 +2,7 @@ import { LoaderFunction, RouteObject } from "react-router";
 import { EntityId, Dictionary } from "@reduxjs/toolkit";
 import { store } from "@/store";
 import {
-	CalendarAccount,
+	type CalendarAccount,
 	loadCalendarAccounts,
 	selectCalendarAccountsState,
 } from "@/store/calendarAccounts";
@@ -23,7 +23,7 @@ function getPrimaryCalendarId(
 	return null;
 }
 
-const calendarLoader: LoaderFunction<LoaderData> = async (args) => {
+const loader: LoaderFunction<LoaderData> = async (args) => {
 	await rootLoader(args);
 
 	const { groupName } = args.params;
@@ -41,7 +41,7 @@ const calendarLoader: LoaderFunction<LoaderData> = async (args) => {
 
 const route: RouteObject = {
 	element: <Calendar />,
-	loader: calendarLoader,
+	loader,
 };
 
 export default route;
