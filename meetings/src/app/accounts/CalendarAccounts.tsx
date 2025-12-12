@@ -11,10 +11,10 @@ import {
 	selectCalendarAccounts,
 	CalendarAccountCreate,
 	CalendarAccount,
-	refreshCalendarAccounts,
 	selectCalendarAccountDefaultId,
 	setCalendarAccountDefaultId,
 } from "@/store/calendarAccounts";
+import { refreshCalendarAccounts } from "./loader";
 import { selectMemberEntities } from "@/store/members";
 
 import { EditTable as Table, TableColumn } from "@/components/Table";
@@ -171,13 +171,11 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 	},
 };
 
-function CalendarAccounts() {
+export function CalendarAccounts() {
 	const dispatch = useAppDispatch();
 	const { loading } = useAppSelector(selectCalendarAccountsState);
 	const accounts = useAppSelector(selectCalendarAccounts);
 	const handleAdd = () => dispatch(addCalendarAccount(defaultAccount));
-
-	const refresh = () => dispatch(refreshCalendarAccounts());
 
 	const colProps = React.useMemo(
 		() => accounts.map((account) => ({ account, readOnly: false })),
@@ -216,7 +214,7 @@ function CalendarAccounts() {
 						variant="outline-primary"
 						className="bi-arrow-repeat"
 						title="Refresh"
-						onClick={refresh}
+						onClick={refreshCalendarAccounts}
 						disabled={loading}
 					/>
 				</div>
@@ -225,5 +223,3 @@ function CalendarAccounts() {
 		</Container>
 	);
 }
-
-export default CalendarAccounts;

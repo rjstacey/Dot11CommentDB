@@ -126,6 +126,7 @@ const {
 } = slice.actions;
 
 export const setWebexAccountDefaultId = slice.actions.setDefaultId;
+export { clearWebexAccounts };
 
 /* Selectors */
 export const selectWebexAccountsState = (state: RootState) => state[dataSet];
@@ -180,16 +181,6 @@ export const loadWebexAccounts =
 				loading = false;
 			});
 		return loadingPromise;
-	};
-
-export const refreshWebexAccounts =
-	(): AppThunk => async (dispatch, getState) => {
-		const groupName = selectWebexAccountsGroupName(getState());
-		dispatch(
-			groupName
-				? loadWebexAccounts(groupName, true)
-				: clearWebexAccounts()
-		);
 	};
 
 export const updateWebexAccount =

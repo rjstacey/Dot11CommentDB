@@ -92,6 +92,7 @@ const {
 } = slice.actions;
 
 export const setCalendarAccountDefaultId = slice.actions.setDefaultId;
+export { clearCalendarAccounts };
 
 /* Selectors */
 export const selectCalendarAccountsState = (state: RootState) => state[dataSet];
@@ -104,7 +105,7 @@ export const selectCalendarAccountIds = (state: RootState) =>
 	selectCalendarAccountsState(state).ids;
 export const selectCalendarAccountEntities = (state: RootState) =>
 	selectCalendarAccountsState(state).entities;
-const selectCalendarAccountsGroupName = (state: RootState) =>
+export const selectCalendarAccountsGroupName = (state: RootState) =>
 	selectCalendarAccountsState(state).groupName;
 export const selectCalendarAccountDefaultId = (state: RootState) =>
 	selectCalendarAccountsState(state).defaultId;
@@ -145,16 +146,6 @@ export const loadCalendarAccounts =
 				loading = false;
 			});
 		return loadingPromise;
-	};
-
-export const refreshCalendarAccounts =
-	(): AppThunk => async (dispatch, getState) => {
-		const groupName = selectCalendarAccountsGroupName(getState());
-		dispatch(
-			groupName
-				? loadCalendarAccounts(groupName, true)
-				: clearCalendarAccounts()
-		);
 	};
 
 export const addCalendarAccount =

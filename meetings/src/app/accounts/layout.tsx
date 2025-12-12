@@ -1,7 +1,7 @@
-import CalendarAccounts from "./CalendarAccounts";
-import WebexAccounts from "./WebexAccounts";
+import { CalendarAccounts } from "./CalendarAccounts";
+import { WebexAccounts } from "./WebexAccounts";
 
-function AccountsLayout() {
+export function AccountsLayout() {
 	return (
 		<>
 			<WebexAccounts />
@@ -9,5 +9,3 @@ function AccountsLayout() {
 		</>
 	);
 }
-
-export default AccountsLayout;

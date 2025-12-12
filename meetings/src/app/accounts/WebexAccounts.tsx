@@ -4,7 +4,6 @@ import { ConfirmModal } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectMemberEntities } from "@/store/members";
 import {
-	refreshWebexAccounts,
 	updateWebexAccount,
 	addWebexAccount,
 	deleteWebexAccount,
@@ -16,6 +15,7 @@ import {
 	WebexAccount,
 	WebexAccountCreate,
 } from "@/store/webexAccounts";
+import { refreshWebexAccounts } from "./loader";
 
 import { EditTable as Table, TableColumn } from "@/components/Table";
 
@@ -178,12 +178,11 @@ const tableColumns: { [key: string]: Omit<TableColumn, "key"> } = {
 	},
 };
 
-function WebexAccounts() {
+export function WebexAccounts() {
 	const dispatch = useAppDispatch();
 	const handleAdd = () => dispatch(addWebexAccount(defaultAccount));
 	const { loading } = useAppSelector(selectWebexAccountsState);
 	const accounts = useAppSelector(selectWebexAccounts);
-	const refresh = () => dispatch(refreshWebexAccounts());
 
 	const colProps = React.useMemo(
 		() => accounts.map((account) => ({ account, readOnly: false })),
@@ -221,7 +220,7 @@ function WebexAccounts() {
 						variant="outline-primary"
 						className="bi-arrow-repeat"
 						title="Refresh"
-						onClick={refresh}
+						onClick={refreshWebexAccounts}
 						disabled={loading}
 					/>
 				</div>
@@ -230,5 +229,3 @@ function WebexAccounts() {
 		</Container>
 	);
 }
-
-export default WebexAccounts;
