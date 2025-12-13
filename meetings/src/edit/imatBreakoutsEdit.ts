@@ -19,7 +19,6 @@ import {
 	selectBreakoutsState,
 	selectSyncedBreakoutEntities,
 	selectBreakoutMeetingId,
-	selectBreakoutMeeting,
 	setSelectedBreakouts as setSelected,
 	addBreakouts,
 	updateBreakouts,
@@ -27,9 +26,9 @@ import {
 	type SyncedBreakout,
 	type Breakout,
 } from "@/store/imatBreakouts";
-import type { ImatMeeting } from "@/store/imatMeetings";
+import { selectImatMeeting, type ImatMeeting } from "@/store/imatMeetings";
 import { addMeetings, updateMeetings } from "@/store/meetings";
-import { selectCurrentSession, type Session } from "@/store/sessions";
+import { selectSessionByImatMeetingId, type Session } from "@/store/sessions";
 import {
 	convertEntryToMeeting,
 	type MeetingEntry,
@@ -104,7 +103,7 @@ function convertBreakoutToMeetingEntry(
 		organizationId,
 		hasMotions: false,
 		isCancelled: false,
-		timezone: imatMeeting.timezone,
+		timezone: session.timezone,
 		calendarAccountId: null,
 		calendarEventId: null,
 		webexAccountId: null,
@@ -114,24 +113,31 @@ function convertBreakoutToMeetingEntry(
 		imatBreakoutId: breakout.id,
 		imatGracePeriod: 0,
 		sessionId: session.id,
-		roomId: 0,
+		roomId: null,
 	};
 
 	const room = session.rooms.find((r) => r.name === breakout.location);
-	if (room && room.id) entry.roomId = room.id;
-
-	let startSlot = session.timeslots.find((s) => {
-		const slotStart = start.set(fromTimeStr(s.startTime));
-		const slotEnd = start.set(fromTimeStr(s.endTime));
-		return start >= slotStart && start < slotEnd;
-	});
-	if (!startSlot) {
-		// If we can't find a slot that includes the startTime then find best match
-		startSlot = session.timeslots.find((s) => {
-			const slotStart = start.set(fromTimeStr(s.startTime));
-			return start >= slotStart;
-		});
+	if (room && room.id) {
+		entry.roomId = room.id;
+		entry.location = "";
 	}
+
+	// Find slot with the closest startTime
+	const startSlot = session.timeslots.reduce(
+		(best, current) => {
+			if (best) {
+				const t_best = start.set(fromTimeStr(best.startTime));
+				const t_current = start.set(fromTimeStr(current.startTime));
+				if (
+					Math.abs(t_best.diff(start).toMillis()) <
+					Math.abs(t_current.diff(start).toMillis())
+				)
+					return best;
+			}
+			return current;
+		},
+		null as (typeof session.timeslots)[number] | null
+	);
 	if (startSlot) entry.startSlotId = startSlot.id;
 
 	//console.log(entry)
@@ -246,12 +252,20 @@ function useImatBreakoutsEditState() {
 
 export function useImatBreakoutsEdit(readOnly: boolean) {
 	const dispatch = useAppDispatch();
-	const session = useAppSelector(selectCurrentSession)!;
 	const groupId = useAppSelector(selectTopLevelGroupId)!;
 	const groupEntities = useAppSelector(selectGroupEntities);
-	const imatMeeting = useAppSelector(selectBreakoutMeeting);
 
 	const [state, setState, resetState] = useImatBreakoutsEditState();
+
+	const imatMeetingId = state.imatMeetingId;
+	const imatMeeting = useAppSelector((state) =>
+		imatMeetingId ? selectImatMeeting(state, imatMeetingId) : undefined
+	);
+	const session = useAppSelector((state) =>
+		imatMeetingId
+			? selectSessionByImatMeetingId(state, imatMeetingId)
+			: undefined
+	);
 
 	const hasChanges = React.useCallback(
 		() =>
@@ -450,10 +464,18 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				console.warn("onImport: unexpected state");
 				return state;
 			}
+			if (!imatMeeting) {
+				console.warn("onImport: can't find imat meeting");
+				return state;
+			}
+			if (!session) {
+				console.warn("onImport: can't find session");
+				return state;
+			}
 			const breakout = state.breakouts[0];
 			const edited = convertBreakoutToMeetingEntry(
 				breakout,
-				imatMeeting!,
+				imatMeeting,
 				session,
 				groupId,
 				groupEntities

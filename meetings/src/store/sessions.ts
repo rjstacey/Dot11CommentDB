@@ -211,6 +211,14 @@ export const selectSessionByNumber = (state: RootState, number: number) => {
 	return sessions.find((session) => session.number === number);
 };
 
+export const selectSessionByImatMeetingId = (
+	state: RootState,
+	imatMeetingId: number
+) => {
+	const sessions = selectSessions(state);
+	return sessions.find((session) => session.imatMeetingId === imatMeetingId);
+};
+
 type SyncedSession = Session & {
 	groupName: string;
 };
