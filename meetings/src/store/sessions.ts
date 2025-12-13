@@ -340,8 +340,8 @@ export const deleteSessions =
 /*
  * Functions to convert date/slot/room to/from id
  */
-export const toSlotId = (date: string, slot: Timeslot, room: Room) =>
-	`${date}/${slot.id}/${room.id}`;
+export const toSlotId = (date: string, slotId: number, roomId: number) =>
+	`${date}/${slotId}/${roomId}`;
 export const fromSlotId = (id: string) => {
 	const p = id.split("/");
 	return [p[0], parseInt(p[1]), parseInt(p[2])] as const;

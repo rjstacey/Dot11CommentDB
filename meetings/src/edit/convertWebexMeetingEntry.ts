@@ -1,23 +1,9 @@
 import { DateTime } from "luxon";
-import type { Multiple } from "@common";
-import {
-	defaultWebexMeetingParams,
-	WebexMeetingOptions,
-	WebexAudioConnectionOptions,
+import type {
 	WebexMeeting,
 	WebexMeetingCreate,
 	WebexMeetingChange,
 } from "@/store/webexMeetings";
-
-export const defaultWebexMeeting: WebexMeetingEntryCreate = {
-	...defaultWebexMeetingParams,
-	accountId: null,
-	title: "",
-	timezone: "",
-	date: "",
-	startTime: "",
-	endTime: "02:00",
-};
 
 type ToEntry<T> = Omit<T, "accountId" | "start" | "end"> & {
 	accountId: number | null;
@@ -35,20 +21,6 @@ type FromEntry<T> = Omit<T, "accountId" | "date" | "startTime" | "endTime"> & {
 
 export type WebexMeetingEntry = ToEntry<WebexMeetingChange>;
 export type WebexMeetingEntryCreate = ToEntry<WebexMeetingCreate>;
-
-export type WebexMeetingEntryPartial = Partial<
-	Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">
-> & {
-	meetingOptions?: Partial<WebexMeetingOptions>;
-	audioConnectionOptions?: Partial<WebexAudioConnectionOptions>;
-};
-
-export type WebexMeetingEntryMultiple = Multiple<
-	Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">
-> & {
-	meetingOptions: Multiple<WebexMeetingOptions>;
-	audioConnectionOptions: Multiple<WebexAudioConnectionOptions>;
-};
 
 export function convertWebexMeetingToEntry<
 	T extends WebexMeetingCreate | WebexMeeting,

@@ -1,13 +1,8 @@
 import { DateTime, Duration } from "luxon";
-import type { Multiple } from "@common";
 import type { Session, Timeslot, Room } from "@/store/sessions";
 import type { MeetingCreate, SyncedMeeting } from "@/store/meetings";
 import type { WebexMeetingChange } from "@/store/webexMeetings";
 import { webexMeetingToWebexMeetingParams } from "@/store/webexMeetings";
-import type {
-	WebexMeetingEntryMultiple,
-	WebexMeetingEntryPartial,
-} from "@/edit/convertWebexMeetingEntry";
 
 /* There are three edit modes:
  * add-by-slot
@@ -23,21 +18,6 @@ import type {
  * A session meeting has a start time and end time. The timezone is the session timezone.
  * A telecon meeting has a start time and duration. The timezone is per meeting.
  */
-/*
-type MeetingTime = {
-	dates: string[];
-	startSlotId: number | null;
-	startTime: string;
-	endTime: string;
-};
-
-type TeleconTime = {
-	timezone: string;
-	dates: string[];
-	startTime: string;
-	duration: string;
-};
-*/
 
 export type MeetingEntry = Omit<
 	MeetingCreate,
@@ -50,20 +30,6 @@ export type MeetingEntry = Omit<
 	endTime: string;
 	duration: string;
 	webexMeeting?: WebexMeetingChange;
-};
-
-export type MeetingEntryPartial = Partial<
-	Omit<MeetingEntry, "webexMeeting"> & {
-		webexMeeting: WebexMeetingEntryPartial;
-	}
->;
-
-export type MeetingEntryMultiple = Multiple<
-	Omit<MeetingEntry, "webexMeeting">
-> & {
-	dates: string[];
-	slots: (string | null)[];
-	webexMeeting?: WebexMeetingEntryMultiple;
 };
 
 export const defaultMeetingEntry: MeetingEntry = {
@@ -89,8 +55,8 @@ export const defaultMeetingEntry: MeetingEntry = {
 	imatGracePeriod: 10,
 };
 
-export const isSessionMeeting = (session: Session | undefined) =>
-	session && (session.type === "p" || session.type === "i");
+export const getIsSessionMeeting = (session: Session) =>
+	session.type === "p" || session.type === "i";
 
 //const toTimeStr = (hour, min) => ('0' + hour).substr(-2) + ':' + ('0' + min).substr(-2);
 const fromTimeStr = (str: string) => {
@@ -119,16 +85,33 @@ function endTimeFromDuration(startTime: string, duration: string) {
 	return DateTime.fromFormat(startTime, "HH:mm").plus(dt).toFormat("HH:mm");
 }
 
+/** Find slot with the closest startTime */
+export function startSlotBestMatch(session: Session, start: DateTime) {
+	return session.timeslots.reduce(
+		(best, current) => {
+			if (best) {
+				const t_best = start.set(fromTimeStr(best.startTime));
+				const t_current = start.set(fromTimeStr(current.startTime));
+				if (
+					Math.abs(t_best.diff(start).toMillis()) <
+					Math.abs(t_current.diff(start).toMillis())
+				)
+					return best;
+			}
+			return current;
+		},
+		null as (typeof session.timeslots)[number] | null
+	);
+}
+
 export function convertMeetingToEntry(
 	meeting: SyncedMeeting,
-	session?: Session
+	session: Session
 ): MeetingEntry {
 	const { start: startIn, end: endIn, webexMeeting, ...rest } = meeting;
 
-	const zone =
-		session && isSessionMeeting(session)
-			? session.timezone
-			: meeting.timezone;
+	const isSessionMeeting = getIsSessionMeeting(session);
+	const zone = isSessionMeeting ? session.timezone : meeting.timezone;
 	const start = DateTime.fromISO(startIn, { zone });
 	const end = DateTime.fromISO(endIn, { zone });
 	const date = start.toISODate()!;
@@ -138,27 +121,14 @@ export function convertMeetingToEntry(
 	let roomId: Room["id"] | null = null;
 	let duration: string = "";
 
-	if (isSessionMeeting(session)) {
+	if (isSessionMeeting) {
 		roomId = meeting.roomId;
 		if (roomId === null || roomId === undefined) {
-			const room = session!.rooms.find(
-				(r) => r.name === meeting.location
-			);
+			const room = session.rooms.find((r) => r.name === meeting.location);
 			roomId = room ? room.id : 0;
 		}
 
-		let startSlot = session!.timeslots.find((s) => {
-			const slotStart = start.set(fromTimeStr(s.startTime));
-			const slotEnd = start.set(fromTimeStr(s.endTime));
-			return start >= slotStart && start < slotEnd;
-		});
-		if (!startSlot) {
-			// If we can't find a slot that includes the startTime then find best match
-			startSlot = session!.timeslots.find((s) => {
-				const slotStart = start.set(fromTimeStr(s.startTime));
-				return start >= slotStart;
-			});
-		}
+		const startSlot = startSlotBestMatch(session, start);
 		startSlotId = startSlot ? startSlot.id : 0;
 	} else {
 		duration = timeRangeToDuration(startTime, endTime);
@@ -167,7 +137,7 @@ export function convertMeetingToEntry(
 	const entry: MeetingEntry = {
 		...rest,
 		roomId,
-		isSessionMeeting: isSessionMeeting(session)!,
+		isSessionMeeting,
 		date,
 		startSlotId,
 		startTime,
@@ -184,13 +154,13 @@ export function convertMeetingToEntry(
 
 export function convertEntryToMeeting(
 	entry: MeetingEntry,
-	session?: Session
+	session: Session
 ): MeetingCreate {
 	const { isSessionMeeting, date, startTime, ...rest } = entry;
 
 	let zone, endTime;
 	if (entry.isSessionMeeting) {
-		zone = session?.timezone || entry.timezone;
+		zone = session.timezone;
 		endTime = entry.endTime;
 	} else {
 		zone = entry.timezone;

@@ -6,10 +6,10 @@ import { useAppDispatch } from "@/store/hooks";
 import { setError } from "@/store";
 import type { Session } from "@/store/sessions";
 
-import {
-	type MeetingEntryMultiple,
-	type MeetingEntryPartial,
-} from "@/edit/convertMeetingEntry";
+import type {
+	MeetingEntryMultiple,
+	MeetingEntryPartial,
+} from "@/edit/meetingsEdit";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import { MeetingsBasicEdit } from "./MeetingsBasicEdit";
 import { MeetingsImatEdit } from "./MeetingsImatEdit";

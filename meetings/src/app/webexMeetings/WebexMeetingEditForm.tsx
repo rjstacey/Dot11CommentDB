@@ -4,29 +4,28 @@ import { Row, Col, Form } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { Select, isMultiple, Multiple, InputTime } from "@common";
 
-import {
+import type {
 	WebexMeetingOptions,
 	WebexAudioConnectionOptions,
 	WebexEntryExitTone,
 } from "@/store/webexMeetings";
 import { selectCurrentSession } from "@/store/sessions";
+import type {
+	WebexMeetingEntry,
+	WebexMeetingEntryCreate,
+} from "@/edit/convertWebexMeetingEntry";
+import {
+	defaultWebexMeeting,
+	type WebexMeetingEntryPartial,
+	type WebexMeetingEntryMultiple,
+} from "@/edit/webexMeetingsEdit";
 
 import WebexAccountSelector from "@/components/WebexAccountSelector";
 import TimeZoneSelector from "@/components/TimeZoneSelector";
 import InputTimeRangeAsDuration from "@/components/InputTimeRangeAsDuration";
 import MeetingSelector from "@/components/MeetingSelector";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
-
-import {
-	defaultWebexMeeting,
-	WebexMeetingEntry,
-	WebexMeetingEntryPartial,
-	WebexMeetingEntryMultiple,
-	WebexMeetingEntryCreate,
-} from "@/edit/convertWebexMeetingEntry";
-
-const MULTIPLE_STR = "(Multiple)";
-const BLANK_STR = "(Blank)";
+import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 
 export function WebexMeetingAccount({
 	entry,

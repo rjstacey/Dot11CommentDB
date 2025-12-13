@@ -6,7 +6,7 @@ import { selectUserMeetingsAccess, AccessLevel } from "@/store/meetings";
 import ShowAccess from "@/components/ShowAccess";
 import { MeetingsEditForm } from "./MeetingsEditForm";
 import { useMeetingsEdit } from "@/edit/meetingsEdit";
-import { isSessionMeeting } from "@/edit/convertMeetingEntry";
+import { getIsSessionMeeting } from "@/edit/convertMeetingEntry";
 
 export function MeetingsDetails() {
 	const access = useAppSelector(selectUserMeetingsAccess);
@@ -23,7 +23,9 @@ export function MeetingsDetails() {
 		onDelete,
 	} = useMeetingsEdit(readOnly);
 
-	let title = isSessionMeeting(state.session) ? "Session meeting" : "Telecon";
+	let title = getIsSessionMeeting(state.session)
+		? "Session meeting"
+		: "Telecon";
 	if (state.action === "add-by-slot") {
 		title = "Add session meeting to selected slots";
 	} else if (state.action === "add-by-date") {

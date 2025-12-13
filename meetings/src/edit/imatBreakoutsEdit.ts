@@ -31,10 +31,10 @@ import { addMeetings, updateMeetings } from "@/store/meetings";
 import { selectSessionByImatMeetingId, type Session } from "@/store/sessions";
 import {
 	convertEntryToMeeting,
+	startSlotBestMatch,
 	type MeetingEntry,
-	type MeetingEntryPartial,
-	type MeetingEntryMultiple,
 } from "./convertMeetingEntry";
+import type { MeetingEntryMultiple, MeetingEntryPartial } from "./meetingsEdit";
 
 const getDefaultBreakout = (): Breakout => ({
 	id: 0,
@@ -54,13 +54,6 @@ const getDefaultBreakout = (): Breakout => ({
 	creditOverrideNumerator: 0,
 	facilitator: "",
 });
-
-const fromTimeStr = (str: string) => {
-	const m = str.match(/(\d+):(\d+)/);
-	return m
-		? { hour: parseInt(m[1], 10), minute: parseInt(m[2], 10) }
-		: { hour: 0, minute: 0 };
-};
 
 function convertBreakoutToMeetingEntry(
 	breakout: Breakout,
@@ -123,21 +116,7 @@ function convertBreakoutToMeetingEntry(
 	}
 
 	// Find slot with the closest startTime
-	const startSlot = session.timeslots.reduce(
-		(best, current) => {
-			if (best) {
-				const t_best = start.set(fromTimeStr(best.startTime));
-				const t_current = start.set(fromTimeStr(current.startTime));
-				if (
-					Math.abs(t_best.diff(start).toMillis()) <
-					Math.abs(t_current.diff(start).toMillis())
-				)
-					return best;
-			}
-			return current;
-		},
-		null as (typeof session.timeslots)[number] | null
-	);
+	const startSlot = startSlotBestMatch(session, start);
 	if (startSlot) entry.startSlotId = startSlot.id;
 
 	//console.log(entry)
@@ -347,7 +326,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 			const meetings = dates.map((date) =>
 				convertEntryToMeeting(
 					{ ...rest, date } as MeetingEntry,
-					session
+					state.session
 				)
 			);
 			await dispatch(addMeetings(meetings));
@@ -408,7 +387,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				await dispatch(updateMeetings(meetingUpdates));
 			}
 		}
-	}, [state, session, resetState]);
+	}, [state, resetState]);
 
 	const onAdd = React.useCallback(async () => {
 		if (readOnly) {

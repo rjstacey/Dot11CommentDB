@@ -7,7 +7,7 @@ import { selectGroupEntities } from "@/store/groups";
 import type {
 	MeetingEntryMultiple,
 	MeetingEntryPartial,
-} from "@/edit/convertMeetingEntry";
+} from "@/edit/meetingsEdit";
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 import { SubgroupSelector } from "@/components/SubgroupSelector";
 import { MeetingsTimeEdit } from "./MeetingsTimeEdit";

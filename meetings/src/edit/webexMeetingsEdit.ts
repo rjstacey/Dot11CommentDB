@@ -7,10 +7,12 @@ import {
 	deepDiff,
 	ConfirmModal,
 	MULTIPLE,
+	type Multiple,
 } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectWebexAccountDefaultId } from "@/store/webexAccounts";
 import {
+	defaultWebexMeetingParams,
 	selectWebexMeetingsState,
 	selectSyncedWebexMeetingEntities,
 	addWebexMeeting,
@@ -25,14 +27,35 @@ import {
 } from "@/store/webexMeetings";
 import { updateMeetings, Meeting } from "@/store/meetings";
 import {
-	defaultWebexMeeting,
 	convertEntryToWebexMeeting,
 	convertWebexMeetingToEntry,
 	type WebexMeetingEntry,
-	type WebexMeetingEntryPartial,
-	type WebexMeetingEntryMultiple,
 	type WebexMeetingEntryCreate,
 } from "./convertWebexMeetingEntry";
+
+export const defaultWebexMeeting: WebexMeetingEntryCreate = {
+	...defaultWebexMeetingParams,
+	accountId: null,
+	title: "",
+	timezone: "",
+	date: "",
+	startTime: "",
+	endTime: "02:00",
+};
+
+export type WebexMeetingEntryPartial = Partial<
+	Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">
+> & {
+	meetingOptions?: Partial<WebexMeetingOptions>;
+	audioConnectionOptions?: Partial<WebexAudioConnectionOptions>;
+};
+
+export type WebexMeetingEntryMultiple = Multiple<
+	Omit<WebexMeetingEntry, "meetingOptions" | "audioConnectionOptions">
+> & {
+	meetingOptions: Multiple<WebexMeetingOptions>;
+	audioConnectionOptions: Multiple<WebexAudioConnectionOptions>;
+};
 
 type WebexMeetingEditState =
 	| {

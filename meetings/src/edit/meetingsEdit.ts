@@ -7,6 +7,7 @@ import {
 	ConfirmModal,
 	MULTIPLE,
 	isMultiple,
+	type Multiple,
 } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectGroupEntities, selectTopLevelGroupId } from "@/store/groups";
@@ -35,15 +36,31 @@ import {
 	toSlotId,
 	type Session,
 } from "@/store/sessions";
-import { defaultWebexMeeting } from "./convertWebexMeetingEntry";
+import {
+	defaultWebexMeeting,
+	type WebexMeetingEntryMultiple,
+	type WebexMeetingEntryPartial,
+} from "./webexMeetingsEdit";
 import {
 	convertEntryToMeeting,
 	convertMeetingToEntry,
 	defaultMeetingEntry,
 	type MeetingEntry,
-	type MeetingEntryPartial,
-	type MeetingEntryMultiple,
 } from "./convertMeetingEntry";
+
+export type MeetingEntryPartial = Partial<
+	Omit<MeetingEntry, "webexMeeting"> & {
+		webexMeeting: WebexMeetingEntryPartial;
+	}
+>;
+
+export type MeetingEntryMultiple = Multiple<
+	Omit<MeetingEntry, "webexMeeting">
+> & {
+	dates: string[];
+	slots: string[];
+	webexMeeting?: WebexMeetingEntryMultiple;
+};
 
 type MeetingsEditState = (
 	| {
@@ -54,7 +71,7 @@ type MeetingsEditState = (
 			action: "add-by-slot";
 			edited: MeetingEntryMultiple;
 			saved: undefined;
-			slots: string[];
+			//slots: string[];
 	  }
 	| {
 			action: "add-by-date";
@@ -77,7 +94,7 @@ function useMeetingsEditState() {
 	const entities = useAppSelector(selectSyncedMeetingEntities);
 	const selectedMeetings = useAppSelector(selectSelectedMeetings);
 	const selectedSlots = useAppSelector(selectSelectedSlots);
-	const session = useAppSelector(selectCurrentSession)!;
+	const session = useAppSelector(selectCurrentSession);
 	const defaultWebexAccountId = useAppSelector(selectWebexAccountDefaultId);
 	const defaultCalenderAccountId = useAppSelector(
 		selectCalendarAccountDefaultId
@@ -90,21 +107,21 @@ function useMeetingsEditState() {
 			.map((id) => entities[id])
 			.filter(Boolean);
 
+		if (!session) throw new Error("No current session");
+
 		if (loading && !valid) {
 			return {
 				action: null,
 				message: "Loading...",
 				session,
 			} satisfies MeetingsEditState;
-		}
-		if (meetings.length === 0 && selectedSlots.length === 0) {
+		} else if (meetings.length === 0 && selectedSlots.length === 0) {
 			return {
 				action: null,
 				message: "Nothing selected",
 				session,
 			} satisfies MeetingsEditState;
-		}
-		if (meetings.length === 0 && selectedSlots.length > 0) {
+		} else if (meetings.length === 0 && selectedSlots.length > 0) {
 			let date: string | typeof MULTIPLE | null = null,
 				roomId: number | typeof MULTIPLE | null = null,
 				slotId: number | typeof MULTIPLE | null = null;
@@ -123,7 +140,7 @@ function useMeetingsEditState() {
 				startTime = MULTIPLE;
 				endTime = MULTIPLE;
 			} else {
-				const timeslot = session?.timeslots.find(
+				const timeslot = session.timeslots.find(
 					(slot) => slot.id === slotId
 				);
 				startTime = timeslot ? timeslot.startTime : "";
@@ -156,23 +173,18 @@ function useMeetingsEditState() {
 				action: "add-by-slot",
 				edited: entry,
 				saved: undefined,
-				slots: selectedSlots,
+				//slots: selectedSlots,
 				session,
 			} satisfies MeetingsEditState;
 		} else {
 			const entry: MeetingEntryMultiple = meetings.reduce(
 				(accumulatedEntry, meeting) => {
 					const entry = convertMeetingToEntry(meeting, session);
-					const timeslot = session?.timeslots.find(
-						(s) => s.id === entry.startSlotId
+					const slot = toSlotId(
+						entry.date,
+						entry.startSlotId || 0,
+						entry.roomId || 0
 					);
-					const room = session?.rooms.find(
-						(r) => r.id === entry.roomId
-					);
-					const slot =
-						timeslot && room
-							? toSlotId(entry.date, timeslot, room)
-							: null;
 					return {
 						...(deepMergeTagMultiple(
 							accumulatedEntry,
@@ -328,9 +340,10 @@ export function useMeetingsEdit(readOnly: boolean) {
 
 			let meetings: MeetingCreate[];
 			if (action === "add-by-slot") {
-				const { slots } = state;
+				//const { slots } = state;
 				const {
 					dates,
+					slots,
 					startSlotId,
 					startTime,
 					endTime,
@@ -340,7 +353,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 				try {
 					meetings = slots.map((id) => {
 						const [date, startSlotId, roomId] = fromSlotId(id);
-						const slot = session?.timeslots.find(
+						const slot = session.timeslots.find(
 							(slot) => slot.id === startSlotId
 						);
 						if (!slot) throw new Error("Bad timeslot identifier");
@@ -496,7 +509,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 		// Hack to ensure sessionId is set
 		const updates = meetings.map((m) => {
 			const changes: Partial<Meeting> = {};
-			if (m.sessionId !== session!.id) changes.sessionId = session!.id;
+			if (m.sessionId !== session.id) changes.sessionId = session.id;
 			return { id: m.id, changes };
 		});
 

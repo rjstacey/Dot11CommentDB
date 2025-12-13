@@ -161,7 +161,7 @@ function TimeslotContent({
 		height: (h2 - h1) * 48,
 	};
 
-	const id = toSlotId(date, slot, room);
+	const id = toSlotId(date, slot.id, room.id);
 
 	const isReadOnly =
 		selectedSlots.length === 0 && selectedMeetings.length > 0;
