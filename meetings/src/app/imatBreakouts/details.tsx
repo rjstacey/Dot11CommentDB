@@ -460,7 +460,7 @@ export function ImatBreakoutsDetails() {
 				active={state.action === "add"}
 				onClick={onAdd}
 			>
-				{" Add breakout"}
+				{" Add"}
 			</Button>
 			<Button
 				variant="outline-primary"
@@ -469,7 +469,7 @@ export function ImatBreakoutsDetails() {
 				disabled={state.breakouts.length === 0 || readOnly}
 				onClick={onDelete}
 			>
-				{" Delete breakout"}
+				{" Delete"}
 			</Button>
 		</Col>
 	);

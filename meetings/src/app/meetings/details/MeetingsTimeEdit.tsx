@@ -242,12 +242,15 @@ function TeleconMeetingTime({
 					</Form.Control.Feedback>
 				</Col>
 			</Form.Group>
-			<Form.Group as={Row} className="mb-3" controlId="meeting-dates">
-				<Form.Label column>
-					Date{action === "add" ? "s" : ""}:
-				</Form.Label>
+			<Form.Group as={Row} className="mb-3">
+				<Col>
+					<Form.Label htmlFor="meeting-dates">
+						{action === "add" ? "Dates" : "Date"}:
+					</Form.Label>
+				</Col>
 				<Col xs="auto">
 					<InputDates
+						id="meeting-dates"
 						disablePast
 						multi={action === "add"}
 						value={isMultiple(entry.dates) ? [] : entry.dates}
