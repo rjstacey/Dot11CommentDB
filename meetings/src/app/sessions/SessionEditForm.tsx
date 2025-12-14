@@ -59,7 +59,7 @@ export function SessionEditForm({
 	}
 
 	return (
-		<Form noValidate onSubmit={handleSubmit} className="main">
+		<Form noValidate onSubmit={handleSubmit} className="p-3">
 			<SessionBasicsEdit
 				session={edited}
 				original={saved}

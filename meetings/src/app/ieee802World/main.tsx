@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router";
 import { Button } from "react-bootstrap";
 import {
 	AppTable,
@@ -22,6 +21,7 @@ import {
 	ieee802WorldSelectors,
 	ieee802WorldActions,
 } from "@/store/ieee802World";
+import { refresh } from "./loader";
 
 import MeetingSummary from "@/components/MeetingSummary";
 
@@ -176,11 +176,8 @@ function schedRowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 	return b;
 }
 
-function Ieee802WorldSchedule() {
-	const navigate = useNavigate();
+export function Ieee802WorldMain() {
 	const dispatch = useAppDispatch();
-
-	const refresh = () => navigate(".", { replace: true });
 
 	const importSelected = async () => {
 		const ok = await ConfirmModal.show("Import selected?");
@@ -189,7 +186,7 @@ function Ieee802WorldSchedule() {
 
 	return (
 		<>
-			<div className="top-row justify-right">
+			<div className="top-row justify-right gap-2">
 				<TableColumnSelector
 					selectors={ieee802WorldSelectors}
 					actions={ieee802WorldActions}
@@ -225,5 +222,3 @@ function Ieee802WorldSchedule() {
 		</>
 	);
 }
-
-export default Ieee802WorldSchedule;

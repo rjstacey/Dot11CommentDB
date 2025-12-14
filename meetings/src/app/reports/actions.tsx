@@ -1,5 +1,4 @@
-import { useNavigate, useParams } from "react-router";
-
+import { useParams } from "react-router";
 import { Row, Col, Button, Spinner } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -7,13 +6,11 @@ import { selectMeetingAttendanceState } from "@/store/imatMeetingAttendance";
 
 import SessionSelectorNav from "@/components/SessionSelectorNav";
 import { copyChartToClipboard, downloadChart } from "@/components/copyChart";
+import { refresh } from "./loader";
 
-function ReportsActions() {
-	const navigate = useNavigate();
+export function ReportsActions() {
 	const { chart } = useParams();
 	const { loading } = useAppSelector(selectMeetingAttendanceState);
-
-	const refresh = () => navigate(0);
 
 	return (
 		<Row className="w-100 m-3">
@@ -21,9 +18,8 @@ function ReportsActions() {
 				<SessionSelectorNav />
 			</Col>
 
-			<Col>{loading && <Spinner size="sm" />}</Col>
-
 			<Col className="d-flex justify-content-end align-items-center gap-2">
+				<Spinner hidden={!loading} />
 				<Button
 					variant="outline-primary"
 					className="bi-copy"
@@ -49,5 +45,3 @@ function ReportsActions() {
 		</Row>
 	);
 }
-
-export default ReportsActions;

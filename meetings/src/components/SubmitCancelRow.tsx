@@ -12,7 +12,7 @@ export function SubmitCancelRow({
 	disabled?: boolean;
 }) {
 	return (
-		<Row className="mb-3">
+		<Row className="mt-3">
 			<Col xs={6} className="d-flex justify-content-center">
 				<Button type="submit" disabled={disabled}>
 					<Spinner size="sm" hidden={!busy} className="me-2" />

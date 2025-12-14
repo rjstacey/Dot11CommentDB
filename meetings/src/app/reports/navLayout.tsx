@@ -25,7 +25,7 @@ function ReportsNav() {
 	);
 }
 
-function ReportsLayout() {
+export function ReportsNavLayout() {
 	return (
 		<Container className={styles.main}>
 			<ReportsNav />
@@ -33,5 +33,3 @@ function ReportsLayout() {
 		</Container>
 	);
 }
-
-export default ReportsLayout;

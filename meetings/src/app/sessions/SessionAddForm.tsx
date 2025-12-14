@@ -49,7 +49,7 @@ export function SessionAddForm({
 	}
 
 	return (
-		<Form noValidate onSubmit={handleSubmit}>
+		<Form noValidate onSubmit={handleSubmit} className="p-3">
 			<SessionBasicsEdit session={session} updateSession={onChange} />
 			<Tabs
 				onSelect={(tabIndex) => {

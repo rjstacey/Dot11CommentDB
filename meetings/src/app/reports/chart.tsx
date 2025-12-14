@@ -10,7 +10,7 @@ export type ReportChartProps = React.SVGProps<SVGSVGElement> & {
 	height: number;
 };
 
-function ReportsChart() {
+export function ReportsChart() {
 	const { chart } = useParams();
 	let Chart: React.FunctionComponent<ReportChartProps>;
 	if (chart === "sessionAttendance") Chart = SessionAttendanceChart;
@@ -30,5 +30,3 @@ function ReportsChart() {
 		</div>
 	);
 }
-
-export default ReportsChart;
