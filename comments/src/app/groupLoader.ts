@@ -9,12 +9,8 @@ import {
 import { loadMembers } from "@/store/members";
 import { loadBallots } from "@/store/ballots";
 
-import { rootLoader } from "./rootLoader";
-
-export const groupLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	const { groupName } = args.params;
+export const groupLoader: LoaderFunction = async ({ params }) => {
+	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;

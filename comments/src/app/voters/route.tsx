@@ -12,19 +12,14 @@ import { clearVoters, loadVoters } from "@/store/voters";
 
 import VotersLayout from "./layout";
 import VotersTable from "./table";
-import { rootLoader } from "../rootLoader";
 
-const indexLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
+const indexLoader: LoaderFunction = async () => {
 	store.dispatch(clearVoters());
 	return null;
 };
 
-const ballotIdLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	const { groupName, ballotId } = args.params;
+const ballotIdLoader: LoaderFunction = async ({ params }) => {
+	const { groupName, ballotId } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	if (!ballotId) throw new Error("Route error: ballotId not set");
 

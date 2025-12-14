@@ -2,7 +2,6 @@ import type { LoaderFunction } from "react-router";
 import { store } from "@/store";
 import { selectTopLevelGroupByName, AccessLevel } from "@/store/groups";
 import { loadBallots, selectBallotsState } from "@/store/ballots";
-import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -13,10 +12,8 @@ export function refresh() {
 	dispatch(loadBallots(groupName!, true));
 }
 
-export const loader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	const { groupName } = args.params;
+export const loader: LoaderFunction = async ({ params }) => {
+	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { getState } = store;

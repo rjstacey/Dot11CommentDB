@@ -17,24 +17,19 @@ import {
 	setPanelIsSplit,
 } from "@/store/comments";
 
-import { rootLoader } from "../rootLoader";
-
 export function refresh() {
 	const { dispatch, getState } = store;
 	const ballot_id = selectCurrentBallot_id(getState());
 	dispatch(ballot_id ? loadComments(ballot_id, true) : clearComments());
 }
 
-export const indexLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
+export const indexLoader: LoaderFunction = async () => {
 	store.dispatch(clearComments());
 	return null;
 };
 
-export const ballotIdLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	const { groupName, ballotId } = args.params;
+export const ballotIdLoader: LoaderFunction = async ({ params }) => {
+	const { groupName, ballotId } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	if (!ballotId) throw new Error("Route error: ballotId not set");
 

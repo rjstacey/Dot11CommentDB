@@ -12,6 +12,7 @@ import reportsRoute from "./reports/route";
 
 import { rootLoader } from "./rootLoader";
 import { groupLoader } from "./groupLoader";
+import { installLoaderWrapper } from "./initialLoad";
 
 export const routes: RouteObject[] = [
 	{
@@ -71,5 +72,7 @@ export const routes: RouteObject[] = [
 		element: <span>Not found</span>,
 	},
 ];
+
+installLoaderWrapper(routes);
 
 export default routes;
