@@ -13,7 +13,7 @@ import {
 
 import SessionSelectorNav from "@/components/SessionSelectorNav";
 
-import { EmailMeetingHostKeys } from "./MeetingsEmail";
+import { EmailHostKeys } from "./EmailHostKeys";
 import { DisplayFormatSelect } from "./DisplayFormatSelect";
 import CopyMeetingListButton from "./CopyMeetingList";
 
@@ -70,7 +70,7 @@ function MeetingsActions() {
 					disabled={sessionNumber === null}
 				/>
 
-				<EmailMeetingHostKeys disabled={sessionNumber === null} />
+				<EmailHostKeys disabled={sessionNumber === null} />
 
 				<CopyMeetingListButton disabled={sessionNumber === null} />
 
