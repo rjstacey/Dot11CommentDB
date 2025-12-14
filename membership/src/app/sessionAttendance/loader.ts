@@ -16,7 +16,6 @@ import {
 	selectSessionRegistrationState,
 } from "@/store/sessionRegistration";
 import { loadSessions, selectSessionByNumber } from "@/store/sessions";
-import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -33,8 +32,6 @@ export function refresh() {
 }
 
 export const indexLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
 	const { dispatch } = store;
 	dispatch(clearImatAttendanceSummary());
 	dispatch(clearSessionAttendanceSummary());
@@ -43,11 +40,10 @@ export const indexLoader: LoaderFunction = async (args) => {
 	return null;
 };
 
-export const sessionAttendanceLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	const { params, request } = args;
-
+export const sessionAttendanceLoader: LoaderFunction = async ({
+	params,
+	request,
+}) => {
 	const { groupName, sessionNumber } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	if (!sessionNumber) throw new Error("Route error: sessionNumber not set");

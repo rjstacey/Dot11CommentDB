@@ -6,7 +6,6 @@ import {
 	loadBallotParticipation,
 	selectBallotParticipationState,
 } from "@/store/ballotParticipation";
-import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -17,8 +16,6 @@ export function refresh() {
 }
 
 export const ballotParticipationLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
 	const { dispatch, getState } = store;
 
 	const { groupName } = args.params;

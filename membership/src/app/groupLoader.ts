@@ -12,15 +12,12 @@ import { loadMembers } from "@/store/members";
 import { loadIeeeMembers } from "@/store/ieeeMembers";
 import { loadOfficers } from "@/store/officers";
 import { loadSessions } from "@/store/sessions";
-import { rootLoader } from "./rootLoader";
 
 export const groupLoader: LoaderFunction = async (args) => {
 	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const { dispatch, getState } = store;
-
-	await rootLoader(args);
 
 	await dispatch(loadGroups());
 	const group = selectTopLevelGroupByName(getState(), groupName);

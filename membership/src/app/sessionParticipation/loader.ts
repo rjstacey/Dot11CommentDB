@@ -4,7 +4,6 @@ import { selectTopLevelGroupByName, AccessLevel } from "@/store/groups";
 import { loadSessions } from "@/store/sessions";
 import { loadRecentAttendanceSummaries } from "@/store/sessionParticipation";
 import { selectAttendanceSummariesGroupName } from "@/store/attendanceSummaries";
-import { rootLoader } from "../rootLoader";
 
 export async function refresh() {
 	const { dispatch, getState } = store;
@@ -14,12 +13,10 @@ export async function refresh() {
 	dispatch(loadRecentAttendanceSummaries(groupName, true));
 }
 
-export const loader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
+export const loader: LoaderFunction = async ({ params }) => {
 	const { dispatch, getState } = store;
 
-	const { groupName } = args.params;
+	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
 	const group = selectTopLevelGroupByName(getState(), groupName);

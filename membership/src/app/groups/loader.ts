@@ -10,7 +10,6 @@ import {
 	loadCommittees,
 	selectImatCommitteesState,
 } from "@/store/imatCommittees";
-import { rootLoader } from "../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -19,8 +18,6 @@ export function refresh() {
 }
 
 export const groupsLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
 	const { dispatch, getState } = store;
 
 	const { groupName } = args.params;

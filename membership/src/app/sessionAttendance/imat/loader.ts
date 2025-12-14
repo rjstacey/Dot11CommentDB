@@ -8,7 +8,6 @@ import {
 } from "@/store/imatAttendanceSummary";
 import { loadSessionAttendanceSummary } from "@/store/sessionAttendanceSummary";
 import { loadSessions, selectSessionByNumber } from "@/store/sessions";
-import { rootLoader } from "../../rootLoader";
 
 export function refresh() {
 	const { dispatch, getState } = store;
@@ -24,11 +23,7 @@ export function refresh() {
 	}
 }
 
-export const loader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	const { params, request } = args;
-
+export const loader: LoaderFunction = async ({ params, request }) => {
 	const { groupName, sessionNumber } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	if (!sessionNumber) throw new Error("Route error: sessionNumber not set");

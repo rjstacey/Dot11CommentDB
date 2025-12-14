@@ -4,6 +4,7 @@ import { AppLayout } from "./layout";
 import { AppErrorPage } from "./errorPage";
 import Fallback from "./fallback";
 import RootMain from "./root";
+import { installLoaderWrapper } from "./initialLoad";
 import { rootLoader } from "./rootLoader";
 import { groupLoader } from "./groupLoader";
 import { groupsRoute } from "./groups/route";
@@ -52,3 +53,5 @@ export const routes: RouteObject[] = [
 		],
 	},
 ];
+
+installLoaderWrapper(routes);
