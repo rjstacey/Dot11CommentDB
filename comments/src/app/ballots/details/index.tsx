@@ -53,10 +53,12 @@ export function BallotsDetail({
 		</>
 	);
 
+	let title = "Ballot";
 	let content: React.ReactNode;
 	if (state.action === null) {
 		content = <Placeholder>{state.message}</Placeholder>;
 	} else if (state.action === "add") {
+		title = "Add Ballot";
 		content = (
 			<BallotAddForm
 				edited={state.edited}
@@ -66,6 +68,7 @@ export function BallotsDetail({
 			/>
 		);
 	} else {
+		if (hasChanges()) title = "Update Ballot";
 		let ballotActions: React.ReactNode;
 		if (state.ballots.length === 1) {
 			const ballot = state.ballots[0];
@@ -96,7 +99,10 @@ export function BallotsDetail({
 
 	return (
 		<Container fluid style={{ maxWidth: 860 }}>
-			<Row className="align-items-center justify-content-end mb-2">
+			<Row className="align-items-center justify-content-between mb-2">
+				<Col>
+					<h3 className="title">{title}</h3>
+				</Col>
 				<Col xs="auto" className="d-flex gap-2">
 					{actionButtons}
 				</Col>

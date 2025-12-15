@@ -56,6 +56,13 @@ main {
 	justify-content: flex-end;
 }
 
+.title {
+	align-self: center;
+	font-weight: bold;
+	color: #0099cc;
+	margin: 0;
+}
+
 .control-group {
 	display: flex;
 	flex-wrap: wrap;
