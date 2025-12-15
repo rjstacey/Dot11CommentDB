@@ -93,6 +93,12 @@ const createViewBallotsStage = `
 export async function init() {
 	await db.query(createViewBallotsSeries);
 	await db.query(createViewBallotsStage);
+	try {
+		await db.query("ALTER table ballots DROP COLUMN BallotID_");
+		await db.query("ALTER table ballots DROP COLUMN VotingPoolID");
+	} catch {
+		/* ignore */
+	}
 }
 
 /* Get ballot fields */

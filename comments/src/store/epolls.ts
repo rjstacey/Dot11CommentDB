@@ -79,8 +79,9 @@ export default slice;
 const getPending = createAction<{ groupName: string | null; n: number }>(
 	dataSet + "/getPending"
 );
-const { getSuccess, getFailure } = slice.actions;
+const { getSuccess, getFailure, setSelected } = slice.actions;
 
+export { setSelected };
 export const clearEpolls = createAction(dataSet + "/clear");
 export const epollsActions = slice.actions;
 
