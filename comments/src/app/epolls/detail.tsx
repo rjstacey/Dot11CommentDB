@@ -17,8 +17,8 @@ import {
 } from "@/store/ballots";
 
 import ShowAccess from "@/components/ShowAccess";
-import { BallotAddForm } from "../ballots/BallotAddForm";
-import { BallotEditForm } from "../ballots/BallotEditForm";
+import { BallotAddForm } from "../ballots/details/BallotAddForm";
+import { BallotEditForm } from "../ballots/details/BallotEditForm";
 
 const defaultBallot: Ballot = {
 	groupId: "",

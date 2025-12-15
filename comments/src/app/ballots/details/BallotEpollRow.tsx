@@ -1,24 +1,28 @@
-import React from "react";
 import { Row, Col, Form } from "react-bootstrap";
-import { isMultiple, Multiple } from "@common";
+import { isMultiple } from "@common";
 
-import { Ballot, BallotChange, BallotType } from "@/store/ballots";
+import type { BallotMultiple } from "@/hooks/ballotsEdit";
+import {
+	type BallotCreate,
+	type BallotChange,
+	BallotType,
+} from "@/store/ballots";
 import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 
 export function BallotEpollRow({
-	ballot,
-	original,
-	updateBallot,
+	edited,
+	saved,
+	onChange,
 	readOnly,
 }: {
-	ballot: Multiple<Ballot>;
-	original?: Multiple<Ballot>;
-	updateBallot: (changes: BallotChange) => void;
+	edited: BallotCreate | BallotMultiple;
+	saved?: BallotMultiple;
+	onChange: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	if (ballot.Type === BallotType.SA) return null;
-	const isMultipleBallots = isMultiple(ballot.id);
-	const hasChanges = original && original.EpollNum !== ballot.EpollNum;
+	if (edited.Type === BallotType.SA) return null;
+	const isMultipleBallots = saved && isMultiple(saved.id);
+	const hasChanges = saved && saved.EpollNum !== saved.EpollNum;
 	const cn = hasChanges ? "has-changes" : undefined;
 	return (
 		<Form.Group
@@ -33,27 +37,27 @@ export function BallotEpollRow({
 					type="search"
 					name="EpollNum"
 					value={
-						isMultiple(ballot.EpollNum) || ballot.EpollNum === null
+						isMultiple(edited.EpollNum) || edited.EpollNum === null
 							? ""
-							: ballot.EpollNum
+							: edited.EpollNum
 					}
 					onChange={(e) =>
-						updateBallot({
+						onChange({
 							EpollNum: e.target.value
 								? Number(e.target.value)
 								: null,
 						})
 					}
 					placeholder={
-						isMultiple(ballot.EpollNum) ? MULTIPLE_STR : BLANK_STR
+						isMultiple(edited.EpollNum) ? MULTIPLE_STR : BLANK_STR
 					}
 					readOnly={readOnly || isMultipleBallots}
 				/>
 				{hasChanges && (
 					<Form.Text>
-						{isMultiple(original.EpollNum)
+						{isMultiple(saved.EpollNum)
 							? MULTIPLE_STR
-							: original.EpollNum}
+							: saved.EpollNum}
 					</Form.Text>
 				)}
 			</Col>

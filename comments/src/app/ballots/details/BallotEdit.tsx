@@ -1,5 +1,5 @@
-import { Multiple } from "@common";
-import { Ballot, BallotChange } from "@/store/ballots";
+import type { BallotMultiple } from "@/hooks/ballotsEdit";
+import type { BallotCreate, BallotChange } from "@/store/ballots";
 
 import { BallotGroupRow } from "./BallotGroupRow";
 import { BallotProjectRow } from "./BallotProjectRow";
@@ -11,64 +11,64 @@ import { BallotEpollRow } from "./BallotEpollRow";
 import { BallotDocumentRow } from "./BallotDocumentRow";
 
 export function BallotEdit({
-	ballot,
-	original,
-	updateBallot,
+	edited,
+	saved,
+	onChange,
 	readOnly,
 }: {
-	ballot: Multiple<Ballot>;
-	original?: Multiple<Ballot>;
-	updateBallot: (changes: BallotChange) => void;
+	edited: BallotCreate | BallotMultiple;
+	saved?: BallotMultiple;
+	onChange: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
 	return (
 		<>
 			<BallotGroupRow
-				ballot={ballot}
-				original={original}
-				updateBallot={updateBallot}
+				edited={edited}
+				saved={saved}
+				onChange={onChange}
 				readOnly={readOnly}
 			/>
 			<BallotProjectRow
-				ballot={ballot}
-				original={original}
-				updateBallot={updateBallot}
+				edited={edited}
+				saved={saved}
+				onChange={onChange}
 				readOnly={readOnly}
 			/>
 			<BallotDocumentRow
-				ballot={ballot}
-				original={original}
-				updateBallot={updateBallot}
+				edited={edited}
+				saved={saved}
+				onChange={onChange}
 				readOnly={readOnly}
 			/>
 			<BallotTypeRow
-				ballot={ballot}
-				original={original}
-				updateBallot={updateBallot}
+				edited={edited}
+				saved={saved}
+				onChange={onChange}
 				readOnly={readOnly}
 			/>
 			<BallotStageRow
-				ballot={ballot}
-				original={original}
-				updateBallot={updateBallot}
+				edited={edited}
+				saved={saved}
+				onChange={onChange}
 				readOnly={readOnly}
 			/>
 			<BallotSeriesRow
-				ballot={ballot}
-				original={original}
-				updateBallot={updateBallot}
+				edited={edited}
+				saved={saved}
+				onChange={onChange}
 				readOnly={readOnly}
 			/>
 			<BallotDatesRows
-				ballot={ballot}
-				original={original}
-				updateBallot={updateBallot}
+				edited={edited}
+				saved={saved}
+				onChange={onChange}
 				readOnly={readOnly}
 			/>
 			<BallotEpollRow
-				ballot={ballot}
-				original={original}
-				updateBallot={updateBallot}
+				edited={edited}
+				saved={saved}
+				onChange={onChange}
 				readOnly={readOnly}
 			/>
 		</>

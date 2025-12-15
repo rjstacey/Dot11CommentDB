@@ -1,8 +1,9 @@
 import React from "react";
 import { Row, Col, Form } from "react-bootstrap";
-import { isMultiple, Multiple } from "@common";
+import { isMultiple } from "@common";
 
-import { Ballot, BallotChange } from "@/store/ballots";
+import type { BallotCreate, BallotChange } from "@/store/ballots";
+import type { BallotMultiple } from "@/hooks/ballotsEdit";
 import { MULTIPLE_STR } from "@/components/constants";
 
 /* Convert an ISO date string to US eastern time and return string in form "YYYY-MM-DD" */
@@ -34,30 +35,30 @@ function shortDateToDate(shortDateStr: string) {
 }
 
 function BallotDateInput({
-	ballot,
-	original,
+	edited,
+	saved,
 	dataKey,
-	updateBallot,
+	onChange,
 	readOnly,
 }: {
-	ballot: Multiple<Ballot>;
-	original?: Multiple<Ballot>;
+	edited: BallotCreate | BallotMultiple;
+	saved?: BallotMultiple;
 	dataKey: "Start" | "End";
-	updateBallot: (changes: BallotChange) => void;
+	onChange: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
 	const [value, setValue] = React.useState<string>(
-		isMultiple(ballot[dataKey]) ? "" : dateToShortDate(ballot[dataKey])
+		isMultiple(edited[dataKey]) ? "" : dateToShortDate(edited[dataKey])
 	);
 
 	const changeDate: React.ChangeEventHandler<HTMLInputElement> = (e) => {
 		const { name, value } = e.target;
 		setValue(value);
 		const dateStr = shortDateToDate(value);
-		if (dateStr) updateBallot({ [name]: dateStr });
+		if (dateStr) onChange({ [name]: dateStr });
 	};
 
-	const hasChanges = original && original[dataKey] !== ballot[dataKey];
+	const hasChanges = saved && saved[dataKey] !== edited[dataKey];
 	const cn = hasChanges ? "has-changes" : "";
 
 	return (
@@ -68,20 +69,20 @@ function BallotDateInput({
 				name={dataKey}
 				value={value}
 				onChange={changeDate}
-				readOnly={readOnly || isMultiple(ballot.id)}
-				isInvalid={!isMultiple(ballot[dataKey]) && !value}
+				readOnly={readOnly || ("id" in edited && isMultiple(edited.id))}
+				isInvalid={!isMultiple(edited[dataKey]) && !value}
 			/>
 			<Form.Control.Feedback type="invalid" tooltip>
 				Enter a date
 			</Form.Control.Feedback>
 			{hasChanges && (
 				<Form.Text>
-					{isMultiple(original[dataKey])
+					{isMultiple(saved[dataKey])
 						? MULTIPLE_STR
-						: new Date(original[dataKey] || "").toLocaleDateString(
+						: new Date(saved[dataKey] || "").toLocaleDateString(
 								"en-US",
 								{ timeZone: "America/New_York" }
-						  )}
+							)}
 				</Form.Text>
 			)}
 		</>
@@ -89,14 +90,14 @@ function BallotDateInput({
 }
 
 export function BallotDatesRows({
-	ballot,
-	original,
-	updateBallot,
+	edited,
+	saved,
+	onChange,
 	readOnly,
 }: {
-	ballot: Multiple<Ballot>;
-	original?: Multiple<Ballot>;
-	updateBallot: (changes: BallotChange) => void;
+	edited: BallotCreate | BallotMultiple;
+	saved?: BallotMultiple;
+	onChange: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
 	return (
@@ -105,10 +106,10 @@ export function BallotDatesRows({
 				<Form.Label column>Open Date:</Form.Label>
 				<Col xs="auto">
 					<BallotDateInput
-						ballot={ballot}
-						original={original}
+						edited={edited}
+						saved={saved}
 						dataKey="Start"
-						updateBallot={updateBallot}
+						onChange={onChange}
 						readOnly={readOnly}
 					/>
 				</Col>
@@ -117,10 +118,10 @@ export function BallotDatesRows({
 				<Form.Label column>Close Date:</Form.Label>
 				<Col xs="auto" className="position-relative">
 					<BallotDateInput
-						ballot={ballot}
-						original={original}
+						edited={edited}
+						saved={saved}
 						dataKey="End"
-						updateBallot={updateBallot}
+						onChange={onChange}
 						readOnly={readOnly}
 					/>
 				</Col>

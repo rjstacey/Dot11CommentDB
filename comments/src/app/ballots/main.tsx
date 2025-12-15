@@ -8,16 +8,17 @@ import {
 	AccessLevel,
 } from "@/store/ballots";
 
-import { BallotActions } from "./actions";
-import BallotDetail from "./BallotDetail";
+import { BallotsActions } from "./actions";
+import { BallotsDetail } from "./details";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
-function Ballots() {
+export function BallotsMain() {
 	const access = useAppSelector(selectBallotsAccess);
+	const readOnly = access < AccessLevel.admin;
 
 	return (
 		<>
-			<BallotActions />
+			<BallotsActions />
 
 			<ShowFilters
 				selectors={ballotsSelectors}
@@ -37,14 +38,9 @@ function Ballots() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<BallotDetail
-						access={access}
-						readOnly={access < AccessLevel.admin}
-					/>
+					<BallotsDetail access={access} readOnly={readOnly} />
 				</Panel>
 			</SplitPanel>
 		</>
 	);
 }
-
-export default Ballots;

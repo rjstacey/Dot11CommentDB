@@ -1,23 +1,24 @@
 import { Row, Col, Form } from "react-bootstrap";
-import { isMultiple, Multiple } from "@common";
+import { isMultiple } from "@common";
 
-import { Ballot, BallotChange } from "@/store/ballots";
+import type { BallotMultiple } from "@/hooks/ballotsEdit";
+import type { BallotCreate, BallotChange } from "@/store/ballots";
 import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 
-import SelectGroup from "./GroupSelector";
+import SelectGroup from "../GroupSelector";
 
 export function BallotGroupRow({
-	ballot,
-	original,
-	updateBallot,
+	edited,
+	saved,
+	onChange,
 	readOnly,
 }: {
-	ballot: Multiple<Ballot>;
-	original?: Multiple<Ballot>;
-	updateBallot: (changes: BallotChange) => void;
+	edited: BallotCreate | BallotMultiple;
+	saved?: BallotMultiple;
+	onChange: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const hasChanges = original && original.groupId !== ballot.groupId;
+	const hasChanges = saved && saved.groupId !== edited.groupId;
 	const cn = hasChanges ? "has-changes" : undefined;
 	return (
 		<Form.Group as={Row} className="align-items-center mb-2">
@@ -29,15 +30,15 @@ export function BallotGroupRow({
 					id="ballot-group"
 					className={cn}
 					style={{ width: 300 }}
-					value={isMultiple(ballot.groupId) ? null : ballot.groupId}
+					value={isMultiple(edited.groupId) ? null : edited.groupId}
 					onChange={(groupId) =>
-						updateBallot({ groupId: groupId || undefined })
+						onChange({ groupId: groupId || undefined })
 					}
 					placeholder={
-						isMultiple(ballot.groupId) ? MULTIPLE_STR : BLANK_STR
+						isMultiple(edited.groupId) ? MULTIPLE_STR : BLANK_STR
 					}
 					readOnly={readOnly}
-					isInvalid={!ballot.groupId && !isMultiple(ballot.groupId)}
+					isInvalid={!edited.groupId && !isMultiple(edited.groupId)}
 				/>
 				<Form.Control.Feedback type="invalid" tooltip>
 					Select a group

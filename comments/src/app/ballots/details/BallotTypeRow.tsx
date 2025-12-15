@@ -1,15 +1,16 @@
 import React from "react";
 import { Row, Col, Form } from "react-bootstrap";
-import { isMultiple, Multiple } from "@common";
+import { isMultiple } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
-	Ballot,
+	BallotCreate,
 	BallotChange,
 	BallotType,
 	BallotTypeOptions,
 	selectBallots,
 } from "@/store/ballots";
+import type { BallotMultiple } from "@/hooks/ballotsEdit";
 
 import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 
@@ -33,43 +34,43 @@ function useNextBallotNumber(id: number, type: number) {
 }
 
 function BallotTypeNumberCol({
-	ballot,
-	original,
+	edited,
+	saved,
 	type,
 	label,
-	updateBallot,
+	onChange,
 	readOnly,
 }: {
-	ballot: Multiple<Ballot>;
-	original?: Multiple<Ballot>;
+	edited: BallotCreate | BallotMultiple;
+	saved?: BallotMultiple;
 	type: BallotType;
 	label: string;
-	updateBallot: (changes: BallotChange) => void;
+	onChange: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const id = isMultiple(ballot.id) ? 0 : ballot.id;
+	const id = "id" in edited && !isMultiple(edited.id) ? edited.id : 0;
 	const nextNumber = useNextBallotNumber(id, type);
 	let defaultNumber = 0;
-	if (!isMultiple(ballot.Type) && !isMultiple(ballot.number)) {
-		defaultNumber = ballot.Type === type ? ballot.number : nextNumber;
+	if (!isMultiple(edited.Type) && !isMultiple(edited.number)) {
+		defaultNumber = edited.Type === type ? edited.number : nextNumber;
 	}
 	const [ballotNumber, setBallotNumber] = React.useState(
 		defaultNumber.toString()
 	);
 
 	React.useEffect(() => {
-		if (original === ballot) setBallotNumber(defaultNumber.toString());
-	}, [original, ballot]);
+		if (saved === edited) setBallotNumber(defaultNumber.toString());
+	}, [saved, edited]);
 
 	function updateBallotType(type: number) {
-		if (type !== ballot.Type) {
-			updateBallot({
+		if (type !== edited.Type) {
+			onChange({
 				Type: type,
 				prev_id: null,
 				number: Number(ballotNumber),
 			});
-			if (!isMultiple(ballot.id)) {
-				updateBallot({ number: Number(ballotNumber) });
+			if ("id" in edited && !isMultiple(edited.id)) {
+				onChange({ number: Number(ballotNumber) });
 			}
 		}
 	}
@@ -77,11 +78,10 @@ function BallotTypeNumberCol({
 	function onChangeNumber(e: React.ChangeEvent<HTMLInputElement>) {
 		setBallotNumber(e.target.value);
 		const number = Number(e.target.value);
-		updateBallot({ number });
+		onChange({ number });
 	}
 
-	const cn =
-		original && original.number !== ballot.number ? "has-changes" : "";
+	const cn = saved && saved.number !== edited.number ? "has-changes" : "";
 
 	return (
 		<Col
@@ -91,10 +91,10 @@ function BallotTypeNumberCol({
 			<Form.Check
 				key={type}
 				label={label}
-				checked={ballot.Type === type}
+				checked={edited.Type === type}
 				onChange={readOnly ? () => {} : () => updateBallotType(type)}
 				ref={(ref) =>
-					ref && (ref.indeterminate = isMultiple(ballot.Type))
+					ref && (ref.indeterminate = isMultiple(edited.Type))
 				}
 				className="me-2"
 			/>
@@ -103,7 +103,7 @@ function BallotTypeNumberCol({
 					className={cn}
 					style={{
 						width: "10ch",
-						opacity: ballot.Type !== type ? 0.3 : undefined,
+						opacity: edited.Type !== type ? 0.3 : undefined,
 					}}
 					//htmlSize={4}
 					type="number"
@@ -111,12 +111,12 @@ function BallotTypeNumberCol({
 					value={ballotNumber}
 					onChange={onChangeNumber}
 					placeholder={
-						isMultiple(ballot.Type) || isMultiple(ballot.number)
+						isMultiple(edited.Type) || isMultiple(edited.number)
 							? MULTIPLE_STR
 							: BLANK_STR
 					}
-					readOnly={readOnly || isMultiple(ballot.number)}
-					disabled={ballot.Type !== type}
+					readOnly={readOnly || isMultiple(edited.number)}
+					disabled={edited.Type !== type}
 				/>
 			)}
 		</Col>
@@ -124,17 +124,17 @@ function BallotTypeNumberCol({
 }
 
 export function BallotTypeRow({
-	ballot,
-	original,
-	updateBallot,
+	edited,
+	saved,
+	onChange,
 	readOnly,
 }: {
-	ballot: Multiple<Ballot>;
-	original?: Multiple<Ballot>;
-	updateBallot: (changes: BallotChange) => void;
+	edited: BallotCreate | BallotMultiple;
+	saved?: BallotMultiple;
+	onChange: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const cn = original && original.Type !== ballot.Type ? "has-changes" : "";
+	const cn = saved && saved.Type !== edited.Type ? "has-changes" : "";
 
 	return (
 		<Row className={"align-items-center mb-2"}>
@@ -148,9 +148,9 @@ export function BallotTypeRow({
 							key={value}
 							type={value}
 							label={label}
-							ballot={ballot}
-							original={original}
-							updateBallot={updateBallot}
+							edited={edited}
+							saved={saved}
+							onChange={onChange}
 							readOnly={readOnly}
 						/>
 					))}

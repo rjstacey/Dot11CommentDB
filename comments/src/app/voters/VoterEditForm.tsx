@@ -102,7 +102,7 @@ export function VoterEditForm({
 		setState((state) => ({ ...state, ...changes }));
 	}
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		const changes = shallowDiff(voter, state);
@@ -114,12 +114,7 @@ export function VoterEditForm({
 	if (readOnly) className += " pe-none";
 
 	return (
-		<Form
-			noValidate
-			validated
-			onSubmit={handleSubmit}
-			className={className}
-		>
+		<Form noValidate validated onSubmit={onSubmit} className={className}>
 			<VoterEdit voter={state} change={change} readOnly={readOnly} />
 			{!readOnly && hasUpdates && (
 				<SubmitCancelRow submitLabel="Update" cancel={cancel} />
@@ -131,15 +126,14 @@ export function VoterEditForm({
 export function VoterAddForm({
 	voter,
 	cancel,
-	setBusy,
 	readOnly,
 }: {
 	voter: VoterCreate;
 	cancel: () => void;
-	setBusy: (busy: boolean) => void;
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
+	const [busy, setBusy] = React.useState(false);
 	const formRef = React.useRef<HTMLFormElement>(null);
 	//const [formValid, setFormValid] = React.useState(false);
 
@@ -155,7 +149,7 @@ export function VoterAddForm({
 		setState((state) => ({ ...state, ...changes }));
 	}
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(addVoter(state));
@@ -172,7 +166,7 @@ export function VoterAddForm({
 			ref={formRef}
 			noValidate
 			validated
-			onSubmit={handleSubmit}
+			onSubmit={onSubmit}
 			className={className}
 		>
 			<VoterEdit voter={state} change={change} readOnly={readOnly} />
@@ -181,6 +175,7 @@ export function VoterAddForm({
 					submitLabel="Add"
 					cancel={cancel}
 					disabled={!formValid}
+					busy={busy}
 				/>
 			)}
 		</Form>

@@ -1,23 +1,24 @@
 import { Row, Col, Form } from "react-bootstrap";
-import { isMultiple, Multiple } from "@common";
+import { isMultiple } from "@common";
 
-import { Ballot, BallotChange } from "@/store/ballots";
+import type { BallotMultiple } from "@/hooks/ballotsEdit";
+import type { BallotCreate, BallotChange } from "@/store/ballots";
 import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 
-import SelectProject from "./ProjectSelector";
+import SelectProject from "../ProjectSelector";
 
 export function BallotProjectRow({
-	ballot,
-	original,
-	updateBallot,
+	edited,
+	saved,
+	onChange,
 	readOnly,
 }: {
-	ballot: Multiple<Ballot>;
-	original?: Multiple<Ballot>;
-	updateBallot: (changes: BallotChange) => void;
+	edited: BallotCreate | BallotMultiple;
+	saved?: BallotMultiple;
+	onChange: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const hasChanges = original && original.Project !== ballot.Project;
+	const hasChanges = saved && saved.Project !== edited.Project;
 	const cn = hasChanges ? "has-changes" : undefined;
 
 	return (
@@ -30,23 +31,23 @@ export function BallotProjectRow({
 					id="ballot-project"
 					className={cn}
 					style={{ width: 300 }}
-					value={isMultiple(ballot.Project) ? "" : ballot.Project}
-					onChange={(Project) => updateBallot({ Project })}
-					groupId={isMultiple(ballot.groupId) ? null : ballot.groupId}
+					value={isMultiple(edited.Project) ? "" : edited.Project}
+					onChange={(Project) => onChange({ Project })}
+					groupId={isMultiple(edited.groupId) ? null : edited.groupId}
 					placeholder={
-						isMultiple(ballot.Project) ? MULTIPLE_STR : BLANK_STR
+						isMultiple(edited.Project) ? MULTIPLE_STR : BLANK_STR
 					}
 					readOnly={readOnly}
-					isInvalid={!ballot.Project && !isMultiple(ballot.Project)}
+					isInvalid={!edited.Project && !isMultiple(edited.Project)}
 				/>
 				<Form.Control.Feedback type="invalid" tooltip>
 					Select an existing or add a new project (e.g., P802.11bn)
 				</Form.Control.Feedback>
 				{hasChanges && (
 					<Form.Text>
-						{isMultiple(original.Project)
+						{isMultiple(saved.Project)
 							? MULTIPLE_STR
-							: original.Project}
+							: saved.Project}
 					</Form.Text>
 				)}
 			</Col>

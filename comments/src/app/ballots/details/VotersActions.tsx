@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router";
 import { Row, Col, Form, DropdownButton } from "react-bootstrap";
-import { VotersImportForm } from "../voters/VotersImport";
+import { VotersImportForm } from "../../voters/VotersImport";
 import { useAppSelector } from "@/store/hooks";
 import {
 	getEncodedBallotId,
@@ -10,13 +10,7 @@ import {
 	BallotType,
 } from "@/store/ballots";
 
-function VotersImportButton({
-	ballot,
-	setBusy,
-}: {
-	ballot: Ballot;
-	setBusy: (busy: boolean) => void;
-}) {
+function VotersImportButton({ ballot }: { ballot: Ballot }) {
 	const [show, setShow] = React.useState(false);
 	return (
 		<DropdownButton
@@ -29,7 +23,6 @@ function VotersImportButton({
 				key={"voters-import-form-" + show} // Re-initialize with open
 				ballot={ballot}
 				close={() => setShow(false)}
-				setBusy={setBusy}
 			/>
 		</DropdownButton>
 	);
@@ -38,11 +31,9 @@ function VotersImportButton({
 function VotersActions({
 	ballot,
 	readOnly,
-	setBusy,
 }: {
 	ballot: Ballot;
 	readOnly?: boolean;
-	setBusy: (busy: boolean) => void;
 }) {
 	const workingGroup = useAppSelector(selectBallotsWorkingGroup)!;
 
@@ -68,7 +59,7 @@ function VotersActions({
 						xs={12}
 						className="d-flex flex-row flex-wrap justify-content-start gap-2"
 					>
-						<VotersImportButton ballot={ballot} setBusy={setBusy} />
+						<VotersImportButton ballot={ballot} />
 					</Col>
 				)}
 			</Row>

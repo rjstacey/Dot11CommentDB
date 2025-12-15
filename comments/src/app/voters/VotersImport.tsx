@@ -13,13 +13,12 @@ import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 export function VotersImportForm({
 	ballot,
 	close,
-	setBusy = () => {},
 }: {
 	ballot: Ballot;
 	close: () => void;
-	setBusy?: (busy: boolean) => void;
 }) {
 	const dispatch = useAppDispatch();
+	const [busy, setBusy] = React.useState(false);
 	const [source, setSource] = React.useState<"members" | "upload">("members");
 	const [date, setDate] = React.useState<string>(
 		(ballot?.Start || new Date().toISOString()).slice(0, 10)
@@ -33,7 +32,7 @@ export function VotersImportForm({
 		setFormValid(formValid);
 	});
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(
@@ -51,7 +50,7 @@ export function VotersImportForm({
 			noValidate
 			validated
 			style={{ width: 410 }}
-			onSubmit={handleSubmit}
+			onSubmit={onSubmit}
 			className="p-3"
 		>
 			<Row className="mb-3">
@@ -110,6 +109,7 @@ export function VotersImportForm({
 				submitLabel="Create"
 				cancel={close}
 				disabled={!formValid}
+				busy={busy}
 			/>
 		</Form>
 	);

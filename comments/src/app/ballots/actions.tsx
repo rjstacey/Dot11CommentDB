@@ -13,7 +13,7 @@ import { BallotsSubmenu } from "./submenu";
 import { tableColumns } from "./tableColumns";
 import { refresh } from "./loader";
 
-export function BallotActions() {
+export function BallotsActions() {
 	const { loading } = useAppSelector(selectBallotsState);
 
 	return (

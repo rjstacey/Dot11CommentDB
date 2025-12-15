@@ -2,12 +2,12 @@ import type { RouteObject } from "react-router";
 
 import { loader } from "./loader";
 import AppError from "../errorPage";
-import Ballots from "./main";
+import { BallotsMain } from "./main";
 
 const route: RouteObject = {
 	loader,
 	errorElement: <AppError />,
-	Component: Ballots,
+	Component: BallotsMain,
 };
 
 export default route;
