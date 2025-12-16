@@ -13,11 +13,12 @@ import { selectCurrentBallot_id, updateBallotsLocal } from "./ballots";
 import {
 	Voter,
 	VoterCreate,
+	VoterChange,
 	votersResponseSchema,
 	votersSchema,
 } from "@schemas/voters";
 
-export type { Voter, VoterCreate };
+export type { Voter, VoterCreate, VoterChange };
 
 export const voterExcusedOptions = [
 	{ value: false, label: "No" },
@@ -81,14 +82,9 @@ export default slice;
 /* Slice actions */
 export const votersActions = slice.actions;
 
-const {
-	getSuccess,
-	getFailure,
-	removeMany,
-	setMany,
-	setSelected: setSelectedVoters,
-} = slice.actions;
-export { setSelectedVoters };
+const { getSuccess, getFailure, removeMany, setMany, setSelected } =
+	slice.actions;
+export { setSelected };
 
 // Overload getPending() with one that sets ballot_id
 const getPending = createAction<{ ballot_id: number }>(dataSet + "/getPending");
@@ -194,18 +190,21 @@ export const votersFromMembersSnapshot =
 	};
 
 export const addVoter =
-	(voterIn: VoterCreate): AppThunk =>
+	(voterIn: VoterCreate): AppThunk<Voter | undefined> =>
 	async (dispatch, getState) => {
 		const ballot_id = selectVotersBallot_id(getState());
 		const url = `${baseUrl}/${ballot_id}`;
+		let voter: Voter | undefined;
 		try {
 			const response = await fetcher.post(url, [voterIn]);
 			const { voters, ballots } = votersResponseSchema.parse(response);
 			dispatch(setMany(voters));
+			voter = voters[0];
 			if (ballots) dispatch(updateBallotsLocal(ballots));
 		} catch (error) {
 			dispatch(setError("POST " + url, error));
 		}
+		return voter;
 	};
 
 export const updateVoter =

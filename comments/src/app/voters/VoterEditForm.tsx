@@ -1,9 +1,7 @@
 import React from "react";
 import { Row, Col, Form } from "react-bootstrap";
-import { shallowDiff } from "@common";
 
-import { useAppDispatch } from "@/store/hooks";
-import { VoterCreate, addVoter, updateVoter } from "@/store/voters";
+import { VoterChange, VoterCreate } from "@/store/voters";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 import { MemberSelect } from "./MemberSelect";
@@ -15,7 +13,7 @@ function VoterEdit({
 	readOnly,
 }: {
 	voter: VoterCreate;
-	change: (changes: Partial<VoterCreate>) => void;
+	change: (changes: VoterChange) => void;
 	readOnly?: boolean;
 }) {
 	return (
@@ -76,37 +74,28 @@ function VoterEdit({
 }
 
 export function VoterEditForm({
+	action,
 	voter,
-	setBusy,
+	onChange,
+	hasChanges,
+	submit,
+	cancel,
 	readOnly,
 }: {
-	voter: VoterCreate;
-	setBusy: (busy: boolean) => void;
+	action: "add" | "update";
+	voter: VoterCreate | VoterCreate;
+	onChange: (changes: VoterChange) => void;
+	hasChanges: () => boolean;
+	submit: () => Promise<void>;
+	cancel: () => void;
 	readOnly?: boolean;
 }) {
-	const dispatch = useAppDispatch();
-	const [state, setState] = React.useState(voter);
-
-	const hasUpdates = React.useMemo(() => {
-		const changes = shallowDiff(voter, state);
-		return Object.keys(changes).length > 0;
-	}, [state, voter]);
-
-	React.useEffect(() => setState(voter), [voter]);
-
-	function cancel() {
-		setState(voter);
-	}
-
-	function change(changes: Partial<VoterCreate>) {
-		setState((state) => ({ ...state, ...changes }));
-	}
+	const [busy, setBusy] = React.useState(false);
 
 	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
-		const changes = shallowDiff(voter, state);
-		await dispatch(updateVoter(voter.id!, changes));
+		await submit();
 		setBusy(false);
 	}
 
@@ -115,66 +104,11 @@ export function VoterEditForm({
 
 	return (
 		<Form noValidate validated onSubmit={onSubmit} className={className}>
-			<VoterEdit voter={state} change={change} readOnly={readOnly} />
-			{!readOnly && hasUpdates && (
-				<SubmitCancelRow submitLabel="Update" cancel={cancel} />
-			)}
-		</Form>
-	);
-}
-
-export function VoterAddForm({
-	voter,
-	cancel,
-	readOnly,
-}: {
-	voter: VoterCreate;
-	cancel: () => void;
-	readOnly?: boolean;
-}) {
-	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const formRef = React.useRef<HTMLFormElement>(null);
-	//const [formValid, setFormValid] = React.useState(false);
-
-	/*React.useLayoutEffect(() => {
-		const formValid = formRef.current?.checkValidity() || false;
-		setFormValid(formValid);
-	});*/
-	const [state, setState] = React.useState(voter);
-
-	React.useEffect(() => setState(voter), [voter]);
-
-	function change(changes: Partial<VoterCreate>) {
-		setState((state) => ({ ...state, ...changes }));
-	}
-
-	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault();
-		setBusy(true);
-		await dispatch(addVoter(state));
-		setBusy(false);
-	}
-
-	const formValid = state.SAPIN && state.Status;
-
-	let className = "p-3";
-	if (readOnly) className += " pe-none";
-
-	return (
-		<Form
-			ref={formRef}
-			noValidate
-			validated
-			onSubmit={onSubmit}
-			className={className}
-		>
-			<VoterEdit voter={state} change={change} readOnly={readOnly} />
-			{!readOnly && (
+			<VoterEdit voter={voter} change={onChange} readOnly={readOnly} />
+			{hasChanges() && (
 				<SubmitCancelRow
-					submitLabel="Add"
+					submitLabel={action === "add" ? "Add" : "Update"}
 					cancel={cancel}
-					disabled={!formValid}
 					busy={busy}
 				/>
 			)}
