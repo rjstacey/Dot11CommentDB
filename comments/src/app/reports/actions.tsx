@@ -7,7 +7,7 @@ import ProjectBallotSelector from "@/components/ProjectBallotSelector";
 import { useReportData } from "./reportData";
 import { renderTableToClipboard } from "./clipboard";
 
-function ReportsActions() {
+export function ReportsActions() {
 	const isOnline = useAppSelector(selectIsOnline);
 	const { report } = useParams();
 	const data = useReportData(report);
@@ -34,5 +34,3 @@ function ReportsActions() {
 		</Row>
 	);
 }
-
-export default ReportsActions;
