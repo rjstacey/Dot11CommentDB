@@ -75,11 +75,7 @@ function VoterDetail({
 	let content: JSX.Element;
 	if (addVoter) {
 		content = (
-			<VoterAddForm
-				voter={addVoter}
-				cancel={() => setAddVoter(null)}
-				setBusy={setBusy}
-			/>
+			<VoterAddForm voter={addVoter} cancel={() => setAddVoter(null)} />
 		);
 	} else {
 		let placeholder: string | null = null;

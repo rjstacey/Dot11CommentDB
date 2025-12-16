@@ -13,7 +13,7 @@ import {
 import { BallotsSubmenu } from "../ballots/submenu";
 import { tableColumns } from "./tableColumns";
 
-function EpollsActions() {
+export function EpollsActions() {
 	const dispatch = useAppDispatch();
 	const { loading } = useAppSelector(selectEpollsState);
 	const isOnline = useAppSelector(selectIsOnline);
@@ -52,5 +52,3 @@ function EpollsActions() {
 		</Row>
 	);
 }
-
-export default EpollsActions;
