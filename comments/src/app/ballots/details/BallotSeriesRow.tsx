@@ -48,7 +48,6 @@ export function BallotSeriesRow({
 			IsComplete: e.target.checked,
 		});
 	}
-	console.log(readOnly);
 
 	return (
 		<Form.Group as={Row} className="mb-2" readOnly={readOnly}>

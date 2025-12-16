@@ -297,8 +297,8 @@ export function useBallotsUpdate(
 			return;
 		}
 		if (state.action === "add") {
-			await dispatch(addBallot(state.edited));
-			resetState();
+			const ballot = await dispatch(addBallot(state.edited));
+			if (ballot) dispatch(setSelected([ballot.id]));
 		} else if (state.action === "update") {
 			const updates: BallotUpdate[] = [];
 			const editChanges = shallowDiff(

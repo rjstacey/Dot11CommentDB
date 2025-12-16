@@ -130,6 +130,7 @@ function useEpollsInitState() {
 	);
 
 	React.useEffect(() => {
+		console.log("effect");
 		resetState();
 	}, [selected, resetState]);
 
@@ -152,10 +153,9 @@ export function useEpollsEdit(readOnly: boolean) {
 
 	return {
 		state,
-		setState,
-		cancel: resetState,
 		onChange,
 		hasChanges,
 		submit,
+		cancel: resetState,
 	};
 }

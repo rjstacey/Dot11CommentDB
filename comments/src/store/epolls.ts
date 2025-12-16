@@ -11,7 +11,7 @@ import {
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
-import { selectBallotEntities as selectSyncedBallotEntities } from "./ballots";
+import { selectBallotIds, selectBallotEntities } from "./ballots";
 import { Epoll, epollsSchema } from "@schemas/epolls";
 
 export type { Epoll };
@@ -99,21 +99,22 @@ export const selectEpollEntities = (state: RootState) =>
 
 /** Generate epoll entities with indicator on each entry for presence in the ballots list */
 export const selectSyncedEntities = createSelector(
-	selectSyncedBallotEntities,
+	selectBallotIds,
+	selectBallotEntities,
+	selectEpollIds,
 	selectEpollEntities,
-	(ballotEntities, epollEntities) => {
+	(ballotIds, ballotEntities, epollIds, epollEntities) => {
 		const syncedEntities: Dictionary<SyncedEpoll> = {};
-		for (const id of Object.keys(epollEntities))
-			syncedEntities[id] = {
-				...epollEntities[id]!,
-				InDatabase: false,
-				ballot_id: null,
+		for (const epollNum of epollIds) {
+			const ballot_id =
+				(ballotIds as number[]).find(
+					(id) => ballotEntities[id]!.EpollNum === epollNum
+				) || null;
+			syncedEntities[epollNum] = {
+				...epollEntities[epollNum]!,
+				InDatabase: Boolean(ballot_id),
+				ballot_id,
 			};
-		for (const b of Object.values(ballotEntities)) {
-			if (b!.EpollNum && syncedEntities[b!.EpollNum]) {
-				syncedEntities[b!.EpollNum]!.InDatabase = true;
-				syncedEntities[b!.EpollNum]!.ballot_id = b!.id;
-			}
 		}
 		return syncedEntities;
 	}

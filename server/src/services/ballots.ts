@@ -91,14 +91,19 @@ const createViewBallotsStage = `
 `;
 
 export async function init() {
+	let sql =
+		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="ballots" and column_name = "BallotID_";';
+	let rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
+	if (rows.length === 1)
+		db.query("ALTER table ballots DROP COLUMN BallotID_");
+	sql =
+		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="ballots" and column_name = "VotingPoolID";';
+	rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
+	if (rows.length === 1)
+		db.query("ALTER table ballots DROP COLUMN VotingPoolID");
+
 	await db.query(createViewBallotsSeries);
 	await db.query(createViewBallotsStage);
-	try {
-		await db.query("ALTER table ballots DROP COLUMN BallotID_");
-		await db.query("ALTER table ballots DROP COLUMN VotingPoolID");
-	} catch {
-		/* ignore */
-	}
 }
 
 /* Get ballot fields */
