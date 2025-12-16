@@ -45,14 +45,17 @@ export const voterCreateSchema = voterSchema
 	);
 export const voterCreatesSchema = voterCreateSchema.array();
 
-export const voterChangeSchema = voterSchema.pick({
-	Excused: true,
-	Status: true,
-});
+export const voterChangeSchema = voterSchema
+	.pick({
+		SAPIN: true,
+		Excused: true,
+		Status: true,
+	})
+	.partial();
 
 export const voterUpdateSchema = z.object({
 	id: voterIdSchema,
-	changes: voterChangeSchema.partial(),
+	changes: voterChangeSchema,
 });
 export const voterUpdatesSchema = voterUpdateSchema.array();
 export const voterIdsSchema = voterIdSchema.array();
