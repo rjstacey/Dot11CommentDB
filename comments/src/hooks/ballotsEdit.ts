@@ -29,29 +29,86 @@ export function useGetBallotSeries() {
 	const ids = useAppSelector(selectBallotIds);
 	const entities = useAppSelector(selectBallotEntities);
 
-	return React.useCallback(
-		(ballot_id: number) => {
+	/** Get previous ballots starting with supplied prev_id */
+	const getPrevBallots = React.useCallback(
+		(prev_id: number | null) => {
 			const ballotSeries: Ballot[] = [];
-			let ballot = entities[ballot_id];
-			if (ballot) {
-				ballotSeries.unshift(ballot);
-				while (ballot?.prev_id) {
-					ballot = entities[ballot.prev_id];
-					if (ballot) ballotSeries.unshift(ballot);
-				}
-				ballot = ballotSeries[ballotSeries.length - 1];
-				for (const id of ids) {
-					const b = entities[id]!;
-					if (b.prev_id === ballot.id) {
-						ballot = b;
-						ballotSeries.push(ballot);
-					}
+			let ballot: Ballot | undefined;
+			while (prev_id) {
+				ballot = entities[prev_id];
+				if (ballot) {
+					prev_id = ballot.prev_id;
+					ballotSeries.unshift(ballot);
 				}
 			}
 			return ballotSeries;
 		},
 		[ids, entities]
 	);
+
+	/** Get ballot series that references the supplied ballot_id */
+	const getFutureBallots = React.useCallback(
+		(ballot_id: number) => {
+			const ballotSeries: Ballot[] = [];
+			const ballots = ids.map((id) => entities[id]!);
+			let ballot: Ballot | undefined;
+			do {
+				ballot = ballots.find((b) => b.prev_id === ballot_id);
+				if (ballot) {
+					ballot_id = ballot.id;
+					ballotSeries.push(ballot);
+				}
+			} while (ballot);
+			return ballotSeries;
+		},
+		[ids, entities]
+	);
+
+	/** Get ballot series that potentially precedes the supplied ballot */
+	const getPotentialPrevBallots = React.useCallback(
+		({
+			id,
+			groupId,
+			Type,
+			Project,
+			Start,
+		}: {
+			id?: number;
+			groupId: string;
+			Type: BallotType;
+			Project: string;
+			Start: string | null;
+		}) => {
+			const prevBallots = ids
+				.map((id) => entities[id]!)
+				.filter(
+					(b) =>
+						b.groupId === groupId &&
+						b.Type === Type &&
+						b.Project === Project &&
+						new Date(b.Start!).getTime() <
+							new Date(Start!).getTime() &&
+						b.id !== id
+				)
+				.sort(
+					(b1, b2) =>
+						new Date(b1.Start!).getTime() -
+						new Date(b2.Start!).getTime()
+				);
+			if (prevBallots.length > 0) {
+				const ballot = prevBallots[prevBallots.length - 1];
+				return getPrevBallots(ballot.prev_id).concat(ballot);
+			}
+			return [];
+		},
+		[ids, entities, getPrevBallots]
+	);
+
+	return {
+		getPrevBallots,
+		getPotentialPrevBallots,
+		getFutureBallots,
+	};
 }
 
 function nextBallotNumber(ballots: Ballot[], type: number) {

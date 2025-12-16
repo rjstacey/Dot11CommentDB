@@ -5,8 +5,7 @@ import { BallotGroupRow } from "./BallotGroupRow";
 import { BallotProjectRow } from "./BallotProjectRow";
 import { BallotDatesRows } from "./BallotDatesRows";
 import { BallotTypeRow } from "./BallotTypeRow";
-import { BallotStageRow } from "./BallotStageRow";
-import { BallotSeriesRow } from "./BallotSeriesRow";
+import { BallotSeriesRows } from "./BallotSeriesRows";
 import { BallotEpollRow } from "./BallotEpollRow";
 import { BallotDocumentRow } from "./BallotDocumentRow";
 
@@ -47,13 +46,7 @@ export function BallotEdit({
 				onChange={onChange}
 				readOnly={readOnly}
 			/>
-			<BallotStageRow
-				edited={edited}
-				saved={saved}
-				onChange={onChange}
-				readOnly={readOnly}
-			/>
-			<BallotSeriesRow
+			<BallotSeriesRows
 				edited={edited}
 				saved={saved}
 				onChange={onChange}
