@@ -1,58 +1,34 @@
 import React from "react";
 import { Form, Row, Col } from "react-bootstrap";
-import { TextArea, shallowDiff } from "@common";
+import { TextArea } from "@common";
 
-import { useAppDispatch } from "@/store/hooks";
-import { updateResults, type Result, type ResultChange } from "@/store/results";
-import { Ballot } from "@/store/ballots";
+import { type Result, type ResultChange } from "@/store/results";
 import { SelectVote } from "./SelectVote";
 import { MemberSelect } from "../voters/MemberSelect";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 export function ResultEditForm({
 	action,
-	ballot,
-	result,
+	edited,
+	onChange,
+	hasChanges,
+	submit,
 	cancel,
-	setBusy,
 	readOnly,
 }: {
 	action: "add" | "update";
-	ballot: Ballot;
-	result: Result;
+	edited: Result;
+	onChange: (changes: ResultChange) => void;
+	hasChanges: () => boolean;
+	submit: () => Promise<void>;
 	cancel: () => void;
-	setBusy: (busy: boolean) => void;
 	readOnly?: boolean;
 }) {
-	const dispatch = useAppDispatch();
-	const [state, setState] = React.useState(result);
-
-	const hasUpdates = React.useMemo(() => {
-		if (action === "add") return true;
-		const changes = shallowDiff(result, state);
-		return Object.keys(changes).length > 0;
-	}, [action, state, result]);
-
-	React.useEffect(() => setState(result), [result]);
-
-	function change(changes: ResultChange) {
-		setState((state) => ({
-			...state,
-			...changes,
-		}));
-	}
-
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	const [busy, setBusy] = React.useState(false);
+	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
-		if (action === "add") {
-			//await dispatch(addResult(state));
-		} else {
-			const changes = shallowDiff(result, state);
-			await dispatch(
-				updateResults(ballot.id, [{ id: result.id, changes }])
-			);
-		}
+		await submit();
 		setBusy(false);
 	}
 
@@ -60,7 +36,7 @@ export function ResultEditForm({
 	if (readOnly) className += " pe-none";
 
 	return (
-		<Form onSubmit={handleSubmit} className={className}>
+		<Form onSubmit={onSubmit} className={className}>
 			<Row className="mb-3">
 				<Form.Label column htmlFor="result-name">
 					Name:
@@ -68,7 +44,7 @@ export function ResultEditForm({
 				<Col>
 					<MemberSelect
 						id="result-name"
-						value={result.SAPIN!}
+						value={edited.SAPIN!}
 						onChange={() => {}}
 						readOnly
 					/>
@@ -81,8 +57,8 @@ export function ResultEditForm({
 				<Col xs="auto">
 					<SelectVote
 						id="result-vote"
-						value={state.vote}
-						onChange={(vote) => change({ vote })}
+						value={edited.vote}
+						onChange={(vote) => onChange({ vote })}
 						readOnly={readOnly}
 					/>
 				</Col>
@@ -96,16 +72,17 @@ export function ResultEditForm({
 						style={{ width: "100%" }}
 						id="results-notes"
 						rows={2}
-						value={state.notes || ""}
-						onChange={(e) => change({ notes: e.target.value })}
+						value={edited.notes || ""}
+						onChange={(e) => onChange({ notes: e.target.value })}
 						readOnly={readOnly}
 					/>
 				</Col>
 			</Form.Group>
-			{!readOnly && hasUpdates && (
+			{hasChanges() && (
 				<SubmitCancelRow
 					submitLabel={action === "add" ? "Add" : "Update"}
 					cancel={cancel}
+					busy={busy}
 				/>
 			)}
 		</Form>
