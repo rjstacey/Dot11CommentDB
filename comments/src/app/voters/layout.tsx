@@ -1,7 +1,7 @@
 import { Outlet } from "react-router";
-import VotersActions from "./actions";
+import { VotersActions } from "./actions";
 
-function VotersLayout() {
+export function VotersLayout() {
 	return (
 		<>
 			<VotersActions />
@@ -9,5 +9,3 @@ function VotersLayout() {
 		</>
 	);
 }
-
-export default VotersLayout;

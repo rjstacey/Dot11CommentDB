@@ -1,6 +1,7 @@
 import React from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
+import { selectBallotsAccess, AccessLevel } from "@/store/ballots";
 import { selectIsOnline } from "@/store/offline";
 
 import { VoterEditForm } from "./VoterEditForm";
@@ -13,17 +14,13 @@ const Placeholder = (props: React.ComponentProps<"span">) => (
 	</div>
 );
 
-function VoterDetail({
-	access,
-	readOnly,
-}: {
-	access: number;
-	readOnly?: boolean;
-}) {
+export function VotersDetail() {
+	const access = useAppSelector(selectBallotsAccess);
+	const readOnly = access <= AccessLevel.ro;
 	const isOnline = useAppSelector(selectIsOnline);
 
 	const { state, hasChanges, onChange, submit, cancel, onAdd, onDelete } =
-		useVotersEdit(readOnly!);
+		useVotersEdit(readOnly);
 
 	let title = "Voter";
 	let content: React.ReactNode;
@@ -84,5 +81,3 @@ function VoterDetail({
 		</Container>
 	);
 }
-
-export default VoterDetail;

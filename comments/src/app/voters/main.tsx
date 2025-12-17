@@ -1,14 +1,10 @@
 import { AppTable, ShowFilters, SplitPanel, Panel } from "@common";
-import { useAppSelector } from "@/store/hooks";
-import { selectBallotsAccess } from "@/store/ballots";
 import { fields, votersSelectors, votersActions } from "@/store/voters";
 
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
-import VoterDetail from "./detail";
+import { VotersDetail } from "./detail";
 
-function VotersTable() {
-	const access = useAppSelector(selectBallotsAccess);
-
+export function VotersMain() {
 	return (
 		<>
 			<ShowFilters
@@ -31,11 +27,9 @@ function VotersTable() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<VoterDetail access={access} />
+					<VotersDetail />
 				</Panel>
 			</SplitPanel>
 		</>
 	);
 }
-
-export default VotersTable;

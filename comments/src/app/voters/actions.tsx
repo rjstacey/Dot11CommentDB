@@ -31,7 +31,7 @@ function BallotInfo({ ballot }: { ballot: Ballot | undefined }) {
 	);
 }
 
-function VotersActions() {
+export function VotersActions() {
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
 	const votersBallot_id = useAppSelector(selectVotersBallot_id);
@@ -79,5 +79,3 @@ function VotersActions() {
 		</Row>
 	);
 }
-
-export default VotersActions;
