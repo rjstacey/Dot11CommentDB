@@ -1,8 +1,8 @@
 import { RouteObject } from "react-router";
 
 import AppError from "../errorPage";
-import CommentsLayout from "./layout";
-import CommentsTable from "./table";
+import { CommentsLayout } from "./layout";
+import { CommentsMain } from "./main";
 import { indexLoader, commentsLoader } from "./loader";
 
 const route: RouteObject = {
@@ -16,7 +16,7 @@ const route: RouteObject = {
 		{
 			path: ":ballotId",
 			loader: commentsLoader,
-			element: <CommentsTable />,
+			element: <CommentsMain />,
 			errorElement: <AppError />,
 		},
 	],

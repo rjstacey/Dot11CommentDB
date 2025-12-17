@@ -1,26 +1,57 @@
 import * as React from "react";
-import { Container, Row, Col, Button } from "react-bootstrap";
-import { ConfirmModal, type Multiple } from "@common";
+import { Container, Row, Col, Button, Form } from "react-bootstrap";
+import { MULTIPLE, isMultiple } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-	addResolutions,
-	deleteResolutions,
 	setUiProperties,
 	selectCommentsState,
 	CommentResolution,
-	Comment,
-	Resolution,
-	ResolutionCreate,
 	AccessLevel,
+	getCommentStatus,
 } from "@/store/comments";
 import { selectIsOnline } from "@/store/offline";
 
 import CommentHistory from "./CommentHistory";
-import { CommentResolutionEdit } from "./CommentResolutionEdit";
+import CommentEdit from "./CommentEdit";
+import ResolutionEdit from "./ResolutionEdit";
+import { EditingNotesRowCollapsable } from "./EditingNotes";
 import { RoleSelect } from "./RoleSelect";
-import { useCommentsAccess } from "./useCommentsAccess";
 import { ShowAccess } from "@/components/ShowAccess";
+import { useCommentsEdit } from "@/hooks/commentsEdit";
+
+function renderCommentsStatus(commentResolutions: CommentResolution[]) {
+	let status: string | typeof MULTIPLE = "";
+	commentResolutions.forEach((c) => {
+		const s = getCommentStatus(c);
+		if (!status) status = s;
+		else if (status !== s) status = MULTIPLE;
+	});
+	if (isMultiple(status))
+		return <span style={{ fontStyle: "italic" }}>(Multiple)</span>;
+	else return status;
+}
+
+function CidAndStatusRow({
+	commentResolutions,
+}: {
+	commentResolutions: CommentResolution[];
+}) {
+	const cids = commentResolutions.map((c) => c.CID /*getCID(c)*/);
+	const cidsStr = cids.join(", ");
+	const cidsLabel = cids.length > 1 ? "CIDs:" : "CID:";
+	return (
+		<Row className="align-items-center mt-2 mb-2">
+			<Col xs="auto">
+				<Form.Label as="span">{cidsLabel}</Form.Label>
+			</Col>
+			<Col>
+				<div>{cidsStr}</div>
+			</Col>
+			<Col xs="auto">{renderCommentsStatus(commentResolutions)}</Col>
+		</Row>
+	);
+}
 
 const Placeholder = (props: React.ComponentProps<"span">) => (
 	<div className="details-panel-placeholder">
@@ -28,69 +59,28 @@ const Placeholder = (props: React.ComponentProps<"span">) => (
 	</div>
 );
 
-export type MultipleCommentResolution = Multiple<CommentResolution>;
-export type MultipleComment = Multiple<Comment>;
-export type MultipleResolution = Multiple<Resolution>;
-
-function CommentDetail() {
+export function CommentsDetail() {
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
 
-	const { entities, loading, selected } = useAppSelector(selectCommentsState);
-	const comments = React.useMemo(
-		() => selected.map((id) => entities[id]!).filter(Boolean),
-		[selected, entities]
-	);
-
-	const [commentsAccess, resolutionsAccess] = useCommentsAccess(comments);
+	const [showHistory, setShowHistory] = React.useState(false);
+	const toggleShowHistory = () => setShowHistory(!showHistory);
 
 	const editMode: boolean | undefined =
 		useAppSelector(selectCommentsState).ui.editMode;
 	const toggleEditMode = () =>
 		dispatch(setUiProperties({ editMode: !editMode }));
+	const readOnly = !editMode;
 
-	const [showHistory, setShowHistory] = React.useState(false);
-	const toggleShowHistory = () => setShowHistory(!showHistory);
-
-	const handleAddResolutions = async () => {
-		if (commentsAccess < AccessLevel.rw || !editMode) {
-			console.warn("Update in read only component");
-			return;
-		}
-
-		if (comments.find((c) => c.ApprovedByMotion)) {
-			const msg =
-				comments.length > 1
-					? "One of the comments has an approved resolution."
-					: "The comment has an approved resolution.";
-			const ok = await ConfirmModal.show(
-				msg + " Are you sure you want to add another resolution?"
-			);
-			if (!ok) return;
-		}
-
-		// Add only one entry per comment_id
-		const resolutions: ResolutionCreate[] = [];
-		for (const c of comments) {
-			if (!resolutions.find((r) => r.comment_id === c.comment_id))
-				resolutions.push({ comment_id: c.comment_id });
-		}
-		await dispatch(addResolutions(resolutions));
-	};
-
-	const handleDeleteResolutions = async () => {
-		if (commentsAccess < AccessLevel.rw || !editMode) {
-			console.warn("Update in read only component");
-			return;
-		}
-		const ids = comments
-			.filter((c) => c.resolution_id) // only those with resolutions
-			.map((c) => c.id);
-		await dispatch(deleteResolutions(ids));
-	};
-
-	const disableButtons = loading || comments.length === 0;
-	const disableEditButtons = disableButtons || !editMode;
+	const {
+		state,
+		commentsAccess,
+		resolutionsAccess,
+		onChangeComments,
+		onChangeResolutions,
+		onAddResolutions,
+		onDeleteResolutions,
+	} = useCommentsEdit(!editMode);
 
 	const actionElements = (
 		<>
@@ -99,7 +89,11 @@ function CommentDetail() {
 				className="bi-clock-history"
 				onClick={toggleShowHistory}
 				active={showHistory}
-				disabled={selected.length === 0 || !isOnline}
+				disabled={
+					state.action !== "update" ||
+					state.commentResolutions.length === 0 ||
+					!isOnline
+				}
 			>
 				{" History"}
 			</Button>
@@ -108,8 +102,8 @@ function CommentDetail() {
 				<Button
 					variant="outline-primary"
 					className="bi-pencil"
-					title="Edit resolution"
-					disabled={disableButtons || showHistory}
+					title="Edit mode"
+					disabled={state.action !== "update" || showHistory}
 					active={editMode}
 					onClick={toggleEditMode}
 				>
@@ -122,8 +116,12 @@ function CommentDetail() {
 						variant="outline-primary"
 						className="bi-plus-lg"
 						title="Create alternate resolution"
-						disabled={disableEditButtons || showHistory}
-						onClick={handleAddResolutions}
+						disabled={
+							state.action !== "update" ||
+							!editMode ||
+							showHistory
+						}
+						onClick={onAddResolutions}
 					>
 						{" Add Resn"}
 					</Button>
@@ -131,8 +129,12 @@ function CommentDetail() {
 						variant="outline-primary"
 						className="bi-trash"
 						title="Delete resolution"
-						disabled={disableEditButtons || showHistory}
-						onClick={handleDeleteResolutions}
+						disabled={
+							state.action !== "update" ||
+							!editMode ||
+							showHistory
+						}
+						onClick={onDeleteResolutions}
 					>
 						{" Delete Resn"}
 					</Button>
@@ -142,20 +144,37 @@ function CommentDetail() {
 	);
 
 	let content: React.ReactNode;
-	if (loading) {
-		content = <Placeholder>Loading...</Placeholder>;
-	} else if (comments.length === 0) {
-		content = <Placeholder>Nothing selected</Placeholder>;
+	if (state.action === null) {
+		content = <Placeholder>{state.message}</Placeholder>;
 	} else if (showHistory) {
 		content = <CommentHistory />;
 	} else {
+		const key = state.commentResolutions.map((cr) => cr.id).join("-");
 		content = (
-			<CommentResolutionEdit
-				comments={comments}
-				commentsAccess={commentsAccess}
-				resolutionsAccess={resolutionsAccess}
-				readOnly={!editMode}
-			/>
+			<>
+				<CidAndStatusRow
+					commentResolutions={state.commentResolutions}
+				/>
+				<CommentEdit
+					key={"c-" + key}
+					edited={state.commentsEdited}
+					onChange={onChangeComments}
+					readOnly={readOnly || commentsAccess < AccessLevel.rw}
+				/>
+				<ResolutionEdit
+					key={"r-" + key}
+					resolution={state.resolutionsEdited}
+					updateResolution={onChangeResolutions}
+					readOnly={readOnly || resolutionsAccess < AccessLevel.rw}
+					commentsAccess={commentsAccess}
+				/>
+				<EditingNotesRowCollapsable
+					key={"e-" + key}
+					resolution={state.resolutionsEdited}
+					updateResolution={onChangeResolutions}
+					readOnly={readOnly || commentsAccess < AccessLevel.rw}
+				/>
+			</>
 		);
 	}
 
@@ -174,5 +193,3 @@ function CommentDetail() {
 		</Container>
 	);
 }
-
-export default CommentDetail;

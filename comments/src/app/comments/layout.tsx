@@ -1,7 +1,7 @@
 import { Outlet } from "react-router";
-import CommentsActions from "./actions";
+import { CommentsActions } from "./actions";
 
-function CommentsLayout() {
+export function CommentsLayout() {
 	return (
 		<>
 			<CommentsActions />
@@ -9,5 +9,3 @@ function CommentsLayout() {
 		</>
 	);
 }
-
-export default CommentsLayout;

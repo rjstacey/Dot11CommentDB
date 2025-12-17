@@ -52,6 +52,7 @@ import {
 
 export type {
 	Comment,
+	CommentChange,
 	CategoryType,
 	Resolution,
 	ResnStatusType,

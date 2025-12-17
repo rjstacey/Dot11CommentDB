@@ -9,7 +9,7 @@ import {
 	GlobalFilter,
 } from "@common";
 
-import CommentDetail from "./detail";
+import { CommentsDetail } from "./detail";
 import { useAppSelector } from "@/store/hooks";
 import {
 	fields,
@@ -24,7 +24,7 @@ import {
 	defaultTablesConfig,
 } from "./tableColumns";
 
-function CommentsTable() {
+export function CommentsMain() {
 	const [search, setSearch] = useSearchParams();
 	const navigation = useNavigation();
 	const isNavigating = Boolean(navigation.location);
@@ -67,11 +67,9 @@ function CommentsTable() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<CommentDetail />
+					<CommentsDetail />
 				</Panel>
 			</SplitPanel>
 		</>
 	);
 }
-
-export default CommentsTable;

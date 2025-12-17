@@ -19,7 +19,7 @@ import ProjectBallotSelector from "@/components/ProjectBallotSelector";
 import { tableColumns } from "./tableColumns";
 import { refresh } from "./loader";
 
-function CommentsActions() {
+export function CommentsActions() {
 	const isOnline = useAppSelector(selectIsOnline);
 	const access = useAppSelector(selectCommentsAccess);
 
@@ -54,5 +54,3 @@ function CommentsActions() {
 		</Row>
 	);
 }
-
-export default CommentsActions;
