@@ -8,10 +8,10 @@ import {
 	exportVoters,
 	selectVotersState,
 	selectVotersBallot_id,
-	refreshVoters,
 	votersActions,
 	votersSelectors,
 } from "@/store/voters";
+import { refresh } from "./loader";
 import VotersImportButton from "./VotersImport";
 import ProjectBallotSelector from "@/components/ProjectBallotSelector";
 
@@ -72,7 +72,7 @@ export function VotersActions() {
 					className="bi-arrow-repeat"
 					name="refresh"
 					title="Refresh"
-					onClick={() => dispatch(refreshVoters())}
+					onClick={refresh}
 					disabled={loading || !isOnline}
 				/>
 			</Col>

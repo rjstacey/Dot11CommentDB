@@ -139,11 +139,6 @@ export const loadVoters =
 		return loadingPromise;
 	};
 
-export const refreshVoters = (): AppThunk => async (dispatch, getState) => {
-	const ballot_id = selectVotersState(getState()).ballot_id;
-	dispatch(ballot_id ? loadVoters(ballot_id, true) : clearVoters());
-};
-
 export const deleteVoters =
 	(ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
