@@ -17,7 +17,6 @@ import { Epoll, epollsSchema } from "@schemas/epolls";
 export type { Epoll };
 
 export type SyncedEpoll = Epoll & {
-	InDatabase: boolean;
 	ballot_id: number | null;
 };
 
@@ -112,7 +111,6 @@ export const selectSyncedEntities = createSelector(
 				) || null;
 			syncedEntities[epollNum] = {
 				...epollEntities[epollNum]!,
-				InDatabase: Boolean(ballot_id),
 				ballot_id,
 			};
 		}
