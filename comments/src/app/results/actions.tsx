@@ -1,24 +1,23 @@
 import { Row, Col, Button } from "react-bootstrap";
 import { SplitTableButtonGroup } from "@common";
 
-import ResultsSummary from "./ResultsSummary";
-import ResultsExport from "./ResultsExport";
+import { ResultsSummary } from "./ResultsSummary";
+import { ResultsExport } from "./ResultsExport";
 import ProjectBallotSelector from "@/components/ProjectBallotSelector";
 
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import {
 	selectResultsBallot_id,
 	resultsSelectors,
 	resultsActions,
-	refreshResults,
 } from "@/store/results";
 import { selectBallot } from "@/store/ballots";
 import { selectIsOnline } from "@/store/offline";
 
+import { refresh } from "./laoder";
 import { tableColumns } from "./tableColumns";
 
-function ResultsActions() {
-	const dispatch = useAppDispatch();
+export function ResultsActions() {
 	const isOnline = useAppSelector(selectIsOnline);
 
 	const resultsBallot_id = useAppSelector(selectResultsBallot_id);
@@ -45,11 +44,9 @@ function ResultsActions() {
 					className="bi-arrow-repeat"
 					title="Refresh"
 					disabled={!isOnline}
-					onClick={() => dispatch(refreshResults())}
+					onClick={refresh}
 				/>
 			</Col>
 		</Row>
 	);
 }
-
-export default ResultsActions;

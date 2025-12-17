@@ -75,7 +75,7 @@ function ResultsExportForm({
 	);
 }
 
-function ResultsExport({ ballot }: { ballot?: Ballot }) {
+export function ResultsExport({ ballot }: { ballot?: Ballot }) {
 	const [show, setShow] = React.useState(false);
 	return (
 		<DropdownButton
@@ -89,5 +89,3 @@ function ResultsExport({ ballot }: { ballot?: Ballot }) {
 		</DropdownButton>
 	);
 }
-
-export default ResultsExport;

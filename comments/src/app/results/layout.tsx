@@ -1,7 +1,7 @@
 import { Outlet } from "react-router";
-import ResultsActions from "./actions";
+import { ResultsActions } from "./actions";
 
-function ResultsLayout() {
+export function ResultsLayout() {
 	return (
 		<>
 			<ResultsActions />
@@ -9,5 +9,3 @@ function ResultsLayout() {
 		</>
 	);
 }
-
-export default ResultsLayout;

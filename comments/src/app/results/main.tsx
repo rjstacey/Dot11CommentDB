@@ -9,8 +9,9 @@ import {
 	resultsActions,
 	upsertTableColumns,
 	selectResultsAccess,
+	AccessLevel,
 } from "@/store/results";
-import { selectBallot, BallotType, AccessLevel } from "@/store/ballots";
+import { selectBallot, BallotType } from "@/store/ballots";
 
 import { ResultsDetail } from "./detail";
 import { tableColumns, getDefaultTablesConfig } from "./tableColumns";
@@ -33,7 +34,7 @@ function updateTableConfigAction(access: number, type: number) {
 
 const maxWidth = 1600;
 
-function Results() {
+export function ResultsMain() {
 	const dispatch = useAppDispatch();
 
 	const access = useAppSelector(selectResultsAccess);
@@ -75,14 +76,9 @@ function Results() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<ResultsDetail
-						access={access}
-						readOnly={access < AccessLevel.admin}
-					/>
+					<ResultsDetail />
 				</Panel>
 			</SplitPanel>
 		</>
 	);
 }
-
-export default Results;

@@ -30,6 +30,7 @@ import {
 } from "@schemas/results";
 
 export type { Result, ResultUpdate, ResultChange };
+export { AccessLevel };
 
 export const fields: Fields = {
 	SAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
@@ -204,11 +205,6 @@ export const loadResults =
 			});
 		return loadingPromise;
 	};
-
-export const refreshResults = (): AppThunk => async (dispatch, getState) => {
-	const { ballot_id } = selectResultsState(getState());
-	dispatch(ballot_id ? loadResults(ballot_id, true) : clearResults());
-};
 
 export const exportResults =
 	(ballot_id: number, forSeries?: boolean): AppThunk =>

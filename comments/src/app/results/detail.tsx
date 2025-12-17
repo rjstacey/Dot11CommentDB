@@ -2,6 +2,7 @@ import React from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
+import { selectResultsAccess, AccessLevel } from "@/store/results";
 import { useResultsEdit } from "@/hooks/resultsEdit";
 
 import ShowAccess from "@/components/ShowAccess";
@@ -13,17 +14,13 @@ const Placeholder = (props: React.ComponentProps<"span">) => (
 	</div>
 );
 
-export function ResultsDetail({
-	access,
-	readOnly,
-}: {
-	access: number;
-	readOnly?: boolean;
-}) {
+export function ResultsDetail() {
+	const access = useAppSelector(selectResultsAccess);
+	const readOnly = access < AccessLevel.admin;
 	const isOnline = useAppSelector(selectIsOnline);
 
 	const { state, onChange, hasChanges, submit, cancel, onDelete } =
-		useResultsEdit(readOnly!);
+		useResultsEdit(readOnly);
 	const onAdd = () => {};
 
 	let title = "Result";

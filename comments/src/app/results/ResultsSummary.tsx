@@ -368,7 +368,7 @@ function resultsSummary(ballot: Ballot) {
 	);
 }
 
-function ShowResultsSummary() {
+export function ResultsSummary() {
 	const ballots = useAppSelector(selectCurrentBallotSeries);
 	if (ballots.length === 0) return null;
 	const ballot = ballots[ballots.length - 1];
@@ -381,5 +381,3 @@ function ShowResultsSummary() {
 		</DropdownButton>
 	);
 }
-
-export default ShowResultsSummary;
