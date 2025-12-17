@@ -11,8 +11,12 @@ import {
 	ChangeableColumnProperties,
 } from "@common";
 
-import { CommentMBS, renderCommenter, CommentCategory } from "./CommentBasics";
-import { renderSubmission } from "./SubmissionSelect";
+import {
+	CommentMBS,
+	renderCommenter,
+	CommentCategory,
+} from "./details/CommentBasics";
+import { renderSubmission } from "./details/SubmissionSelect";
 import { useAppSelector } from "@/store/hooks";
 import { selectBallotsState } from "@/store/ballots";
 import {
@@ -25,7 +29,7 @@ import {
 	type ResnStatusType,
 } from "@/store/comments";
 
-import styles from "./comments.module.css";
+import styles from "./details/comments.module.css";
 
 const FlexRow = (props: React.ComponentProps<"div">) => (
 	<div className={styles.row} {...props} />

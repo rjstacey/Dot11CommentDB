@@ -33,7 +33,7 @@ export function ResolutionAssigneeRow({
 							: {
 									SAPIN: resolution.AssigneeSAPIN || 0,
 									Name: resolution.AssigneeName || "",
-							  }
+								}
 					}
 					onChange={({ SAPIN, Name }) =>
 						updateResolution({

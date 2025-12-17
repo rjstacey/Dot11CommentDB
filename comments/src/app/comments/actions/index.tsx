@@ -16,8 +16,8 @@ import {
 import { selectIsOnline } from "@/store/offline";
 
 import ProjectBallotSelector from "@/components/ProjectBallotSelector";
-import { tableColumns } from "./tableColumns";
-import { refresh } from "./loader";
+import { tableColumns } from "../tableColumns";
+import { refresh } from "../loader";
 
 export function CommentsActions() {
 	const isOnline = useAppSelector(selectIsOnline);

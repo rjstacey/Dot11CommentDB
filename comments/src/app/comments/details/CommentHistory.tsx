@@ -34,10 +34,10 @@ function renderEntryHeader(leadIn: string, h: CommentHistoryEvent) {
 		h.Action === "add"
 			? "added"
 			: h.Action === "update"
-			? "updated"
-			: h.Action === "delete"
-			? "deleted"
-			: "error";
+				? "updated"
+				: h.Action === "delete"
+					? "deleted"
+					: "error";
 	return (
 		<div className="header">
 			<span>

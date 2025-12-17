@@ -1,5 +1,5 @@
 import type { LoaderFunction } from "react-router";
-import { shallowEqualArrays } from "shallow-equal";
+import isEqual from "lodash.isequal";
 import { store } from "@/store";
 import { selectIsOnline } from "@/store/offline";
 import { selectGroup, AccessLevel } from "@/store/groups";
@@ -70,6 +70,5 @@ export const commentsLoader: LoaderFunction = async (args) => {
 		const entity = entities[id]!;
 		if (cids.includes(entity.CID)) newSelected.push(id as string);
 	}
-	if (!shallowEqualArrays(selected, newSelected))
-		dispatch(setSelected(newSelected));
+	if (!isEqual(selected, newSelected)) dispatch(setSelected(newSelected));
 };

@@ -11,6 +11,7 @@ import {
 	getCommentStatus,
 } from "@/store/comments";
 import { selectIsOnline } from "@/store/offline";
+import { useCommentsEdit } from "@/hooks/commentsEdit";
 
 import CommentHistory from "./CommentHistory";
 import CommentEdit from "./CommentEdit";
@@ -18,7 +19,6 @@ import ResolutionEdit from "./ResolutionEdit";
 import { EditingNotesRowCollapsable } from "./EditingNotes";
 import { RoleSelect } from "./RoleSelect";
 import { ShowAccess } from "@/components/ShowAccess";
-import { useCommentsEdit } from "@/hooks/commentsEdit";
 
 function renderCommentsStatus(commentResolutions: CommentResolution[]) {
 	let status: string | typeof MULTIPLE = "";

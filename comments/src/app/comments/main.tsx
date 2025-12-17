@@ -9,7 +9,6 @@ import {
 	GlobalFilter,
 } from "@common";
 
-import { CommentsDetail } from "./detail";
 import { useAppSelector } from "@/store/hooks";
 import {
 	fields,
@@ -23,6 +22,7 @@ import {
 	commentsRowGetter,
 	defaultTablesConfig,
 } from "./tableColumns";
+import { CommentsDetail } from "./details";
 
 export function CommentsMain() {
 	const [search, setSearch] = useSearchParams();
