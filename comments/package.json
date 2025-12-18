@@ -12,21 +12,16 @@
 		"assets": "scripts/convert.sh"
 	},
 	"dependencies": {
-		"@lexical/code": "^0.31.1",
-		"@lexical/html": "^0.31.1",
-		"@lexical/link": "^0.31.1",
-		"@lexical/list": "^0.31.1",
-		"@lexical/react": "^0.31.1",
-		"@lexical/rich-text": "^0.31.1",
-		"@lexical/selection": "^0.31.1",
-		"@lexical/table": "^0.31.1",
-		"@lexical/utils": "^0.31.1",
+		"@lexical/code": "^0.39.0",
+		"@lexical/html": "^0.39.0",
+		"@lexical/link": "^0.39.0",
+		"@lexical/list": "^0.39.0",
+		"@lexical/react": "^0.39.0",
+		"@lexical/rich-text": "^0.39.0",
+		"@lexical/selection": "^0.39.0",
+		"@lexical/table": "^0.39.0",
+		"@lexical/utils": "^0.39.0",
 		"@redux-offline/redux-offline": "^2.6.0",
-		"lexical": "^0.31.1",
-		"lodash.debounce": "^4.0.8",
-		"shallow-equal": "^3.1.0"
-	},
-	"devDependencies": {
-		"@types/lodash.debounce": "^4.0.9"
+		"lexical": "^0.39.0"
 	}
 }
