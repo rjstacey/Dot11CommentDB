@@ -12,10 +12,10 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useDebounce } from "@common";
 
-function recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
+function $recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
 	if (!$isElementNode(node)) return;
 	if (node.getChildren)
-		node.getChildren().forEach(recursivelyReplaceLinkWithAutoLink);
+		node.getChildren().forEach($recursivelyReplaceLinkWithAutoLink);
 	if ($isLinkNode(node)) {
 		const url = node.getURL();
 		const text = node.getTextContent();
@@ -35,22 +35,24 @@ function InportExportPlugin({
 	readOnly?: boolean;
 }) {
 	const [editor] = useLexicalComposerContext();
-	const doneRef = React.useRef(false);
+	const [output, setOutput] = React.useState<string | null>(null);
 
 	const debouncedOnChange = useDebounce(() => {
 		if (readOnly) return;
-		editor.update(() => {
+		editor.read(() => {
 			const newValue = $getRoot().getTextContent()
 				? $generateHtmlFromNodes(editor)
 				: "";
-			if (newValue != value) onChange(newValue);
+			if (newValue != value) {
+				onChange(newValue);
+				setOutput(newValue);
+			}
 		});
 	});
 
 	React.useEffect(() => {
-		if (doneRef.current) return;
-		doneRef.current = true;
-
+		// If the value in is different from what was sent out, then update the editor state
+		if (output === value) return;
 		editor.update(() => {
 			let s = value || "";
 			s = s.replace(/<p><br><\/p>/g, "");
@@ -72,11 +74,13 @@ function InportExportPlugin({
 			$getRoot().clear().select().insertNodes(nodes);
 			//console.log(nodes);
 
-			recursivelyReplaceLinkWithAutoLink($getRoot());
+			$recursivelyReplaceLinkWithAutoLink($getRoot());
 
 			$addUpdateTag(SKIP_DOM_SELECTION_TAG); // Don't take focus
+
+			setOutput(value);
 		});
-	}, []);
+	}, [value]);
 
 	React.useEffect(() => {
 		editor.setEditable(!readOnly);

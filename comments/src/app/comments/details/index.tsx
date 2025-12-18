@@ -149,27 +149,27 @@ export function CommentsDetail() {
 	} else if (showHistory) {
 		content = <CommentHistory />;
 	} else {
-		const key = state.commentResolutions.map((cr) => cr.id).join("-");
+		//const key = state.commentResolutions.map((cr) => cr.id).join("-");
 		content = (
 			<>
 				<CidAndStatusRow
 					commentResolutions={state.commentResolutions}
 				/>
 				<CommentEdit
-					key={"c-" + key}
+					//key={"c-" + key}
 					edited={state.commentsEdited}
 					onChange={onChangeComments}
 					readOnly={readOnly || commentsAccess < AccessLevel.rw}
 				/>
 				<ResolutionEdit
-					key={"r-" + key}
+					//key={"r-" + key}
 					resolution={state.resolutionsEdited}
 					updateResolution={onChangeResolutions}
 					readOnly={readOnly || resolutionsAccess < AccessLevel.rw}
 					commentsAccess={commentsAccess}
 				/>
 				<EditingNotesRowCollapsable
-					key={"e-" + key}
+					//key={"e-" + key}
 					resolution={state.resolutionsEdited}
 					updateResolution={onChangeResolutions}
 					readOnly={readOnly || commentsAccess < AccessLevel.rw}
