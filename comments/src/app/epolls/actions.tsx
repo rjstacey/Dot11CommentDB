@@ -4,7 +4,6 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
 import {
 	loadMoreEpolls,
-	refreshEpolls,
 	selectEpollsState,
 	epollsSelectors,
 	epollsActions,
@@ -12,6 +11,7 @@ import {
 
 import { BallotsSubmenu } from "../ballots/submenu";
 import { tableColumns } from "./tableColumns";
+import { refresh } from "./loader";
 
 export function EpollsActions() {
 	const dispatch = useAppDispatch();
@@ -45,7 +45,7 @@ export function EpollsActions() {
 					className="bi-arrow-repeat"
 					name="refresh"
 					title="Refresh"
-					onClick={() => dispatch(refreshEpolls())}
+					onClick={refresh}
 					disabled={loading || !isOnline}
 				/>
 			</Col>

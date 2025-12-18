@@ -160,9 +160,3 @@ export const loadMoreEpolls = (): AppThunk => (dispatch, getState) => {
 	if (!groupName) return Promise.resolve();
 	return dispatch(loadEpolls(groupName, n + 20));
 };
-
-export const refreshEpolls = (): AppThunk => (dispatch, getState) => {
-	const { groupName, n } = selectEpollsState(getState());
-	if (!groupName) return Promise.resolve();
-	return dispatch(loadEpolls(groupName, n, true));
-};
