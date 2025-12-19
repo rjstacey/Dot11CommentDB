@@ -2,6 +2,7 @@ import { RouteObject } from "react-router";
 
 import AppLayout from "./layout";
 import AppErrorPage from "./errorPage";
+import AppFallback from "./fallback";
 import RootMain from "./root";
 import ballotsRoute from "./ballots/route";
 import epollsRoute from "./epolls/route";
@@ -19,7 +20,7 @@ export const routes: RouteObject[] = [
 		path: "/",
 		element: <AppLayout />,
 		errorElement: <AppErrorPage />,
-		hydrateFallbackElement: <span>Fallback</span>,
+		hydrateFallbackElement: <AppFallback />,
 		loader: rootLoader,
 		children: [
 			{

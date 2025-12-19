@@ -6,7 +6,7 @@ import { selectIsOnline } from "@/store/offline";
 export const rootLoader: LoaderFunction = async () => {
 	const { dispatch, getState } = store;
 
-	if (selectIsOnline(getState())) dispatch(loadGroups());
+	if (selectIsOnline(getState())) await dispatch(loadGroups());
 
 	return null;
 };
