@@ -1,3 +1,4 @@
+import React from "react";
 import { Row, Col } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -14,7 +15,6 @@ import {
 	CommentGroup,
 	CommentNotesRow,
 } from "./CommentCategorization";
-
 import {
 	ResolutionAssigneeRow,
 	ResolutionSubmissionRow,
@@ -24,7 +24,6 @@ import { ResolutionRow } from "./ResolutionRow";
 import { EditingNotesRow } from "./EditingNotes";
 
 import styles from "./CommentHistory.module.css";
-import React from "react";
 
 const BLANK_STR = "(Blank)";
 
@@ -209,9 +208,21 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 	);
 }
 
+function ResolutionDelete(entry: CommentHistoryEntry) {
+	const { comment, resolution } = entry;
+	return (
+		<div className="entry">
+			{renderEntryHeader(
+				`Resolution ${comment.CommentID}.${resolution!.ResolutionID}`,
+				entry
+			)}
+			<div className="body" />
+		</div>
+	);
+}
+
 function ChangeEntry(entry: CommentHistoryEntry) {
 	const h = entry;
-	const { comment, resolution } = entry;
 
 	if (!h.resolution_id) {
 		if (h.Action === "add") {
@@ -227,10 +238,7 @@ function ChangeEntry(entry: CommentHistoryEntry) {
 		} else if (h.Action === "update") {
 			return <ResolutionUpdate {...entry} />;
 		} else if (h.Action === "delete") {
-			return renderEntryHeader(
-				`Resolution ${comment.CommentID}.${resolution!.ResolutionID}`,
-				entry
-			);
+			return <ResolutionDelete {...entry} />;
 		}
 	}
 
