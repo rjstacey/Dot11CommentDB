@@ -6,7 +6,7 @@ import {
 	type EmailTemplateCreate,
 	type EmailTemplate,
 } from "@/store/emailTemplates";
-import { SELECTED_MEMBERS_KEY } from "@/edit/emailSubstitutionTags";
+import { SELECTED_MEMBERS_KEY } from "@/hooks/emailSubstitutionTags";
 
 export default function SelectEmailTemplate({
 	value,

@@ -13,7 +13,7 @@ import type {
 	EditAction,
 	MultipleMember,
 	MultipleSessionAttendanceSummary,
-} from "@/edit/sessionAttendanceEdit";
+} from "@/hooks/sessionAttendanceEdit";
 
 export function AttendanceEditForm({
 	action,

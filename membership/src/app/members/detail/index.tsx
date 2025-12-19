@@ -4,7 +4,7 @@ import { useAppSelector } from "@/store/hooks";
 import { selectUserMembersAccess, AccessLevel } from "@/store/members";
 
 import ShowAccess from "@/components/ShowAccess";
-import { useMembersEdit } from "@/edit/membersEdit";
+import { useMembersEdit } from "@/hooks/membersEdit";
 import { MemberAddForm } from "./MemberAddForm";
 import { MemberUpdateOneForm } from "./MemberUpdateOneForm";
 import { MemberUpdateManyForm } from "./MemberUpdateManyForm";

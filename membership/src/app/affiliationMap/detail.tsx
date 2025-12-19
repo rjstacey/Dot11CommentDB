@@ -3,7 +3,7 @@ import { Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { AccessLevel, selectUserMembersAccess } from "@/store/members";
-import { useAffiliationMapEdit } from "@/edit/affiliationMapEdit";
+import { useAffiliationMapEdit } from "@/hooks/affiliationMapEdit";
 import ShowAccess from "@/components/ShowAccess";
 import { AffiliationMapEntryForm } from "./AffiliationMapEntryForm";
 import { AffiliationMapMatches } from "./AffiliationMapMatches";

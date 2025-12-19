@@ -7,7 +7,7 @@ import {
 	Spinner,
 	DropdownButton,
 } from "react-bootstrap";
-import { useSessionAttendanceEdit } from "@/edit/sessionAttendanceEdit";
+import { useSessionAttendanceEdit } from "@/hooks/sessionAttendanceEdit";
 import { useAppSelector } from "@/store/hooks";
 import {
 	selectImatAttendanceSummaryIds,

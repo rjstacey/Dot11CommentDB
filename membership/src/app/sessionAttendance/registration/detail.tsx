@@ -2,7 +2,7 @@ import { useAppSelector } from "@/store/hooks";
 import { selectUserMembersAccess, AccessLevel } from "@/store/members";
 import { selectSessionRegistrationSelected } from "@/store/sessionRegistration";
 
-import { useSessionRegistrationEdit } from "@/edit/sessionRegistrationEdit";
+import { useSessionRegistrationEdit } from "@/hooks/sessionRegistrationEdit";
 import ShowAccess from "@/components/ShowAccess";
 import { RegistrationEditForm } from "./RegistrationEditForm";
 import { RegistrationUpdateForm } from "./RegistrationUpdateForm";

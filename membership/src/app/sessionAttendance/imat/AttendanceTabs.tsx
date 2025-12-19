@@ -16,7 +16,7 @@ import type {
 	EditAction,
 	MultipleMember,
 	MultipleSessionAttendanceSummary,
-} from "@/edit/sessionAttendanceEdit";
+} from "@/hooks/sessionAttendanceEdit";
 
 export function AttendanceTabs({
 	sapin,

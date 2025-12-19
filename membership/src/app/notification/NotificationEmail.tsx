@@ -8,13 +8,13 @@ import type { EmailTemplate } from "@/store/emailTemplates";
 import { sendEmails, type Email } from "@/store/emailSend";
 import { selectSelectedMembers, type Member } from "@/store/members";
 import { selectUser, type User } from "@/store";
-import { useEmailTemplateEdit } from "@/edit/emailTemplateEdit";
+import { useEmailTemplateEdit } from "@/hooks/emailTemplateEdit";
 import {
 	useEmailSubstitution,
 	genEmailAddress,
 	substitutionTags,
 	SELECTED_MEMBERS_KEY,
-} from "@/edit/emailSubstitutionTags";
+} from "@/hooks/emailSubstitutionTags";
 
 import Editor from "@/components/editor/Editor";
 import SelectEmailTemplate from "./SelectEmailTemplate";

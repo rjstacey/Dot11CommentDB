@@ -26,7 +26,7 @@ import { hasChangesStyle } from "@/components/utils";
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 
 import StatusSelector from "./StatusSelector";
-import type { MultipleMember } from "@/edit/membersEdit";
+import type { MultipleMember } from "@/hooks/membersEdit";
 
 const displayDate = (isoDateTime: string) =>
 	DateTime.fromISO(isoDateTime).toLocaleString(DateTime.DATE_MED);

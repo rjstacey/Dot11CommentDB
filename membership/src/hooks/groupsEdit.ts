@@ -22,7 +22,7 @@ import {
 	useGroupAdd,
 	useGroupsDelete,
 	useGroupsUpdate,
-} from "@/edit/groupActions";
+} from "@/hooks/groupActions";
 import { BLANK_STR } from "@/components/constants";
 
 import { GroupEntry, MultipleGroupEntry } from "./groupActions";

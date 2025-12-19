@@ -3,7 +3,7 @@ import { Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectUserGroupsAccess, AccessLevel } from "@/store/groups";
-import { useGroupsEdit } from "@/edit/groupsEdit";
+import { useGroupsEdit } from "@/hooks/groupsEdit";
 
 import ShowAccess from "@/components/ShowAccess";
 import { GroupsEditForm } from "./GroupsEditForm";

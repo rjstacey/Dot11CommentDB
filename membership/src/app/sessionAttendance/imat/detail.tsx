@@ -4,7 +4,7 @@ import { selectImatAttendanceSummarySelected } from "@/store/imatAttendanceSumma
 
 import ShowAccess from "@/components/ShowAccess";
 import { AttendanceEditForm } from "./AttendanceEditForm";
-import { useSessionAttendanceEdit } from "@/edit/sessionAttendanceEdit";
+import { useSessionAttendanceEdit } from "@/hooks/sessionAttendanceEdit";
 import { AttendanceUpdateForm } from "./AttendanceUpdateForm";
 
 export function MemberAttendanceDetail() {
