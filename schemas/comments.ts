@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { groupIdSchema } from "./groups.js";
-import { resolutionSchema } from "./resolutions.js";
+import { resolutionSchema, resolutionChangeSchema } from "./resolutions.js";
 import { commentsSummarySchema } from "./ballots.js";
 
 const categoryTypeSchema = z.enum(["T", "E", "G"]);
@@ -19,7 +19,6 @@ export const commentSchema = z.object({
 	CommenterName: z.string(),
 	CommenterSAPIN: z.number().nullable(),
 	CommenterEmail: z.string().nullable(),
-	Vote: z.string().nullable(),
 	Category: categoryTypeSchema,
 	C_Clause: z.string().nullable(),
 	C_Page: z.string().nullable(),
@@ -83,21 +82,29 @@ export const commentResolutionSchema = commentSchema
 	.extend(resolutionSchema.omit({ id: true }).shape)
 	.extend({
 		id: z.string(),
+		comment_id: commentSchema.shape.id,
 		resolution_id: resolutionSchema.shape.id.nullable(),
 		ResolutionID: z.number().nullable(),
 		ResolutionCount: z.number(),
+		Vote: z.string().nullable(),
 		CID: z.string(),
-		//LastModifiedName: z.string().nullable(),
 	});
 export const commentResolutionsSchema = commentResolutionSchema.array();
 
+export const commentResolutionChangeSchema = commentChangeSchema.extend(
+	resolutionChangeSchema.shape
+);
+
 export const commentResolutionQuerySchema = z
 	.object({
-		modifiedSince: z.string().datetime(),
+		modifiedSince: z.iso.datetime(),
 	})
 	.partial();
 
 export type CommentResolution = z.infer<typeof commentResolutionSchema>;
+export type CommentResolutionChange = z.infer<
+	typeof commentResolutionChangeSchema
+>;
 export type CommentResolutionQuery = z.infer<
 	typeof commentResolutionQuerySchema
 >;

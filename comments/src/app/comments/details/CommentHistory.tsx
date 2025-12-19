@@ -6,7 +6,6 @@ import {
 	loadCommentsHistory,
 	selectCommentsHistoryState,
 	CommentHistoryEntry,
-	CommentHistoryEvent,
 } from "@/store/commentsHistory";
 
 import { CommentBasics } from "./CommentBasics";
@@ -29,7 +28,7 @@ import React from "react";
 
 const BLANK_STR = "(Blank)";
 
-function renderEntryHeader(leadIn: string, h: CommentHistoryEvent) {
+function renderEntryHeader(leadIn: string, h: CommentHistoryEntry) {
 	const action =
 		h.Action === "add"
 			? "added"

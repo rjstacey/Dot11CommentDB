@@ -23,31 +23,6 @@ export const resolutionSchema = z.object({
 	LastModifiedTime: z.iso.datetime().nullable(),
 });
 
-export const resolutionCreateSchema = resolutionSchema
-	.pick({
-		comment_id: true,
-	})
-	.merge(
-		resolutionSchema
-			.pick({
-				id: true,
-				ResolutionID: true,
-				AssigneeSAPIN: true,
-				AssigneeName: true,
-				ResnStatus: true,
-				Resolution: true,
-				ApprovedByMotion: true,
-				ReadyForMotion: true,
-				Submission: true,
-				EditStatus: true,
-				EditNotes: true,
-				EditInDraft: true,
-			})
-			.partial()
-	);
-
-export const resolutionCreatesSchema = resolutionCreateSchema.array();
-
 export const resolutionChangeSchema = resolutionSchema
 	.pick({
 		ResolutionID: true,
@@ -63,6 +38,13 @@ export const resolutionChangeSchema = resolutionSchema
 		EditInDraft: true,
 	})
 	.partial();
+
+export const resolutionCreateSchema = resolutionSchema
+	.pick({ comment_id: true })
+	.extend(resolutionSchema.pick({ id: true }).partial().shape)
+	.extend(resolutionChangeSchema.shape);
+
+export const resolutionCreatesSchema = resolutionCreateSchema.array();
 
 export const resolutionUpdateSchema = z.object({
 	id: resolutionIdSchema,

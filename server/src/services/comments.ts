@@ -28,6 +28,7 @@ const createViewCommentResolutionsSQL =
 	`DROP VIEW IF EXISTS ${commentResolutionsView}; ` +
 	`CREATE VIEW ${commentResolutionsView} AS ` +
 	"SELECT " +
+		// comment resolution fields
 		"c.ballot_id AS ballot_id, " +
 		"c.id AS comment_id, " +
 		"BIN_TO_UUID(r.id) AS resolution_id, " +
@@ -36,13 +37,12 @@ const createViewCommentResolutionsSQL =
 			'IF(b.Type=2, IF(b.stage=0, "I-", CONCAT("R", b.stage, "-")), ""), ' +
 			'IF((SELECT count(*) from resolutions r WHERE (c.id = r.comment_id)) > 1, concat(c.CommentID, ".", r.ResolutionID), c.CommentID)' +
 		') AS CID, ' +
+		"results.Vote AS Vote, " +
+		// comment fields
 		"c.CommentID AS CommentID, " +
-		"r.ResolutionID AS ResolutionID, " +
-		"(SELECT count(0) from resolutions r WHERE (c.id = r.comment_id)) AS ResolutionCount, " +
 		"c.CommenterSAPIN AS CommenterSAPIN, " +
 		"c.CommenterEmail AS CommenterEmail, " +
 		"c.CommenterName AS CommenterName, " +
-		"results.Vote AS Vote, " +
 		"c.MustSatisfy AS MustSatisfy, " +
 		"c.Category AS Category, " +
 		"c.Clause AS Clause, " +
@@ -55,9 +55,12 @@ const createViewCommentResolutionsSQL =
 		"c.C_Index AS C_Index, " +
 		"BIN_TO_UUID(c.AdHocGroupId) AS AdHocGroupId, " +
 		'COALESCE(c.AdHoc, "") AS AdHoc, ' +
+		"c.AdHocStatus AS AdHocStatus, " +
 		'COALESCE(c.CommentGroup, "") AS CommentGroup, ' +
 		"c.Notes AS Notes, " +
-		"c.AdHocStatus AS AdHocStatus, " +
+		// resolution fields
+		"r.ResolutionID AS ResolutionID, " +
+		"(SELECT count(0) from resolutions r WHERE (c.id = r.comment_id)) AS ResolutionCount, " +
 		"r.AssigneeSAPIN AS AssigneeSAPIN, " +
 		'COALESCE(m1.Name, r.AssigneeName, "") AS AssigneeName, ' +
 		"r.ResnStatus AS ResnStatus, " +

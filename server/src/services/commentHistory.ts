@@ -2,16 +2,32 @@ import db from "../utils/database.js";
 import {
 	commentChangeSchema,
 	Comment,
-	CommentChange,
+	CommentResolutionChange,
 } from "@schemas/comments.js";
 import { defaultResolution } from "./resolutions.js";
-import {
-	resolutionChangeSchema,
-	ResolutionChange,
-} from "@schemas/resolutions.js";
+import { resolutionChangeSchema } from "@schemas/resolutions.js";
 import type { Resolution } from "@schemas/resolutions.js";
+import type { CommentHistoryEntry } from "@schemas/commentHistory.js";
 import { RowDataPacket } from "mysql2";
 import { NotFoundError } from "src/utils/error.js";
+
+type CommentResolutionChangeDB = Omit<
+	CommentResolutionChange,
+	"AdHoc" | "CommentGroup" | "Submission" | "ReadyForMotion" | "AssigneeName"
+> & {
+	AdHoc?: string | null;
+	CommentGroup?: string | null;
+	Submission?: string | null;
+	ReadyForMotion?: 0 | 1 | null;
+	AssigneeName?: string | null;
+};
+
+type CommentHistoryEntryDB = Omit<
+	CommentHistoryEntry,
+	"Changes" | "comment" | "resolution_id" | "resolution"
+> & {
+	Changes: CommentResolutionChangeDB;
+};
 
 const commentChangeFields = Object.keys(commentChangeSchema.shape);
 const resolutionChangeFields = Object.keys(resolutionChangeSchema.shape);
@@ -127,30 +143,6 @@ export function init() {
 	return db.query(sql);
 }
 
-export type CommentHistoryEvent = {
-	id: number;
-	comment_id: number;
-	resolution_id?: string;
-	Action: "add" | "update" | "delete";
-	Changes: CommentChange | ResolutionChange;
-	UserID: number | null;
-	UserName: string;
-	Timestamp: string;
-};
-
-export type CommentHistoryEntry = Omit<CommentHistoryEvent, "resolution_id"> & {
-	comment: Comment;
-} & (
-		| {
-				resolution_id: string;
-				resolution: Resolution;
-		  }
-		| {
-				resolution_id: undefined;
-				resolution: undefined;
-		  }
-	);
-
 const getCommentsHistorySql = `
 	SELECT
 		l.id,
@@ -167,16 +159,57 @@ const getCommentsHistorySql = `
 	ORDER BY Timestamp;
 `;
 
+// prettier-ignore
+const getCommentsSQL =
+	"SELECT " +
+		"id, " +
+		"ballot_id, " +
+		"CommentID, " +
+		"CommenterName, " +
+		"CommenterSAPIN, " +
+		"CommenterEmail, " +
+		"Category, " +
+		"C_Clause, " +
+		"C_Page, " +
+		"C_Line, " +
+		"C_Index, " +
+		"MustSatisfy, " +
+		"Clause, " +
+		"Page, " +
+		"Comment, " +
+		"ProposedChange, " +
+		"BIN_TO_UUID(AdHocGroupId) AS AdHocGroupId, " +
+		"COALESCE(AdHoc, '') AS AdHoc, " +
+		"AdHocStatus, " +
+		"Notes, " +
+		'COALESCE(CommentGroup, "") AS CommentGroup, ' +
+		'DATE_FORMAT(LastModifiedTime, "%Y-%m-%dT%TZ") AS LastModifiedTime, ' +
+		"LastModifiedBy " +
+	"FROM comments WHERE id=?;";
+
+function parseChanges(
+	changesDb: CommentResolutionChangeDB
+): CommentResolutionChange {
+	const changes = { ...changesDb } as CommentResolutionChange;
+	if ("AdHoc" in changesDb) changes.AdHoc = changesDb.AdHoc || "";
+	if ("CommentGroup" in changesDb)
+		changes.CommentGroup = changesDb.CommentGroup || "";
+	if ("Submission" in changesDb)
+		changes.Submission = changesDb.Submission || "";
+	if ("ReadyForMotion" in changesDb)
+		changes.ReadyForMotion = changesDb.ReadyForMotion === 1 ? true : false;
+	if ("AssigneeName" in changesDb)
+		changes.AssigneeName = changesDb.AssigneeName || "";
+	return changes;
+}
+
 export async function getCommentHistory(comment_id: number) {
 	const [commentsHistory, comments] = await Promise.all([
-		db.query<(RowDataPacket & CommentHistoryEvent)[]>(
+		db.query<(RowDataPacket & CommentHistoryEntryDB)[]>(
 			getCommentsHistorySql,
 			[comment_id]
 		),
-		db.query<(RowDataPacket & Comment)[]>(
-			"SELECT * FROM comments WHERE id=?;",
-			[comment_id]
-		),
+		db.query<(RowDataPacket & Comment)[]>(getCommentsSQL, [comment_id]),
 	]);
 	if (comments.length === 0)
 		throw new NotFoundError(`Comment id=${comment_id} not found`);
@@ -185,46 +218,58 @@ export async function getCommentHistory(comment_id: number) {
 	const resolutionEntities: Record<string, Resolution> = {};
 	const history: CommentHistoryEntry[] = [];
 
-	commentsHistory.forEach((event) => {
-		let resolution: Resolution | undefined;
-		if (!event.resolution_id) {
+	for (const event of commentsHistory) {
+		const changesDb = event.Changes;
+		const changes = parseChanges(changesDb);
+		let entry: CommentHistoryEntry;
+		const resolution_id = event.resolution_id;
+		if (!resolution_id) {
 			if (event.Action === "add") {
-				comment = { ...comment, ...event.Changes };
+				comment = { ...comment, ...changes };
 			}
-			history.push({
-				...event,
+			entry = {
+				id: event.id,
+				Action: event.Action,
+				UserID: event.UserID,
+				UserName: event.UserName,
+				Timestamp: event.Timestamp,
+				comment_id: event.comment_id,
+				Changes: changes,
 				comment,
-				resolution_id: undefined,
-				resolution: undefined,
-			});
-			comment = { ...comment, ...event.Changes };
+			};
+			comment = { ...comment, ...changes };
 		} else {
+			let resolution: Resolution;
 			if (event.Action === "add") {
 				resolution = {
-					id: event.resolution_id,
+					id: resolution_id,
 					comment_id: comment.id,
 					LastModifiedBy: event.UserID!,
 					LastModifiedTime: event.Timestamp,
 					...defaultResolution,
-					...event.Changes,
+					...changes,
 				};
 			} else {
 				resolution =
-					resolutionEntities[event.resolution_id] ||
-					defaultResolution;
+					resolutionEntities[resolution_id] || defaultResolution;
 			}
-			resolutionEntities[event.resolution_id] = {
-				...resolution,
-				...event.Changes,
-			};
-			history.push({
-				...event,
+			entry = {
+				id: event.id,
+				Action: event.Action,
+				UserID: event.UserID,
+				UserName: event.UserName,
+				Timestamp: event.Timestamp,
+				comment_id: event.comment_id,
+				Changes: changes,
 				comment,
-				resolution_id: resolution.id,
+				resolution_id,
 				resolution,
-			});
+			};
+			resolution = { ...resolution, ...changes };
+			resolutionEntities[event.resolution_id] = resolution;
 		}
-	});
+		history.push(entry);
+	}
 
 	return { history };
 }

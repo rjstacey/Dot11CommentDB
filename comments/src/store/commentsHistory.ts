@@ -1,38 +1,17 @@
-import { createSlice, isPlainObject, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 import { fetcher, setError } from "@common";
 
 import type { RootState, AppThunk } from ".";
+import { selectCommentsBallot_id } from "./comments";
 import {
-	selectCommentsBallot_id,
-	CommentResolutionChange,
-	Comment,
-	Resolution,
-} from "./comments";
+	commentHistoryGetResponseSchema,
+	CommentHistoryGetResponse,
+	CommentHistoryEvent,
+	CommentHistoryEntry,
+} from "@schemas/commentHistory";
 
-export type CommentHistoryEvent = {
-	id: number;
-	comment_id: number | null;
-	resolution_id?: string;
-	UserID: number | null;
-	Action: "add" | "update" | "delete";
-	Changes: CommentResolutionChange;
-	Timestamp: string;
-	UserName: string;
-};
-
-export type CommentHistoryEntry = Omit<CommentHistoryEvent, "resolution_id"> & {
-	comment: Comment;
-} & (
-		| {
-				resolution_id: string;
-				resolution: Resolution;
-		  }
-		| {
-				resolution_id: undefined;
-				resolution: undefined;
-		  }
-	);
+export type { CommentHistoryEntry, CommentHistoryEvent };
 
 /* Create slice */
 const initialState: {
@@ -80,28 +59,16 @@ const { getPending, getSuccess, getFailure } = slice.actions;
 export const selectCommentsHistoryState = (state: RootState) => state[dataSet];
 
 /* Thunk actions */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isGenericObject(o: unknown): o is Record<string, any> {
-	return isPlainObject(o);
-}
-
-function validResponse(
-	response: unknown
-): response is { history: CommentHistoryEntry[] } {
-	return isGenericObject(response) && Array.isArray(response.history);
-}
-
 export const loadCommentsHistory =
 	(comment_id: number): AppThunk =>
 	async (dispatch, getState) => {
 		const ballot_id = selectCommentsBallot_id(getState());
 		dispatch(getPending());
 		const url = `/api/commentHistory/${ballot_id}/${comment_id}`;
-		let response: unknown;
+		let r: CommentHistoryGetResponse;
 		try {
-			response = await fetcher.get(url);
-			if (!validResponse(response))
-				throw new TypeError("Unexpected response");
+			const response = await fetcher.get(url);
+			r = commentHistoryGetResponseSchema.parse(response);
 		} catch (error) {
 			dispatch(getFailure());
 			dispatch(
@@ -112,5 +79,5 @@ export const loadCommentsHistory =
 			);
 			return;
 		}
-		dispatch(getSuccess(response));
+		dispatch(getSuccess(r));
 	};

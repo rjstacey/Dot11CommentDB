@@ -12,7 +12,7 @@ import {
 	PersistConfig,
 } from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
-import { get, set, del } from "idb-keyval";
+import storage from "redux-persist/lib/storage";
 import {
 	errorsSlice,
 	userSlice,
@@ -33,7 +33,7 @@ import liveUpdateSlice, { registerLiveUpdate } from "./liveUpdate";
 
 export { selectUser, setUser, resetStore } from "@common";
 
-const PERSIST_VERSION = 4;
+const STORE_FORMAT_VERSION = 1;
 
 const dataAppSliceNames = [
 	groupsSlice.name,
@@ -95,13 +95,8 @@ if (process.env.NODE_ENV !== "production")
 
 const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	key: "comments",
-	version: PERSIST_VERSION,
-	storage: {
-		// IndexedDB for storage using idb-keyval
-		setItem: set,
-		getItem: get,
-		removeItem: del,
-	},
+	version: STORE_FORMAT_VERSION,
+	storage,
 	whitelist: [
 		userSlice.name,
 		groupsSlice.name,
@@ -115,7 +110,7 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	transforms: [transformState],
 	stateReconciler: autoMergeLevel2,
 	migrate: (state) => {
-		if (state?._persist.version !== PERSIST_VERSION)
+		if (state?._persist.version !== STORE_FORMAT_VERSION)
 			return Promise.reject("Discard old version");
 		return Promise.resolve(state);
 	},
