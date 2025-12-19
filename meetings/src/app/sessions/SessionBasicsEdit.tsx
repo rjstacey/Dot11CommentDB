@@ -13,7 +13,7 @@ import {
 	SessionCreate,
 	SessionType,
 } from "@/store/sessions";
-import type { MultipleSession } from "@/edit/sessionsEdit";
+import type { MultipleSession } from "@/hooks/sessionsEdit";
 
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";

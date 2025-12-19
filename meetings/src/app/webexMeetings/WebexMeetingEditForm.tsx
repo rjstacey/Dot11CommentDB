@@ -13,12 +13,12 @@ import { selectCurrentSession } from "@/store/sessions";
 import type {
 	WebexMeetingEntry,
 	WebexMeetingEntryCreate,
-} from "@/edit/convertWebexMeetingEntry";
+} from "@/hooks/convertWebexMeetingEntry";
 import {
 	defaultWebexMeeting,
 	type WebexMeetingEntryPartial,
 	type WebexMeetingEntryMultiple,
-} from "@/edit/webexMeetingsEdit";
+} from "@/hooks/webexMeetingsEdit";
 
 import WebexAccountSelector from "@/components/WebexAccountSelector";
 import TimeZoneSelector from "@/components/TimeZoneSelector";

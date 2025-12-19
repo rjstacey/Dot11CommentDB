@@ -6,7 +6,7 @@ import {
 } from "@/store/webexMeetings";
 
 import { WebexMeetingEditForm } from "./WebexMeetingEditForm";
-import { useWebexMeetingsEdit } from "@/edit/webexMeetingsEdit";
+import { useWebexMeetingsEdit } from "@/hooks/webexMeetingsEdit";
 import { useAppSelector } from "@/store/hooks";
 
 export function WebexMeetingDetails() {

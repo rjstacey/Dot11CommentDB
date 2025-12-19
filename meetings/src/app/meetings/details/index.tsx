@@ -5,8 +5,8 @@ import { selectUserMeetingsAccess, AccessLevel } from "@/store/meetings";
 
 import ShowAccess from "@/components/ShowAccess";
 import { MeetingsEditForm } from "./MeetingsEditForm";
-import { useMeetingsEdit } from "@/edit/meetingsEdit";
-import { getIsSessionMeeting } from "@/edit/convertMeetingEntry";
+import { useMeetingsEdit } from "@/hooks/meetingsEdit";
+import { getIsSessionMeeting } from "@/hooks/convertMeetingEntry";
 
 export function MeetingsDetails() {
 	const access = useAppSelector(selectUserMeetingsAccess);

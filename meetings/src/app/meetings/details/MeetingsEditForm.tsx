@@ -9,7 +9,7 @@ import type { Session } from "@/store/sessions";
 import type {
 	MeetingEntryMultiple,
 	MeetingEntryPartial,
-} from "@/edit/meetingsEdit";
+} from "@/hooks/meetingsEdit";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import { MeetingsBasicEdit } from "./MeetingsBasicEdit";
 import { MeetingsImatEdit } from "./MeetingsImatEdit";

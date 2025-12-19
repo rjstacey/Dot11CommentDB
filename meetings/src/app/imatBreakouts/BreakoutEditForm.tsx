@@ -5,7 +5,7 @@ import type { SyncedBreakout } from "@/store/imatBreakouts";
 import type {
 	BreakoutEntryMultiple,
 	BreakoutEntryPartial,
-} from "@/edit/imatBreakoutsEdit";
+} from "@/hooks/imatBreakoutsEdit";
 
 import { BreakoutEdit } from "./BreakoutEdit";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";

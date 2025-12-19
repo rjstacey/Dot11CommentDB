@@ -4,7 +4,7 @@ import { Select, isMultiple } from "@common";
 import type {
 	MeetingEntryMultiple,
 	MeetingEntryPartial,
-} from "@/edit/meetingsEdit";
+} from "@/hooks/meetingsEdit";
 import ImatMeetingSelector from "@/components/ImatMeetingSelector";
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 

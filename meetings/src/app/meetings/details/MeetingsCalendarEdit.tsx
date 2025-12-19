@@ -4,7 +4,7 @@ import { isMultiple } from "@common";
 import type {
 	MeetingEntryMultiple,
 	MeetingEntryPartial,
-} from "@/edit/meetingsEdit";
+} from "@/hooks/meetingsEdit";
 import { MULTIPLE_STR } from "@/components/constants";
 import CalendarAccountSelector from "@/components/CalendarAccountSelector";
 

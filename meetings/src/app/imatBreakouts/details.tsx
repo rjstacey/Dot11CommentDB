@@ -6,7 +6,7 @@ import { selectUserMeetingsAccess, AccessLevel } from "@/store/meetings";
 
 import { MeetingsEditForm } from "../meetings/details/MeetingsEditForm";
 import { BreakoutEditForm } from "./BreakoutEditForm";
-import { useImatBreakoutsEdit } from "@/edit/imatBreakoutsEdit";
+import { useImatBreakoutsEdit } from "@/hooks/imatBreakoutsEdit";
 
 /*
 type Action = "add" | "update" | "import";

@@ -9,7 +9,7 @@ import {
 	Container,
 } from "react-bootstrap";
 
-import { useEmailHostKey } from "@/edit/emailHostKeys";
+import { useEmailHostKey } from "@/hooks/emailHostKeys";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 import styles from "./meetings.module.css";

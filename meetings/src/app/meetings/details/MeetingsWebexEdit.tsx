@@ -1,8 +1,8 @@
-import type { WebexMeetingEntryPartial } from "@/edit/webexMeetingsEdit";
+import type { WebexMeetingEntryPartial } from "@/hooks/webexMeetingsEdit";
 import type {
 	MeetingEntryMultiple,
 	MeetingEntryPartial,
-} from "@/edit/meetingsEdit";
+} from "@/hooks/meetingsEdit";
 import {
 	WebexMeetingAccount,
 	WebexMeetingParamsEdit,

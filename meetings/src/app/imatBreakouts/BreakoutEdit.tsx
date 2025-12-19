@@ -17,7 +17,7 @@ import {
 import type {
 	BreakoutEntryMultiple,
 	BreakoutEntryPartial,
-} from "@/edit/imatBreakoutsEdit";
+} from "@/hooks/imatBreakoutsEdit";
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 
 function SlotSelector({

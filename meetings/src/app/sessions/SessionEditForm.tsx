@@ -10,7 +10,7 @@ import {
 	Timeslot,
 } from "@/store/sessions";
 
-import type { MultipleSession } from "@/edit/sessionsEdit";
+import type { MultipleSession } from "@/hooks/sessionsEdit";
 import { SessionBasicsEdit } from "./SessionBasicsEdit";
 import RoomDetails from "./RoomDetails";
 import TimeslotDetails from "./TimeslotDetails";

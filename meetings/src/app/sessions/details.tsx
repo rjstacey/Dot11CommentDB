@@ -8,7 +8,7 @@ import { SessionAddForm } from "./SessionAddForm";
 
 import ShowAccess from "@/components/ShowAccess";
 import { useAppSelector } from "@/store/hooks";
-import { useSessionsEdit } from "@/edit/sessionsEdit";
+import { useSessionsEdit } from "@/hooks/sessionsEdit";
 
 export function SessionsDetails() {
 	const access = useAppSelector(selectUserSessionsAccess);

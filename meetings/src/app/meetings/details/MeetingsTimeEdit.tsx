@@ -6,7 +6,7 @@ import { getSessionDates, type Session } from "@/store/sessions";
 import type {
 	MeetingEntryMultiple,
 	MeetingEntryPartial,
-} from "@/edit/meetingsEdit";
+} from "@/hooks/meetingsEdit";
 import { MULTIPLE_STR } from "@/components/constants";
 import TimeZoneSelector from "@/components/TimeZoneSelector";
 
