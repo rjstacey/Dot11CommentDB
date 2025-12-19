@@ -13,7 +13,7 @@ export const resolutionSchema = z.object({
 	AssigneeName: z.string(),
 	ResnStatus: resnStatusTypeSchema.nullable(),
 	Resolution: z.string().nullable(),
-	ApprovedByMotion: z.string().nullable(),
+	ApprovedByMotion: z.string(),
 	ReadyForMotion: z.boolean(),
 	Submission: z.string(),
 	EditStatus: editStatusTypeSchema.nullable(),

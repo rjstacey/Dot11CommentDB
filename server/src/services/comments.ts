@@ -21,7 +21,7 @@ import type {
 } from "@schemas/comments.js";
 import { Ballot, BallotType, CommentsSummary } from "@schemas/ballots.js";
 
-const commentResolutionsView = "commentResolutions2";
+const commentResolutionsView = "commentResolutions";
 
 // prettier-ignore
 const createViewCommentResolutionsSQL =
@@ -54,9 +54,9 @@ const createViewCommentResolutionsSQL =
 		"c.C_Clause AS C_Clause, " +
 		"c.C_Index AS C_Index, " +
 		"BIN_TO_UUID(c.AdHocGroupId) AS AdHocGroupId, " +
-		'COALESCE(c.AdHoc, "") AS AdHoc, ' +
+		"c.AdHoc AS AdHoc, " +
 		"c.AdHocStatus AS AdHocStatus, " +
-		'COALESCE(c.CommentGroup, "") AS CommentGroup, ' +
+		"c.CommentGroup AS CommentGroup, " +
 		"c.Notes AS Notes, " +
 		// resolution fields
 		"r.ResolutionID AS ResolutionID, " +
@@ -65,8 +65,9 @@ const createViewCommentResolutionsSQL =
 		'COALESCE(m1.Name, r.AssigneeName, "") AS AssigneeName, ' +
 		"r.ResnStatus AS ResnStatus, " +
 		"r.Resolution AS Resolution, " +
-		'COALESCE(r.Submission, "") AS Submission, ' +
-		"IF(COALESCE(r.ReadyForMotion, 0) = 1, CAST(TRUE as json), CAST(FALSE as json)) AS ReadyForMotion, " +
+		"r.Submission AS Submission, " +
+		//"IF(COALESCE(r.ReadyForMotion, 0) = 1, CAST(TRUE as json), CAST(FALSE as json)) AS ReadyForMotion, " +
+		"r.ReadyForMotion AS ReadyForMotion, " +
 		"r.ApprovedByMotion AS ApprovedByMotion, " +
 		"r.EditStatus AS EditStatus, " +
 		"r.EditInDraft AS EditInDraft, " +
@@ -80,11 +81,44 @@ const createViewCommentResolutionsSQL =
 		"LEFT JOIN users m1 ON (r.AssigneeSAPIN = m1.SAPIN)"
 
 export async function init() {
+	await db.query(
+		"UPDATE comments SET CommentGroup='' WHERE CommentGroup IS NULL"
+	);
+	await db.query("UPDATE comments SET AdHoc='' WHERE AdHoc IS NULL");
 	await db
-		.query("ALTER TABLE resolutions ADD KEY AssigneeSAPIN (AssigneeSAPIN)")
+		.query(
+			"ALTER TABLE comments MODIFY CommentGroup VARCHAR(128) NOT NULL DEFAULT ''"
+		)
 		.catch(() => {});
 	await db
-		.query("UPDATE ballots SET `Type`=0 WHERE `Type`=5")
+		.query(
+			"ALTER TABLE comments MODIFY AdHoc VARCHAR(128) NOT NULL DEFAULT ''"
+		)
+		.catch(() => {});
+
+	await db.query(
+		"UPDATE resolutions SET Submission='' WHERE Submission IS NULL"
+	);
+	await db.query(
+		"UPDATE resolutions SET ReadyForMotion=0 WHERE ReadyForMotion IS NULL"
+	);
+	await db.query(
+		"UPDATE resolutions SET ApprovedByMotion='' WHERE ApprovedByMotion IS NULL"
+	);
+	await db
+		.query(
+			"ALTER TABLE resolutions MODIFY Submission VARCHAR(256) NOT NULL DEFAULT ''"
+		)
+		.catch(() => {});
+	await db
+		.query(
+			"ALTER TABLE resolutions MODIFY ReadyForMotion TINYINT(1) NOT NULL DEFAULT 0"
+		)
+		.catch(() => {});
+	await db
+		.query(
+			"ALTER TABLE resolutions MODIFY ApprovedByMotion VARCHAR(45) NOT NULL DEFAULT ''"
+		)
 		.catch(() => {});
 	await db.query(createViewCommentResolutionsSQL);
 }

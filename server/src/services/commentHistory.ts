@@ -20,6 +20,7 @@ type CommentResolutionChangeDB = Omit<
 	Submission?: string | null;
 	ReadyForMotion?: 0 | 1 | null;
 	AssigneeName?: string | null;
+	ApprovedByMotion?: string | null;
 };
 
 type CommentHistoryEntryDB = Omit<
@@ -37,8 +38,13 @@ const resolutionChangeFields = Object.keys(resolutionChangeSchema.shape);
 /* We coalesce changes into a single entry if a change is made within a certain interval of the last change as defined below */
 const updateIntervalSQL = "INTERVAL 15 MINUTE";
 
-const convertNewField = (f: string) =>
-	f === "AdHocGroupId" ? `BIN_TO_UUID(NEW.${f})` : `NEW.${f}`;
+function convertNewField(f: string) {
+	if (f === "AdHocGroupId") return `BIN_TO_UUID(NEW.${f})`;
+	if (f === "ReadyForMotion")
+		return `IF(NEW.${f} = 1, CAST(TRUE as json), CAST(FALSE as json))`;
+
+	return `NEW.${f}`;
+}
 
 const createTriggerCommentsUpdateSQL = `
 	DROP TRIGGER IF EXISTS comments_update;
@@ -91,7 +97,7 @@ const createTriggerResolutionsAddSQL = `
 	BEGIN
 		SET @action ="add";
 		SET @changes = JSON_OBJECT(
-			${resolutionChangeFields.map((f) => `"${f}", NEW.${f}`).join(",\n\t\t\t")}
+			${resolutionChangeFields.map((f) => `"${f}", ${convertNewField(f)}`).join(",\n\t\t\t")}
 		);
 		INSERT INTO resolutionsLog (comment_id, resolution_id, Action, Changes, UserID, Timestamp) VALUES (NEW.comment_id, NEW.id, @action, @changes, NEW.LastModifiedBy, NEW.LastModifiedTime);
 	END;
@@ -106,7 +112,7 @@ const createTriggerResolutionsUpdateSQL = `
 		${resolutionChangeFields
 			.map(
 				(f) =>
-					`IF NOT(NEW.${f}<=>OLD.${f}) THEN SET @changes = JSON_INSERT(@changes, '$.${f}', NEW.${f}); END IF;`
+					`IF NOT(NEW.${f}<=>OLD.${f}) THEN SET @changes = JSON_INSERT(@changes, '$.${f}', ${convertNewField(f)}); END IF;`
 			)
 			.join("\n\t\t")}
 		SET @id = (SELECT id FROM resolutionsLog WHERE resolution_id=OLD.id AND Action=@action AND UserID=NEW.LastModifiedBy AND Timestamp > DATE_SUB(NEW.LastModifiedTime, ${updateIntervalSQL}) ORDER BY Timestamp DESC LIMIT 1);
@@ -194,12 +200,19 @@ function parseChanges(
 	if ("AdHoc" in changesDb) changes.AdHoc = changesDb.AdHoc || "";
 	if ("CommentGroup" in changesDb)
 		changes.CommentGroup = changesDb.CommentGroup || "";
-	if ("Submission" in changesDb)
-		changes.Submission = changesDb.Submission || "";
-	if ("ReadyForMotion" in changesDb)
-		changes.ReadyForMotion = changesDb.ReadyForMotion === 1 ? true : false;
 	if ("AssigneeName" in changesDb)
 		changes.AssigneeName = changesDb.AssigneeName || "";
+	if ("Submission" in changesDb)
+		changes.Submission = changesDb.Submission || "";
+	if ("ReadyForMotion" in changesDb) {
+		if (typeof changesDb.ReadyForMotion === "boolean")
+			changes.ReadyForMotion = changesDb.ReadyForMotion;
+		else
+			changes.ReadyForMotion =
+				changesDb.ReadyForMotion === 1 ? true : false;
+	}
+	if ("ApprovedByMotion" in changesDb)
+		changes.ApprovedByMotion = changesDb.ApprovedByMotion || "";
 	return changes;
 }
 
