@@ -31,7 +31,7 @@ export function refresh() {
 	}
 }
 
-export const indexLoader: LoaderFunction = async (args) => {
+export const indexLoader: LoaderFunction = async () => {
 	const { dispatch } = store;
 	dispatch(clearImatAttendanceSummary());
 	dispatch(clearSessionAttendanceSummary());
