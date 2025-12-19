@@ -158,7 +158,7 @@ const setSubmission: ColSet = (b, c, cell) => {
 		};
 		cell.style.font = { color: { argb: "7f0011e0" }, underline: true };
 	} else {
-		cell.value = c.Submission || "";
+		cell.value = c.Submission;
 	}
 };
 
