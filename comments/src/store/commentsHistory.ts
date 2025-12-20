@@ -7,11 +7,10 @@ import { selectCommentsBallot_id } from "./comments";
 import {
 	commentHistoryGetResponseSchema,
 	CommentHistoryGetResponse,
-	CommentHistoryEvent,
 	CommentHistoryEntry,
 } from "@schemas/commentHistory";
 
-export type { CommentHistoryEntry, CommentHistoryEvent };
+export type { CommentHistoryEntry };
 
 /* Create slice */
 const initialState: {
