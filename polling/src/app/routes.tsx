@@ -1,12 +1,5 @@
 import { lazy } from "react";
-import type { RouteObject, LoaderFunction } from "react-router";
-
-import { store } from "@/store";
-import {
-	loadGroups,
-	selectSubgroupByName,
-	setSelectedGroupId,
-} from "@/store/groups";
+import type { RouteObject } from "react-router";
 
 import AppLayout from "./layout";
 import ErrorPage from "./errorPage";
@@ -16,36 +9,14 @@ const PollAdmin = lazy(() => import("./admin"));
 //import PollUser from "./user";
 const PollUser = lazy(() => import("./user"));
 
-import { rootLoader } from "./rootLoader";
-import { groupLoader, groupIndexLoader } from "./groupLoader";
-
-/*
- * Routing loaders
- */
-
-const subgroupIndexLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	store.dispatch(setSelectedGroupId(null));
-	return null;
-};
-
-const subgroupLoader: LoaderFunction = async (args) => {
-	await rootLoader(args);
-
-	const { groupName, subgroupName } = args.params;
-	if (!groupName) throw new Error("Route error: groupName not set");
-	if (!subgroupName) throw new Error("Route error: subgroupName not set");
-
-	const { dispatch, getState } = store;
-	await dispatch(loadGroups());
-	await dispatch(loadGroups(groupName));
-
-	const subgroup = selectSubgroupByName(getState(), subgroupName);
-	dispatch(setSelectedGroupId(subgroup?.id || null));
-
-	return null;
-};
+import {
+	rootLoader,
+	groupLoader,
+	groupIndexLoader,
+	subgroupLoader,
+	subgroupIndexLoader,
+} from "./loaders";
+import { installLoaderWrapper } from "./initialLoad";
 
 /*
  * Routes
@@ -98,5 +69,7 @@ export const routes: RouteObject[] = [
 		element: <span>Not found</span>,
 	},
 ];
+
+installLoaderWrapper(routes);
 
 export default routes;
