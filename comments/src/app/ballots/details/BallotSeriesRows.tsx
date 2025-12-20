@@ -48,9 +48,11 @@ export function BallotSeriesRows({
 	let ballotSeriesNodes: JSX.Element[] = [];
 
 	let prevBallots: Ballot[] = [];
+	let stage = 0;
 	if (edited.prev_id && !isMultiple(edited.prev_id)) {
 		prevBallots = getPrevBallots(edited.prev_id);
 		ballotSeriesNodes = prevBallots.map((b, i) => ballotSeriesNode(b, i));
+		stage = prevBallots.length;
 	} else {
 		const id =
 			"id" in edited && !isMultiple(edited.id) ? edited.id : undefined;
@@ -71,20 +73,22 @@ export function BallotSeriesRows({
 			ballotSeriesNodes = prevBallots.map((b, i) =>
 				ballotSeriesNode(b, i, { fontStyle: "italic" })
 			);
-			ballotSeriesNodes.unshift(
-				<span style={{ fontStyle: "italic" }}>{"(possible: "}</span>
-			);
-			ballotSeriesNodes.push(
-				<span
-					style={{
-						fontStyle: "italic",
-						marginLeft: -20,
-						marginRight: 20,
-					}}
-				>
-					{")"}
-				</span>
-			);
+			if (ballotSeriesNodes.length > 0) {
+				ballotSeriesNodes.unshift(
+					<span style={{ fontStyle: "italic" }}>{"(possible: "}</span>
+				);
+				ballotSeriesNodes.push(
+					<span
+						style={{
+							fontStyle: "italic",
+							marginLeft: -20,
+							marginRight: 20,
+						}}
+					>
+						{")"}
+					</span>
+				);
+			}
 		}
 	}
 	const prevBallot =
@@ -100,14 +104,12 @@ export function BallotSeriesRows({
 
 	ballotSeriesNodes = ballotSeriesNodes
 		.concat(
-			ballotSeriesNode(edited as Ballot, ballotSeriesNodes.length, {
+			ballotSeriesNode(edited as Ballot, stage, {
 				fontWeight: "bold",
 			})
 		)
 		.concat(
-			futureBallots.map((b, i) =>
-				ballotSeriesNode(b, i + ballotSeriesNodes.length + 1)
-			)
+			futureBallots.map((b, i) => ballotSeriesNode(b, i + stage + 1))
 		);
 
 	function togglePrevId() {
