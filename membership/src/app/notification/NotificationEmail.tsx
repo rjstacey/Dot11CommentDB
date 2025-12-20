@@ -16,7 +16,7 @@ import {
 	SELECTED_MEMBERS_KEY,
 } from "@/hooks/emailSubstitutionTags";
 
-import Editor from "@/components/editor/Editor";
+import Editor from "@/components/editor";
 import SelectEmailTemplate from "./SelectEmailTemplate";
 import RecipientsEditor from "./RecipientsEditor";
 import SubjectEditor from "./SubjectEditor";
