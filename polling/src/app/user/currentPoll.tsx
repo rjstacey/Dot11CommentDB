@@ -10,7 +10,7 @@ import {
 	PollChoice,
 } from "@/store/pollingUser";
 import MemberShow from "@/components/MemberShow";
-import css from "./activePoll.module.css";
+import css from "./currentPoll.module.css";
 
 function PollOptions({ poll }: { poll: Poll }) {
 	const dispatch = useAppDispatch();
@@ -78,11 +78,7 @@ function PollForm({ poll }: { poll: Poll }) {
 				<PollOptions poll={poll} />
 			</div>
 			{poll.type === "m" && (
-				<Form.Group
-					as={Row}
-					className="mb-3"
-					controlId="formMovedSeconded"
-				>
+				<Form.Group as={Row} className="mb-3">
 					<Col>
 						<Form.Label htmlFor="moved">Moved:</Form.Label>
 						<MemberShow id="moved" sapin={poll.movedSAPIN} />
@@ -97,12 +93,10 @@ function PollForm({ poll }: { poll: Poll }) {
 	);
 }
 
-function CurrentPoll() {
+export function CurrentPoll() {
 	const poll = useAppSelector(selectPollingUserActivePoll);
 
 	if (!poll) return null;
 
 	return <PollForm poll={poll} />;
 }
-
-export default CurrentPoll;

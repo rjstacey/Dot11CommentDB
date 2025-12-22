@@ -1,9 +1,8 @@
 import { lazy } from "react";
 import type { RouteObject } from "react-router";
 
-import AppLayout from "./layout";
-import ErrorPage from "./errorPage";
-import Polling from "./polling";
+import { AppLayout } from "./layout";
+import { AppErrorPage } from "./errorPage";
 //import PollAdmin from "./admin";
 const PollAdmin = lazy(() => import("./admin"));
 //import PollUser from "./user";
@@ -25,8 +24,8 @@ export const routes: RouteObject[] = [
 	{
 		path: "/",
 		element: <AppLayout />,
-		hydrateFallbackElement: <span></span>,
-		errorElement: <ErrorPage />,
+		hydrateFallbackElement: <span>Fallback...</span>,
+		errorElement: <AppErrorPage />,
 		loader: rootLoader,
 		children: [
 			{
@@ -38,7 +37,7 @@ export const routes: RouteObject[] = [
 				path: ":groupName",
 				loader: groupLoader,
 				element: null,
-				errorElement: <ErrorPage />,
+				hydrateFallbackElement: <span>Loading...</span>,
 				children: [
 					{
 						index: true,
@@ -48,7 +47,6 @@ export const routes: RouteObject[] = [
 					{
 						path: ":subgroupName",
 						loader: subgroupLoader,
-						element: <Polling />,
 						children: [
 							{
 								index: true,

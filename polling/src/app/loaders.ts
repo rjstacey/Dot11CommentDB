@@ -10,9 +10,15 @@ import {
 	AccessLevel,
 } from "@/store/groups";
 import { loadMembers } from "@/store/members";
+import {
+	pollingSocketConnect,
+	pollingSocketJoinGroup,
+	pollingSocketLeaveGroup,
+} from "@/store/pollingSocket";
 
 export const rootLoader: LoaderFunction = async () => {
 	const { dispatch } = store;
+	dispatch(pollingSocketConnect());
 	dispatch(loadTimeZones());
 	await dispatch(loadGroups());
 
@@ -20,7 +26,8 @@ export const rootLoader: LoaderFunction = async () => {
 };
 
 export const groupIndexLoader: LoaderFunction = async () => {
-	store.dispatch(setTopLevelGroupId(null));
+	const { dispatch } = store;
+	dispatch(setTopLevelGroupId(null));
 	return null;
 };
 
@@ -47,7 +54,9 @@ export const groupLoader: LoaderFunction = async ({ params }) => {
 };
 
 export const subgroupIndexLoader: LoaderFunction = async () => {
-	store.dispatch(setSelectedGroupId(null));
+	const { dispatch } = store;
+	dispatch(setSelectedGroupId(null));
+	dispatch(pollingSocketLeaveGroup());
 	return null;
 };
 
@@ -61,7 +70,10 @@ export const subgroupLoader: LoaderFunction = async ({ params }) => {
 	await dispatch(loadGroups(groupName));
 
 	const subgroup = selectSubgroupByName(getState(), subgroupName);
-	dispatch(setSelectedGroupId(subgroup?.id || null));
+	if (!subgroup) throw new Error(`Subgroup ${subgroupName} does not exist`);
+
+	dispatch(setSelectedGroupId(subgroup.id));
+	dispatch(pollingSocketJoinGroup(subgroup.id));
 
 	return null;
 };

@@ -19,11 +19,11 @@ import Editor from "@/components/editor";
 import LabeledToggle from "@/components/toggle";
 import MemberSelector from "@/components/MemberSelector";
 
-import css from "./pollPanel.module.css";
+import css from "./currentPoll.module.css";
 
 const pollVisibilityOptions: { label: string; value: boolean }[] = [
-	{ label: "Inactive", value: false },
-	{ label: "Active", value: true },
+	{ label: "Not shown", value: false },
+	{ label: "Shown", value: true },
 ];
 
 function PollShow({
@@ -40,7 +40,7 @@ function PollShow({
 	return (
 		<LabeledToggle
 			className={className}
-			label="Make this poll:"
+			label="This poll is:"
 			options={pollVisibilityOptions}
 			value={value}
 			onChange={onChange}
@@ -382,7 +382,7 @@ export function PollForm({ event, poll }: { event: Event; poll: Poll }) {
 	}
 
 	return (
-		<div className={css.pollForm}>
+		<>
 			<div className={css.topRow}>
 				<div className={css.topRowGroup}>
 					<PollTypeSelect
@@ -422,7 +422,7 @@ export function PollForm({ event, poll }: { event: Event; poll: Poll }) {
 				<Editor
 					style={{ width: "100%" }}
 					value={editPoll.body}
-					onChange={(body) => changePoll({ body })}
+					onChange={(body) => changePoll({ body: body || "" })}
 					readOnly={disabled}
 				/>
 			</div>
@@ -470,10 +470,10 @@ export function PollForm({ event, poll }: { event: Event; poll: Poll }) {
 				</Row>
 			)}
 			<PollActions poll={poll} />
-		</div>
+		</>
 	);
 }
 
-export function PollPanel({ event, poll }: { event: Event; poll: Poll }) {
+export function CurrentPoll({ event, poll }: { event: Event; poll: Poll }) {
 	return <PollForm event={event!} poll={poll!} />;
 }

@@ -7,7 +7,7 @@ import {
 import CreateEvent from "./createEvent";
 import EventTabs from "./eventTabs";
 import EventPanel from "./eventPanel";
-import { PollPanel } from "./pollPanel";
+import { CurrentPoll } from "./currentPoll";
 import css from "./admin.module.css";
 
 function Admin() {
@@ -17,7 +17,7 @@ function Admin() {
 	let panel: JSX.Element | null = null;
 	if (event)
 		panel = poll ? (
-			<PollPanel event={event} poll={poll} />
+			<CurrentPoll event={event} poll={poll} />
 		) : (
 			<EventPanel event={event} />
 		);

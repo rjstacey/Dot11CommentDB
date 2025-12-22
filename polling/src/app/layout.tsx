@@ -4,7 +4,7 @@ import Header from "./header";
 
 import css from "./app.module.css";
 
-function AppLayout() {
+export function AppLayout() {
 	return (
 		<>
 			<Header />
@@ -16,5 +16,3 @@ function AppLayout() {
 		</>
 	);
 }
-
-export default AppLayout;

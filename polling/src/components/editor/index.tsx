@@ -108,11 +108,13 @@ const editorConfig = {
 		{
 			replace: ParagraphNode,
 			with: () => new RichParagraphNode(),
+			withKlass: RichParagraphNode,
 		},
 		RichTextNode,
 		{
 			replace: TextNode,
 			with: (node: TextNode) => new RichTextNode(node.__text),
+			withKlass: RichTextNode,
 		},
 		TextNode,
 	],
@@ -128,8 +130,8 @@ function Editor({
 }: {
 	className?: string;
 	style?: React.CSSProperties;
-	value: string;
-	onChange: (value: string) => void;
+	value: string | null;
+	onChange: (value: string | null) => void;
 	readOnly?: boolean;
 	placeholder?: string;
 }) {

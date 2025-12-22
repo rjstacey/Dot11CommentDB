@@ -1,7 +1,7 @@
 import React from "react";
 import { useAppSelector } from "@/store/hooks";
 import AllPolls from "./allPolls";
-import ActivePoll from "./activePoll";
+import { CurrentPoll } from "./currentPoll";
 import { selectPollingUserActivePoll } from "@/store/pollingUser";
 import cx from "classnames";
 import css from "./tabs.module.css";
@@ -20,7 +20,7 @@ function PollUser() {
 					})}
 					onClick={() => setIndex(0)}
 				>
-					<>Active Poll</>
+					<>Current Poll</>
 				</div>
 				<div
 					className={cx({ [css.tab]: true, selected: index === 1 })}
@@ -30,7 +30,7 @@ function PollUser() {
 				</div>
 			</div>
 			<div className={cx(css.tabPanel, { selected: index === 0 })}>
-				<ActivePoll />
+				<CurrentPoll />
 			</div>
 			<div className={cx(css.tabPanel, { selected: index === 1 })}>
 				<AllPolls />

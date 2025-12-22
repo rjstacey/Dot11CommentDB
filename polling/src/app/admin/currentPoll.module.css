@@ -12,6 +12,7 @@
 
 .pollForm {
 	overflow: auto;
+	padding: 0.5rem;
 }
 
 .topRow {
@@ -49,7 +50,6 @@
 	display: flex;
 	border-top-left-radius: 0;
 	border-bottom-left-radius: 0;
-	padding: 5px;
 }
 
 .pollOptionsRow {

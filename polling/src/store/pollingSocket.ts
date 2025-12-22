@@ -64,6 +64,22 @@ export function getSocket() {
 	return socket;
 }
 
+function openSocket(token: string) {
+	if (!socket) {
+		socket = io("/poll", { query: { token } });
+		document.addEventListener("beforeunload", closeSocket);
+	}
+	return socket;
+}
+
+function closeSocket() {
+	if (socket) {
+		socket.close();
+		document.removeEventListener("beforeunload", closeSocket);
+		socket = undefined;
+	}
+}
+
 function isOkResponse(response: unknown): response is PollingOK {
 	return (
 		isPlainObject(response) &&
@@ -148,8 +164,10 @@ export function handleError(error: unknown) {
 
 export const pollingSocketConnect =
 	(): AppThunk => async (dispatch, getState) => {
+		if (socket) return; // Already connected
+
 		const user = selectUser(getState());
-		socket = io("/poll", { query: { token: user.Token } });
+		socket = openSocket(user.Token!);
 
 		pollingAdminSocketRegister(socket);
 		pollingUserSocketRegister(socket);
@@ -167,13 +185,16 @@ export const pollingSocketConnect =
 			}
 			dispatch(setConnected());
 		});
+		socket.on("disconnect", () => {
+			console.log("disconnect");
+			dispatch(setDisconnected());
+		});
 	};
 
 export const pollingSocketDisconnect = (): AppThunk => async (dispatch) => {
 	console.log("disconnect");
-	assertHasSocket(socket);
+	closeSocket();
 	dispatch(setDisconnected());
-	socket.close();
 };
 
 export const pollingSocketJoinGroup =
