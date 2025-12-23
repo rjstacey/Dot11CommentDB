@@ -1,0 +1,18 @@
+.summary {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+
+	& .title {
+		font-weight: bold;
+	}
+
+	& .body {
+		font-weight: normal;
+	}
+
+	& .state {
+		border: 1px solid red;
+	}
+}

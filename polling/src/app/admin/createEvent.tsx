@@ -145,15 +145,15 @@ function CreateEventForm({ close }: { close: () => void }) {
 function CreateEvent() {
 	const [show, setShow] = React.useState(false);
 	return (
-		<div>
-			<DropdownButton
-				title="+ Event"
-				show={show}
-				onToggle={() => setShow(!show)}
-			>
-				<CreateEventForm close={() => setShow(false)} />
-			</DropdownButton>
-		</div>
+		<DropdownButton
+			variant="outline-primary"
+			title="+ Event"
+			show={show}
+			onToggle={() => setShow(!show)}
+			className="d-flex align-items-center m-2"
+		>
+			<CreateEventForm close={() => setShow(false)} />
+		</DropdownButton>
 	);
 }
 

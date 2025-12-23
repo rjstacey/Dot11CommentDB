@@ -1,26 +1,22 @@
 import { useAppSelector } from "@/store/hooks";
+import cx from "classnames";
 import {
-	selectPollingAdminSelectedPoll,
+	//selectPollingAdminSelectedPoll,
 	selectPollAdminEvent,
 } from "@/store/pollingAdmin";
 
 import CreateEvent from "./createEvent";
 import EventTabs from "./eventTabs";
 import EventPanel from "./eventPanel";
-import { CurrentPoll } from "./currentPoll";
+//import { CurrentPoll } from "./PollEdit";
 import css from "./admin.module.css";
 
 function Admin() {
 	const event = useAppSelector(selectPollAdminEvent);
-	const poll = useAppSelector(selectPollingAdminSelectedPoll);
+	//const poll = useAppSelector(selectPollingAdminSelectedPoll);
 
 	let panel: JSX.Element | null = null;
-	if (event)
-		panel = poll ? (
-			<CurrentPoll event={event} poll={poll} />
-		) : (
-			<EventPanel event={event} />
-		);
+	if (event) panel = <EventPanel event={event} />;
 
 	return (
 		<div className={css.tabs}>
@@ -28,7 +24,7 @@ function Admin() {
 				<EventTabs />
 				<CreateEvent />
 			</div>
-			<div className={css.eventPanel}>{panel}</div>
+			<div className={cx(css.eventPanel, "p-3")}>{panel}</div>
 		</div>
 	);
 }

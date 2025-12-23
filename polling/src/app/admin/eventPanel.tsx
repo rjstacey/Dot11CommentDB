@@ -1,81 +1,123 @@
-import { Button } from "react-bootstrap";
+import { Accordion, Button, Row, Col, ToggleButton } from "react-bootstrap";
+import cx from "classnames";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectPollingAdminPolls,
 	selectPollingAdminSelectedPollId,
+	setSelectedPollId,
 	pollingAdminEventPublish,
 	pollingAdminAddPoll,
-	Event,
-	Poll,
-	setSelectedPollId,
-	pollingAdminDeletePoll,
 	defaultMotion,
 	defaultStrawpoll,
+	Event,
+	Poll,
 } from "@/store/pollingAdmin";
-import css from "./admin.module.css";
-import editorCss from "@/components/editor/editor.module.css";
 
-function EventActions({ event, polls }: { event: Event; polls: Poll[] }) {
-	const dispatch = useAppDispatch();
-	const createMotion = () =>
-		dispatch(pollingAdminAddPoll(defaultMotion(event, polls)));
-	const createStrawpoll = () =>
-		dispatch(pollingAdminAddPoll(defaultStrawpoll(event, polls)));
+import css from "./eventPanel.module.css";
 
-	function toggleIsPublished() {
-		dispatch(pollingAdminEventPublish(event.id, !event.isPublished));
-	}
+import { PollEditForm } from "./PollEditForm";
+import { PollSummary } from "./PollSummary";
 
+function EventShow({
+	value,
+	onChange,
+	disabled,
+	className,
+}: {
+	value: boolean;
+	onChange: (value: boolean) => void;
+	disabled?: boolean;
+	className?: string;
+}) {
 	return (
-		<div className={css.eventActions}>
-			<Button active={event.isPublished} onClick={toggleIsPublished}>
-				Publish
-			</Button>
-			<div>
-				<Button variant="light" onClick={createMotion}>
-					{"+ Motion"}
-				</Button>
-				<Button variant="light" onClick={createStrawpoll}>
-					{"+ Strawpoll"}
-				</Button>
-			</div>
+		<div className={cx("d-flex align-items-center me-3", className)}>
+			<span className="me-2">These polls are:</span>
+			<ToggleButton
+				type="checkbox"
+				name="event-show"
+				id="event-show"
+				value="shown"
+				variant={"outline-success"}
+				checked={value}
+				onChange={(e) => onChange(e.target.checked)}
+				disabled={disabled}
+			>
+				<i className={cx(value ? "bi-eye" : "bi-eye-slash", "me-2")} />
+				{value ? "Published" : "Hidden"}
+			</ToggleButton>
 		</div>
 	);
 }
 
-function PollEntry({ poll }: { poll: Poll }) {
+function EventActions({ event, polls }: { event: Event; polls: Poll[] }) {
 	const dispatch = useAppDispatch();
-	const isSelected =
-		useAppSelector(selectPollingAdminSelectedPollId) === poll.id;
+	const createMotion = () => {
+		dispatch(pollingAdminAddPoll(defaultMotion(event, polls)));
+	};
+	const createStrawpoll = () => {
+		dispatch(pollingAdminAddPoll(defaultStrawpoll(event, polls)));
+	};
+	const setIsPublished = (value: boolean) => {
+		dispatch(pollingAdminEventPublish(event.id, value));
+	};
+
 	return (
-		<div className={css.pollRow}>
-			<div
-				className={css.pollEntry + (isSelected ? " selected" : "")}
-				onClick={() => dispatch(setSelectedPollId(poll.id))}
-			>
-				<span className={css.pollTitle}>{poll.title}</span>
-				<div
-					className={editorCss.bodyContainer}
-					dangerouslySetInnerHTML={{ __html: poll.body }}
+		<Row className="m-2">
+			<Col className="d-flex justify-content-end gap-2">
+				<Button variant="light" onClick={createMotion}>
+					<i className="bi-plus-lg me-2" />
+					{"Motion"}
+				</Button>
+				<Button variant="light" onClick={createStrawpoll}>
+					<i className="bi-plus-lg me-2" />
+					{"Strawpoll"}
+				</Button>
+				<EventShow
+					value={event.isPublished}
+					onChange={setIsPublished}
 				/>
-			</div>
-			{poll.state && <div className={css.pollState}>{poll.state}</div>}
-			<Button
-				name="delete"
-				className="bi-trash"
-				onClick={() => dispatch(pollingAdminDeletePoll(poll.id))}
-			/>
-		</div>
+			</Col>
+		</Row>
+	);
+}
+
+function PollEntry({ poll, isSelected }: { poll: Poll; isSelected: boolean }) {
+	return (
+		<Accordion.Item eventKey={poll.id.toString()} className={css.item}>
+			<Accordion.Header>
+				{!isSelected && <PollSummary poll={poll} className="summary" />}
+			</Accordion.Header>
+			<Accordion.Body>
+				{isSelected && <PollEditForm poll={poll} />}
+			</Accordion.Body>
+		</Accordion.Item>
 	);
 }
 
 function EventPolls({ polls }: { polls: Poll[] }) {
+	const dispatch = useAppDispatch();
+	const selectedPollId = useAppSelector(selectPollingAdminSelectedPollId);
+
 	return (
-		<div className={css.eventPolls}>
+		<Accordion
+			className={css.pollAccordion}
+			activeKey={selectedPollId?.toString()}
+			onSelect={(eventKey) =>
+				dispatch(
+					setSelectedPollId(
+						typeof eventKey === "string" ? parseInt(eventKey) : null
+					)
+				)
+			}
+		>
 			{polls.map((poll) => (
-				<PollEntry key={poll.id} poll={poll} />
+				<PollEntry
+					key={poll.id}
+					poll={poll}
+					isSelected={selectedPollId === poll.id}
+				/>
 			))}
-		</div>
+		</Accordion>
 	);
 }
 
