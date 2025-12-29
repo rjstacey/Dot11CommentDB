@@ -7,6 +7,7 @@ import {
 	Poll,
 	PollsQuery,
 	PollCreate,
+	PollChange,
 	PollUpdate,
 	PollResult,
 	PollChoice,
@@ -74,6 +75,19 @@ export async function deletePollEvent(id: number) {
 	return affectedRows;
 }
 
+function pollQuerySql(query: PollsQuery) {
+	let sql = "";
+	const wheres = Object.entries(query).map(([key, value]) => {
+		let sql: string;
+		if (key === "groupId")
+			sql = db.format("BIN_TO_UUID(??) IN (?)", [key, value]);
+		else sql = db.format("p.?? IN (?)", [key, value]);
+		return sql;
+	});
+	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
+	return sql;
+}
+
 export async function getPolls(query: PollsQuery = {}): Promise<Poll[]> {
 	// prettier-ignore
 	let sql =
@@ -93,16 +107,7 @@ export async function getPolls(query: PollsQuery = {}): Promise<Poll[]> {
 			"p.secondedSAPIN " +
 		"FROM polls p LEFT JOIN pollEvents e ON p.eventId=e.id";
 
-	const wheres = Object.entries(query).map(([key, value]) => {
-		let sql: string;
-		if (key === "groupId")
-			sql = db.format("BIN_TO_UUID(??) IN (?)", [key, value]);
-		else sql = db.format("p.?? IN (?)", [key, value]);
-		return sql;
-	});
-	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
-
-	sql += " ORDER BY `index`";
+	sql += pollQuerySql(query) + " ORDER BY `index`";
 
 	const polls = await db.query<(RowDataPacket & Poll)[]>(sql);
 	return polls;
@@ -110,7 +115,6 @@ export async function getPolls(query: PollsQuery = {}): Promise<Poll[]> {
 
 function pollSetSql(poll: Partial<Poll>) {
 	const s: string[] = [];
-	console.log(poll);
 	for (const key of Object.keys(poll)) {
 		if (key === "options")
 			s.push(db.format("options=?", [JSON.stringify(poll.options)]));
@@ -134,6 +138,16 @@ export async function updatePoll({ id, changes }: PollUpdate) {
 	}
 	const [pollOut] = await getPolls({ id });
 	return pollOut;
+}
+
+export async function updatePollQuery(query: PollsQuery, changes: PollChange) {
+	const sets = pollSetSql(changes);
+	if (sets) {
+		const sql = "UPDATE polls SET " + sets + pollQuerySql(query);
+		const result = await db.query<ResultSetHeader>(sql);
+		return result.affectedRows;
+	}
+	return 0;
 }
 
 export async function deletePoll(id: number) {

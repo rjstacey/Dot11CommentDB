@@ -58,6 +58,9 @@ function pollingAdminPollRemoved(params: unknown) {
 
 export function pollingAdminSocketRegister(socket: Socket) {
 	socket
+		.on("connect", () => {
+			console.log("pollingAdminSocket connect");
+		})
 		.on("event:opened", pollingAdminEventOpened)
 		.on("poll:added", pollingAdminPollAdded)
 		.on("poll:updated", pollingAdminPollUpdated)

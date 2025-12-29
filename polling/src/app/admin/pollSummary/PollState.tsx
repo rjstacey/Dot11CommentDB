@@ -1,8 +1,4 @@
-import type { Poll } from "@/store/pollingAdmin";
-import cx from "classnames";
-import css from "./PollSummary.module.css";
-
-function PollState({ state }: { state: string | null }) {
+export function PollState({ state }: { state: string | null }) {
 	const style = { opacity: 0.5 };
 	if (state === "shown") {
 		return (
@@ -30,25 +26,4 @@ function PollState({ state }: { state: string | null }) {
 	}
 
 	return null;
-}
-
-export function PollSummary({
-	poll,
-	className,
-}: {
-	poll: Poll;
-	className?: string;
-}) {
-	return (
-		<div className={cx(css.summary, className)}>
-			<div>
-				<div className={css.title}>{poll.title}</div>
-				<div
-					className={css.body}
-					dangerouslySetInnerHTML={{ __html: poll.body }}
-				/>
-			</div>
-			<PollState state={poll.state} />
-		</div>
-	);
 }

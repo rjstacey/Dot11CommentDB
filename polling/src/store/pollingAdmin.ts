@@ -31,20 +31,26 @@ import {
 import { AppThunk, RootState } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
 
-export type { Event, EventCreate, Poll, PollType, PollCreate };
+export type { Event, EventCreate, Poll, PollType, PollCreate, PollAction };
 export { PollRecordType, PollChoice };
 
 export const motionPollOptions: readonly string[] = ["Yes", "No", "Abstain"];
 
 export function titlePrefix(type: PollType, index: number) {
-	return (type === "m" ? "Motion " : "Strawpoll ") + (index + 1).toString();
+	return (type === "m" ? "Motion " : "Strawpoll ") + index.toString();
 }
 
-const maxIndex = (polls: Poll[]) =>
-	polls.reduce(
-		(maxIndex, poll) => (maxIndex > poll.index ? maxIndex : poll.index),
-		0
-	);
+function maxIndex(polls: Poll[]) {
+	let maxIndex = 0;
+	for (const poll of polls) {
+		const m = /(Motion|Strawpoll)\s*(\d+)/i.exec(poll.title);
+		if (m) {
+			const index = parseInt(m[2], 10);
+			if (index > maxIndex) maxIndex = index;
+		}
+	}
+	return maxIndex;
+}
 
 export function defaultMotion(event: Event, polls: Poll[]) {
 	const type = "m";
@@ -93,7 +99,6 @@ const pollsAdapter = createEntityAdapter<Poll>({ sortComparer });
 const initialState = {
 	isAdmin: false,
 	eventId: null as number | null,
-	activePollId: null as number | null,
 	selectedPollId: null as number | null,
 	events: eventsAdapter.getInitialState(),
 	polls: pollsAdapter.getInitialState(),
@@ -108,16 +113,12 @@ const slice = createSlice({
 			state.isAdmin = isAdmin;
 			if (!isAdmin) {
 				state.eventId = null;
-				state.activePollId = null;
 				eventsAdapter.removeAll(state.events);
 				pollsAdapter.removeAll(state.polls);
 			}
 		},
 		setEventId(state, action: PayloadAction<number | null>) {
 			state.eventId = action.payload;
-		},
-		setActivePollId(state, action: PayloadAction<number | null>) {
-			state.activePollId = action.payload;
 		},
 		setSelectedPollId(state, action: PayloadAction<number | null>) {
 			state.selectedPollId = action.payload;
@@ -172,17 +173,12 @@ export const {
 	updatePoll,
 	removePoll,
 	setSelectedPollId,
-	setActivePollId,
 } = slice.actions;
 
 /** Selectors */
 export const selectPollingAdminState = (state: RootState) => state[dataSet];
 export const selectPollingAdminEventId = (state: RootState) =>
 	selectPollingAdminState(state).eventId;
-export const selectPollingAdminSelectedPollId = (state: RootState) =>
-	selectPollingAdminState(state).selectedPollId;
-export const selectPollingAdminActivePollId = (state: RootState) =>
-	selectPollingAdminState(state).activePollId;
 export const selectPollingAdminEventIds = (state: RootState) =>
 	selectPollingAdminState(state).events.ids;
 export const selectPollingAdminEventEntities = (state: RootState) =>
@@ -193,14 +189,21 @@ export const selectPollAdminEvent = (state: RootState) => {
 	return eventId ? events.entities[eventId] : undefined;
 };
 
+export const selectPollingAdminSelectedPollId = (state: RootState) =>
+	selectPollingAdminState(state).selectedPollId;
 export const selectPollingAdminSelectedPoll = (state: RootState) => {
 	const { selectedPollId: pollId, polls } = selectPollingAdminState(state);
 	return pollId ? polls.entities[pollId] : undefined;
 };
 
 export const selectPollingAdminActivePoll = (state: RootState) => {
-	const { activePollId: pollId, polls } = selectPollingAdminState(state);
-	return pollId ? polls.entities[pollId] : undefined;
+	const { ids, entities } = selectPollingAdminState(state).polls;
+	return ids.map((id) => entities[id]!).find((poll) => poll.state);
+};
+
+export const selectPollingAdminActivePollId = (state: RootState) => {
+	const poll = selectPollingAdminActivePoll(state);
+	return poll ? poll.id : undefined;
 };
 
 export const selectPollingAdminEvents = createSelector(
@@ -341,21 +344,25 @@ export const pollingAdminDeletePoll =
 	};
 
 export const pollingAdminPollAction =
-	(pollId: number, action: PollAction): AppThunk =>
+	(pollId: number, action: PollAction): AppThunk<PollState> =>
 	async (dispatch, getState) => {
 		try {
-			const activePoll = selectPollingAdminActivePoll(getState());
-			if (activePoll && activePoll.state && pollId !== activePoll.id) {
-				await pollingSocketEmit("poll:unshow", activePoll.id);
+			const activePollId = selectPollingAdminActivePollId(getState());
+			if (activePollId && pollId !== activePollId) {
+				await pollingSocketEmit("poll:unshow", activePollId);
+				dispatch(
+					updatePoll({ id: activePollId, changes: { state: null } })
+				);
 			}
-			dispatch(setActivePollId(pollId));
 			await pollingSocketEmit("poll:" + action, pollId);
 			let state: PollState = null;
 			if (action === "show") state = "shown";
 			else if (action === "open") state = "opened";
 			else if (action === "close") state = "closed";
 			dispatch(updatePoll({ id: pollId, changes: { state } }));
+			return state;
 		} catch (error) {
 			dispatch(handleError(error));
 		}
+		return null;
 	};

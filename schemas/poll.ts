@@ -14,7 +14,7 @@ export type PollingOK = {
 	[K: string]: any;
 };
 
-const datetimeSchema = z.string().datetime({ offset: true });
+const datetimeSchema = z.iso.datetime({ offset: true });
 
 export const eventIdSchema = z.number();
 
@@ -34,7 +34,9 @@ export const eventCreateSchema = eventSchema
 		groupId: true,
 		name: true,
 	})
-	.merge(eventSchema.pick({ timeZone: true, datetime: true }).partial());
+	.extend(
+		eventSchema.pick({ timeZone: true, datetime: true }).partial().shape
+	);
 
 export const eventAddSchema = eventCreateSchema.required();
 
@@ -117,13 +119,13 @@ export const pollCreateSchema = pollSchema
 	.pick({
 		eventId: true,
 	})
-	.merge(
+	.extend(
 		pollSchema
 			.omit({
 				id: true,
 				eventId: true,
 			})
-			.partial()
+			.partial().shape
 	);
 
 export const pollChangeSchema = pollSchema.omit({ id: true }).partial();
@@ -152,6 +154,7 @@ export const pollVoteSchema = z.object({
 export type Poll = z.infer<typeof pollSchema>;
 export type PollsQuery = z.infer<typeof pollsQuerySchema>; // argument for polls:get -> server
 export type PollCreate = z.infer<typeof pollCreateSchema>; // argument for poll:create -> server
+export type PollChange = z.infer<typeof pollChangeSchema>;
 export type PollUpdate = z.infer<typeof pollUpdateSchema>; // argument for poll:update -> server
 export type PollDelete = z.infer<typeof pollDeleteSchema>; // argument for poll:delete -> server
 export type PollAction = z.infer<typeof pollActionSchema>;

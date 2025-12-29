@@ -2,6 +2,7 @@ import { Server as HttpServer } from "node:http";
 import { Server as SocketIoServer, Socket } from "socket.io";
 import onPollConnect from "./poll.js";
 import { verifyToken } from "../auth/jwt.js";
+import { selectUser } from "@/services/users.js";
 
 type NextFunction = (err?: Error) => void;
 
@@ -10,7 +11,9 @@ async function authSocket(socket: Socket, next: NextFunction) {
 	try {
 		const token = socket.handshake.query.token;
 		if (typeof token !== "string") throw new Error("Invalid token");
-		const user = await verifyToken(token);
+		const userId = verifyToken(token);
+		const user = await selectUser({ SAPIN: userId });
+		if (!user) throw new Error("User not found");
 		socket.data.user = user;
 		next();
 	} catch (error) {

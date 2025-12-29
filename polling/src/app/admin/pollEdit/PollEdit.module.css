@@ -23,6 +23,7 @@
 
 .topRowGroup {
 	display: flex;
+	align-items: center;
 }
 
 .topRowItem {

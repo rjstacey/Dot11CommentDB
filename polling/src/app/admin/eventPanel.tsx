@@ -1,10 +1,9 @@
-import { Accordion, Button, Row, Col, ToggleButton } from "react-bootstrap";
+import { Button, Row, Col, ToggleButton } from "react-bootstrap";
 import cx from "classnames";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectPollingAdminPolls,
-	selectPollingAdminSelectedPollId,
-	setSelectedPollId,
+	selectPollAdminEvent,
 	pollingAdminEventPublish,
 	pollingAdminAddPoll,
 	defaultMotion,
@@ -13,10 +12,7 @@ import {
 	Poll,
 } from "@/store/pollingAdmin";
 
-import css from "./eventPanel.module.css";
-
-import { PollEditForm } from "./PollEditForm";
-import { PollSummary } from "./PollSummary";
+import { PollsList } from "./pollsList";
 
 function EventShow({
 	value,
@@ -43,7 +39,7 @@ function EventShow({
 				disabled={disabled}
 			>
 				<i className={cx(value ? "bi-eye" : "bi-eye-slash", "me-2")} />
-				{value ? "Published" : "Hidden"}
+				{value ? "Published" : "Unpublished"}
 			</ToggleButton>
 		</div>
 	);
@@ -81,47 +77,8 @@ function EventActions({ event, polls }: { event: Event; polls: Poll[] }) {
 	);
 }
 
-function PollEntry({ poll, isSelected }: { poll: Poll; isSelected: boolean }) {
-	return (
-		<Accordion.Item eventKey={poll.id.toString()} className={css.item}>
-			<Accordion.Header>
-				{!isSelected && <PollSummary poll={poll} className="summary" />}
-			</Accordion.Header>
-			<Accordion.Body>
-				{isSelected && <PollEditForm poll={poll} />}
-			</Accordion.Body>
-		</Accordion.Item>
-	);
-}
-
-function EventPolls({ polls }: { polls: Poll[] }) {
-	const dispatch = useAppDispatch();
-	const selectedPollId = useAppSelector(selectPollingAdminSelectedPollId);
-
-	return (
-		<Accordion
-			className={css.pollAccordion}
-			activeKey={selectedPollId?.toString()}
-			onSelect={(eventKey) =>
-				dispatch(
-					setSelectedPollId(
-						typeof eventKey === "string" ? parseInt(eventKey) : null
-					)
-				)
-			}
-		>
-			{polls.map((poll) => (
-				<PollEntry
-					key={poll.id}
-					poll={poll}
-					isSelected={selectedPollId === poll.id}
-				/>
-			))}
-		</Accordion>
-	);
-}
-
-function EventPanel({ event }: { event: Event }) {
+function EventPanel() {
+	const event = useAppSelector(selectPollAdminEvent);
 	const polls = useAppSelector(selectPollingAdminPolls);
 
 	if (!event) return null;
@@ -129,7 +86,7 @@ function EventPanel({ event }: { event: Event }) {
 	return (
 		<>
 			<EventActions event={event} polls={polls} />
-			<EventPolls polls={polls} />
+			<PollsList polls={polls} />
 		</>
 	);
 }

@@ -1,37 +1,28 @@
 import { Button, Row, Col } from "react-bootstrap";
-import { useAppDispatch } from "@/store/hooks";
-import {
-	type Poll,
-	pollingAdminPollAction,
-	pollingAdminDeletePoll,
-} from "@/store/pollingAdmin";
+import type { Poll, PollAction } from "@/store/pollingAdmin";
 
-export function PollActions({ poll }: { poll: Poll }) {
-	const dispatch = useAppDispatch();
-
+export function PollActions({
+	poll,
+	onAction,
+	onDelete,
+}: {
+	poll: Poll;
+	onAction: (action: PollAction) => void;
+	onDelete: () => void;
+}) {
 	const openDisabled =
 		poll.state === null ||
 		poll.state === "closed" ||
 		(poll.type === "m" && (!poll.movedSAPIN || !poll.secondedSAPIN));
 
-	const closeDisabled = poll.state === null || poll.state === "shown";
+	const closeDisabled = poll.state !== "opened" && poll.state !== "closed";
 
 	function openPoll() {
-		dispatch(
-			pollingAdminPollAction(
-				poll.id,
-				poll.state === "opened" ? "show" : "open"
-			)
-		);
+		onAction(poll.state === "opened" ? "show" : "open");
 	}
 
 	function closePoll() {
-		dispatch(
-			pollingAdminPollAction(
-				poll.id,
-				poll.state === "closed" ? "open" : "close"
-			)
-		);
+		onAction(poll.state === "closed" ? "open" : "close");
 	}
 
 	return (
@@ -44,22 +35,25 @@ export function PollActions({ poll }: { poll: Poll }) {
 					disabled={openDisabled}
 				>
 					<i className="bi-play me-1" />
-					{"Start"}
+					{poll.state === "opened" || poll.state === "closed"
+						? "Restart"
+						: "Start"}
 				</Button>
 				<Button
 					variant="outline-warning"
 					onClick={closePoll}
+					active={poll.state === "closed"}
 					disabled={closeDisabled}
 				>
 					<i className="bi-stop me-1" />
-					{"Stop"}
+					{poll.state === "closed" ? "Closed" : "Stop"}
 				</Button>
 			</Col>
 			<Col className="d-flex justify-content-end">
 				<Button
 					name="delete"
 					variant="outline-danger"
-					onClick={() => dispatch(pollingAdminDeletePoll(poll.id))}
+					onClick={onDelete}
 				>
 					<i className="bi-trash me-1" />
 					{"Delete"}

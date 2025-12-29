@@ -2,8 +2,11 @@ import React from "react";
 import { useAppDispatch } from "@/store/hooks";
 import {
 	pollingAdminUpdatePoll,
+	pollingAdminDeletePoll,
+	pollingAdminPollAction,
 	Poll,
 	PollChoice,
+	PollAction,
 	motionPollOptions,
 } from "@/store/pollingAdmin";
 
@@ -42,10 +45,23 @@ export function usePollEdit(poll: Poll) {
 		[edited, poll.id]
 	);
 
+	const onAction = React.useCallback(
+		async (action: PollAction) => {
+			const state = await dispatch(
+				pollingAdminPollAction(poll.id, action)
+			);
+			setEdited((edited) => ({ ...edited, state }));
+		},
+		[edited, poll.id]
+	);
+
+	const onDelete = React.useCallback(async () => {
+		await dispatch(pollingAdminDeletePoll(poll.id));
+	}, [poll.id]);
+
 	React.useEffect(() => {
-		console.log("update");
 		setEdited(poll);
 	}, [poll.id]);
 
-	return { edited, onChange };
+	return { edited, onChange, onAction, onDelete };
 }

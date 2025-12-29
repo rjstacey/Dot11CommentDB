@@ -24,6 +24,7 @@ const pollsAdapter = createEntityAdapter<Poll>();
 const initialState = {
 	event: null as Event | null,
 	polls: pollsAdapter.getInitialState(),
+	selectedPollId: null as number | null,
 	pollId: null as number | null,
 	pollAction: null as PollAction | null,
 	pollVotes: [] as number[],
@@ -69,6 +70,9 @@ const slice = createSlice({
 		removePoll(state, action: PayloadAction<number>) {
 			pollsAdapter.removeOne(state.polls, action.payload);
 		},
+		setSelectedPollId(state, action: PayloadAction<number | null>) {
+			state.selectedPollId = action.payload;
+		},
 		setActivePollId(state, action: PayloadAction<number | null>) {
 			const pollId = action.payload;
 			if (state.pollId !== pollId) {
@@ -93,6 +97,7 @@ export const {
 	setActivePollId,
 	setSubmitMessage,
 	setPollVotes,
+	setSelectedPollId,
 } = slice.actions;
 
 /** Selectors */
@@ -104,9 +109,16 @@ export const selectPollingUserPolls = createSelector(
 	(polls) => pollsAdapter.getSelectors().selectAll(polls)
 );
 
-export const selectPollingUserActivePoll = (state: RootState) => {
-	const { pollId, polls } = selectPollingUserState(state);
+export const selectPollingUserSelectedPollId = (state: RootState) =>
+	selectPollingUserState(state).selectedPollId;
+export const selectPollingUserSelectedPoll = (state: RootState) => {
+	const { selectedPollId: pollId, polls } = selectPollingUserState(state);
 	return pollId ? polls.entities[pollId] : undefined;
+};
+
+export const selectPollingUserActivePoll = (state: RootState) => {
+	const { ids, entities } = selectPollingUserState(state).polls;
+	return ids.map((id) => entities[id]!).find((poll) => poll.state);
 };
 
 /** Thunk actions */

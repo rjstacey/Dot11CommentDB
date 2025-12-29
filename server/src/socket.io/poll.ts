@@ -296,7 +296,18 @@ async function onPollAction(
 		const groupId = getSocketGroupId(this);
 		const id = pollIdSchema.parse(payload);
 		const [poll] = await getPolls({ id, groupId });
-		if (!poll) throw new TypeError("Poll not found");
+		if (!poll) throw new NotFoundError("Poll not found");
+		const [activePoll] = await getPolls({
+			eventId: poll.eventId,
+			state: ["shown", "opened"],
+		});
+		if (
+			(action === "show" || action === "open" || action === "close") &&
+			activePoll &&
+			activePoll.id !== poll.id
+		) {
+			throw new TypeError("Another poll is already active");
+		}
 		let state: PollState = null;
 		if (action === "show") state = "shown";
 		else if (action === "open") state = "opened";

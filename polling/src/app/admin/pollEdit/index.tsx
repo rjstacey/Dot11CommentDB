@@ -1,26 +1,21 @@
-import { useAppDispatch } from "@/store/hooks";
-import { Poll, pollingAdminPollAction } from "@/store/pollingAdmin";
+import type { Poll } from "@/store/pollingAdmin";
 import { usePollEdit } from "@/hooks/pollEdit";
-import { PollShow } from "./PollShow";
 import { PollTypeSelect } from "./PollTypeSelect";
 import { PollRecordSelect } from "./PollRecordSelect";
+import { PollActivate } from "./PollActivate";
+import { PollState } from "../pollSummary/PollState";
 import { PollTitleRow } from "./PollTitleRow";
 import { PollBodyRow } from "./PollBodyRow";
-import { PollActions } from "./PollActions";
 import { PollOptionsRow } from "./PollOptionsRow";
-import { PollMovedSecondedRow } from "./PollMovedSecondedRow";
+import { PollMovedRow } from "./PollMovedRow";
+import { PollActions } from "./PollActions";
 
 import css from "./PollEdit.module.css";
 
 export function PollEditForm({ poll }: { poll: Poll }) {
-	const dispatch = useAppDispatch();
-	const { edited, onChange } = usePollEdit(poll);
+	const { edited, onChange, onAction, onDelete } = usePollEdit(poll);
 
 	const disabled = poll.state === "opened" || poll.state === "closed";
-
-	function setShowPoll(show: boolean) {
-		dispatch(pollingAdminPollAction(edited.id, show ? "show" : "unshow"));
-	}
 
 	return (
 		<>
@@ -41,15 +36,16 @@ export function PollEditForm({ poll }: { poll: Poll }) {
 					/>
 				</div>
 				<div className={css.topRowGroup}>
-					<PollShow
+					<PollActivate
 						className={css.topRowItem}
 						value={Boolean(edited.state)}
-						onChange={setShowPoll}
-						disabled={
-							edited.state === "opened" ||
-							edited.state === "closed"
+						onChange={(activate) =>
+							onAction(activate ? "show" : "unshow")
 						}
+						disabled={edited.state === "opened"}
 					/>
+					<span className="me-2">This poll is:</span>
+					<PollState state={edited.state} />
 				</div>
 			</div>
 			<PollTitleRow
@@ -68,9 +64,13 @@ export function PollEditForm({ poll }: { poll: Poll }) {
 				disabled={disabled}
 			/>
 			{edited.type === "m" && (
-				<PollMovedSecondedRow poll={edited} changePoll={onChange} />
+				<PollMovedRow poll={edited} changePoll={onChange} />
 			)}
-			<PollActions poll={edited} />
+			<PollActions
+				poll={edited}
+				onAction={onAction}
+				onDelete={onDelete}
+			/>
 		</>
 	);
 }

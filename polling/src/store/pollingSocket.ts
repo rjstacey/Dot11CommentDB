@@ -14,12 +14,10 @@ import {
 	setEventId as pollingAdminSetEventId,
 	setEvents as pollingAdminSetEvents,
 	setPolls as pollingAdminSetPolls,
-	setActivePollId as pollingAdminSetActivePollId,
 } from "./pollingAdmin";
 import {
 	setEvent as pollingUserSetEvent,
 	setPolls as pollingUserSetPolls,
-	setActivePollId as pollingUserSetActivePollId,
 } from "./pollingUser";
 import { pollingAdminSocketRegister } from "./pollingAdminEvents";
 import { pollingUserSocketRegister } from "./pollingUserEvents";
@@ -173,16 +171,16 @@ export const pollingSocketConnect =
 		pollingUserSocketRegister(socket);
 
 		socket.on("connect", () => {
-			console.log("connect");
 			assertHasSocket(socket);
-			if (socket.recovered) {
-				const groupId = selectSelectedGroupId(getState());
-				dispatch(
-					groupId
-						? pollingSocketJoinGroup(groupId)
-						: pollingSocketLeaveGroup()
-				);
-			}
+			console.log(`connect (recovered=${socket.recovered})`);
+			//if (!socket.recovered) {
+			const groupId = selectSelectedGroupId(getState());
+			dispatch(
+				groupId
+					? pollingSocketJoinGroup(groupId)
+					: pollingSocketLeaveGroup()
+			);
+			//}
 			dispatch(setConnected());
 		});
 		socket.on("disconnect", () => {
@@ -212,12 +210,10 @@ export const pollingSocketJoinGroup =
 				dispatch(pollingAdminSetEventId(r.eventId || null));
 				dispatch(pollingAdminSetEvents(r.events));
 				dispatch(pollingAdminSetPolls(r.polls));
-				dispatch(pollingAdminSetActivePollId(r.pollId || null));
 			}
 			const event = r.events.find((e) => e.id === r.eventId);
 			dispatch(pollingUserSetEvent(event || null));
 			dispatch(pollingUserSetPolls(r.polls));
-			dispatch(pollingUserSetActivePollId(r.pollId || null));
 		} catch (error) {
 			dispatch(handleError(error));
 		}

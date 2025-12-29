@@ -13,8 +13,6 @@ export function PollTypeSelect({
 	disabled?: boolean;
 	className?: string;
 }) {
-	console.log("value=", value, disabled);
-
 	return (
 		<div className={cx("d-flex align-items-center me-3", className)}>
 			<span className="me-2">Poll:</span>
@@ -22,10 +20,7 @@ export function PollTypeSelect({
 				type="radio"
 				name="poll-type"
 				value={value}
-				onChange={(value) => {
-					console.log("change=", value);
-					onChange(value as PollType);
-				}}
+				onChange={onChange}
 			>
 				<ToggleButton
 					id="poll-type-motion"

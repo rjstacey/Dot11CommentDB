@@ -13,8 +13,6 @@ export function PollVotingChoiceSelect({
 	disabled?: boolean;
 	className?: string;
 }) {
-	console.log("value=", value, disabled);
-
 	return (
 		<div className={cx("d-flex align-items-center me-3", className)}>
 			<span className="me-2">Voting choice:</span>
@@ -22,10 +20,7 @@ export function PollVotingChoiceSelect({
 				type="radio"
 				name="poll-voting-choice"
 				value={value}
-				onChange={(value) => {
-					console.log("change=", value);
-					onChange(value as PollChoice);
-				}}
+				onChange={onChange}
 			>
 				<ToggleButton
 					id="poll-voting-choice-single"
