@@ -1,6 +1,6 @@
 import { Form, Button } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-
+import cx from "clsx";
 import {
 	Poll,
 	pollingUserSubmitVote,
@@ -75,22 +75,26 @@ function PollForm({ poll }: { poll: Poll }) {
 			<div className={css["poll-title-row"]}>
 				<h2 className={css["poll-title"]}>{poll.title}</h2>
 			</div>
-			<div className={css["poll-body-row"]}>
-				<div dangerouslySetInnerHTML={{ __html: poll.body }} />
-			</div>
+			<div
+				className={css["poll-body-row"]}
+				dangerouslySetInnerHTML={{ __html: poll.body }}
+			/>
 			<PollOptionsRow poll={poll} />
-			{poll.type === "m" && (
-				<div className={css["poll-moved-row"]}>
-					<div className={css["poll-moved-col"]}>
-						<span>Moved:</span>
-						<MemberShow id="moved" sapin={poll.movedSAPIN} />
-					</div>
-					<div className={css["poll-moved-col"]}>
-						<span>Seconded:</span>
-						<MemberShow id="seconded" sapin={poll.secondedSAPIN} />
-					</div>
+			<div
+				className={cx(
+					css["poll-moved-row"],
+					poll.type === "m" && "motion"
+				)}
+			>
+				<div className={css["poll-moved-col"]}>
+					<span>Moved:</span>
+					<MemberShow id="moved" sapin={poll.movedSAPIN} />
 				</div>
-			)}
+				<div className={css["poll-moved-col"]}>
+					<span>Seconded:</span>
+					<MemberShow id="seconded" sapin={poll.secondedSAPIN} />
+				</div>
+			</div>
 		</>
 	);
 }
