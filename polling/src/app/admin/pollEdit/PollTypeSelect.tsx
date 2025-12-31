@@ -1,5 +1,5 @@
 import { ToggleButton, ToggleButtonGroup } from "react-bootstrap";
-import cx from "classnames";
+import cx from "clsx";
 import type { PollType } from "@/store/pollingAdmin";
 
 export function PollTypeSelect({

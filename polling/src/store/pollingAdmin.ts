@@ -97,7 +97,6 @@ const pollsAdapter = createEntityAdapter<Poll>({ sortComparer });
 
 /* Create slice */
 const initialState = {
-	isAdmin: false,
 	eventId: null as number | null,
 	selectedPollId: null as number | null,
 	events: eventsAdapter.getInitialState(),
@@ -108,15 +107,6 @@ const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		setIsAdmin(state, action: PayloadAction<boolean>) {
-			const isAdmin = action.payload;
-			state.isAdmin = isAdmin;
-			if (!isAdmin) {
-				state.eventId = null;
-				eventsAdapter.removeAll(state.events);
-				pollsAdapter.removeAll(state.polls);
-			}
-		},
 		setEventId(state, action: PayloadAction<number | null>) {
 			state.eventId = action.payload;
 		},
@@ -160,7 +150,6 @@ export default slice;
 
 /** Slice actions */
 export const {
-	setIsAdmin,
 	setEventId,
 	setEvents,
 	setEvent,

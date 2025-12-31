@@ -1,6 +1,6 @@
 import type { Poll } from "@/store/pollingAdmin";
 import { PollState } from "./PollState";
-import cx from "classnames";
+import cx from "clsx";
 import css from "./PollSummary.module.css";
 
 export function PollSummary({

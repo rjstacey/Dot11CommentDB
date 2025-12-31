@@ -1,4 +1,4 @@
-import { Form, Row, Col } from "react-bootstrap";
+import { Form, Button } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 import {
@@ -10,9 +10,9 @@ import {
 	PollChoice,
 } from "@/store/pollingUser";
 import MemberShow from "@/components/MemberShow";
-import css from "./currentPoll.module.css";
+import css from "@/components/poll-layout.module.css";
 
-function PollOptions({ poll }: { poll: Poll }) {
+function PollOptionsRow({ poll }: { poll: Poll }) {
 	const dispatch = useAppDispatch();
 
 	const { submitMsg, pollVotes } = useAppSelector(selectPollingUserState);
@@ -34,12 +34,12 @@ function PollOptions({ poll }: { poll: Poll }) {
 	}
 
 	return (
-		<div className={css.pollOptionsContainer}>
-			<div className={css.pollOptions}>
+		<div className={css["poll-options-row"]}>
+			<div className={css["poll-options-col1"]}>
 				{poll.options.map((o, i) => {
-					const id = `pollOption-${i}`;
+					const id = `poll-option-${i}`;
 					return (
-						<div key={id} className={css.pollOption}>
+						<div key={id} className={css["poll-option"]}>
 							<Form.Check
 								id={id}
 								checked={pollVotes.includes(i)}
@@ -50,10 +50,14 @@ function PollOptions({ poll }: { poll: Poll }) {
 					);
 				})}
 			</div>
-			<div className={css.pollOptionsSubmit}>
-				<button onClick={submitVote} disabled={poll.state !== "opened"}>
-					Submit
-				</button>
+			<div className={css["poll-options-col2"]}>
+				<Button
+					variant="outline-primary"
+					onClick={submitVote}
+					disabled={poll.state !== "opened"}
+				>
+					{"Submit"}
+				</Button>
 				<span>{submitMsg}&nbsp;</span>
 			</div>
 		</div>
@@ -68,26 +72,24 @@ function PollForm({ poll }: { poll: Poll }) {
 	return (
 		<>
 			<PollState poll={poll} />
-			<div className={css.pollTitleRow}>
-				<h2>{poll.title}</h2>
+			<div className={css["poll-title-row"]}>
+				<h2 className={css["poll-title"]}>{poll.title}</h2>
 			</div>
-			<div className={css.pollBodyRow}>
+			<div className={css["poll-body-row"]}>
 				<div dangerouslySetInnerHTML={{ __html: poll.body }} />
 			</div>
-			<div className={css.pollOptionsRow}>
-				<PollOptions poll={poll} />
-			</div>
+			<PollOptionsRow poll={poll} />
 			{poll.type === "m" && (
-				<Form.Group as={Row} className="mb-3">
-					<Col>
-						<Form.Label htmlFor="moved">Moved:</Form.Label>
+				<div className={css["poll-moved-row"]}>
+					<div className={css["poll-moved-col"]}>
+						<span>Moved:</span>
 						<MemberShow id="moved" sapin={poll.movedSAPIN} />
-					</Col>
-					<Col>
-						<Form.Label htmlFor="seconded">Seconded:</Form.Label>
+					</div>
+					<div className={css["poll-moved-col"]}>
+						<span>Seconded:</span>
 						<MemberShow id="seconded" sapin={poll.secondedSAPIN} />
-					</Col>
-				</Form.Group>
+					</div>
+				</div>
 			)}
 		</>
 	);

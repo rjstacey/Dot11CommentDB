@@ -1,3 +1,4 @@
+import { Nav } from "react-bootstrap";
 import { DateTime } from "luxon";
 import { displayDate } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -7,38 +8,48 @@ import {
 	selectPollingAdminEventId,
 	Event,
 } from "@/store/pollingAdmin";
+import CreateEvent from "./createEvent";
 import css from "./admin.module.css";
 
 function displayTime(d: string) {
 	return DateTime.fromISO(d).toFormat("HH:mm");
 }
 
-function EventTab({ event }: { event: Event }) {
-	const dispatch = useAppDispatch();
-	const selectedEventId = useAppSelector(selectPollingAdminEventId);
-	let cn = css.tab;
-	if (event.id === selectedEventId) cn += " selected";
+function EventDescription({ event }: { event: Event }) {
 	return (
-		<div
-			key={event.id}
-			className={cn}
-			onClick={() => dispatch(pollingAdminSelectEvent(event.id))}
-		>
-			<span className={css.tabName}>{event.name}</span>
-			<span className={css.tabDate}>{displayDate(event.datetime)}</span>
-			<span className={css.tabDate}>{displayTime(event.datetime)}</span>
+		<div className={css["event-description"]}>
+			<span>{event.name || <i>(Blank)</i>}</span>
+			<span>{displayDate(event.datetime)}</span>
+			<span>{displayTime(event.datetime)}</span>
 		</div>
 	);
 }
 
 function EventTabs() {
+	const dispatch = useAppDispatch();
 	const events = useAppSelector(selectPollingAdminEvents);
+	const selectedEventId = useAppSelector(selectPollingAdminEventId);
+	const setSelectedEventId = (eventId: string | null) =>
+		dispatch(pollingAdminSelectEvent(Number(eventId)));
+
 	return (
-		<div className={css.tabList}>
+		<Nav
+			variant="tabs"
+			onSelect={setSelectedEventId}
+			activeKey={selectedEventId || undefined}
+			className={css["event-tabs"]}
+		>
 			{events.map((event) => (
-				<EventTab key={event.id} event={event} />
+				<Nav.Item key={event.id}>
+					<Nav.Link eventKey={event.id}>
+						<EventDescription event={event} />
+					</Nav.Link>
+				</Nav.Item>
 			))}
-		</div>
+			<div className={css["event-create"]}>
+				<CreateEvent />
+			</div>
+		</Nav>
 	);
 }
 

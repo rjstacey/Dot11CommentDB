@@ -26,7 +26,6 @@
 		"@lexical/selection": "^0.39.0",
 		"@lexical/table": "^0.39.0",
 		"@lexical/utils": "^0.39.0",
-		"classnames": "^2.5.1",
 		"lexical": "^0.39.0",
 		"socket.io-client": "^4.8.1"
 	},

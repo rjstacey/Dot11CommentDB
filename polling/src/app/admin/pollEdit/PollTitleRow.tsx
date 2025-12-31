@@ -1,4 +1,4 @@
-import css from "./PollEdit.module.css";
+import css from "@/components/poll-layout.module.css";
 
 export function PollTitleRow({
 	value,
@@ -10,8 +10,8 @@ export function PollTitleRow({
 	disabled?: boolean;
 }) {
 	return (
-		<div className={css.pollTitleRow}>
-			<div className={css.pollTitle}>
+		<div className={css["poll-title-row"]}>
+			<div className={css["poll-title"]}>
 				<input
 					id="poll-title"
 					type="text"

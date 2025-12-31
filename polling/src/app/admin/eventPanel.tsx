@@ -1,5 +1,5 @@
 import { Button, Row, Col, ToggleButton } from "react-bootstrap";
-import cx from "classnames";
+import cx from "clsx";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectPollingAdminPolls,
@@ -13,6 +13,8 @@ import {
 } from "@/store/pollingAdmin";
 
 import { PollsList } from "./pollsList";
+
+import css from "./admin.module.css";
 
 function EventShow({
 	value,
@@ -71,6 +73,7 @@ function EventActions({ event, polls }: { event: Event; polls: Poll[] }) {
 				<EventShow
 					value={event.isPublished}
 					onChange={setIsPublished}
+					className={cx(polls.length > 0 && "visually-hidden")}
 				/>
 			</Col>
 		</Row>
@@ -84,10 +87,10 @@ function EventPanel() {
 	if (!event) return null;
 
 	return (
-		<>
+		<div className={css["event-panel"]}>
 			<EventActions event={event} polls={polls} />
 			<PollsList polls={polls} />
-		</>
+		</div>
 	);
 }
 

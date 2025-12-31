@@ -1,5 +1,5 @@
 import { ToggleButtonGroup, ToggleButton } from "react-bootstrap";
-import cx from "classnames";
+import cx from "clsx";
 import { PollRecordType } from "@/store/pollingAdmin";
 
 export function PollRecordSelect({
@@ -20,10 +20,7 @@ export function PollRecordSelect({
 				type="radio"
 				name="poll-record-type"
 				value={value}
-				onChange={(value) => {
-					console.log("change=", value);
-					onChange(value as PollRecordType);
-				}}
+				onChange={onChange}
 			>
 				<ToggleButton
 					type="radio"

@@ -142,15 +142,21 @@ function CreateEventForm({ close }: { close: () => void }) {
 	);
 }
 
-function CreateEvent() {
+function CreateEvent({ className }: { className?: string }) {
 	const [show, setShow] = React.useState(false);
+	const title = (
+		<span>
+			<i className="bi-plus-lg me-2" />
+			{"Event"}
+		</span>
+	);
 	return (
 		<DropdownButton
 			variant="outline-primary"
-			title="+ Event"
+			title={title}
 			show={show}
 			onToggle={() => setShow(!show)}
-			className="d-flex align-items-center m-2"
+			className={className}
 		>
 			<CreateEventForm close={() => setShow(false)} />
 		</DropdownButton>

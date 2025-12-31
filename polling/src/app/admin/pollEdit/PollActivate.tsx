@@ -1,5 +1,5 @@
 import { ToggleButton } from "react-bootstrap";
-import cx from "classnames";
+import cx from "clsx";
 
 export function PollActivate({
 	value,

@@ -1,10 +1,10 @@
 import React from "react";
-import { Form, Button, Row, Col } from "react-bootstrap";
-import cx from "classnames";
+import { Form, Button } from "react-bootstrap";
+import cx from "clsx";
 import type { Poll } from "@/store/pollingAdmin";
 import { PollVotingChoiceSelect } from "./PollVotingChoiceSelect";
 
-import css from "./PollEdit.module.css";
+import css from "@/components/poll-layout.module.css";
 
 function PollOptionEdit({
 	index,
@@ -30,12 +30,12 @@ function PollOptionEdit({
 	}
 	const id = `poll-option-${index}`;
 	return (
-		<label className={css.pollOption + " " + css.edit}>
-			<Form.Check id={id} disabled={true} />
-			<input
+		<div className={cx(css["poll-option"], css.edit)}>
+			<Form.Check id={id} className="me-2" />
+			<Form.Control
+				type="text"
 				id={id + "-label"}
 				ref={(ref) => setRef(ref)}
-				type="text"
 				value={value}
 				onKeyDown={keyPress}
 				onChange={(e) => onChange(e.target.value)}
@@ -53,7 +53,7 @@ function PollOptionEdit({
 					<i className="bi-trash" />
 				</button>
 			)}
-		</label>
+		</div>
 	);
 }
 
@@ -100,8 +100,7 @@ export function PollOptionsEdit({
 	let addOptionRow: JSX.Element | null = null;
 	if (!readOnly) {
 		addOptionRow = (
-			<div className={css.pollOption} style={{ display: "flex" }}>
-				<Form.Check style={{ visibility: "hidden" }} disabled={true} />
+			<div className={css["poll-option"]}>
 				<Button
 					type="button"
 					variant="light"
@@ -120,24 +119,22 @@ export function PollOptionsEdit({
 
 	return (
 		<>
-			<div className={css.pollOptions}>
-				{options.map((o, i) => (
-					<PollOptionEdit
-						setRef={(ref) => {
-							inputRefs.current[i] = ref;
-						}}
-						key={i}
-						index={i}
-						value={o}
-						onChange={(v) => changeOptions(i, v)}
-						onDelete={() => deleteOption(i)}
-						onTab={() => onTab(i)}
-						disabled={disabled}
-						readOnly={readOnly}
-					/>
-				))}
-				{addOptionRow}
-			</div>
+			{options.map((o, i) => (
+				<PollOptionEdit
+					setRef={(ref) => {
+						inputRefs.current[i] = ref;
+					}}
+					key={i}
+					index={i}
+					value={o}
+					onChange={(v) => changeOptions(i, v)}
+					onDelete={() => deleteOption(i)}
+					onTab={() => onTab(i)}
+					disabled={disabled}
+					readOnly={readOnly}
+				/>
+			))}
+			{addOptionRow}
 		</>
 	);
 }
@@ -153,16 +150,16 @@ export function PollOptionsRow({
 	disabled?: boolean;
 }) {
 	return (
-		<Row className="mb-3">
-			<Col>
+		<div className={css["poll-options-row"]}>
+			<div className={css["poll-options-col1"]}>
 				<PollOptionsEdit
 					poll={poll}
 					changePoll={changePoll}
 					disabled={disabled}
 					readOnly={poll.type === "m"}
 				/>
-			</Col>
-			<Col>
+			</div>
+			<div className={css["poll-options-col2"]}>
 				<PollVotingChoiceSelect
 					className={cx(
 						"mt-3",
@@ -172,7 +169,7 @@ export function PollOptionsRow({
 					onChange={(choice) => changePoll({ choice })}
 					disabled={disabled}
 				/>
-			</Col>
-		</Row>
+			</div>
+		</div>
 	);
 }

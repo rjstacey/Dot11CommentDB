@@ -8,6 +8,7 @@ import {
 	PollChoice,
 	PollAction,
 	motionPollOptions,
+	setSelectedPollId,
 } from "@/store/pollingAdmin";
 
 export function usePollEdit(poll: Poll) {
@@ -38,7 +39,6 @@ export function usePollEdit(poll: Poll) {
 					changes.options = [];
 				}
 			}
-			console.log("changes", changes);
 			setEdited((edited) => ({ ...edited, ...changes }));
 			dispatch(pollingAdminUpdatePoll({ id: poll.id, changes }));
 		},
@@ -56,6 +56,7 @@ export function usePollEdit(poll: Poll) {
 	);
 
 	const onDelete = React.useCallback(async () => {
+		dispatch(setSelectedPollId(null));
 		await dispatch(pollingAdminDeletePoll(poll.id));
 	}, [poll.id]);
 

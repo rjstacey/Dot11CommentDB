@@ -1,125 +1,28 @@
-.tabs {
+.admin-content {
 	display: flex;
 	flex-direction: column;
+	flex: 1;
 	width: 100%;
-	height: 100%;
-	flex: 1;
-}
-
-.tabs .header {
-	display: flex;
-	width: 100%;
-	border-bottom: 1px solid #aaa;
-	justify-content: space-between;
-}
-
-.tabs .filler {
-	flex: 1;
-}
-
-.tabList {
-	display: flex;
-	padding: 0;
-}
-
-.tab {
-	display: flex;
-	flex-direction: column;
-	border: 1px solid transparent;
-	border-bottom: none;
-	bottom: -1px;
-	position: relative;
-	list-style: none;
-	padding: 6px 12px;
-	cursor: pointer;
-}
-
-.tab:global(.selected) {
-	background: #fff;
-	border-color: #aaa;
-	color: black;
-	border-radius: 5px 5px 0 0;
-}
-
-.tab:global(.disabled) {
-	color: GrayText;
-	cursor: default;
-}
-
-.tab:focus {
-	outline: none;
-}
-
-.tab:focus:after {
-	content: "";
-	position: absolute;
-	height: 5px;
-	left: -4px;
-	right: -4px;
-	bottom: -5px;
-	background: #fff;
-}
-
-.tabName {
-	font-weight: bold;
-}
-
-.tabDate {
-	font-size: smaller;
-}
-
-.eventPanel {
-	border: 1px solid #aaa;
-	border-top: none;
-	display: flex;
-	flex-direction: column;
-	flex: 1;
+	padding: 1rem;
 	overflow: hidden;
-}
 
-.eventActions {
-	display: flex;
-	justify-content: space-between;
-}
+	.event-description {
+		display: flex;
+		flex-direction: column;
+	}
 
-.eventPolls {
-	display: flex;
-	flex-direction: column;
-	overflow: auto;
-}
+	.event-create {
+		flex: 1;
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
+		margin-right: 0.5rem;
+	}
 
-.pollRow {
-	display: flex;
-	padding: 5px;
-	margin: 5px;
-	border: solid 1px;
-}
-
-.pollEntry {
-	display: flex;
-	flex-direction: column;
-	flex: 1;
-}
-
-.pollEntry:global(.selected) {
-	background-color: lightgreen;
-}
-
-.pollState {
-	display: flex;
-	padding: 5px;
-	margin: 5px;
-	border: solid 1px;
-}
-
-.columnChoice {
-	display: flex;
-	flex-direction: column;
-}
-
-.labeledCheckbox {
-	display: inline-block;
-	flex-wrap: nowrap;
-	flex-direction: row;
-	align-items: baseline;
+	.event-panel {
+		padding: 1rem;
+		border: 1px solid var(--bs-border-color);
+		border-top: none;
+		overflow: auto;
+	}
 }

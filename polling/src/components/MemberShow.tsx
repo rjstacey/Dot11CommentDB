@@ -9,7 +9,7 @@ function MemberShow({
 		sapin ? selectMember(state, sapin) : undefined
 	);
 
-	return <span {...props}>{member?.Name || "(Blank)"}</span>;
+	return <span {...props}>{member?.Name || sapin || <i>(Blank)</i>}</span>;
 }
 
 export default MemberShow;
