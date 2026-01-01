@@ -6,7 +6,7 @@ import {
 	Poll,
 } from "@/store/pollingAdmin";
 
-import css from "./eventPanel.module.css";
+import css from "@/components/poll-list.module.css";
 
 import { PollEditForm } from "./pollEdit";
 import { PollSummary } from "./pollSummary";
@@ -30,7 +30,7 @@ export function PollsList({ polls }: { polls: Poll[] }) {
 
 	return (
 		<Accordion
-			className={css.pollAccordion}
+			className={css["poll-list"]}
 			activeKey={selectedPollId?.toString()}
 			onSelect={(eventKey) =>
 				dispatch(

@@ -1,4 +1,4 @@
-.pollAccordion {
+.poll-list {
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
@@ -19,32 +19,28 @@
 		display: flex;
 		justify-content: flex-end;
 
-		& :global(.accordion-button) {
-			background-color: transparent;
-			align-items: flex-start;
-		}
-
-		&:not(:has(:global(.collapsed))) {
+		&:has(:global(.accordion-button:not(.collapsed))) {
 			position: absolute;
 			top: 0;
 			right: 0;
+		}
+
+		& :global(.accordion-button) {
+			background-color: transparent;
+			align-items: flex-start;
 		}
 
 		& :global(.accordion-button:not(.collapsed)) {
 			width: unset;
 			justify-self: flex-end;
 			z-index: 10;
-
-			& :global(.summary) {
-				display: none;
-			}
 		}
 	}
 
 	& :global(.accordion-body) {
+		display: flex;
+		flex-direction: column;
 		padding-right: 3rem;
-		position: relative;
-		/*top: -52px;*/
 		background-color: var(--bs-accordion-active-bg);
 	}
 }

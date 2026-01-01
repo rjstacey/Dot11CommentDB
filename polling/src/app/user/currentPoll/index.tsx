@@ -12,7 +12,30 @@ import {
 import MemberShow from "@/components/MemberShow";
 import css from "@/components/poll-layout.module.css";
 
-function PollOptionsRow({ poll }: { poll: Poll }) {
+function PollTitleRow({ poll }: { poll: Poll }) {
+	return (
+		<div className={css["poll-title-row"]}>
+			<h2 className={css["poll-title"]}>{poll.title}</h2>
+		</div>
+	);
+}
+
+function PollBodyRow({ poll }: { poll: Poll }) {
+	return (
+		<div
+			className={css["poll-body-row"]}
+			dangerouslySetInnerHTML={{ __html: poll.body }}
+		/>
+	);
+}
+
+function PollOptionsRow({
+	poll,
+	readOnly,
+}: {
+	poll: Poll;
+	readOnly?: boolean;
+}) {
 	const dispatch = useAppDispatch();
 
 	const { submitMsg, pollVotes } = useAppSelector(selectPollingUserState);
@@ -44,6 +67,8 @@ function PollOptionsRow({ poll }: { poll: Poll }) {
 								id={id}
 								checked={pollVotes.includes(i)}
 								onChange={() => toggleVote(i)}
+								readOnly={readOnly}
+								tabIndex={readOnly ? -1 : undefined}
 							/>
 							<label htmlFor={id}>{o}</label>
 						</div>
@@ -55,6 +80,7 @@ function PollOptionsRow({ poll }: { poll: Poll }) {
 					variant="outline-primary"
 					onClick={submitVote}
 					disabled={poll.state !== "opened"}
+					className={readOnly ? "visually-hidden" : undefined}
 				>
 					{"Submit"}
 				</Button>
@@ -64,37 +90,44 @@ function PollOptionsRow({ poll }: { poll: Poll }) {
 	);
 }
 
+function PollMovedRow({ poll, readOnly }: { poll: Poll; readOnly?: boolean }) {
+	const isHidden =
+		poll.type !== "m" ||
+		(readOnly && !poll.movedSAPIN && !poll.secondedSAPIN);
+	return (
+		<div
+			className={cx(css["poll-moved-row"], isHidden && "visually-hidden")}
+		>
+			<div className={css["poll-moved-col"]}>
+				<span>Moved:</span>
+				<MemberShow id="moved" sapin={poll.movedSAPIN} />
+			</div>
+			<div className={css["poll-moved-col"]}>
+				<span>Seconded:</span>
+				<MemberShow id="seconded" sapin={poll.secondedSAPIN} />
+			</div>
+		</div>
+	);
+}
+
 function PollState({ poll }: { poll: Poll }) {
 	return <div>State: {poll.state}</div>;
 }
 
-function PollForm({ poll }: { poll: Poll }) {
+export function PollDetail({
+	poll,
+	readOnly,
+}: {
+	poll: Poll;
+	readOnly?: boolean;
+}) {
 	return (
 		<>
 			<PollState poll={poll} />
-			<div className={css["poll-title-row"]}>
-				<h2 className={css["poll-title"]}>{poll.title}</h2>
-			</div>
-			<div
-				className={css["poll-body-row"]}
-				dangerouslySetInnerHTML={{ __html: poll.body }}
-			/>
-			<PollOptionsRow poll={poll} />
-			<div
-				className={cx(
-					css["poll-moved-row"],
-					poll.type === "m" && "motion"
-				)}
-			>
-				<div className={css["poll-moved-col"]}>
-					<span>Moved:</span>
-					<MemberShow id="moved" sapin={poll.movedSAPIN} />
-				</div>
-				<div className={css["poll-moved-col"]}>
-					<span>Seconded:</span>
-					<MemberShow id="seconded" sapin={poll.secondedSAPIN} />
-				</div>
-			</div>
+			<PollTitleRow poll={poll} />
+			<PollBodyRow poll={poll} />
+			<PollOptionsRow poll={poll} readOnly={readOnly} />
+			<PollMovedRow poll={poll} readOnly={readOnly} />
 		</>
 	);
 }
@@ -104,5 +137,5 @@ export function CurrentPoll() {
 
 	if (!poll) return null;
 
-	return <PollForm poll={poll} />;
+	return <PollDetail poll={poll} />;
 }

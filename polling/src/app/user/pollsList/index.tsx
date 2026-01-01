@@ -7,9 +7,9 @@ import {
 	Poll,
 } from "@/store/pollingUser";
 
-import css from "./allPolls.module.css";
+import css from "@/components/poll-list.module.css";
 
-import { PollEditForm } from "../../admin/pollEdit";
+import { PollDetail } from "../currentPoll";
 import { PollSummary } from "../../admin/pollSummary";
 
 function PollEntry({ poll, isSelected }: { poll: Poll; isSelected: boolean }) {
@@ -19,7 +19,7 @@ function PollEntry({ poll, isSelected }: { poll: Poll; isSelected: boolean }) {
 				{!isSelected && <PollSummary poll={poll} className="summary" />}
 			</Accordion.Header>
 			<Accordion.Body>
-				{isSelected && <PollEditForm poll={poll} />}
+				{isSelected && <PollDetail poll={poll} readOnly />}
 			</Accordion.Body>
 		</Accordion.Item>
 	);
@@ -28,25 +28,21 @@ function PollEntry({ poll, isSelected }: { poll: Poll; isSelected: boolean }) {
 export function PollsList() {
 	const dispatch = useAppDispatch();
 	const polls = useAppSelector(selectPollingUserPolls);
-	const selectedPollId = useAppSelector(selectPollingUserSelectedPollId);
+	const pollId = useAppSelector(selectPollingUserSelectedPollId);
+	const setAciveKey = (eventKey?: string | string[] | null) =>
+		dispatch(setSelectedPollId(eventKey ? Number(eventKey) : null));
 
 	return (
 		<Accordion
-			className={css.pollAccordion}
-			activeKey={selectedPollId?.toString()}
-			onSelect={(eventKey) =>
-				dispatch(
-					setSelectedPollId(
-						typeof eventKey === "string" ? parseInt(eventKey) : null
-					)
-				)
-			}
+			className={css["poll-list"]}
+			activeKey={pollId?.toString()}
+			onSelect={setAciveKey}
 		>
 			{polls.map((poll) => (
 				<PollEntry
 					key={poll.id}
 					poll={poll}
-					isSelected={selectedPollId === poll.id}
+					isSelected={pollId === poll.id}
 				/>
 			))}
 		</Accordion>
