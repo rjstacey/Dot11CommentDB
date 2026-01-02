@@ -1,5 +1,7 @@
-import { Button, Row, Col } from "react-bootstrap";
+import { Button } from "react-bootstrap";
 import type { Poll, PollAction } from "@/store/pollingAdmin";
+
+import css from "@/components/poll-layout.module.css";
 
 export function PollActions({
 	poll,
@@ -10,35 +12,36 @@ export function PollActions({
 	onAction: (action: PollAction) => void;
 	onDelete: () => void;
 }) {
-	const showDisabled = poll.state === "opened";
+	const showDisabled = poll.state !== null && poll.state !== "shown";
+	function showPoll() {
+		if (poll.state === null) onAction("show");
+		else if (poll.state === "shown") onAction("unshow");
+	}
 
 	const openDisabled =
 		poll.state === null ||
-		poll.state === "closed" ||
 		(poll.type === "m" && (!poll.movedSAPIN || !poll.secondedSAPIN));
+	function openPoll() {
+		if (poll.state === "shown") onAction("open");
+	}
 
 	const closeDisabled = poll.state !== "opened" && poll.state !== "closed";
-
-	function showPoll() {
-		onAction(poll.state === "shown" ? "unshow" : "show");
-	}
-
-	function openPoll() {
-		onAction(poll.state === "opened" ? "show" : "open");
-	}
-
 	function closePoll() {
-		onAction(poll.state === "closed" ? "open" : "close");
+		if (poll.state === "opened") onAction("close");
+	}
+
+	function resetPoll() {
+		onAction("show");
 	}
 
 	return (
-		<Row className="mt-3">
-			<Col className="d-flex gap-2">
+		<div className={css["poll-action-row"]}>
+			<div className={css["poll-action-group"]}>
 				<Button
 					variant="outline-primary"
 					active={Boolean(poll.state)}
 					onClick={showPoll}
-					disabled={showDisabled}
+					className={showDisabled ? "pe-none" : undefined}
 				>
 					<i className="bi-eye me-1" />
 					{"Show"}
@@ -48,6 +51,7 @@ export function PollActions({
 					active={poll.state === "opened" || poll.state === "closed"}
 					onClick={openPoll}
 					disabled={openDisabled}
+					className={poll.state !== "shown" ? "pe-none" : undefined}
 				>
 					<i className="bi-play me-1" />
 					{"Start"}
@@ -57,16 +61,18 @@ export function PollActions({
 					onClick={closePoll}
 					active={poll.state === "closed"}
 					disabled={closeDisabled}
+					className={poll.state !== "opened" ? "pe-none" : undefined}
 				>
 					<i className="bi-stop me-1" />
 					{"Close"}
 				</Button>
-			</Col>
-			<Col className="d-flex justify-content-end gap-2">
+			</div>
+			<div className={css["poll-action-group"]}>
 				<Button
-					name="delete"
+					name="reset"
 					variant="outline-warning"
-					onClick={onDelete}
+					onClick={resetPoll}
+					disabled={poll.state === null}
 				>
 					<i className="bi-rewind me-1" />
 					{"Reset"}
@@ -79,7 +85,7 @@ export function PollActions({
 					<i className="bi-trash me-1" />
 					{"Delete"}
 				</Button>
-			</Col>
-		</Row>
+			</div>
+		</div>
 	);
 }

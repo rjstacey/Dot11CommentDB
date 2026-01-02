@@ -14,13 +14,15 @@ export function PollTypeSelect({
 	className?: string;
 }) {
 	return (
-		<div className={cx("d-flex align-items-center me-3", className)}>
-			<span className="me-2">Poll:</span>
+		<div className={cx("d-flex align-items-center gap-2", className)}>
+			<span>Poll:</span>
 			<ToggleButtonGroup
 				type="radio"
 				name="poll-type"
 				value={value}
 				onChange={onChange}
+				size="sm"
+				vertical
 			>
 				<ToggleButton
 					id="poll-type-motion"

@@ -22,6 +22,7 @@ import {
 	PollAction,
 	PollState,
 	PollType,
+	PollVotersType,
 	PollRecordType,
 	PollChoice,
 	pollsGetResponseSchema,
@@ -32,7 +33,7 @@ import { AppThunk, RootState } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
 
 export type { Event, EventCreate, Poll, PollType, PollCreate, PollAction };
-export { PollRecordType, PollChoice };
+export { PollVotersType, PollRecordType, PollChoice };
 
 export const motionPollOptions: readonly string[] = ["Yes", "No", "Abstain"];
 

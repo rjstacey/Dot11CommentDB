@@ -16,12 +16,19 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { UserContext } from "./users.js";
 
 export async function init() {
-	const sql =
+	let sql =
 		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="polls" and column_name = "recordType";';
-	const rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
+	let rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
 	if (rows.length === 0)
 		db.query(
-			"ALTER TABLE polls ADD COLUMN recordType TINYINT default NULL after type;"
+			"ALTER TABLE polls ADD COLUMN recordType TINYINT default 0 after type;"
+		);
+	sql =
+		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="polls" and column_name = "votersType";';
+	rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
+	if (rows.length === 0)
+		db.query(
+			"ALTER TABLE polls ADD COLUMN votersType TINYINT default 0 after recordType;"
 		);
 }
 
@@ -97,10 +104,11 @@ export async function getPolls(query: PollsQuery = {}): Promise<Poll[]> {
 			"BIN_TO_UUID(e.groupId) as groupId, " +
 			"p.index, " +
 			"p.state, " +
-			"p.title, " +
-			"p.body, " +
 			"p.type, " +
 			"p.recordType, " +
+			"p.votersType, " +
+			"p.title, " +
+			"p.body, " +
 			"p.options, " +
 			"p.choice, " +
 			"p.movedSAPIN, " + 

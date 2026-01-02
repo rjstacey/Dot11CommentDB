@@ -81,6 +81,13 @@ export const pollIdSchema = z.number();
 export const pollTypeSchema = z.enum(["m", "sp"]);
 export type PollType = z.infer<typeof pollTypeSchema>;
 
+export enum PollVotersType {
+	ANYONE = 0,
+	VOTER,
+	VOTER_POTENTIAL_VOTER,
+}
+export const pollVotersTypeSchema = z.enum(PollVotersType);
+
 export enum PollRecordType {
 	ANONYMOUS = 0,
 	ADMIN_VIEW,
@@ -104,10 +111,11 @@ export const pollSchema = z.object({
 	eventId: eventIdSchema,
 	index: z.number(),
 	state: pollStateSchema,
+	type: pollTypeSchema,
+	votersType: pollVotersTypeSchema,
+	recordType: pollRecordTypeSchema,
 	title: z.string(),
 	body: z.string(),
-	type: pollTypeSchema,
-	recordType: pollRecordTypeSchema,
 	options: pollOptionsSchema,
 	choice: pollChoiceSchema,
 	movedSAPIN: z.number().nullable(),

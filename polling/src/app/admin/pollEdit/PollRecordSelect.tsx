@@ -1,4 +1,4 @@
-import { ToggleButtonGroup, ToggleButton } from "react-bootstrap";
+import { Form } from "react-bootstrap";
 import cx from "clsx";
 import { PollRecordType } from "@/store/pollingAdmin";
 
@@ -14,41 +14,34 @@ export function PollRecordSelect({
 	className?: string;
 }) {
 	return (
-		<div className={cx("d-flex align-items-center me-3", className)}>
-			<span className="me-2">Result:</span>
-			<ToggleButtonGroup
-				type="radio"
-				name="poll-record-type"
-				value={value}
-				onChange={onChange}
-			>
-				<ToggleButton
+		<div className={cx("d-flex align-items-center gap-2", className)}>
+			<span>Result:</span>
+			<Form.Group>
+				<Form.Check
 					type="radio"
-					id="poll-record-type-anonymous"
-					value={PollRecordType.ANONYMOUS}
-					variant="outline-info"
+					id="poll-result-anonymous"
+					checked={value === PollRecordType.ANONYMOUS}
+					onChange={() => onChange(PollRecordType.ANONYMOUS)}
 					disabled={disabled}
-				>
-					{"Anonymous"}
-				</ToggleButton>
-				<ToggleButton
-					id="poll-record-type-admin-view"
-					value={PollRecordType.ADMIN_VIEW}
-					variant="outline-info"
-					disabled={disabled}
-				>
-					{"Admin view"}
-				</ToggleButton>
-				<ToggleButton
+					label="Anonymous"
+				/>
+				<Form.Check
 					type="radio"
-					id="poll-record-type-recorded"
-					value={PollRecordType.RECORDED}
-					variant="outline-info"
+					id="poll-result-admin-view"
+					checked={value === PollRecordType.ADMIN_VIEW}
+					onChange={() => onChange(PollRecordType.ADMIN_VIEW)}
 					disabled={disabled}
-				>
-					{"Recorded"}
-				</ToggleButton>
-			</ToggleButtonGroup>
+					label="Admin view"
+				/>
+				<Form.Check
+					type="radio"
+					id="poll-result-recorded"
+					checked={value === PollRecordType.RECORDED}
+					onChange={() => onChange(PollRecordType.RECORDED)}
+					disabled={disabled}
+					label="Recorded"
+				/>
+			</Form.Group>
 		</div>
 	);
 }
