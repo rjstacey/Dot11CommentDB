@@ -10,6 +10,7 @@ import {
 	PollChoice,
 } from "@/store/pollingUser";
 import MemberShow from "@/components/MemberShow";
+import { PollState } from "../../admin/pollSummary/PollState";
 import css from "@/components/poll-layout.module.css";
 
 function PollTitleRow({ poll }: { poll: Poll }) {
@@ -110,10 +111,6 @@ function PollMovedRow({ poll, readOnly }: { poll: Poll; readOnly?: boolean }) {
 	);
 }
 
-function PollState({ poll }: { poll: Poll }) {
-	return <div>State: {poll.state}</div>;
-}
-
 export function PollDetail({
 	poll,
 	readOnly,
@@ -123,7 +120,7 @@ export function PollDetail({
 }) {
 	return (
 		<>
-			<PollState poll={poll} />
+			<PollState state={poll.state} />
 			<PollTitleRow poll={poll} />
 			<PollBodyRow poll={poll} />
 			<PollOptionsRow poll={poll} readOnly={readOnly} />

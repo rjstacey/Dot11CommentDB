@@ -6,24 +6,25 @@ import {
 	EventCreateResponse,
 	EventUpdateResponse,
 	EventAdd,
-	EventOpened,
-	EventClosed,
-	PollUpdated,
-	PollDeleted,
+	EventPublishedParam,
+	EventUnpublishedParam,
+	PollAddedParam,
+	PollUpdatedParam,
+	PollDeletedParam,
+	PollActionedParam,
 	PollCreateResponse,
 	PollAction,
 	groupJoinSchema,
 	eventCreateSchema,
 	eventUpdateSchema,
 	eventDeleteSchema,
-	eventPublishSchema,
+	eventActionParamSchema,
 	eventsQuerySchema,
 	pollCreateSchema,
 	pollUpdateSchema,
 	pollIdSchema,
 	pollVoteSchema,
 	pollsQuerySchema,
-	PollAdded,
 	PollUpdateResponse,
 	PollsGetResponse,
 	EventsGetResponse,
@@ -118,42 +119,43 @@ async function onEventsGet(this: Socket, payload: unknown, callback: unknown) {
 	}
 }
 
-/** Publish event => distribute polls to the group and provide updates */
-async function onEventPublish(
+/**
+ * Publish event => distribute polls to the group and provide updates
+ * Unpublish event => stop distributing poll updates to the group
+ * */
+async function onEventAction(
 	this: Socket,
+	action: "publish" | "unpublish",
 	payload: unknown,
 	callback: unknown
 ) {
 	if (!validCallback(callback)) return;
 	try {
 		const groupId = getSocketGroupId(this);
-		const { eventId } = eventPublishSchema.parse(payload);
+		const { eventId } = eventActionParamSchema.parse(payload);
 		const [event] = await getPollEvents({ id: eventId });
 		if (!event) throw new NotFoundError("No such event id=" + eventId);
-		updatePollEvent({ id: eventId, changes: { isPublished: true } });
-		const polls = await getPolls({ eventId });
+		const [activeEvent] = await getPollEvents({
+			groupId,
+			isPublished: true,
+		});
+		if (activeEvent && activeEvent.id !== eventId && action === "publish") {
+			throw new TypeError("Another event is already published");
+		}
+		const isPublished = action === "publish";
+		const updatedEvent = await updatePollEvent({
+			id: eventId,
+			changes: { isPublished },
+		});
 		okCallback(callback);
-		const params: EventOpened = { event, polls };
-		this.nsp.to(groupId).emit("event:opened", params);
-	} catch (error) {
-		errorCallback(callback, error);
-	}
-}
-
-/** Unpublish event => stop distributing poll updates to the group */
-async function onEventUnpublish(
-	this: Socket,
-	payload: unknown,
-	callback: unknown
-) {
-	if (!validCallback(callback)) return;
-	try {
-		const groupId = getSocketGroupId(this);
-		const { eventId } = eventPublishSchema.parse(payload);
-		updatePollEvent({ id: eventId, changes: { isPublished: false } });
-		okCallback(callback);
-		const params: EventClosed = { eventId };
-		this.nsp.to(groupId).emit("event:closed", params);
+		if (isPublished) {
+			const polls = await getPolls({ eventId });
+			const params: EventPublishedParam = { event: updatedEvent, polls };
+			this.nsp.to(groupId).emit("event:published", params);
+		} else {
+			const params: EventUnpublishedParam = { eventId };
+			this.nsp.to(groupId).emit("event:unpublished", params);
+		}
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -237,8 +239,10 @@ async function onPollCreate(this: Socket, payload: unknown, callback: unknown) {
 			throw new NotFoundError(`Event id=${add.eventId} not found`);
 		const poll = await addPoll(add);
 		okCallback(callback, { poll } satisfies PollCreateResponse);
-		if (event.isPublished) {
-			this.nsp.to(groupId).emit("poll:added", poll satisfies PollAdded);
+		if (event.isPublished || poll.state !== null) {
+			this.nsp
+				.to(groupId)
+				.emit("poll:added", poll satisfies PollAddedParam);
 		}
 	} catch (error) {
 		errorCallback(callback, error);
@@ -252,11 +256,14 @@ async function onPollUpdate(this: Socket, payload: unknown, callback: unknown) {
 		const update = pollUpdateSchema.parse(payload);
 		const poll = await updatePoll(update);
 		okCallback(callback, { poll } satisfies PollUpdateResponse);
-		const [event] = await getPollEvents({ id: poll.eventId });
-		if (event && event.isPublished) {
+		const [event] = await getPollEvents({
+			id: poll.eventId,
+			isPublished: true,
+		});
+		if (event || poll.state !== null) {
 			this.nsp
 				.to(groupId)
-				.emit("poll:updated", poll satisfies PollUpdated);
+				.emit("poll:updated", poll satisfies PollUpdatedParam);
 		}
 	} catch (error) {
 		errorCallback(callback, error);
@@ -272,11 +279,14 @@ async function onPollDelete(this: Socket, payload: unknown, callback: unknown) {
 		await deletePoll(id);
 		okCallback(callback);
 		if (poll) {
-			const [event] = await getPollEvents({ id: poll.eventId });
-			if (event && event.isPublished) {
+			const [event] = await getPollEvents({
+				id: poll.eventId,
+				isPublished: true,
+			});
+			if (event || poll.state !== null) {
 				this.nsp
 					.to(groupId)
-					.emit("poll:deleted", id satisfies PollDeleted);
+					.emit("poll:deleted", id satisfies PollDeletedParam);
 			}
 		}
 	} catch (error) {
@@ -298,7 +308,7 @@ async function onPollAction(
 		const [poll] = await getPolls({ id, groupId });
 		if (!poll) throw new NotFoundError("Poll not found");
 		const [activePoll] = await getPolls({
-			eventId: poll.eventId,
+			groupId,
 			state: ["shown", "opened"],
 		});
 		if (
@@ -306,15 +316,30 @@ async function onPollAction(
 			activePoll &&
 			activePoll.id !== poll.id
 		) {
-			throw new TypeError("Another poll is already active");
+			if (activePoll.state === "shown") {
+				const updatedPoll = await updatePoll({
+					id: activePoll.id,
+					changes: { state: null },
+				});
+				this.nsp
+					.to(groupId)
+					.emit("poll:unshown", updatedPoll as PollActionedParam);
+			} else {
+				throw new TypeError("Another poll is currently open");
+			}
 		}
 		let state: PollState = null;
 		if (action === "show") state = "shown";
 		else if (action === "open") state = "opened";
 		else if (action === "close") state = "closed";
-		await updatePoll({ id, changes: { state } });
+		const updatedPoll = await updatePoll({ id, changes: { state } });
 		okCallback(callback);
-		this.nsp.to(groupId).emit("poll:" + (state ? state : "unshown"), id);
+		this.nsp
+			.to(groupId)
+			.emit(
+				"poll:" + (state ? state : "unshown"),
+				updatedPoll as PollActionedParam
+			);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -402,6 +427,7 @@ function onConnect(socket: Socket, user: UserContext) {
 		console.log("User " + user.Name + " wants to become an admin");
 		callback(0);
 	});
+	const onEventActionBd = onEventAction.bind(socket);
 	const onPollActionBd = onPollAction.bind(socket);
 	const onPollVoteBd = onPollVote.bind(socket);
 	socket
@@ -411,8 +437,12 @@ function onConnect(socket: Socket, user: UserContext) {
 		.on("event:create", onEventCreate.bind(socket))
 		.on("event:delete", onEventDelete.bind(socket))
 		.on("event:update", onEventUpdate.bind(socket))
-		.on("event:publish", onEventPublish.bind(socket))
-		.on("event:unpublish", onEventUnpublish.bind(socket))
+		.on("event:publish", (params, cb) =>
+			onEventActionBd("publish", params, cb)
+		)
+		.on("event:unpublish", (params, cb) =>
+			onEventActionBd("unpublish", params, cb)
+		)
 		.on("polls:get", onPollsGet.bind(socket))
 		.on("poll:create", onPollCreate.bind(socket))
 		.on("poll:update", onPollUpdate.bind(socket))

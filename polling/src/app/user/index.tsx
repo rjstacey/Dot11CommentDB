@@ -18,7 +18,7 @@ function PollUser() {
 
 	return (
 		<div className={css["user-content"]}>
-			<Tabs id="user-tabs" className={css["tabs"]} defaultActiveKey="0">
+			<Tabs id="user-tabs" defaultActiveKey="0">
 				<Tab eventKey="0" title={currentPollTitle}>
 					<CurrentPoll />
 				</Tab>

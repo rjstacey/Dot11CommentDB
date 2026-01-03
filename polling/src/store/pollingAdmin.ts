@@ -10,7 +10,7 @@ import {
 	EventCreate,
 	EventUpdate,
 	EventDelete,
-	EventPublish,
+	EventActionParam,
 	eventCreateResponseSchema,
 	eventUpdateResponseSchema,
 	eventsGetResponseSchema,
@@ -98,7 +98,7 @@ const pollsAdapter = createEntityAdapter<Poll>({ sortComparer });
 
 /* Create slice */
 const initialState = {
-	eventId: null as number | null,
+	selectedEventId: null as number | null,
 	selectedPollId: null as number | null,
 	events: eventsAdapter.getInitialState(),
 	polls: pollsAdapter.getInitialState(),
@@ -108,8 +108,8 @@ const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		setEventId(state, action: PayloadAction<number | null>) {
-			state.eventId = action.payload;
+		setSelectedEventId(state, action: PayloadAction<number | null>) {
+			state.selectedEventId = action.payload;
 		},
 		setSelectedPollId(state, action: PayloadAction<number | null>) {
 			state.selectedPollId = action.payload;
@@ -151,7 +151,8 @@ export default slice;
 
 /** Slice actions */
 export const {
-	setEventId,
+	setSelectedEventId,
+	setSelectedPollId,
 	setEvents,
 	setEvent,
 	addEvent,
@@ -162,21 +163,30 @@ export const {
 	addPoll,
 	updatePoll,
 	removePoll,
-	setSelectedPollId,
 } = slice.actions;
 
 /** Selectors */
 export const selectPollingAdminState = (state: RootState) => state[dataSet];
-export const selectPollingAdminEventId = (state: RootState) =>
-	selectPollingAdminState(state).eventId;
 export const selectPollingAdminEventIds = (state: RootState) =>
 	selectPollingAdminState(state).events.ids;
 export const selectPollingAdminEventEntities = (state: RootState) =>
 	selectPollingAdminState(state).events.entities;
 
-export const selectPollAdminEvent = (state: RootState) => {
-	const { eventId, events } = selectPollingAdminState(state);
+export const selectPollingAdminSelectedEventId = (state: RootState) =>
+	selectPollingAdminState(state).selectedEventId;
+export const selectPollingAdminSelectedEvent = (state: RootState) => {
+	const { selectedEventId: eventId, events } = selectPollingAdminState(state);
 	return eventId ? events.entities[eventId] : undefined;
+};
+
+export const selectPollingAdminActiveEvent = (state: RootState) => {
+	const { ids, entities } = selectPollingAdminState(state).events;
+	return ids.map((id) => entities[id]!).find((event) => event.isPublished);
+};
+
+export const selectPollingAdminActiveEventId = (state: RootState) => {
+	const event = selectPollingAdminActiveEvent(state);
+	return event ? event.id : undefined;
 };
 
 export const selectPollingAdminSelectedPollId = (state: RootState) =>
@@ -225,7 +235,7 @@ export const pollingAdminEventsGet =
 export const pollingAdminSelectEvent =
 	(eventId: number): AppThunk =>
 	async (dispatch) => {
-		dispatch(setEventId(eventId));
+		dispatch(setSelectedEventId(eventId));
 		try {
 			const { polls } = await pollingSocketEmit(
 				"polls:get",
@@ -240,10 +250,24 @@ export const pollingAdminSelectEvent =
 
 export const pollingAdminEventPublish =
 	(eventId: number, isPublished: boolean): AppThunk =>
-	async (dispatch) => {
+	async (dispatch, getState) => {
 		try {
+			const activeEventId = selectPollingAdminActiveEventId(getState());
+			if (activeEventId && eventId !== activeEventId) {
+				await pollingSocketEmit("event:unpublish", {
+					eventId: activeEventId,
+				} satisfies EventActionParam);
+				dispatch(
+					updateEvent({
+						id: activeEventId,
+						changes: { isPublished: false },
+					})
+				);
+			}
 			const msg = "event:" + (isPublished ? "publish" : "unpublish");
-			await pollingSocketEmit(msg, { eventId } satisfies EventPublish);
+			await pollingSocketEmit(msg, {
+				eventId,
+			} satisfies EventActionParam);
 			dispatch(updateEvent({ id: eventId, changes: { isPublished } }));
 		} catch (error) {
 			dispatch(handleError(error));

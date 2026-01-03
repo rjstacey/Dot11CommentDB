@@ -67,6 +67,9 @@ const slice = createSlice({
 		updatePoll(state, action: PayloadAction<PollUpdate>) {
 			pollsAdapter.updateOne(state.polls, action.payload);
 		},
+		upsertPoll(state, action: PayloadAction<Poll>) {
+			pollsAdapter.upsertOne(state.polls, action.payload);
+		},
 		removePoll(state, action: PayloadAction<number>) {
 			pollsAdapter.removeOne(state.polls, action.payload);
 		},
@@ -93,6 +96,7 @@ export const {
 	setPoll,
 	addPoll,
 	updatePoll,
+	upsertPoll,
 	removePoll,
 	setActivePollId,
 	setSubmitMessage,

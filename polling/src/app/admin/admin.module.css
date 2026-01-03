@@ -9,6 +9,14 @@
 	.event-description {
 		display: flex;
 		flex-direction: column;
+
+		&.published {
+			font-weight: bold;
+			text-shadow:
+				0 0 15px yellow,
+				0 0 25px yellow;
+			animation: pulse 2s infinite;
+		}
 	}
 
 	.event-create {
@@ -24,5 +32,17 @@
 		border: 1px solid var(--bs-border-color);
 		border-top: none;
 		overflow: auto;
+	}
+}
+
+@keyframes pulse {
+	0% {
+		color: orange;
+	}
+	25% {
+		color: red;
+	}
+	50% {
+		color: black;
 	}
 }

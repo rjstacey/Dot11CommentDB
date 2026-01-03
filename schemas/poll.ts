@@ -56,6 +56,7 @@ export const eventsQuerySchema = z
 		id: z.union([eventIdSchema, eventIdSchema.array()]),
 		groupId: z.union([groupIdSchema, groupIdSchema.array()]),
 		name: z.union([z.string(), z.string().array()]),
+		isPublished: z.boolean(),
 	})
 	.partial();
 
@@ -176,28 +177,30 @@ export type PollsGetResponse = z.infer<typeof pollsGetResponseSchema>; // respon
 export type PollCreateResponse = z.infer<typeof pollCreateResponseSchema>; // response to poll:create
 export type PollUpdateResponse = z.infer<typeof pollUpdateResponseSchema>; // response to poll:update
 
-export const pollAddedSchema = pollSchema;
-export const pollUpdatedSchema = pollSchema;
-export const pollDeletedSchema = pollIdSchema;
+export const pollAddedParamSchema = pollSchema;
+export const pollUpdatedParamSchema = pollSchema;
+export const pollDeletedParamSchema = pollIdSchema;
+export const pollActionedParamSchema = pollSchema;
 
-export type PollAdded = z.infer<typeof pollAddedSchema>; // argument for poll:added -> client
-export type PollUpdated = z.infer<typeof pollUpdatedSchema>; // argument for poll:update -> client
-export type PollDeleted = z.infer<typeof pollDeletedSchema>; // argument for poll:deleted -> client
+export type PollAddedParam = z.infer<typeof pollAddedParamSchema>; // argument for poll:added -> client
+export type PollUpdatedParam = z.infer<typeof pollUpdatedParamSchema>; // argument for poll:update -> client
+export type PollDeletedParam = z.infer<typeof pollDeletedParamSchema>; // argument for poll:deleted -> client
+export type PollActionedParam = z.infer<typeof pollActionedParamSchema>; // argument for poll:actioned -> client
 
-export const eventPublishSchema = z.object({
+export const eventActionParamSchema = z.object({
 	eventId: eventIdSchema,
 });
-export type EventPublish = z.infer<typeof eventPublishSchema>; // argument for event:publish -> server
+export type EventActionParam = z.infer<typeof eventActionParamSchema>; // argument for event:publish and event:unpublish -> server
 
-export const eventOpenedSchema = z.object({
+export const eventPublishedParamSchema = z.object({
 	event: eventSchema,
 	polls: pollsSchema,
 });
-export const eventClosedSchema = z.object({
+export const eventUnpublishedParamSchema = z.object({
 	eventId: eventIdSchema,
 });
-export type EventOpened = z.infer<typeof eventOpenedSchema>; // argument for event:opened -> client
-export type EventClosed = z.infer<typeof eventClosedSchema>; // argument for event:closed -> client
+export type EventPublishedParam = z.infer<typeof eventPublishedParamSchema>; // argument for event:published -> client
+export type EventUnpublishedParam = z.infer<typeof eventUnpublishedParamSchema>; // argument for event:unpublished -> client
 
 export const pollResultsGetSchema = z.object({
 	id: pollIdSchema,

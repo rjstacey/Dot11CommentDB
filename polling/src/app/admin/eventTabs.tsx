@@ -1,12 +1,13 @@
 import { Nav } from "react-bootstrap";
 import { DateTime } from "luxon";
+import cx from "clsx";
 import { displayDate } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectPollingAdminEvents,
 	pollingAdminSelectEvent,
-	selectPollingAdminEventId,
 	Event,
+	selectPollingAdminSelectedEventId,
 } from "@/store/pollingAdmin";
 import CreateEvent from "./createEvent";
 import css from "./admin.module.css";
@@ -17,7 +18,12 @@ function displayTime(d: string) {
 
 function EventDescription({ event }: { event: Event }) {
 	return (
-		<div className={css["event-description"]}>
+		<div
+			className={cx(
+				css["event-description"],
+				event.isPublished && css["published"]
+			)}
+		>
 			<span>{event.name || <i>(Blank)</i>}</span>
 			<span>{displayDate(event.datetime)}</span>
 			<span>{displayTime(event.datetime)}</span>
@@ -28,7 +34,7 @@ function EventDescription({ event }: { event: Event }) {
 function EventTabs() {
 	const dispatch = useAppDispatch();
 	const events = useAppSelector(selectPollingAdminEvents);
-	const selectedEventId = useAppSelector(selectPollingAdminEventId);
+	const selectedEventId = useAppSelector(selectPollingAdminSelectedEventId);
 	const setSelectedEventId = (eventId: string | null) =>
 		dispatch(pollingAdminSelectEvent(Number(eventId)));
 

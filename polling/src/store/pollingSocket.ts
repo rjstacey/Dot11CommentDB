@@ -11,7 +11,8 @@ import { AppThunk, RootState, setError } from ".";
 import { selectUser } from ".";
 import { selectGroup, selectSelectedGroupId, AccessLevel } from "./groups";
 import {
-	setEventId as pollingAdminSetEventId,
+	setSelectedEventId as pollingAdminSetSelectedEventId,
+	setSelectedPollId as pollingAdminSetSelectedPollId,
 	setEvents as pollingAdminSetEvents,
 	setPolls as pollingAdminSetPolls,
 } from "./pollingAdmin";
@@ -207,9 +208,10 @@ export const pollingSocketJoinGroup =
 			const group = selectGroup(getState(), groupId);
 			const access = group?.permissions.polling || AccessLevel.none;
 			if (access >= AccessLevel.rw) {
-				dispatch(pollingAdminSetEventId(r.eventId || null));
 				dispatch(pollingAdminSetEvents(r.events));
 				dispatch(pollingAdminSetPolls(r.polls));
+				dispatch(pollingAdminSetSelectedEventId(r.eventId || null));
+				dispatch(pollingAdminSetSelectedPollId(r.pollId || null));
 			}
 			const event = r.events.find((e) => e.id === r.eventId);
 			dispatch(pollingUserSetEvent(event || null));

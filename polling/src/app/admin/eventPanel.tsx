@@ -3,13 +3,13 @@ import cx from "clsx";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectPollingAdminPolls,
-	selectPollAdminEvent,
 	pollingAdminEventPublish,
 	pollingAdminAddPoll,
 	defaultMotion,
 	defaultStrawpoll,
 	Event,
 	Poll,
+	selectPollingAdminSelectedEvent,
 } from "@/store/pollingAdmin";
 
 import { PollsList } from "./pollsList";
@@ -73,7 +73,7 @@ function EventActions({ event, polls }: { event: Event; polls: Poll[] }) {
 				<EventShow
 					value={event.isPublished}
 					onChange={setIsPublished}
-					className={cx(polls.length > 0 && "visually-hidden")}
+					className={cx(polls.length === 0 && "visually-hidden")}
 				/>
 			</Col>
 		</Row>
@@ -81,7 +81,7 @@ function EventActions({ event, polls }: { event: Event; polls: Poll[] }) {
 }
 
 function EventPanel() {
-	const event = useAppSelector(selectPollAdminEvent);
+	const event = useAppSelector(selectPollingAdminSelectedEvent);
 	const polls = useAppSelector(selectPollingAdminPolls);
 
 	if (!event) return null;

@@ -49,6 +49,8 @@ export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 		let sql: string;
 		if (key === "groupId")
 			sql = db.format("BIN_TO_UUID(??) IN (?)", [key, value]);
+		else if (key === "isPublished")
+			sql = db.format("?? = ?", [key, value ? 1 : 0]);
 		else sql = db.format("?? IN (?)", [key, value]);
 		return sql;
 	});
