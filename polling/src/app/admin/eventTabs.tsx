@@ -1,6 +1,5 @@
 import { Nav } from "react-bootstrap";
 import { DateTime } from "luxon";
-import cx from "clsx";
 import { displayDate } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -18,12 +17,7 @@ function displayTime(d: string) {
 
 function EventDescription({ event }: { event: Event }) {
 	return (
-		<div
-			className={cx(
-				css["event-description"],
-				event.isPublished && css["published"]
-			)}
-		>
+		<div className={css["event-description"]}>
 			<span>{event.name || <i>(Blank)</i>}</span>
 			<span>{displayDate(event.datetime)}</span>
 			<span>{displayTime(event.datetime)}</span>
@@ -47,7 +41,10 @@ function EventTabs() {
 		>
 			{events.map((event) => (
 				<Nav.Item key={event.id}>
-					<Nav.Link eventKey={event.id}>
+					<Nav.Link
+						eventKey={event.id}
+						className={event.isPublished ? "published" : undefined}
+					>
 						<EventDescription event={event} />
 					</Nav.Link>
 				</Nav.Item>
