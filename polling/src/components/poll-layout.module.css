@@ -36,6 +36,7 @@
 }
 
 .poll-body-row {
+	position: relative;
 	display: flex;
 	border-top-left-radius: 0;
 	border-bottom-left-radius: 0;
