@@ -1,10 +1,10 @@
 import { Socket } from "socket.io-client";
 import {
-	eventPublishedParamSchema,
-	eventUnpublishedParamSchema,
-	pollAddedParamSchema,
-	pollUpdatedParamSchema,
-	pollDeletedParamSchema,
+	eventPublishedIndSchema,
+	eventUnpublishedIndSchema,
+	pollAddedIndSchema,
+	pollUpdatedIndSchema,
+	pollDeletedIndSchema,
 } from "@schemas/poll";
 import { store } from ".";
 import {
@@ -19,7 +19,7 @@ import {
 function pollingAdminEventPublished(params: unknown) {
 	const { dispatch } = store;
 	try {
-		const { event, polls } = eventPublishedParamSchema.parse(params);
+		const { event, polls } = eventPublishedIndSchema.parse(params);
 		console.log("event published", event);
 		dispatch(setEvent(event));
 		dispatch(setPolls(polls));
@@ -31,7 +31,7 @@ function pollingAdminEventPublished(params: unknown) {
 function pollingAdminEventUnpublished(params: unknown) {
 	const { dispatch } = store;
 	try {
-		const { eventId } = eventUnpublishedParamSchema.parse(params);
+		const { eventId } = eventUnpublishedIndSchema.parse(params);
 		console.log("event unpublished", eventId);
 		dispatch(updateEvent({ id: eventId, changes: { isPublished: false } }));
 	} catch (error) {
@@ -42,7 +42,7 @@ function pollingAdminEventUnpublished(params: unknown) {
 function pollingAdminPollAdded(params: unknown) {
 	const { dispatch } = store;
 	try {
-		const poll = pollAddedParamSchema.parse(params);
+		const poll = pollAddedIndSchema.parse(params);
 		dispatch(addPoll(poll));
 	} catch (error) {
 		console.log("poll added", error);
@@ -52,7 +52,7 @@ function pollingAdminPollAdded(params: unknown) {
 function pollingAdminPollUpdated(params: unknown) {
 	const { dispatch } = store;
 	try {
-		const poll = pollUpdatedParamSchema.parse(params);
+		const poll = pollUpdatedIndSchema.parse(params);
 		dispatch(setPoll(poll));
 	} catch (error) {
 		console.log("poll updated", error);
@@ -62,7 +62,7 @@ function pollingAdminPollUpdated(params: unknown) {
 function pollingAdminPollRemoved(params: unknown) {
 	const { dispatch } = store;
 	try {
-		const id = pollDeletedParamSchema.parse(params);
+		const id = pollDeletedIndSchema.parse(params);
 		dispatch(removePoll(id));
 	} catch (error) {
 		console.log("poll removed", error);

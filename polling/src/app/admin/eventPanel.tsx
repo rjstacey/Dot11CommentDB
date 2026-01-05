@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectPollingAdminPolls,
 	pollingAdminEventPublish,
-	pollingAdminAddPoll,
+	pollingAdminPollCreate,
 	defaultMotion,
 	defaultStrawpoll,
 	Event,
@@ -50,10 +50,10 @@ function EventShow({
 function EventActions({ event, polls }: { event: Event; polls: Poll[] }) {
 	const dispatch = useAppDispatch();
 	const createMotion = () => {
-		dispatch(pollingAdminAddPoll(defaultMotion(event, polls)));
+		dispatch(pollingAdminPollCreate(defaultMotion(event, polls)));
 	};
 	const createStrawpoll = () => {
-		dispatch(pollingAdminAddPoll(defaultStrawpoll(event, polls)));
+		dispatch(pollingAdminPollCreate(defaultStrawpoll(event, polls)));
 	};
 	const setIsPublished = (value: boolean) => {
 		dispatch(pollingAdminEventPublish(event.id, value));

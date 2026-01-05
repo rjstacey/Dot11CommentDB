@@ -2,8 +2,8 @@ import { createSlice, isPlainObject } from "@reduxjs/toolkit";
 import { io, Socket } from "socket.io-client";
 import { z } from "zod";
 import {
-	GroupJoin,
-	groupJoinResponseSchema,
+	GroupJoinReq,
+	groupJoinResSchema,
 	PollingError,
 	PollingOK,
 } from "@schemas/poll";
@@ -202,8 +202,8 @@ export const pollingSocketJoinGroup =
 		try {
 			const r = await pollingSocketEmit(
 				"group:join",
-				{ groupId } satisfies GroupJoin,
-				groupJoinResponseSchema
+				{ groupId } satisfies GroupJoinReq,
+				groupJoinResSchema
 			);
 			const group = selectGroup(getState(), groupId);
 			const access = group?.permissions.polling || AccessLevel.none;

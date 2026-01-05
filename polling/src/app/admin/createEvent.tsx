@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import { Form, Row, DropdownButton, Col } from "react-bootstrap";
 import { InputTime } from "@common";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { pollingAdminCreateEvent, EventCreate } from "@/store/pollingAdmin";
+import { pollingAdminEventCreate, EventCreate } from "@/store/pollingAdmin";
 import { selectSelectedGroupId } from "@/store/groups";
 
 import TimeZoneSelector from "@/components/TimeZoneSelector";
@@ -54,7 +54,7 @@ function CreateEventForm({ close }: { close: () => void }) {
 	async function submit() {
 		const updatedEvent = datetimeConversion(event, date, time);
 		if (updatedEvent) {
-			await dispatch(pollingAdminCreateEvent(updatedEvent));
+			await dispatch(pollingAdminEventCreate(updatedEvent));
 			close();
 		}
 	}
