@@ -2,6 +2,7 @@ import { createSlice, isPlainObject } from "@reduxjs/toolkit";
 import { io, Socket } from "socket.io-client";
 import { z } from "zod";
 import {
+	pollingSocketName,
 	GroupJoinReq,
 	groupJoinResSchema,
 	PollingError,
@@ -65,7 +66,7 @@ export function getSocket() {
 
 function openSocket(token: string) {
 	if (!socket) {
-		socket = io("/poll", { query: { token } });
+		socket = io(pollingSocketName, { query: { token } });
 		document.addEventListener("beforeunload", closeSocket);
 	}
 	return socket;
@@ -200,22 +201,27 @@ export const pollingSocketJoinGroup =
 	(groupId: string): AppThunk =>
 	async (dispatch, getState) => {
 		try {
-			const r = await pollingSocketEmit(
+			const { events, polls } = await pollingSocketEmit(
 				"group:join",
 				{ groupId } satisfies GroupJoinReq,
 				groupJoinResSchema
 			);
 			const group = selectGroup(getState(), groupId);
 			const access = group?.permissions.polling || AccessLevel.none;
+			const activeEvent = events.find((e) => e.isPublished);
+			const activePoll = polls.find(
+				(p) => p.state === "shown" || p.state === "opened"
+			);
 			if (access >= AccessLevel.rw) {
-				dispatch(pollingAdminSetEvents(r.events));
-				dispatch(pollingAdminSetPolls(r.polls));
-				dispatch(pollingAdminSetSelectedEventId(r.eventId || null));
-				dispatch(pollingAdminSetSelectedPollId(r.pollId || null));
+				dispatch(pollingAdminSetEvents(events));
+				dispatch(pollingAdminSetPolls(polls));
+				dispatch(
+					pollingAdminSetSelectedEventId(activeEvent?.id || null)
+				);
+				dispatch(pollingAdminSetSelectedPollId(activePoll?.id || null));
 			}
-			const event = r.events.find((e) => e.id === r.eventId);
-			dispatch(pollingUserSetEvent(event || null));
-			dispatch(pollingUserSetPolls(r.polls));
+			dispatch(pollingUserSetEvent(activeEvent || null));
+			dispatch(pollingUserSetPolls(polls));
 		} catch (error) {
 			dispatch(handleError(error));
 		}

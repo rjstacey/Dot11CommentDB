@@ -12,6 +12,8 @@ import { groupIdSchema } from "./groups.js";
  *    ---- Confirmation ---->
  */
 
+export const pollingSocketName = "/polling";
+
 export type PollingError = {
 	status: "Error";
 	error: {
@@ -107,7 +109,10 @@ export enum PollRecordType {
 export const pollRecordTypeSchema = z.enum(PollRecordType);
 
 export const pollActionSchema = z.enum(["show", "unshow", "open", "close"]);
+export type PollAction = z.infer<typeof pollActionSchema>;
+
 export const pollStateSchema = z.enum(["shown", "opened", "closed"]).nullable();
+export type PollState = z.infer<typeof pollStateSchema>;
 
 export const pollOptionsSchema = z.string().array();
 
@@ -163,32 +168,31 @@ export const pollsQuerySchema = z
 	})
 	.partial();
 
-export const pollDeleteSchema = pollIdSchema;
-
 export type Poll = z.infer<typeof pollSchema>;
 export type PollsQuery = z.infer<typeof pollsQuerySchema>; // param for poll:get request
 export type PollCreate = z.infer<typeof pollCreateSchema>; // param for poll:create request
 export type PollChange = z.infer<typeof pollChangeSchema>;
 export type PollUpdate = z.infer<typeof pollUpdateSchema>; // param for poll:update request
-export type PollDelete = z.infer<typeof pollDeleteSchema>; // param for poll:delete request
-export type PollAction = z.infer<typeof pollActionSchema>; // param for poll:action request
-export type PollState = z.infer<typeof pollStateSchema>;
 
 export const pollGetResSchema = z.object({ polls: pollSchema.array() });
-export const pollCreateResSchema = z.object({ poll: pollSchema });
-export const pollUpdateResSchema = z.object({ poll: pollSchema });
 export type PollGetRes = z.infer<typeof pollGetResSchema>; // param for poll:get response
+
+export const pollCreateResSchema = z.object({ poll: pollSchema });
 export type PollCreateRes = z.infer<typeof pollCreateResSchema>; // param for poll:create response
+
+export const pollUpdateResSchema = z.object({ poll: pollSchema });
 export type PollUpdateRes = z.infer<typeof pollUpdateResSchema>; // param for poll:update response
 
 export const pollAddedIndSchema = pollSchema;
-export const pollUpdatedIndSchema = pollSchema;
-export const pollDeletedIndSchema = pollIdSchema;
-export const pollActionedIndSchema = pollSchema;
-
 export type PollAddedInd = z.infer<typeof pollAddedIndSchema>; // param for poll:added indication
+
+export const pollUpdatedIndSchema = pollSchema;
 export type PollUpdatedInd = z.infer<typeof pollUpdatedIndSchema>; // param for poll:updated indication
+
+export const pollDeletedIndSchema = pollIdSchema;
 export type PollDeletedInd = z.infer<typeof pollDeletedIndSchema>; // param for poll:deleted indication
+
+export const pollActionedIndSchema = pollSchema;
 export type PollActionedInd = z.infer<typeof pollActionedIndSchema>; // param for poll:actioned indication
 
 export const pollVoteSchema = z.object({
@@ -215,6 +219,14 @@ export const pollResultResSchema = z.object({
 });
 export type PollResultRes = z.infer<typeof pollResultResSchema>; // param for result:get response
 
+export const pollVotedIndSchema = z.object({
+	pollId: pollIdSchema.nullable(),
+	numMembers: z.number(),
+	numVoters: z.number(),
+	numVoted: z.number(),
+});
+export type PollVotedInd = z.infer<typeof pollVotedIndSchema>; // param for poll:voted indication
+
 export const eventActionReqSchema = z.object({
 	eventId: eventIdSchema,
 });
@@ -237,9 +249,7 @@ export type GroupJoinReq = z.infer<typeof groupJoinReqSchema>; // param for grou
 
 export const groupJoinResSchema = z.object({
 	groupId: groupIdSchema,
-	eventId: eventIdSchema.optional(),
 	events: eventsSchema,
 	polls: pollsSchema,
-	pollId: pollIdSchema.optional(),
 });
 export type GroupJoinRes = z.infer<typeof groupJoinResSchema>; // param for group:join response
