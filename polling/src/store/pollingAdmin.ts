@@ -24,12 +24,15 @@ import {
 	PollVotersType,
 	PollRecordType,
 	PollChoice,
+	PollResult,
 	pollGetResSchema,
 	pollCreateResSchema,
 	pollUpdateResSchema,
 	PollVotedInd,
+	PollChange,
+	pollResultResSchema,
 } from "@schemas/poll";
-import { AppThunk, RootState } from ".";
+import { AppThunk, RootState, setError } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
 
 export type { Event, EventCreate, Poll, PollType, PollCreate, PollAction };
@@ -109,6 +112,7 @@ const initialState = {
 	events: eventsAdapter.getInitialState(),
 	polls: pollsAdapter.getInitialState(),
 	voted: initialVoted,
+	results: [] as PollResult[],
 };
 const dataSet = "pollingAdmin";
 const slice = createSlice({
@@ -154,6 +158,9 @@ const slice = createSlice({
 		setVoted(state, action: PayloadAction<PollVotedInd>) {
 			state.voted = action.payload;
 		},
+		setResults(state, action: PayloadAction<PollResult[]>) {
+			state.results = action.payload;
+		},
 	},
 });
 
@@ -174,6 +181,7 @@ export const {
 	updatePoll,
 	removePoll,
 	setVoted,
+	setResults,
 } = slice.actions;
 
 /** Selectors */
@@ -251,7 +259,7 @@ export const pollingAdminSelectEvent =
 	async (dispatch) => {
 		dispatch(setSelectedEventId(eventId));
 		try {
-			const { polls } = await pollingSocketEmit(
+			const polls = await pollingSocketEmit(
 				"poll:get",
 				{ eventId } satisfies PollsQuery,
 				pollGetResSchema
@@ -333,7 +341,7 @@ export const pollingAdminPollCreate =
 	(pollIn: PollCreate): AppThunk =>
 	async (dispatch) => {
 		try {
-			const { poll } = await pollingSocketEmit(
+			const poll = await pollingSocketEmit(
 				"poll:create",
 				pollIn,
 				pollCreateResSchema
@@ -349,7 +357,7 @@ export const pollingAdminPollUpdate =
 	(update: PollUpdate): AppThunk =>
 	async (dispatch) => {
 		try {
-			const { poll } = await pollingSocketEmit(
+			const poll = await pollingSocketEmit(
 				"poll:update",
 				update,
 				pollUpdateResSchema
@@ -375,22 +383,52 @@ export const pollingAdminPollAction =
 	(pollId: number, action: PollAction): AppThunk<PollState> =>
 	async (dispatch, getState) => {
 		try {
-			const activePollId = selectPollingAdminActivePollId(getState());
-			if (activePollId && pollId !== activePollId) {
-				await pollingSocketEmit("poll:unshow", activePollId);
+			const activePoll = selectPollingAdminActivePoll(getState());
+			if (activePoll && pollId !== activePoll.id) {
+				if (activePoll.state === "opened") {
+					dispatch(
+						setError(
+							"Can't action poll",
+							"Another poll is currently open"
+						)
+					);
+					return null;
+				}
+				await pollingSocketEmit("poll:unshow", activePoll.id);
 				dispatch(
-					updatePoll({ id: activePollId, changes: { state: null } })
+					updatePoll({ id: activePoll.id, changes: { state: null } })
 				);
 			}
 			await pollingSocketEmit("poll:" + action, pollId);
-			let state: PollState = null;
-			if (action === "show") state = "shown";
-			else if (action === "open") state = "opened";
-			else if (action === "close") state = "closed";
-			dispatch(updatePoll({ id: pollId, changes: { state } }));
-			return state;
+			const changes: PollChange = {
+				state: null,
+				resultsSummary: null,
+			};
+			if (action === "reset") {
+				changes.state = "shown";
+			} else if (action === "show") {
+				changes.state = "shown";
+			} else if (action === "open") {
+				changes.state = "opened";
+			} else if (action === "close") {
+				changes.state = "closed";
+			}
+			dispatch(updatePoll({ id: pollId, changes }));
+			return changes.state!;
 		} catch (error) {
 			dispatch(handleError(error));
 		}
 		return null;
+	};
+
+export const pollingAdminPollResultsGet =
+	(pollId: number): AppThunk =>
+	async (dispatch) => {
+		try {
+			const r = await pollingSocketEmit("poll:results", pollId);
+			const { results } = pollResultResSchema.parse(r);
+			dispatch(setResults(results));
+		} catch (error) {
+			dispatch(handleError(error));
+		}
 	};

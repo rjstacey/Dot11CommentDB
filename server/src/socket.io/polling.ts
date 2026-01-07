@@ -51,9 +51,10 @@ export function onConnect(socket: Socket, user: UserContext) {
 		.on("poll:update", onPollUpdate.bind(socket))
 		.on("poll:delete", onPollDelete.bind(socket))
 		.on("poll:show", (params, cb) => onPollActionBd("show", params, cb))
-		.on("poll:unshow", (params, cb) => onPollActionBd("unshow", params, cb))
 		.on("poll:open", (params, cb) => onPollActionBd("open", params, cb))
 		.on("poll:close", (params, cb) => onPollActionBd("close", params, cb))
+		.on("poll:unshow", (params, cb) => onPollActionBd("unshow", params, cb))
+		.on("poll:reset", (params, cb) => onPollActionBd("reset", params, cb))
 		.on("poll:vote", (params, cb) => onPollVoteBd(user, params, cb))
 		.on("poll:result", onPollResult.bind(socket));
 }

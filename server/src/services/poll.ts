@@ -30,6 +30,13 @@ export async function init() {
 		db.query(
 			"ALTER TABLE polls ADD COLUMN votersType TINYINT default 0 after recordType;"
 		);
+	sql =
+		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="polls" and column_name = "isComplete";';
+	rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
+	if (rows.length === 0)
+		db.query(
+			"ALTER TABLE polls ADD COLUMN isComplete TINYINT(1) default 0;"
+		);
 }
 
 export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
@@ -114,7 +121,8 @@ export async function getPolls(query: PollsQuery = {}): Promise<Poll[]> {
 			"p.options, " +
 			"p.choice, " +
 			"p.movedSAPIN, " + 
-			"p.secondedSAPIN " +
+			"p.secondedSAPIN, " +
+			"p.resultsSummary " +
 		"FROM polls p LEFT JOIN pollEvents e ON p.eventId=e.id";
 
 	sql += pollQuerySql(query) + " ORDER BY `index`";
@@ -128,6 +136,12 @@ function pollSetSql(poll: Partial<Poll>) {
 	for (const key of Object.keys(poll)) {
 		if (key === "options")
 			s.push(db.format("options=?", [JSON.stringify(poll.options)]));
+		else if (key === "resultsSummary")
+			s.push(
+				db.format("resultsSummary=?", [
+					JSON.stringify(poll.resultsSummary),
+				])
+			);
 		else s.push(db.format("??=?", [key, poll[key]]));
 	}
 	return s.join(", ");
@@ -166,12 +180,19 @@ export async function deletePoll(id: number) {
 	return affectedRows;
 }
 
+/** Record a users vote
+ * @param user - The user for which the vote is recorded.
+ * @param poll - The poll being voted on.
+ * @param votes - An array of option indices.
+ * For PollChoice.SINGLE, the array has one entry, which is the index of the option selected.
+ * For PollChoice.MULTIPLE, then arrays has one or more entries, each being the index of an option selected.
+ */
 export async function pollVote(user: UserContext, poll: Poll, votes: number[]) {
 	if (poll.state !== "opened") throw new TypeError("Poll not open");
 	// Strip out duplicates
 	votes = [...new Set(votes)];
 
-	if (poll.choice === PollChoice.SINGLE && votes.length > 1)
+	if (poll.choice === PollChoice.SINGLE && votes.length !== 1)
 		throw new TypeError("Bad vote");
 	if (!votes.every((i) => i >= 0 && i < poll.options.length))
 		throw new TypeError("Bad vote");
@@ -181,6 +202,12 @@ export async function pollVote(user: UserContext, poll: Poll, votes: number[]) {
 		[poll.id, user.SAPIN, JSON.stringify(votes)]
 	);
 	await db.query(sql);
+}
+
+export async function pollClearVotes(poll: Poll) {
+	const sql = db.format("DELETE FROM pollVotes WHERE pollId=?", [poll.id]);
+	const { affectedRows } = await db.query<ResultSetHeader>(sql);
+	return affectedRows;
 }
 
 export async function pollVoteCount(poll: Poll) {

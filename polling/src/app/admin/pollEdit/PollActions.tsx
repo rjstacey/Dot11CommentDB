@@ -1,7 +1,10 @@
 import { Button } from "react-bootstrap";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import type { Poll, PollAction } from "@/store/pollingAdmin";
-import { selectPollingAdminVoted } from "@/store/pollingAdmin";
+import {
+	selectPollingAdminVoted,
+	pollingAdminPollResultsGet,
+} from "@/store/pollingAdmin";
 
 import css from "@/components/poll-layout.module.css";
 
@@ -23,15 +26,34 @@ function PollReturns({ poll }: { poll: Poll }) {
 	);
 }
 
+function PollResult({ poll }: { poll: Poll }) {
+	if (
+		poll.type !== "m" ||
+		poll.state !== "closed" ||
+		poll.resultsSummary === null
+	)
+		return null;
+
+	const [y, n, a] = poll.resultsSummary;
+	const approvalRate = (y / (y + n)) * 100;
+	return (
+		<span>
+			{`Y / N / A = ${y} / ${n} / ${a} (approval rate: ${approvalRate.toFixed(1)}%)`}
+		</span>
+	);
+}
+
 export function PollActions({
 	poll,
 	onAction,
 	onDelete,
 }: {
 	poll: Poll;
-	onAction: (action: PollAction) => void;
+	onAction: (action: PollAction) => Promise<void>;
 	onDelete: () => void;
 }) {
+	const dispatch = useAppDispatch();
+
 	const showDisabled = poll.state !== null && poll.state !== "shown";
 	function showPoll() {
 		if (poll.state === null) onAction("show");
@@ -46,12 +68,15 @@ export function PollActions({
 	}
 
 	const closeDisabled = poll.state !== "opened" && poll.state !== "closed";
-	function closePoll() {
-		if (poll.state === "opened") onAction("close");
+	async function closePoll() {
+		if (poll.state === "opened") {
+			await onAction("close");
+			dispatch(pollingAdminPollResultsGet(poll.id));
+		}
 	}
 
 	function resetPoll() {
-		onAction("show");
+		onAction("reset");
 	}
 
 	return (
@@ -87,6 +112,7 @@ export function PollActions({
 					{"Close"}
 				</Button>
 				<PollReturns poll={poll} />
+				<PollResult poll={poll} />
 			</div>
 			<div className={css["poll-action-group"]}>
 				<Button

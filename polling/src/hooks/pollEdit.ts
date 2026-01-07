@@ -47,9 +47,11 @@ export function usePollEdit(poll: Poll) {
 
 	const onAction = React.useCallback(
 		async (action: PollAction) => {
+			console.log("onAction");
 			const state = await dispatch(
 				pollingAdminPollAction(poll.id, action)
 			);
+			console.log("action result", state);
 			setEdited((edited) => ({ ...edited, state }));
 		},
 		[edited, poll.id]

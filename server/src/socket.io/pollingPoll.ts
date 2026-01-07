@@ -10,6 +10,7 @@ import {
 	pollVote,
 	pollResults,
 	pollVoteCount,
+	pollClearVotes,
 } from "../services/poll.js";
 import {
 	Poll,
@@ -21,7 +22,7 @@ import {
 	PollCreateRes,
 	PollUpdateRes,
 	PollAction,
-	PollState,
+	PollChange,
 	PollResultRes,
 	PollVotedInd,
 	pollCreateSchema,
@@ -135,7 +136,7 @@ export async function onPollGet(
 		//const groupId = socketGetGroupInfo(this).groupId;
 		const query = pollsQuerySchema.parse(payload);
 		const polls = await getPolls(query);
-		okCallback(callback, { polls } satisfies PollGetRes);
+		okCallback(callback, polls satisfies PollGetRes);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -155,7 +156,7 @@ export async function onPollCreate(
 		if (!event)
 			throw new NotFoundError(`Event id=${add.eventId} not found`);
 		const poll = await addPoll(add);
-		okCallback(callback, { poll } satisfies PollCreateRes);
+		okCallback(callback, poll satisfies PollCreateRes);
 		if (event.isPublished || poll.state !== null) {
 			this.nsp
 				.to(groupId)
@@ -178,7 +179,7 @@ export async function onPollUpdate(
 		const groupId = socketGetGroupInfo(this).groupId;
 		const update = pollUpdateSchema.parse(payload);
 		const poll = await updatePoll(update);
-		okCallback(callback, { poll } satisfies PollUpdateRes);
+		okCallback(callback, poll satisfies PollUpdateRes);
 		const [event] = await getPollEvents({
 			id: poll.eventId,
 			isPublished: true,
@@ -227,11 +228,13 @@ export async function onPollDelete(
 /**
  * poll:show(pollId)
  *
- * poll:unshow(pollId)
- *
  * poll:open(pollId)
  *
  * poll:close(pollId)
+ *
+ * poll:unshow(pollId)
+ *
+ * poll:reset(pollId)
  *
  * Show, unshow, open, or close a poll
  * */
@@ -256,22 +259,32 @@ export async function onPollAction(
 			activePoll &&
 			activePoll.id !== poll.id
 		) {
-			if (activePoll.state === "shown") {
-				const updatedPoll = await updatePoll({
-					id: activePoll.id,
-					changes: { state: null },
-				});
-				socketMaybeSetActivePoll(this, updatedPoll);
-			} else {
+			if (activePoll.state === "opened") {
 				socketMaybeSetActivePoll(this, activePoll);
 				throw new TypeError("Another poll is currently open");
 			}
+			const updatedPoll = await updatePoll({
+				id: activePoll.id,
+				changes: { state: null },
+			});
+			socketMaybeSetActivePoll(this, updatedPoll);
 		}
-		let state: PollState = null;
-		if (action === "show") state = "shown";
-		else if (action === "open") state = "opened";
-		else if (action === "close") state = "closed";
-		const updatedPoll = await updatePoll({ id, changes: { state } });
+		const changes: PollChange = {
+			state: null,
+			resultsSummary: null,
+		};
+		if (action === "reset") {
+			await pollClearVotes(poll);
+			if (poll.state) changes.state = "shown";
+		} else if (action === "show") {
+			changes.state = "shown";
+		} else if (action === "open") {
+			changes.state = "opened";
+		} else if (action === "close") {
+			changes.state = "closed";
+			changes.resultsSummary = (await pollResults(poll)).resultsSummary;
+		}
+		const updatedPoll = await updatePoll({ id, changes });
 		okCallback(callback);
 		socketMaybeSetActivePoll(this, updatedPoll);
 	} catch (error) {
@@ -293,10 +306,10 @@ export async function onPollVote(
 		const [poll] = await getPolls({ id, groupId });
 		if (!poll) throw new TypeError("Poll not found");
 		if (poll.state !== "opened") throw new TypeError("Poll not open");
-		pollVote(user, poll, votes);
+		await pollVote(user, poll, votes);
 		okCallback(callback);
 
-		if (this.data.throttledSendVotedInd) this.data.throttledSendVotedInd();
+		this.data.throttledSendVotedInd?.();
 	} catch (error) {
 		errorCallback(callback, error);
 	}

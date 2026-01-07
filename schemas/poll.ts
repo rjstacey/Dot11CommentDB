@@ -108,7 +108,13 @@ export enum PollRecordType {
 }
 export const pollRecordTypeSchema = z.enum(PollRecordType);
 
-export const pollActionSchema = z.enum(["show", "unshow", "open", "close"]);
+export const pollActionSchema = z.enum([
+	"show",
+	"open",
+	"close",
+	"unshow",
+	"reset",
+]);
 export type PollAction = z.infer<typeof pollActionSchema>;
 
 export const pollStateSchema = z.enum(["shown", "opened", "closed"]).nullable();
@@ -136,6 +142,7 @@ export const pollSchema = z.object({
 	choice: pollChoiceSchema,
 	movedSAPIN: z.number().nullable(),
 	secondedSAPIN: z.number().nullable(),
+	resultsSummary: z.number().array().nullable(),
 });
 export const pollsSchema = pollSchema.array();
 
@@ -174,13 +181,13 @@ export type PollCreate = z.infer<typeof pollCreateSchema>; // param for poll:cre
 export type PollChange = z.infer<typeof pollChangeSchema>;
 export type PollUpdate = z.infer<typeof pollUpdateSchema>; // param for poll:update request
 
-export const pollGetResSchema = z.object({ polls: pollSchema.array() });
+export const pollGetResSchema = pollsSchema;
 export type PollGetRes = z.infer<typeof pollGetResSchema>; // param for poll:get response
 
-export const pollCreateResSchema = z.object({ poll: pollSchema });
+export const pollCreateResSchema = pollSchema;
 export type PollCreateRes = z.infer<typeof pollCreateResSchema>; // param for poll:create response
 
-export const pollUpdateResSchema = z.object({ poll: pollSchema });
+export const pollUpdateResSchema = pollSchema;
 export type PollUpdateRes = z.infer<typeof pollUpdateResSchema>; // param for poll:update response
 
 export const pollAddedIndSchema = pollSchema;
