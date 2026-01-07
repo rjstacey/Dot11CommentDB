@@ -88,6 +88,15 @@ export type EventGetRes = z.infer<typeof eventGetResSchema>; // param for event:
 export type EventCreateRes = z.infer<typeof eventCreateResSchema>; // param for event:create response
 export type EventUpdateRes = z.infer<typeof eventUpdateResSchema>; // param for event:update response
 
+export const eventUpdatedIndSchema = eventSchema;
+export type EventUpdatedInd = z.infer<typeof eventUpdatedIndSchema>; // param for event:updated indication
+
+export const eventDeletedIndSchema = eventIdSchema;
+export type EventDeletedInd = z.infer<typeof eventDeletedIndSchema>; // param for event:deleted indication
+
+export const eventAddedIndSchema = eventSchema;
+export type EventAddedInd = z.infer<typeof eventAddedIndSchema>; // param for event:added indication
+
 export const pollIdSchema = z.number();
 export const pollTypeSchema = z.enum(["m", "sp"]);
 export type PollType = z.infer<typeof pollTypeSchema>;
