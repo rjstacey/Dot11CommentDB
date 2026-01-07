@@ -1,4 +1,6 @@
+import React from "react";
 import { Form, Button } from "react-bootstrap";
+import isEqual from "lodash.isequal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import cx from "clsx";
 import {
@@ -38,8 +40,10 @@ function PollOptionsRow({
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
+	const [busy, setBusy] = React.useState(false);
+	const [ok, setOk] = React.useState(false);
 
-	const { submitMsg, pollVotes } = useAppSelector(selectPollingUserState);
+	const { pollVotes } = useAppSelector(selectPollingUserState);
 
 	function toggleVote(index: number) {
 		let newVotes = pollVotes.slice();
@@ -50,11 +54,16 @@ function PollOptionsRow({
 		} else {
 			newVotes = [index];
 		}
+		if (!isEqual(newVotes, pollVotes)) setOk(false);
 		dispatch(setPollVotes(newVotes));
 	}
 
-	function submitVote() {
-		dispatch(pollingUserSubmitVote());
+	async function submitVote() {
+		setOk(false);
+		setBusy(true);
+		const ok = await dispatch(pollingUserSubmitVote());
+		setOk(ok);
+		setBusy(false);
 	}
 
 	return (
@@ -70,8 +79,8 @@ function PollOptionsRow({
 								onChange={() => toggleVote(i)}
 								readOnly={readOnly}
 								tabIndex={readOnly ? -1 : undefined}
+								label={o}
 							/>
-							<label htmlFor={id}>{o}</label>
 						</div>
 					);
 				})}
@@ -84,8 +93,12 @@ function PollOptionsRow({
 					className={readOnly ? "visually-hidden" : undefined}
 				>
 					{"Submit"}
+					<i
+						className={
+							"ms-1 " + (busy ? "bi-dot" : ok ? "bi-check" : "")
+						}
+					/>
 				</Button>
-				<span>{submitMsg}&nbsp;</span>
 			</div>
 		</div>
 	);
