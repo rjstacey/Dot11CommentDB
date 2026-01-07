@@ -226,6 +226,9 @@ export const selectPollingAdminPolls = createSelector(
 	(polls) => pollsAdapter.getSelectors().selectAll(polls)
 );
 
+export const selectPollingAdminVoted = (state: RootState) =>
+	selectPollingAdminState(state).voted;
+
 /** Thunk actions */
 export const pollingAdminEventsGet =
 	(groupId: string): AppThunk =>

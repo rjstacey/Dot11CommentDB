@@ -104,10 +104,6 @@
 	display: flex;
 	margin: 1rem 0;
 
-	&:not(:global(.motion)) {
-		display: none;
-	}
-
 	& .poll-moved-col {
 		display: flex;
 		flex-wrap: nowrap;

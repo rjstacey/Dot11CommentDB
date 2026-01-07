@@ -1,26 +1,44 @@
 import { Form } from "react-bootstrap";
 import cx from "clsx";
-import { PollVotersType } from "@/store/pollingAdmin";
+import { useAppSelector } from "@/store/hooks";
+import {
+	Poll,
+	PollVotersType,
+	selectPollingAdminVoted,
+} from "@/store/pollingAdmin";
+import React from "react";
 
 export function PollVotersSelect({
-	value,
-	onChange,
+	poll,
+	changePoll,
 	disabled,
 	className,
 }: {
-	value: PollVotersType;
-	onChange: (value: PollVotersType) => void;
+	poll: Poll;
+	changePoll: (changes: Partial<Poll>) => void;
 	disabled?: boolean;
 	className?: string;
 }) {
+	const { pollId, numVoters } = useAppSelector(selectPollingAdminVoted);
+	let countElement: React.ReactNode = null;
+	if (poll.id === pollId) {
+		countElement = <span>{numVoters}</span>;
+	}
+
+	const onChange = (value: PollVotersType) =>
+		changePoll({ votersType: value });
+
 	return (
 		<div className={cx("d-flex align-items-center gap-2", className)}>
-			<span>Voters:</span>
+			<div className="d-flex flex-column align-items-center">
+				<span>Voters:</span>
+				{countElement}
+			</div>
 			<Form.Group>
 				<Form.Check
 					type="radio"
 					id="poll-voters-type-anyone"
-					checked={value === PollVotersType.ANYONE}
+					checked={poll.votersType === PollVotersType.ANYONE}
 					onChange={() => onChange(PollVotersType.ANYONE)}
 					disabled={disabled}
 					label="Anyone"
@@ -28,7 +46,7 @@ export function PollVotersSelect({
 				<Form.Check
 					type="radio"
 					id="poll-voters-type-voter"
-					checked={value === PollVotersType.VOTER}
+					checked={poll.votersType === PollVotersType.VOTER}
 					onChange={() => onChange(PollVotersType.VOTER)}
 					disabled={disabled}
 					label="Voters"
@@ -36,7 +54,9 @@ export function PollVotersSelect({
 				<Form.Check
 					type="radio"
 					id="poll-voters-type-voter-potential-voter"
-					checked={value === PollVotersType.VOTER_POTENTIAL_VOTER}
+					checked={
+						poll.votersType === PollVotersType.VOTER_POTENTIAL_VOTER
+					}
 					onChange={() =>
 						onChange(PollVotersType.VOTER_POTENTIAL_VOTER)
 					}

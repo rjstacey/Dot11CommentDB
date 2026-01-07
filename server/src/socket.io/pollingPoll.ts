@@ -83,6 +83,7 @@ export function socketMaybeSetActivePoll(socket: Socket, poll: Poll) {
 			socket.data.activePoll = poll;
 		}
 	}
+	socket.data.throttledSendVotedInd?.();
 }
 
 export async function sendVotedInd(this: Socket) {

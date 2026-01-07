@@ -21,19 +21,22 @@
 		flex-direction: column;
 	}
 
-	.event-create {
-		flex: 1;
-		display: flex;
-		justify-content: flex-end;
-		align-items: center;
-		margin-right: 0.5rem;
-	}
-
 	.event-panel {
 		padding: 1rem;
 		border: 1px solid var(--bs-border-color);
 		border-top: none;
 		overflow: auto;
+	}
+}
+
+.event-create {
+	flex: 1;
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+
+	& > div {
+		margin-right: 0.5rem;
 	}
 }
 

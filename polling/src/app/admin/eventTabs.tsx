@@ -8,7 +8,8 @@ import {
 	Event,
 	selectPollingAdminSelectedEventId,
 } from "@/store/pollingAdmin";
-import CreateEvent from "./createEvent";
+import { EventCreateButton } from "./eventCreate";
+
 import css from "./admin.module.css";
 
 function displayTime(d: string) {
@@ -50,7 +51,7 @@ function EventTabs() {
 				</Nav.Item>
 			))}
 			<div className={css["event-create"]}>
-				<CreateEvent />
+				<EventCreateButton />
 			</div>
 		</Nav>
 	);

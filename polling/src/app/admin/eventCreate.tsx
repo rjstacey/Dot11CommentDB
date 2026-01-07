@@ -22,7 +22,7 @@ function useNullEvent() {
 	}, [groupId]);
 }
 
-function CreateEventForm({ close }: { close: () => void }) {
+function EventCreateForm({ close }: { close: () => void }) {
 	const dispatch = useAppDispatch();
 	const nullEvent = useNullEvent();
 	const [event, setEvent] = React.useState<EventCreate>(nullEvent);
@@ -142,7 +142,7 @@ function CreateEventForm({ close }: { close: () => void }) {
 	);
 }
 
-function CreateEvent({ className }: { className?: string }) {
+export function EventCreateButton({ className }: { className?: string }) {
 	const [show, setShow] = React.useState(false);
 	const title = (
 		<span>
@@ -158,9 +158,7 @@ function CreateEvent({ className }: { className?: string }) {
 			onToggle={() => setShow(!show)}
 			className={className}
 		>
-			<CreateEventForm close={() => setShow(false)} />
+			<EventCreateForm close={() => setShow(false)} />
 		</DropdownButton>
 	);
 }
-
-export default CreateEvent;

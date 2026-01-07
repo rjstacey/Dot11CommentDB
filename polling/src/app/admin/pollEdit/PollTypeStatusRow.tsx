@@ -1,10 +1,24 @@
+import { useAppSelector } from "@/store/hooks";
 import type { Poll } from "@/store/pollingAdmin";
+import { selectPollingAdminVoted } from "@/store/pollingAdmin";
+
 import { PollTypeSelect } from "./PollTypeSelect";
 import { PollVotersSelect } from "./PollVotersSelect";
 import { PollRecordSelect } from "./PollRecordSelect";
 import { PollState } from "../pollSummary/PollState";
 
 import css from "@/components/poll-layout.module.css";
+
+export function VotersCount() {
+	const voted = useAppSelector(selectPollingAdminVoted);
+
+	return (
+		<div className="d-flex gap-2">
+			<span className="bi-people">{voted.numMembers}</span>
+			<span className="bi-hand-index">{voted.numVoters}</span>
+		</div>
+	);
+}
 
 export function PollTypeStatusRow({
 	poll,
@@ -25,8 +39,8 @@ export function PollTypeStatusRow({
 					disabled={disabled}
 				/>
 				<PollVotersSelect
-					value={poll.votersType}
-					onChange={(votersType) => changePoll({ votersType })}
+					poll={poll}
+					changePoll={changePoll}
 					disabled={disabled}
 				/>
 				<PollRecordSelect
