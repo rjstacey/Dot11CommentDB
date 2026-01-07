@@ -5,6 +5,7 @@ import {
 	pollAddedIndSchema,
 	pollUpdatedIndSchema,
 	pollDeletedIndSchema,
+	pollVotedIndSchema,
 } from "@schemas/poll";
 import { store } from ".";
 import {
@@ -14,6 +15,7 @@ import {
 	updateEvent,
 	addPoll,
 	removePoll,
+	setVoted,
 } from "./pollingAdmin";
 
 function pollingAdminEventPublished(params: unknown) {
@@ -69,8 +71,21 @@ function pollingAdminPollRemoved(params: unknown) {
 	}
 }
 
+function pollingAdminPollVoted(params: unknown) {
+	const { dispatch } = store;
+	try {
+		const voted = pollVotedIndSchema.parse(params);
+		dispatch(setVoted(voted));
+	} catch (error) {
+		console.log("poll voted", error);
+	}
+}
+
 export function pollingAdminSocketRegister(socket: Socket) {
 	socket
+		.onAny((event, ...args) => {
+			console.log(event, args);
+		})
 		.on("connect", () => {
 			console.log("pollingAdminSocket connect");
 		})
@@ -78,5 +93,6 @@ export function pollingAdminSocketRegister(socket: Socket) {
 		.on("event:unpublished", pollingAdminEventUnpublished)
 		.on("poll:added", pollingAdminPollAdded)
 		.on("poll:updated", pollingAdminPollUpdated)
-		.on("poll:removed", pollingAdminPollRemoved);
+		.on("poll:removed", pollingAdminPollRemoved)
+		.on("poll:voted", pollingAdminPollVoted);
 }

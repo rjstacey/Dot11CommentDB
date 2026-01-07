@@ -85,10 +85,10 @@ export function socketMaybeSetActivePoll(socket: Socket, poll: Poll) {
 	}
 }
 
-export async function sendVotedInd(socket: Socket) {
-	const groupId = socketGetGroupInfo(socket).groupId;
-	const activePoll = socketGetActivePoll(socket);
-	const members = await socketGetGroupMembersPresent(socket);
+export async function sendVotedInd(this: Socket) {
+	const groupId = socketGetGroupInfo(this).groupId;
+	const activePoll = socketGetActivePoll(this);
+	const members = await socketGetGroupMembersPresent(this);
 	const numMembers = members.length;
 
 	let numVoters = 0;
@@ -114,7 +114,7 @@ export async function sendVotedInd(socket: Socket) {
 		numVoters,
 		numVoted: 0,
 	};
-	for (const s of await socket.nsp.to(groupId).fetchSockets()) {
+	for (const s of await this.nsp.to(groupId).fetchSockets()) {
 		if (s.data.access >= AccessLevel.rw) s.emit("poll:voted", voted);
 	}
 }

@@ -18,7 +18,6 @@ import {
 	PollsQuery,
 	PollCreate,
 	PollUpdate,
-	PollDelete,
 	PollAction,
 	PollState,
 	PollType,
@@ -28,6 +27,7 @@ import {
 	pollGetResSchema,
 	pollCreateResSchema,
 	pollUpdateResSchema,
+	PollVotedInd,
 } from "@schemas/poll";
 import { AppThunk, RootState } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
@@ -102,6 +102,12 @@ const initialState = {
 	selectedPollId: null as number | null,
 	events: eventsAdapter.getInitialState(),
 	polls: pollsAdapter.getInitialState(),
+	voted: {
+		pollId: null as number | null,
+		numMembers: 0,
+		numVoters: 0,
+		numVoted: 0,
+	} satisfies PollVotedInd,
 };
 const dataSet = "pollingAdmin";
 const slice = createSlice({
@@ -144,6 +150,9 @@ const slice = createSlice({
 		removePoll(state, action: PayloadAction<number>) {
 			pollsAdapter.removeOne(state.polls, action.payload);
 		},
+		setVoted(state, action: PayloadAction<PollVotedInd>) {
+			state.voted = action.payload;
+		},
 	},
 });
 
@@ -163,6 +172,7 @@ export const {
 	addPoll,
 	updatePoll,
 	removePoll,
+	setVoted,
 } = slice.actions;
 
 /** Selectors */
@@ -238,7 +248,7 @@ export const pollingAdminSelectEvent =
 		dispatch(setSelectedEventId(eventId));
 		try {
 			const { polls } = await pollingSocketEmit(
-				"polls:get",
+				"poll:get",
 				{ eventId } satisfies PollsQuery,
 				pollGetResSchema
 			);
@@ -350,7 +360,7 @@ export const pollingAdminPollDelete =
 	(id: number): AppThunk =>
 	async (dispatch) => {
 		try {
-			await pollingSocketEmit("poll:delete", id satisfies PollDelete);
+			await pollingSocketEmit("poll:delete", id);
 			dispatch(removePoll(id));
 		} catch (error) {
 			dispatch(handleError(error));

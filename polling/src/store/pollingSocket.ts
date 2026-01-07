@@ -175,14 +175,12 @@ export const pollingSocketConnect =
 		socket.on("connect", () => {
 			assertHasSocket(socket);
 			console.log(`connect (recovered=${socket.recovered})`);
-			//if (!socket.recovered) {
 			const groupId = selectSelectedGroupId(getState());
 			dispatch(
 				groupId
 					? pollingSocketJoinGroup(groupId)
 					: pollingSocketLeaveGroup()
 			);
-			//}
 			dispatch(setConnected());
 		});
 		socket.on("disconnect", () => {
@@ -209,9 +207,7 @@ export const pollingSocketJoinGroup =
 			const group = selectGroup(getState(), groupId);
 			const access = group?.permissions.polling || AccessLevel.none;
 			const activeEvent = events.find((e) => e.isPublished);
-			const activePoll = polls.find(
-				(p) => p.state === "shown" || p.state === "opened"
-			);
+			const activePoll = polls.find((p) => Boolean(p.state));
 			if (access >= AccessLevel.rw) {
 				dispatch(pollingAdminSetEvents(events));
 				dispatch(pollingAdminSetPolls(polls));
