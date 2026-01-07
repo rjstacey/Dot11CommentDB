@@ -24,7 +24,7 @@ export type PollingError = {
 
 export type PollingOK = {
 	status: "OK";
-	[K: string]: any;
+	data: unknown;
 };
 
 const datetimeSchema = z.iso.datetime({ offset: true });
@@ -81,11 +81,9 @@ export type EventCreate = z.infer<typeof eventCreateSchema>; // param for event:
 export type EventAdd = z.infer<typeof eventAddSchema>; // param for event:add request
 export type EventUpdate = z.infer<typeof eventUpdateSchema>; // param for event:update request
 export type EventDelete = z.infer<typeof eventDeleteSchema>; // param for event:delete request
-export const eventGetResSchema = z.object({
-	events: eventsSchema,
-});
-export const eventCreateResSchema = z.object({ event: eventSchema });
-export const eventUpdateResSchema = z.object({ event: eventSchema });
+export const eventGetResSchema = eventsSchema;
+export const eventCreateResSchema = eventSchema;
+export const eventUpdateResSchema = eventSchema;
 export type EventGetRes = z.infer<typeof eventGetResSchema>; // param for event:get response
 export type EventCreateRes = z.infer<typeof eventCreateResSchema>; // param for event:create response
 export type EventUpdateRes = z.infer<typeof eventUpdateResSchema>; // param for event:update response
@@ -190,6 +188,9 @@ export type PollCreateRes = z.infer<typeof pollCreateResSchema>; // param for po
 export const pollUpdateResSchema = pollSchema;
 export type PollUpdateRes = z.infer<typeof pollUpdateResSchema>; // param for poll:update response
 
+export const pollActionResSchema = pollSchema;
+export type PollActionRes = z.infer<typeof pollActionResSchema>; // param for poll:{show,open,close,unshow,reset} response
+
 export const pollAddedIndSchema = pollSchema;
 export type PollAddedInd = z.infer<typeof pollAddedIndSchema>; // param for poll:added indication
 
@@ -198,9 +199,6 @@ export type PollUpdatedInd = z.infer<typeof pollUpdatedIndSchema>; // param for 
 
 export const pollDeletedIndSchema = pollIdSchema;
 export type PollDeletedInd = z.infer<typeof pollDeletedIndSchema>; // param for poll:deleted indication
-
-export const pollActionedIndSchema = pollSchema;
-export type PollActionedInd = z.infer<typeof pollActionedIndSchema>; // param for poll:actioned indication
 
 export const pollVoteSchema = z.object({
 	id: pollIdSchema,

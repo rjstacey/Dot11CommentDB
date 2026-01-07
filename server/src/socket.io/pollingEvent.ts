@@ -24,6 +24,16 @@ import {
 import { validCallback, okCallback, errorCallback } from "./pollingBasic.js";
 import { socketGetGroupInfo } from "./pollingGroup.js";
 
+function socketSetPublishedEventId(socket: Socket, eventId: number | null) {
+	socket.data.publishedEventId = eventId;
+}
+
+export function socketGetPublishedEventId(socket: Socket) {
+	const publishedEventId: number | null =
+		socket.data.publishedEventId || null;
+	return publishedEventId;
+}
+
 /** event:get(query) - return a list of events for this group with the query constraints provided */
 export async function onEventGet(
 	this: Socket,
@@ -35,7 +45,7 @@ export async function onEventGet(
 		const groupId = socketGetGroupInfo(this).groupId;
 		const query = eventsQuerySchema.parse(payload);
 		const events = await getPollEvents({ ...query, groupId });
-		okCallback(callback, { events } satisfies EventGetRes);
+		okCallback(callback, events satisfies EventGetRes);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -72,12 +82,19 @@ export async function onEventAction(
 		});
 		okCallback(callback);
 		if (isPublished) {
+			const publishedEventId = socketGetPublishedEventId(this);
+			if (publishedEventId !== eventId)
+				socketSetPublishedEventId(this, eventId);
 			const polls = await getPolls({ eventId });
 			const params: EventPublishedInd = { event: updatedEvent, polls };
 			this.nsp.to(groupId).emit("event:published", params);
 		} else {
-			const params: EventUnpublishedInd = { eventId };
-			this.nsp.to(groupId).emit("event:unpublished", params);
+			const publishedEventId = socketGetPublishedEventId(this);
+			if (publishedEventId === eventId) {
+				socketSetPublishedEventId(this, null);
+				const params: EventUnpublishedInd = { eventId };
+				this.nsp.to(groupId).emit("event:unpublished", params);
+			}
 		}
 	} catch (error) {
 		errorCallback(callback, error);
@@ -101,7 +118,7 @@ export async function onEventCreate(
 			datetime: addIn.datetime || new Date().toISOString(),
 		};
 		const event = await addPollEvent(add);
-		okCallback(callback, { event } satisfies EventCreateRes);
+		okCallback(callback, event satisfies EventCreateRes);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -117,7 +134,7 @@ export async function onEventUpdate(
 	try {
 		const update = eventUpdateSchema.parse(payload);
 		const event = await updatePollEvent(update);
-		okCallback(callback, { event } satisfies EventUpdateRes);
+		okCallback(callback, event satisfies EventUpdateRes);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -131,8 +148,15 @@ export async function onEventDelete(
 ) {
 	if (!validCallback(callback)) return;
 	try {
-		const id = eventDeleteSchema.parse(payload);
-		await deletePollEvent(id);
+		const groupId = socketGetGroupInfo(this).groupId;
+		const eventId = eventDeleteSchema.parse(payload);
+		await deletePollEvent(eventId);
+		const publishedEventId = socketGetPublishedEventId(this);
+		if (publishedEventId === eventId) {
+			socketSetPublishedEventId(this, null);
+			const params: EventUnpublishedInd = { eventId };
+			this.nsp.to(groupId).emit("event:unpublished", params);
+		}
 		okCallback(callback);
 	} catch (error) {
 		errorCallback(callback, error);

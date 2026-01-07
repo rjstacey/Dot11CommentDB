@@ -17,11 +17,11 @@ import {
 	PollAddedInd,
 	PollUpdatedInd,
 	PollDeletedInd,
-	PollActionedInd,
 	PollGetRes,
 	PollCreateRes,
 	PollUpdateRes,
 	PollAction,
+	PollActionRes,
 	PollChange,
 	PollResultRes,
 	PollVotedInd,
@@ -41,49 +41,26 @@ import {
 } from "./pollingGroup.js";
 import { MemberStatus } from "@schemas/members.js";
 import { AccessLevel } from "@schemas/access.js";
+import { socketGetPublishedEventId } from "./pollingEvent.js";
 
 function socketGetActivePoll(socket: Socket): Poll | null {
 	return socket.data.activePoll || null;
 }
 
-function socketClearActivePoll(socket: Socket) {
-	const activePoll = socketGetActivePoll(socket);
-	if (activePoll) {
-		delete socket.data.activePoll;
-	}
-}
-
 export function socketMaybeSetActivePoll(socket: Socket, poll: Poll) {
-	const groupId = socketGetGroupInfo(socket).groupId;
-
-	function emitAction(
-		state: "shown" | "opened" | "closed" | "unshown",
-		poll: Poll
-	) {
-		socket.nsp.to(groupId).emit("poll:" + state, poll as PollActionedInd);
-	}
-
 	const activePoll = socketGetActivePoll(socket);
 	if (activePoll) {
 		if (activePoll.id === poll.id) {
-			if (activePoll.state !== poll.state) {
-				emitAction(poll.state || "unshown", poll);
-			}
 			if (poll.state === null) {
-				socketClearActivePoll(socket);
+				delete socket.data.activePoll;
 			} else {
 				socket.data.activePoll = poll;
 			}
 		} else if (poll.state !== null) {
-			emitAction("unshown", activePoll);
-			emitAction(poll.state, poll);
 			socket.data.activePoll = poll;
 		}
-	} else {
-		if (poll.state !== null) {
-			emitAction(poll.state, poll);
-			socket.data.activePoll = poll;
-		}
+	} else if (poll.state !== null) {
+		socket.data.activePoll = poll;
 	}
 	socket.data.throttledSendVotedInd?.();
 }
@@ -125,6 +102,25 @@ export async function sendVotedInd(this: Socket) {
 	}
 }
 
+async function pollWasUpdated(socket: Socket, poll: Poll) {
+	const groupId = socketGetGroupInfo(socket).groupId;
+	const eventId = socketGetPublishedEventId(socket);
+	if (poll.eventId === eventId || poll.state !== null) {
+		// Send updates to everyone
+		socket.nsp
+			.to(groupId)
+			.emit("poll:updated", poll satisfies PollUpdatedInd);
+	} else {
+		// Send updates to admins only
+		const sockets = await socket.nsp.in(groupId).fetchSockets();
+		for (const s of sockets) {
+			if (s.data.access >= AccessLevel.rw)
+				s.emit("poll:updated", poll satisfies PollUpdatedInd);
+		}
+	}
+	socketMaybeSetActivePoll(socket, poll);
+}
+
 /** poll:get(query) - Get a list of polls for the subscribed group that satisfies the query criteria */
 export async function onPollGet(
 	this: Socket,
@@ -133,7 +129,6 @@ export async function onPollGet(
 ) {
 	if (!validCallback(callback)) return;
 	try {
-		//const groupId = socketGetGroupInfo(this).groupId;
 		const query = pollsQuerySchema.parse(payload);
 		const polls = await getPolls(query);
 		okCallback(callback, polls satisfies PollGetRes);
@@ -156,13 +151,12 @@ export async function onPollCreate(
 		if (!event)
 			throw new NotFoundError(`Event id=${add.eventId} not found`);
 		const poll = await addPoll(add);
-		okCallback(callback, poll satisfies PollCreateRes);
 		if (event.isPublished || poll.state !== null) {
 			this.nsp
 				.to(groupId)
 				.emit("poll:added", poll satisfies PollAddedInd);
 		}
-		socketMaybeSetActivePoll(this, poll);
+		okCallback(callback, poll satisfies PollCreateRes);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -176,20 +170,10 @@ export async function onPollUpdate(
 ) {
 	if (!validCallback(callback)) return;
 	try {
-		const groupId = socketGetGroupInfo(this).groupId;
 		const update = pollUpdateSchema.parse(payload);
 		const poll = await updatePoll(update);
+		await pollWasUpdated(this, poll);
 		okCallback(callback, poll satisfies PollUpdateRes);
-		const [event] = await getPollEvents({
-			id: poll.eventId,
-			isPublished: true,
-		});
-		if (event || poll.state !== null) {
-			this.nsp
-				.to(groupId)
-				.emit("poll:updated", poll satisfies PollUpdatedInd);
-		}
-		socketMaybeSetActivePoll(this, poll);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
@@ -285,8 +269,8 @@ export async function onPollAction(
 			changes.resultsSummary = (await pollResults(poll)).resultsSummary;
 		}
 		const updatedPoll = await updatePoll({ id, changes });
-		okCallback(callback);
-		socketMaybeSetActivePoll(this, updatedPoll);
+		await pollWasUpdated(this, updatedPoll);
+		okCallback(callback, updatedPoll satisfies PollActionRes);
 	} catch (error) {
 		errorCallback(callback, error);
 	}

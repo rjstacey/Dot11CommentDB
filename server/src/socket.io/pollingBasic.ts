@@ -8,11 +8,8 @@ export function validCallback(callback: unknown): callback is CallbackFunction {
 	return false;
 }
 
-export function okCallback<T extends object>(
-	callback: CallbackFunction,
-	data?: T
-) {
-	callback({ status: "OK", ...data } satisfies PollingOK);
+export function okCallback(callback: CallbackFunction, data?: unknown) {
+	callback({ status: "OK", data } satisfies PollingOK);
 }
 
 export function errorCallback(callback: CallbackFunction, error: unknown) {

@@ -112,7 +112,7 @@ export function okResponse<T extends z.ZodTypeAny>(
 	schema?: T
 ): z.infer<T> | undefined {
 	if (isOkResponse(response)) {
-		return schema ? schema.parse(response) : undefined;
+		return schema ? schema.parse(response.data) : undefined;
 	} else if (isErrorResponse(response)) {
 		const error = new Error(response.error.message);
 		if (response.error.name) error.name = response.error.name;

@@ -5,9 +5,6 @@ import {
 	pollAddedIndSchema,
 	pollUpdatedIndSchema,
 	pollDeletedIndSchema,
-	pollActionedIndSchema,
-	PollAction,
-	PollState,
 } from "@schemas/poll";
 import { store } from ".";
 import {
@@ -15,9 +12,7 @@ import {
 	setPolls,
 	setPoll,
 	addPoll,
-	upsertPoll,
 	removePoll,
-	setActivePollId,
 } from "./pollingUser";
 
 function pollingUserEventPublished(params: unknown) {
@@ -74,39 +69,11 @@ function pollingUserPollRemoved(params: unknown) {
 	}
 }
 
-function pollingUserPollActioned(pollAction: PollAction, params: unknown) {
-	const { dispatch } = store;
-	try {
-		const poll = pollActionedIndSchema.parse(params);
-		dispatch(setActivePollId(pollAction === "unshow" ? null : poll.id));
-		let state: PollState = null;
-		if (pollAction === "show") state = "shown";
-		else if (pollAction === "open") state = "opened";
-		else if (pollAction === "close") state = "closed";
-		console.log(`pollId=${poll.id} ${state}`);
-		dispatch(upsertPoll(poll));
-	} catch (error) {
-		console.log("poll " + pollAction, error);
-	}
-}
-
 export function pollingUserSocketRegister(socket: Socket) {
 	socket
 		.on("event:published", pollingUserEventPublished)
 		.on("event:unpublished", pollingUserEventUnpublished)
 		.on("poll:added", pollingUserPollAdded)
 		.on("poll:updated", pollingUserPollUpdated)
-		.on("poll:removed", pollingUserPollRemoved)
-		.on("poll:unshown", (params: unknown) =>
-			pollingUserPollActioned("unshow", params)
-		)
-		.on("poll:shown", (params: unknown) =>
-			pollingUserPollActioned("show", params)
-		)
-		.on("poll:opened", (params: unknown) =>
-			pollingUserPollActioned("open", params)
-		)
-		.on("poll:closed", (params: unknown) =>
-			pollingUserPollActioned("close", params)
-		);
+		.on("poll:removed", pollingUserPollRemoved);
 }

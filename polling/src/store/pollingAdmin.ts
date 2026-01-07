@@ -29,8 +29,8 @@ import {
 	pollCreateResSchema,
 	pollUpdateResSchema,
 	PollVotedInd,
-	PollChange,
 	pollResultResSchema,
+	pollActionResSchema,
 } from "@schemas/poll";
 import { AppThunk, RootState, setError } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
@@ -243,7 +243,7 @@ export const pollingAdminEventsGet =
 	(groupId: string): AppThunk =>
 	async (dispatch) => {
 		try {
-			const { events } = await pollingSocketEmit(
+			const events = await pollingSocketEmit(
 				"event:get",
 				{ groupId } satisfies EventsQuery,
 				eventGetResSchema
@@ -300,7 +300,7 @@ export const pollingAdminEventCreate =
 	(eventIn: EventCreate): AppThunk =>
 	async (dispatch) => {
 		try {
-			const { event } = await pollingSocketEmit(
+			const event = await pollingSocketEmit(
 				"event:create",
 				eventIn,
 				eventCreateResSchema
@@ -315,7 +315,7 @@ export const pollingAdminEventUpdate =
 	(update: EventUpdate): AppThunk =>
 	async (dispatch) => {
 		try {
-			const { event } = await pollingSocketEmit(
+			const event = await pollingSocketEmit(
 				"event:update",
 				update,
 				eventUpdateResSchema
@@ -399,22 +399,13 @@ export const pollingAdminPollAction =
 					updatePoll({ id: activePoll.id, changes: { state: null } })
 				);
 			}
-			await pollingSocketEmit("poll:" + action, pollId);
-			const changes: PollChange = {
-				state: null,
-				resultsSummary: null,
-			};
-			if (action === "reset") {
-				changes.state = "shown";
-			} else if (action === "show") {
-				changes.state = "shown";
-			} else if (action === "open") {
-				changes.state = "opened";
-			} else if (action === "close") {
-				changes.state = "closed";
-			}
-			dispatch(updatePoll({ id: pollId, changes }));
-			return changes.state!;
+			const poll = await pollingSocketEmit(
+				"poll:" + action,
+				pollId,
+				pollActionResSchema
+			);
+			dispatch(setPoll(poll));
+			return poll.state;
 		} catch (error) {
 			dispatch(handleError(error));
 		}
@@ -425,8 +416,11 @@ export const pollingAdminPollResultsGet =
 	(pollId: number): AppThunk =>
 	async (dispatch) => {
 		try {
-			const r = await pollingSocketEmit("poll:results", pollId);
-			const { results } = pollResultResSchema.parse(r);
+			const { results } = await pollingSocketEmit(
+				"poll:results",
+				pollId,
+				pollResultResSchema
+			);
 			dispatch(setResults(results));
 		} catch (error) {
 			dispatch(handleError(error));

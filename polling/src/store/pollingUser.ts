@@ -28,7 +28,6 @@ const initialState = {
 	pollId: null as number | null,
 	pollAction: null as PollAction | null,
 	pollVotes: [] as number[],
-	submitMsg: "",
 };
 const dataSet = "pollingUser";
 const slice = createSlice({
@@ -47,13 +46,8 @@ const slice = createSlice({
 				votes = votes.filter((i) => i >= 0 && i < poll.options.length);
 				if (state.pollVotes.join() !== votes.join()) {
 					state.pollVotes = votes;
-					state.submitMsg = "";
 				}
 			}
-		},
-		setSubmitMessage(state, action: PayloadAction<string>) {
-			const msg = action.payload;
-			state.submitMsg = msg;
 		},
 		setPolls(state, action: PayloadAction<Poll[]>) {
 			pollsAdapter.setAll(state.polls, action.payload);
@@ -81,7 +75,6 @@ const slice = createSlice({
 			if (state.pollId !== pollId) {
 				state.pollId = pollId;
 				state.pollVotes = [];
-				state.submitMsg = "";
 			}
 		},
 	},
@@ -99,7 +92,6 @@ export const {
 	upsertPoll,
 	removePoll,
 	setActivePollId,
-	setSubmitMessage,
 	setPollVotes,
 	setSelectedPollId,
 } = slice.actions;
@@ -127,18 +119,17 @@ export const selectPollingUserActivePoll = (state: RootState) => {
 
 /** Thunk actions */
 export const pollingUserSubmitVote =
-	(): AppThunk => async (dispatch, getState) => {
+	(): AppThunk<boolean> => async (dispatch, getState) => {
 		const { pollId, pollVotes } = selectPollingUserState(getState());
 		if (!pollId) throw new Error("pollId not set");
 		try {
-			dispatch(setSubmitMessage("Submiting..."));
 			await pollingSocketEmit("poll:vote", {
 				id: pollId,
 				votes: pollVotes,
 			} satisfies PollVote);
-			dispatch(setSubmitMessage("Submit successful"));
+			return true;
 		} catch (error) {
-			dispatch(setSubmitMessage("Submit error"));
 			dispatch(handleError(error));
+			return false;
 		}
 	};
