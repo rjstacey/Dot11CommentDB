@@ -183,6 +183,15 @@ export async function pollVote(user: UserContext, poll: Poll, votes: number[]) {
 	await db.query(sql);
 }
 
+export async function pollVoteCount(poll: Poll) {
+	const sql = db.format(
+		"SELECT COUNT(*) as count FROM pollVotes WHERE pollId=?",
+		[poll.id]
+	);
+	const [row] = await db.query<(RowDataPacket & { count: number })[]>(sql);
+	return row.count;
+}
+
 export async function pollResults(poll: Poll) {
 	if (poll.state !== "opened" && poll.state !== "closed")
 		throw new TypeError("Poll in bad state");

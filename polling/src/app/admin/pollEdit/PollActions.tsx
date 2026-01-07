@@ -4,24 +4,23 @@ import type { Poll, PollAction } from "@/store/pollingAdmin";
 import { selectPollingAdminVoted } from "@/store/pollingAdmin";
 
 import css from "@/components/poll-layout.module.css";
-import React from "react";
 
 function PollReturns({ poll }: { poll: Poll }) {
-	const { pollId, numVoted, numVoters } = useAppSelector(
+	const { pollId, numVotes, numVoters } = useAppSelector(
 		selectPollingAdminVoted
 	);
 	if (
-		pollId === poll.id &&
-		(poll.state === "opened" || poll.state === "closed")
+		pollId !== poll.id ||
+		(poll.state !== "opened" && poll.state !== "closed")
 	) {
-		return (
-			<span>
-				<i className="bi-check-all me-1" />
-				{`${numVoted} / ${numVoters}`}
-			</span>
-		);
+		return null;
 	}
-	return null;
+	return (
+		<span>
+			<i className="bi-check-all me-1" />
+			{`${numVotes} / ${numVoters}`}
+		</span>
+	);
 }
 
 export function PollActions({

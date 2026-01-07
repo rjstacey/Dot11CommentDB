@@ -9,6 +9,7 @@ import {
 	deletePoll,
 	pollVote,
 	pollResults,
+	pollVoteCount,
 } from "../services/poll.js";
 import {
 	Poll,
@@ -93,6 +94,7 @@ export async function sendVotedInd(this: Socket) {
 	const numMembers = members.length;
 
 	let numVoters = 0;
+	let numVotes = 0;
 	let pollId: number | null = null;
 	if (activePoll) {
 		pollId = activePoll.id;
@@ -107,13 +109,15 @@ export async function sendVotedInd(this: Socket) {
 				statuses.includes(m.Status)
 			).length;
 		}
+
+		numVotes = await pollVoteCount(activePoll);
 	}
 
 	const voted: PollVotedInd = {
 		pollId,
 		numMembers,
 		numVoters,
-		numVoted: 0,
+		numVotes,
 	};
 	for (const s of await this.nsp.to(groupId).fetchSockets()) {
 		if (s.data.access >= AccessLevel.rw) s.emit("poll:voted", voted);

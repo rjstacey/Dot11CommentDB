@@ -97,17 +97,18 @@ const sortComparer = (p1: Poll, p2: Poll) => p1.index - p2.index;
 const pollsAdapter = createEntityAdapter<Poll>({ sortComparer });
 
 /* Create slice */
+const initialVoted: PollVotedInd = {
+	pollId: null,
+	numMembers: 0,
+	numVoters: 0,
+	numVotes: 0,
+};
 const initialState = {
 	selectedEventId: null as number | null,
 	selectedPollId: null as number | null,
 	events: eventsAdapter.getInitialState(),
 	polls: pollsAdapter.getInitialState(),
-	voted: {
-		pollId: null as number | null,
-		numMembers: 0,
-		numVoters: 0,
-		numVoted: 0,
-	} satisfies PollVotedInd,
+	voted: initialVoted,
 };
 const dataSet = "pollingAdmin";
 const slice = createSlice({

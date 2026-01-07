@@ -223,7 +223,7 @@ export const pollVotedIndSchema = z.object({
 	pollId: pollIdSchema.nullable(),
 	numMembers: z.number(),
 	numVoters: z.number(),
-	numVoted: z.number(),
+	numVotes: z.number(),
 });
 export type PollVotedInd = z.infer<typeof pollVotedIndSchema>; // param for poll:voted indication
 
