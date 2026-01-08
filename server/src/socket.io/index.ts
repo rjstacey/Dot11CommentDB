@@ -2,7 +2,7 @@ import { Server as HttpServer } from "node:http";
 import { Server as SocketIoServer, Socket } from "socket.io";
 import { pollingSocketName } from "@schemas/poll.js";
 import { selectUser } from "../services/users.js";
-import { pollingRegister } from "./polling.js";
+import { pollingRegister } from "./polling/index.js";
 import { verifyToken } from "../auth/jwt.js";
 
 type NextFunction = (err?: Error) => void;

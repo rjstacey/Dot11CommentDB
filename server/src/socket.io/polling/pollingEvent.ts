@@ -17,14 +17,14 @@ import {
 } from "@schemas/poll.js";
 import { AccessLevel } from "@schemas/access.js";
 import { Member } from "@schemas/members.js";
-import { NotFoundError } from "../utils/index.js";
+import { NotFoundError } from "../../utils/index.js";
 import {
 	addPollEvent,
 	getPollEvents,
 	deletePollEvent,
 	updatePollEvent,
 	getPolls,
-} from "../services/poll.js";
+} from "../../services/poll.js";
 
 import {
 	validCallback,

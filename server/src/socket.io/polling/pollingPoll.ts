@@ -1,6 +1,6 @@
 import { Socket } from "socket.io";
 import { AccessLevel } from "@schemas/access.js";
-import { NotFoundError } from "../utils/index.js";
+import { NotFoundError } from "../../utils/index.js";
 import {
 	getPollEvents,
 	getPolls,
@@ -11,7 +11,7 @@ import {
 	pollResults,
 	pollVoteCount,
 	pollClearVotes,
-} from "../services/poll.js";
+} from "../../services/poll.js";
 import {
 	Poll,
 	PollAddedInd,

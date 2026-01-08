@@ -1,5 +1,5 @@
 import { Socket, Namespace } from "socket.io";
-import type { UserContext } from "../services/users.js";
+import type { UserContext } from "../../services/users.js";
 import { pollingGroupRegister } from "./pollingGroup.js";
 
 export function pollingRegister(nsp: Namespace) {

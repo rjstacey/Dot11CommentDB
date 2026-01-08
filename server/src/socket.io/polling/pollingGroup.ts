@@ -3,10 +3,10 @@ import debounce from "lodash.debounce";
 import { AccessLevel } from "@schemas/access.js";
 import { groupJoinReqSchema, GroupJoinRes, Poll } from "@schemas/poll.js";
 import { Member } from "@schemas/members.js";
-import type { UserContext } from "../services/users.js";
-import { ForbiddenError, NotFoundError } from "../utils/index.js";
-import { getGroups } from "../services/groups.js";
-import { getPollEvents, getPolls } from "../services/poll.js";
+import type { UserContext } from "../../services/users.js";
+import { ForbiddenError, NotFoundError } from "../../utils/index.js";
+import { getGroups } from "../../services/groups.js";
+import { getPollEvents, getPolls } from "../../services/poll.js";
 import { getMember } from "@/services/members.js";
 
 import { validCallback, okCallback, errorCallback } from "./pollingBasic.js";

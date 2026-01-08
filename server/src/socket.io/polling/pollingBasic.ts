@@ -1,5 +1,5 @@
 import { PollingOK, PollingError } from "@schemas/poll.js";
-import { ForbiddenError } from "../utils/index.js";
+import { ForbiddenError } from "../../utils/index.js";
 
 type CallbackFunction = (response: unknown) => void;
 
