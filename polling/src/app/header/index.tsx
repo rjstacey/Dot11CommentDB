@@ -57,11 +57,12 @@ function ToggleAdminView() {
 }
 
 function MemberCount() {
-	const voted = useAppSelector(selectPollingAdminVoted);
+	const { numMembers } = useAppSelector(selectPollingAdminVoted);
 
 	return (
-		<div className="d-flex gap-2">
-			<span className="bi-people">{voted.numMembers}</span>
+		<div>
+			<i className="bi-people me-2" />
+			<span>{numMembers}</span>
 		</div>
 	);
 }
@@ -76,16 +77,6 @@ function Header() {
 	const subgroup = useAppSelector(selectSelectedGroup);
 	const access = subgroup?.permissions.polling || AccessLevel.none;
 
-	let adminElements: React.ReactNode = null;
-	if (access >= AccessLevel.rw) {
-		adminElements = (
-			<>
-				<MemberCount />
-				<ToggleAdminView />
-			</>
-		);
-	}
-
 	return (
 		<Container
 			as="header"
@@ -95,7 +86,12 @@ function Header() {
 			<h3 className="title">{title}</h3>
 			<GroupSelector />
 			{group && <SubgroupSelector />}
-			{adminElements}
+			{access >= AccessLevel.rw && (
+				<>
+					<MemberCount />
+					<ToggleAdminView />
+				</>
+			)}
 			<AccountDropdown />
 		</Container>
 	);
