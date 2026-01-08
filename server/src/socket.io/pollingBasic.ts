@@ -1,4 +1,5 @@
 import { PollingOK, PollingError } from "@schemas/poll.js";
+import { ForbiddenError } from "../utils/index.js";
 
 type CallbackFunction = (response: unknown) => void;
 
@@ -27,4 +28,9 @@ export function errorCallback(callback: CallbackFunction, error: unknown) {
 		};
 	}
 	callback({ status: "Error", error: errorObj } satisfies PollingError);
+}
+
+export function forbiddenEvent(params: unknown, callback: unknown) {
+	if (!validCallback(callback)) return;
+	errorCallback(callback, new ForbiddenError());
 }

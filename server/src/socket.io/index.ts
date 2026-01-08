@@ -2,7 +2,7 @@ import { Server as HttpServer } from "node:http";
 import { Server as SocketIoServer, Socket } from "socket.io";
 import { pollingSocketName } from "@schemas/poll.js";
 import { selectUser } from "../services/users.js";
-import { onConnect as onPollingConnect } from "./polling.js";
+import { pollingRegister } from "./polling.js";
 import { verifyToken } from "../auth/jwt.js";
 
 type NextFunction = (err?: Error) => void;
@@ -27,10 +27,6 @@ async function authSocket(socket: Socket, next: NextFunction) {
 let io: SocketIoServer;
 export function init(httpServer: HttpServer) {
 	io = new SocketIoServer(httpServer);
-	io.of(pollingSocketName)
-		.use(authSocket)
-		.on("connection", (socket: Socket) => {
-			console.log("poll connection");
-			onPollingConnect(socket, socket.data.user);
-		});
+	io.of(pollingSocketName).use(authSocket);
+	pollingRegister(io.of(pollingSocketName));
 }

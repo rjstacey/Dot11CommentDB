@@ -11,9 +11,10 @@ import {
 	PollUpdate,
 	PollResult,
 	PollChoice,
+	PollVotersType,
 } from "@schemas/poll.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import type { UserContext } from "./users.js";
+import type { Member } from "@schemas/members.js";
 
 export async function init() {
 	let sql =
@@ -187,19 +188,32 @@ export async function deletePoll(id: number) {
  * For PollChoice.SINGLE, the array has one entry, which is the index of the option selected.
  * For PollChoice.MULTIPLE, then arrays has one or more entries, each being the index of an option selected.
  */
-export async function pollVote(user: UserContext, poll: Poll, votes: number[]) {
+export async function pollVote(member: Member, poll: Poll, votes: number[]) {
 	if (poll.state !== "opened") throw new TypeError("Poll not open");
 	// Strip out duplicates
 	votes = [...new Set(votes)];
 
 	if (poll.choice === PollChoice.SINGLE && votes.length !== 1)
-		throw new TypeError("Bad vote");
+		throw new TypeError("Bad vote: choose a single option");
 	if (!votes.every((i) => i >= 0 && i < poll.options.length))
-		throw new TypeError("Bad vote");
+		throw new TypeError("Bad vote: invalid option selected");
+	if (
+		poll.votersType === PollVotersType.VOTER &&
+		["Voter", "ExOfficio"].includes(member.Status) === false
+	) {
+		throw new TypeError("Member not authorized to vote");
+	}
+	if (
+		poll.votersType === PollVotersType.VOTER_POTENTIAL_VOTER &&
+		["Voter", "Potential Voter", "ExOfficio"].includes(member.Status) ===
+			false
+	) {
+		throw new TypeError("Member not authorized to vote");
+	}
 
 	const sql = db.format(
 		"REPLACE INTO pollVotes (pollId, SAPIN, votes) VALUES (?, ?, ?)",
-		[poll.id, user.SAPIN, JSON.stringify(votes)]
+		[poll.id, member.SAPIN, JSON.stringify(votes)]
 	);
 	await db.query(sql);
 }

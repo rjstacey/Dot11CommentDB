@@ -5,7 +5,6 @@ import {
 	eventDeleteSchema,
 	eventActionReqSchema,
 	eventsQuerySchema,
-	Event,
 	EventGetRes,
 	EventCreateRes,
 	EventUpdateRes,
@@ -17,6 +16,7 @@ import {
 	EventAddedInd,
 } from "@schemas/poll.js";
 import { AccessLevel } from "@schemas/access.js";
+import { Member } from "@schemas/members.js";
 import { NotFoundError } from "../utils/index.js";
 import {
 	addPollEvent,
@@ -26,77 +26,23 @@ import {
 	getPolls,
 } from "../services/poll.js";
 
-import { validCallback, okCallback, errorCallback } from "./pollingBasic.js";
-import { socketGetGroupInfo } from "./pollingGroup.js";
-
-function socketSetPublishedEventId(socket: Socket, eventId: number | null) {
-	socket.data.publishedEventId = eventId;
-}
-
-export function socketGetPublishedEventId(socket: Socket) {
-	const publishedEventId: number | null =
-		socket.data.publishedEventId || null;
-	return publishedEventId;
-}
-
-async function eventWasUpdated(socket: Socket, event: Event) {
-	const groupId = socketGetGroupInfo(socket).groupId;
-	const eventId = socketGetPublishedEventId(socket);
-	if (event.id === eventId) {
-		// Send updates to everyone
-		if (!event.isPublished) {
-			socket.nsp.to(groupId).emit("event:unpublished", {
-				eventId: event.id,
-			} satisfies EventUnpublishedInd);
-		}
-	}
-
-	// Send updates to admins only
-	const sockets = await socket.nsp.in(groupId).fetchSockets();
-	for (const s of sockets) {
-		if (s.data.access >= AccessLevel.rw)
-			s.emit("event:updated", event satisfies EventUpdatedInd);
-	}
-}
-
-async function eventWasDeleted(socket: Socket, eventId: number) {
-	const groupId = socketGetGroupInfo(socket).groupId;
-	const publishedEventId = socketGetPublishedEventId(socket);
-	if (eventId === publishedEventId) {
-		// Send updates to everyone
-		socket.nsp.to(groupId).emit("event:unpublished", {
-			eventId,
-		} satisfies EventUnpublishedInd);
-	}
-
-	// Send updates to admins only
-	const sockets = await socket.nsp.in(groupId).fetchSockets();
-	for (const s of sockets) {
-		if (s.data.access >= AccessLevel.rw)
-			s.emit("event:deleted", eventId satisfies EventDeletedInd);
-	}
-}
-
-async function eventWasAdded(socket: Socket, event: Event) {
-	const groupId = socketGetGroupInfo(socket).groupId;
-
-	// Send updates to admins only
-	const sockets = await socket.nsp.in(groupId).fetchSockets();
-	for (const s of sockets) {
-		if (s.data.access >= AccessLevel.rw)
-			s.emit("event:added", event satisfies EventAddedInd);
-	}
-}
+import {
+	validCallback,
+	okCallback,
+	errorCallback,
+	forbiddenEvent,
+} from "./pollingBasic.js";
+import { GroupContext } from "./pollingGroup.js";
 
 /** event:get(query) - return a list of events for this group with the query constraints provided */
 export async function onEventGet(
-	this: Socket,
+	gc: GroupContext,
 	payload: unknown,
 	callback: unknown
 ) {
 	if (!validCallback(callback)) return;
 	try {
-		const groupId = socketGetGroupInfo(this).groupId;
+		const groupId = gc.id;
 		const query = eventsQuerySchema.parse(payload);
 		const events = await getPollEvents({ ...query, groupId });
 		okCallback(callback, events satisfies EventGetRes);
@@ -111,14 +57,14 @@ export async function onEventGet(
  * event:unpublish({eventId}) - stop distributing poll updates to the group
  */
 export async function onEventAction(
-	this: Socket,
+	gc: GroupContext,
 	action: "publish" | "unpublish",
 	payload: unknown,
 	callback: unknown
 ) {
 	if (!validCallback(callback)) return;
 	try {
-		const groupId = socketGetGroupInfo(this).groupId;
+		const groupId = gc.id;
 		const { eventId } = eventActionReqSchema.parse(payload);
 		const [event] = await getPollEvents({ id: eventId });
 		if (!event) throw new NotFoundError("No such event id=" + eventId);
@@ -136,18 +82,17 @@ export async function onEventAction(
 		});
 		okCallback(callback);
 		if (isPublished) {
-			const publishedEventId = socketGetPublishedEventId(this);
-			if (publishedEventId !== eventId)
-				socketSetPublishedEventId(this, eventId);
+			const publishedEventId = gc.publishedEventId;
+			if (publishedEventId !== eventId) gc.setPublishedEventId(eventId);
 			const polls = await getPolls({ eventId });
 			const params: EventPublishedInd = { event: updatedEvent, polls };
-			this.nsp.to(groupId).emit("event:published", params);
+			gc.userEmit("event:published", params);
 		} else {
-			const publishedEventId = socketGetPublishedEventId(this);
+			const publishedEventId = gc.publishedEventId;
 			if (publishedEventId === eventId) {
-				socketSetPublishedEventId(this, null);
+				gc.setPublishedEventId(null);
 				const params: EventUnpublishedInd = { eventId };
-				this.nsp.to(groupId).emit("event:unpublished", params);
+				gc.userEmit("event:unpublished", params);
 			}
 		}
 	} catch (error) {
@@ -157,13 +102,13 @@ export async function onEventAction(
 
 /** event:create(event) - Create event */
 export async function onEventCreate(
-	this: Socket,
+	gc: GroupContext,
 	payload: unknown,
 	callback: unknown
 ) {
 	if (!validCallback(callback)) return;
 	try {
-		const groupId = socketGetGroupInfo(this).groupId;
+		const groupId = gc.id;
 		const addIn = eventCreateSchema.parse(payload);
 		const add: EventAdd = {
 			groupId,
@@ -172,7 +117,7 @@ export async function onEventCreate(
 			datetime: addIn.datetime || new Date().toISOString(),
 		};
 		const event = await addPollEvent(add);
-		await eventWasAdded(this, event);
+		gc.adminEmit("event:added", event satisfies EventAddedInd);
 		okCallback(callback, event satisfies EventCreateRes);
 	} catch (error) {
 		errorCallback(callback, error);
@@ -181,7 +126,7 @@ export async function onEventCreate(
 
 /** event:update({id, changes}) - Update event */
 export async function onEventUpdate(
-	this: Socket,
+	gc: GroupContext,
 	payload: unknown,
 	callback: unknown
 ) {
@@ -189,7 +134,16 @@ export async function onEventUpdate(
 	try {
 		const update = eventUpdateSchema.parse(payload);
 		const event = await updatePollEvent(update);
-		await eventWasUpdated(this, event);
+		if (event.id === gc.publishedEventId) {
+			// Send updates to everyone
+			if (!event.isPublished) {
+				gc.userEmit("event:unpublished", {
+					eventId: event.id,
+				} satisfies EventUnpublishedInd);
+			}
+		}
+		// Send updates to admins only
+		gc.adminEmit("event:updated", event satisfies EventUpdatedInd);
 		okCallback(callback, event satisfies EventUpdateRes);
 	} catch (error) {
 		errorCallback(callback, error);
@@ -198,7 +152,7 @@ export async function onEventUpdate(
 
 /** event:delete(eventId) - Delete event */
 export async function onEventDelete(
-	this: Socket,
+	gc: GroupContext,
 	payload: unknown,
 	callback: unknown
 ) {
@@ -206,9 +160,56 @@ export async function onEventDelete(
 	try {
 		const eventId = eventDeleteSchema.parse(payload);
 		await deletePollEvent(eventId);
-		eventWasDeleted(this, eventId);
+		if (eventId === gc.publishedEventId) {
+			// Send updates to everyone
+			gc.userEmit("event:unpublished", {
+				eventId,
+			} satisfies EventUnpublishedInd);
+		}
+
+		// Send updates to admins only
+		gc.adminEmit("event:deleted", eventId satisfies EventDeletedInd);
 		okCallback(callback);
 	} catch (error) {
 		errorCallback(callback, error);
 	}
+}
+
+export function pollingEventRegister(
+	socket: Socket,
+	gc: GroupContext,
+	member: Member
+) {
+	const access = gc.getMemberAccess(member.SAPIN);
+	if (access < AccessLevel.rw) {
+		socket
+			.on("event:get", forbiddenEvent)
+			.on("event:create", forbiddenEvent)
+			.on("event:delete", forbiddenEvent)
+			.on("event:update", forbiddenEvent)
+			.on("event:publish", forbiddenEvent)
+			.on("event:unpublish", forbiddenEvent);
+		return;
+	}
+
+	socket
+		.on("event:get", (params, cb) => onEventGet(gc, params, cb))
+		.on("event:create", (params, cb) => onEventCreate(gc, params, cb))
+		.on("event:delete", (params, cb) => onEventDelete(gc, params, cb))
+		.on("event:update", (params, cb) => onEventUpdate(gc, params, cb))
+		.on("event:publish", (params, cb) =>
+			onEventAction(gc, "publish", params, cb)
+		)
+		.on("event:unpublish", (params, cb) =>
+			onEventAction(gc, "unpublish", params, cb)
+		);
+}
+
+export function pollingEventUnregister(socket: Socket) {
+	socket.removeAllListeners("event:get");
+	socket.removeAllListeners("event:create");
+	socket.removeAllListeners("event:delete");
+	socket.removeAllListeners("event:update");
+	socket.removeAllListeners("event:publish");
+	socket.removeAllListeners("event:unpublish");
 }

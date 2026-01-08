@@ -12,7 +12,7 @@ import {
 	PollChoice,
 } from "@/store/pollingUser";
 import MemberShow from "@/components/MemberShow";
-import { PollState } from "../../admin/pollSummary/PollState";
+import { PollState } from "./PollState";
 import css from "@/components/poll-layout.module.css";
 
 function PollTitleRow({ poll }: { poll: Poll }) {

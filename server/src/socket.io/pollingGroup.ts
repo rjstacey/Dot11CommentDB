@@ -1,7 +1,7 @@
-import { Socket } from "socket.io";
-import throttle from "lodash.throttle";
+import { Namespace, Socket } from "socket.io";
+import debounce from "lodash.debounce";
 import { AccessLevel } from "@schemas/access.js";
-import { groupJoinReqSchema, GroupJoinRes } from "@schemas/poll.js";
+import { groupJoinReqSchema, GroupJoinRes, Poll } from "@schemas/poll.js";
 import { Member } from "@schemas/members.js";
 import type { UserContext } from "../services/users.js";
 import { ForbiddenError, NotFoundError } from "../utils/index.js";
@@ -10,78 +10,109 @@ import { getPollEvents, getPolls } from "../services/poll.js";
 import { getMember } from "@/services/members.js";
 
 import { validCallback, okCallback, errorCallback } from "./pollingBasic.js";
-import { sendVotedInd, socketMaybeSetActivePoll } from "./pollingPoll.js";
+import {
+	pollingPollVotedInd,
+	pollingPollRegister,
+	pollingPollUnregister,
+} from "./pollingPoll.js";
+import {
+	pollingEventRegister,
+	pollingEventUnregister,
+} from "./pollingEvent.js";
 
-class NoGroupError extends Error {
-	name = "NoGroupError";
-}
-
-function leaveRooms(socket: Socket) {
-	const rooms = [...socket.rooms];
-	rooms.forEach((room) => {
-		if (room !== socket.id) {
-			console.log("leave -", room);
-			socket.leave(room);
-		}
-	});
-}
-
-function socketJoinGroup(
-	socket: Socket,
-	groupId: string,
-	member: Member | undefined,
-	access: AccessLevel
-) {
-	leaveRooms(socket);
-	socket.join(groupId);
-	socket.data.groupId = groupId;
-	socket.data.member = member;
-	socket.data.access = access;
-}
-
-function socketLeaveGroup(socket: Socket) {
-	leaveRooms(socket);
-	delete socket.data.groupId;
-	delete socket.data.member;
-	delete socket.data.access;
-}
-
-export function socketGetGroupInfo(socket: Socket) {
-	const groupId = socket.data.groupId;
-	if (typeof groupId !== "string")
-		throw new NoGroupError("You must join a group first");
-	const member: Member = socket.data.member;
-	const access: AccessLevel = socket.data.access;
-	return { groupId, member, access };
-}
-
-export async function socketGetGroupMembersPresent(socket: Socket) {
-	const groupId = socketGetGroupInfo(socket).groupId;
-	const sockets = await socket.nsp.in(groupId).fetchSockets();
-	const entities: Record<number, Member> = {};
-	for (const s of sockets) {
-		const member: Member = s.data.member;
-		entities[member.SAPIN] = member;
+export class GroupContext {
+	constructor(nsp: Namespace, groupId: string) {
+		this.nsp = nsp;
+		this.id = groupId;
+		this.memberEntities = {};
+		this.accessEntities = {};
+		this.memberIds = [];
+		this.activePoll = null;
+		this.publishedEventId = null;
+		this.sendVotedInd = debounce(() => this.sendVoted(), 1000);
 	}
-	// A member may have more than one socket connection
-	return Object.values(entities);
+	public nsp: Namespace;
+	public id: string;
+	public memberEntities: Record<number, Member>;
+	public accessEntities: Record<number, number>;
+	public memberIds: number[];
+	public activePoll: Poll | null;
+	public publishedEventId: number | null;
+	public sendVotedInd: () => void;
+
+	addMember(member: Member, access: number) {
+		if (!this.memberEntities[member.SAPIN])
+			this.memberIds.push(member.SAPIN);
+		this.memberEntities[member.SAPIN] = member;
+		this.accessEntities[member.SAPIN] = access;
+		this.sendVotedInd();
+	}
+
+	async removeMember(sapin: number): Promise<void> {
+		let count = 0;
+		for (const s of await this.nsp.to(this.id).fetchSockets()) {
+			if (s.data.user.SAPIN === sapin) count++;
+		}
+		if (count === 1) {
+			const i = this.memberIds.indexOf(sapin);
+			this.memberIds.splice(i, 1);
+			delete this.memberEntities[sapin];
+			delete this.accessEntities[sapin];
+			this.sendVotedInd();
+		}
+	}
+
+	getMemberAccess(sapin: number): number {
+		return this.accessEntities[sapin] || AccessLevel.none;
+	}
+
+	setActivePoll(poll: Poll | null) {
+		this.activePoll = poll;
+		this.sendVotedInd();
+	}
+
+	setPublishedEventId(eventId: number | null) {
+		this.publishedEventId = eventId;
+	}
+
+	userEmit(event: string, payload: unknown) {
+		this.nsp.to(this.id).emit(event, payload);
+	}
+
+	async adminEmit(event: string, payload: unknown) {
+		for (const s of await this.nsp.to(this.id).fetchSockets()) {
+			const user: UserContext = s.data.user;
+			const access = this.getMemberAccess(user.SAPIN);
+			if (access >= AccessLevel.rw) s.emit(event, payload);
+		}
+	}
+
+	private async sendVoted(): Promise<void> {
+		const members = this.memberIds.map(
+			(sapin) => this.memberEntities[sapin]
+		);
+		const voted = await pollingPollVotedInd(this.activePoll, members);
+		this.adminEmit("poll:voted", voted);
+	}
 }
+
+const groupsContext: Record<string, GroupContext> = {};
 
 /** group:join({groupId}) - Join a group */
-export async function onGroupJoin(
+async function onGroupJoin(
 	this: Socket,
+	user: UserContext,
 	payload: unknown,
 	callback: unknown
 ) {
 	if (!validCallback(callback)) return;
 	try {
 		const { groupId } = groupJoinReqSchema.parse(payload);
-		const [group] = await getGroups(this.data.user, { id: groupId });
+		const [group] = await getGroups(user, { id: groupId });
 		if (!group) throw new NotFoundError("No such group: id=" + groupId);
 		const access = group.permissions.polling || AccessLevel.none;
 		if (access < AccessLevel.ro) throw new ForbiddenError();
 
-		const user: UserContext = this.data.user;
 		let member = await getMember(groupId, user.SAPIN);
 		if (!member) {
 			member = {
@@ -106,36 +137,57 @@ export async function onGroupJoin(
 				Status: "Non-Voter",
 			};
 		}
-		socketJoinGroup(this, groupId, member, access);
+		this.join(groupId);
+		let gc = groupsContext[groupId];
+		if (!gc) {
+			gc = new GroupContext(this.nsp, groupId);
+			groupsContext[groupId] = gc;
+		}
+		gc.addMember(member, access);
+		pollingEventRegister(this, gc, member);
+		pollingPollRegister(this, gc, member);
 
 		const events = await getPollEvents({ groupId });
 		const activeEvent = events.find((e) => e.isPublished);
 		const polls = activeEvent
 			? await getPolls({ eventId: activeEvent.id })
 			: [];
+		const activePoll = polls.find((p) => p.state !== null);
+		if (activePoll) gc.setActivePoll(activePoll);
+
 		okCallback(callback, {
 			groupId,
 			events,
 			polls,
 		} satisfies GroupJoinRes);
-
-		const activePoll = polls.find((p) => p.state !== null);
-		if (activePoll) socketMaybeSetActivePoll(this, activePoll);
-
-		if (this.data.throttledSendVotedInd === undefined) {
-			this.data.throttledSendVotedInd = throttle(
-				sendVotedInd.bind(this),
-				500
-			);
-		}
-		this.data.throttledSendVotedInd();
 	} catch (error) {
 		errorCallback(callback, error);
 	}
 }
 
 /** group:leave() - Leave the current group */
-export async function onGroupLeave(this: Socket) {
-	socketLeaveGroup(this);
-	delete this.data.throttledSendVotedInd;
+async function onGroupLeave(this: Socket) {
+	pollingEventUnregister(this);
+	pollingPollUnregister(this);
+	const user = this.data.user as UserContext;
+	for (const room of this.rooms) {
+		if (room === this.id) continue;
+		this.leave(room);
+		const gc = groupsContext[room];
+		if (gc) {
+			gc.removeMember(user.SAPIN);
+			if (gc.memberIds.length === 0) {
+				delete groupsContext[room];
+			}
+		}
+	}
+}
+
+export function pollingGroupRegister(socket: Socket, user: UserContext) {
+	const onGroupJoinBd = onGroupJoin.bind(socket, user);
+	const onGroupLeaveBd = onGroupLeave.bind(socket);
+	socket
+		.on("group:join", onGroupJoinBd)
+		.on("group:leave", onGroupLeaveBd)
+		.on("disconnecting", onGroupLeaveBd);
 }
