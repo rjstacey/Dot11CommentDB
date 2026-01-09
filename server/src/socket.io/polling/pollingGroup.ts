@@ -11,7 +11,7 @@ import { Member } from "@schemas/members.js";
 import type { UserContext } from "../../services/users.js";
 import { ForbiddenError, NotFoundError } from "../../utils/index.js";
 import { getGroups } from "../../services/groups.js";
-import { getPollEvents, getPolls } from "../../services/poll.js";
+import { getPollEvents, getPolls, pollResults } from "../../services/poll.js";
 import { getMember } from "@/services/members.js";
 
 import { validCallback, okCallback, errorCallback } from "./pollingBasic.js";
@@ -146,9 +146,8 @@ async function onGroupJoin(
 		const access = group.permissions.polling || AccessLevel.none;
 		if (access < AccessLevel.ro) throw new ForbiddenError();
 
-		const member =
-			(await getMember(groupId, user.SAPIN)) ||
-			userToNonVotingMember(user, groupId);
+		let member = await getMember(groupId, user.SAPIN);
+		if (!member) member = userToNonVotingMember(user, groupId);
 
 		const events = await getPollEvents({ groupId });
 		const publishedEvent = events.find((e) => e.isPublished);
@@ -157,6 +156,10 @@ async function onGroupJoin(
 			: { groupId, state: ["shown", "opened", "closed"] };
 		const polls = await getPolls(query);
 		const activePoll = polls.find((p) => p.state !== null);
+		const pollsVotes = await pollResults({
+			pollId: polls.map((p) => p.id),
+			SAPIN: member.SAPIN,
+		});
 
 		this.join(groupId);
 		let gc = groupsContext[groupId];
@@ -174,6 +177,7 @@ async function onGroupJoin(
 			groupId,
 			events,
 			polls,
+			pollsVotes,
 		} satisfies GroupJoinRes);
 	} catch (error) {
 		errorCallback(callback, error);

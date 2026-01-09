@@ -7,8 +7,7 @@ import {
 	Poll,
 	pollingUserSubmitVote,
 	selectPollingUserActivePoll,
-	selectPollingUserState,
-	setPollVotes,
+	selectPollingUserPollVotes,
 	PollChoice,
 } from "@/store/pollingUser";
 import MemberShow from "@/components/MemberShow";
@@ -42,11 +41,19 @@ function PollOptionsRow({
 	const dispatch = useAppDispatch();
 	const [busy, setBusy] = React.useState(false);
 	const [ok, setOk] = React.useState(false);
+	const pollVotes = useAppSelector(selectPollingUserPollVotes);
+	const [votes, setVotes] = React.useState<number[]>([]);
 
-	const { pollVotes } = useAppSelector(selectPollingUserState);
+	React.useEffect(() => {
+		if (pollVotes && pollVotes.pollId === poll.id) {
+			setVotes(pollVotes.votes);
+		} else {
+			setVotes([]);
+		}
+	}, [pollVotes, poll.id]);
 
 	function toggleVote(index: number) {
-		let newVotes = pollVotes.slice();
+		let newVotes = votes.slice();
 		if (poll.choice === PollChoice.MULTIPLE) {
 			const i = newVotes.indexOf(index);
 			if (i >= 0) newVotes.splice(i, 1);
@@ -54,14 +61,14 @@ function PollOptionsRow({
 		} else {
 			newVotes = [index];
 		}
-		if (!isEqual(newVotes, pollVotes)) setOk(false);
-		dispatch(setPollVotes(newVotes));
+		if (!isEqual(newVotes, votes)) setOk(false);
+		setVotes(newVotes);
 	}
 
 	async function submitVote() {
 		setOk(false);
 		setBusy(true);
-		const ok = await dispatch(pollingUserSubmitVote());
+		const ok = await dispatch(pollingUserSubmitVote(poll.id, votes));
 		setOk(ok);
 		setBusy(false);
 	}
@@ -75,7 +82,7 @@ function PollOptionsRow({
 						<div key={id} className={css["poll-option"]}>
 							<Form.Check
 								id={id}
-								checked={pollVotes.includes(i)}
+								checked={votes.includes(i)}
 								onChange={() => toggleVote(i)}
 								readOnly={readOnly}
 								tabIndex={readOnly ? -1 : undefined}
@@ -89,7 +96,7 @@ function PollOptionsRow({
 				<Button
 					variant="outline-primary"
 					onClick={submitVote}
-					disabled={poll.state !== "opened"}
+					disabled={poll.state !== "opened" || busy}
 					className={readOnly ? "visually-hidden" : undefined}
 				>
 					{"Submit"}

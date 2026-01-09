@@ -81,14 +81,8 @@ function pollingAdminPollVoted(params: unknown) {
 	}
 }
 
-export function pollingAdminSocketRegister(socket: Socket) {
+export function pollingAdminEventsRegister(socket: Socket) {
 	socket
-		.onAny((event, ...args) => {
-			console.log(event, args);
-		})
-		.on("connect", () => {
-			console.log("pollingAdminSocket connect");
-		})
 		.on("event:published", pollingAdminEventPublished)
 		.on("event:unpublished", pollingAdminEventUnpublished)
 		.on("poll:added", pollingAdminPollAdded)

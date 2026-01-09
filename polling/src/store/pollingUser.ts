@@ -7,27 +7,28 @@ import {
 import {
 	Event,
 	Poll,
-	PollAction,
 	PollUpdate,
 	PollVote,
 	PollChoice,
+	PollResult,
 } from "@schemas/poll";
-import { RootState, AppThunk } from ".";
+import { RootState, AppThunk, selectUser } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
 
 export type { Event, Poll };
 export { PollChoice };
 
 const pollsAdapter = createEntityAdapter<Poll>();
+const pollVotesAdapter = createEntityAdapter<PollResult>({
+	selectId: (r) => r.pollId,
+});
 
 /* Create slice */
 const initialState = {
 	event: null as Event | null,
 	polls: pollsAdapter.getInitialState(),
+	pollsVotes: pollVotesAdapter.getInitialState(),
 	selectedPollId: null as number | null,
-	pollId: null as number | null,
-	pollAction: null as PollAction | null,
-	pollVotes: [] as number[],
 };
 const dataSet = "pollingUser";
 const slice = createSlice({
@@ -36,18 +37,6 @@ const slice = createSlice({
 	reducers: {
 		setEvent(state, action: PayloadAction<Event | null>) {
 			state.event = action.payload;
-		},
-		setPollVotes(state, action: PayloadAction<number[]>) {
-			let votes = action.payload;
-			const poll = state.pollId
-				? state.polls.entities[state.pollId]
-				: undefined;
-			if (poll) {
-				votes = votes.filter((i) => i >= 0 && i < poll.options.length);
-				if (state.pollVotes.join() !== votes.join()) {
-					state.pollVotes = votes;
-				}
-			}
 		},
 		setPolls(state, action: PayloadAction<Poll[]>) {
 			pollsAdapter.setAll(state.polls, action.payload);
@@ -70,12 +59,11 @@ const slice = createSlice({
 		setSelectedPollId(state, action: PayloadAction<number | null>) {
 			state.selectedPollId = action.payload;
 		},
-		setActivePollId(state, action: PayloadAction<number | null>) {
-			const pollId = action.payload;
-			if (state.pollId !== pollId) {
-				state.pollId = pollId;
-				state.pollVotes = [];
-			}
+		setPollsVotes(state, action: PayloadAction<PollResult[]>) {
+			pollVotesAdapter.setAll(state.pollsVotes, action.payload);
+		},
+		upsertPollsVotes(state, action: PayloadAction<PollResult>) {
+			pollVotesAdapter.upsertOne(state.pollsVotes, action.payload);
 		},
 	},
 });
@@ -91,8 +79,8 @@ export const {
 	updatePoll,
 	upsertPoll,
 	removePoll,
-	setActivePollId,
-	setPollVotes,
+	setPollsVotes,
+	upsertPollsVotes,
 	setSelectedPollId,
 } = slice.actions;
 
@@ -117,15 +105,29 @@ export const selectPollingUserActivePoll = (state: RootState) => {
 	return ids.map((id) => entities[id]!).find((poll) => poll.state);
 };
 
+export const selectPollingUserPollVotes = (state: RootState) => {
+	const poll = selectPollingUserActivePoll(state);
+	if (!poll) return null;
+	const { entities } = selectPollingUserState(state).pollsVotes;
+	return entities[poll.id] || null;
+};
+
 /** Thunk actions */
 export const pollingUserSubmitVote =
-	(): AppThunk<boolean> => async (dispatch, getState) => {
-		const { pollId, pollVotes } = selectPollingUserState(getState());
-		if (!pollId) throw new Error("pollId not set");
+	(pollId: number, votes: number[]): AppThunk<boolean> =>
+	async (dispatch, getState) => {
+		const user = selectUser(getState());
+		dispatch(
+			upsertPollsVotes({
+				SAPIN: user.SAPIN,
+				pollId,
+				votes,
+			})
+		);
 		try {
 			await pollingSocketEmit("poll:vote", {
-				id: pollId,
-				votes: pollVotes,
+				pollId,
+				votes: votes,
 			} satisfies PollVote);
 			return true;
 		} catch (error) {

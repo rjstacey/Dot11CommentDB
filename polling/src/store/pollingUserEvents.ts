@@ -69,7 +69,7 @@ function pollingUserPollRemoved(params: unknown) {
 	}
 }
 
-export function pollingUserSocketRegister(socket: Socket) {
+export function pollingUserEventsRegister(socket: Socket) {
 	socket
 		.on("event:published", pollingUserEventPublished)
 		.on("event:unpublished", pollingUserEventUnpublished)

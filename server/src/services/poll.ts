@@ -233,15 +233,34 @@ export async function pollVoteCount(poll: Poll) {
 	return row.count;
 }
 
-export async function pollResults(poll: Poll) {
+type PollResultsQuery = {
+	pollId?: number | number[];
+	SAPIN?: number | number[];
+};
+export async function pollResults({ pollId, SAPIN }: PollResultsQuery) {
+	const wheres: string[] = [];
+	if (pollId !== undefined) {
+		wheres.push(db.format("pollId IN (?)", [pollId]));
+	}
+	if (SAPIN !== undefined) {
+		wheres.push(db.format("SAPIN IN (?)", [SAPIN]));
+	}
+
+	let sql = "SELECT pollId, SAPIN, votes FROM pollVotes";
+	if (wheres.length > 0) {
+		sql += " WHERE " + wheres.join(" AND ");
+	}
+
+	const results = await db.query<(RowDataPacket & PollResult)[]>(sql);
+	return results;
+}
+
+export async function pollResultsWithSummary(poll: Poll) {
 	if (poll.state !== "opened" && poll.state !== "closed")
 		throw new TypeError("Poll in bad state");
 
-	const sql = db.format(
-		"SELECT pollId, SAPIN, votes FROM pollVotes WHERE pollId=?",
-		[poll.id]
-	);
-	const results = await db.query<(RowDataPacket & PollResult)[]>(sql);
+	const results = await pollResults({ pollId: poll.id });
+
 	const resultsSummary: number[] = new Array(poll.options.length).fill(0);
 	for (const r of results) {
 		for (const i of r.votes) {

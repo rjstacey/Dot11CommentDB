@@ -8,7 +8,7 @@ import {
 	updatePoll,
 	deletePoll,
 	pollVote,
-	pollResults,
+	pollResultsWithSummary,
 	pollVoteCount,
 	pollClearVotes,
 } from "../../services/poll.js";
@@ -213,7 +213,9 @@ async function onPollAction(
 			changes.state = "opened";
 		} else if (action === "close") {
 			changes.state = "closed";
-			changes.resultsSummary = (await pollResults(poll)).resultsSummary;
+			changes.resultsSummary = (
+				await pollResultsWithSummary(poll)
+			).resultsSummary;
 		}
 		const updatedPoll = await updatePoll({ id, changes });
 		await pollWasUpdated(gc, updatedPoll);
@@ -233,8 +235,8 @@ async function onPollVote(
 	if (!validCallback(callback)) return;
 	try {
 		const groupId = gc.id;
-		const { id, votes } = pollVoteSchema.parse(payload);
-		const [poll] = await getPolls({ id, groupId });
+		const { pollId, votes } = pollVoteSchema.parse(payload);
+		const [poll] = await getPolls({ id: pollId, groupId });
 		if (!poll) throw new TypeError("Poll not found");
 		if (poll.state !== "opened") throw new TypeError("Poll not open");
 
@@ -259,7 +261,7 @@ async function onPollResult(
 		const { id } = pollResultReqSchema.parse(payload);
 		const [poll] = await getPolls({ id, groupId });
 		if (!poll) throw new TypeError("Poll not found");
-		const response = await pollResults(poll);
+		const response = await pollResultsWithSummary(poll);
 		okCallback(callback, response satisfies PollResultRes);
 	} catch (error) {
 		errorCallback(callback, error);

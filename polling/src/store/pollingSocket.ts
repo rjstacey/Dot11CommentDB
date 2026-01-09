@@ -20,9 +20,10 @@ import {
 import {
 	setEvent as pollingUserSetEvent,
 	setPolls as pollingUserSetPolls,
+	setPollsVotes as pollingUserSetPollsVotes,
 } from "./pollingUser";
-import { pollingAdminSocketRegister } from "./pollingAdminEvents";
-import { pollingUserSocketRegister } from "./pollingUserEvents";
+import { pollingAdminEventsRegister } from "./pollingAdminEvents";
+import { pollingUserEventsRegister } from "./pollingUserEvents";
 
 /* Create slice */
 const initialState = {
@@ -102,11 +103,6 @@ function isErrorResponse(response: unknown): response is PollingError {
 	);
 }
 
-/*export function okResponse<T extends z.ZodTypeAny>(
-	response: unknown,
-	schema: T
-): z.infer<T>;
-export function okResponse(response: unknown): undefined;*/
 export function okResponse<T extends z.ZodTypeAny>(
 	response: unknown,
 	schema?: T
@@ -169,8 +165,18 @@ export const pollingSocketConnect =
 		const user = selectUser(getState());
 		socket = openSocket(user.Token!);
 
-		pollingAdminSocketRegister(socket);
-		pollingUserSocketRegister(socket);
+		if (process.env.NODE_ENV === "development") {
+			socket
+				.onAny((event, ...args) => {
+					console.log("in", event, args);
+				})
+				.onAnyOutgoing((event, ...args) => {
+					console.log("out", event, args);
+				});
+		}
+
+		pollingAdminEventsRegister(socket);
+		pollingUserEventsRegister(socket);
 
 		socket.on("connect", () => {
 			assertHasSocket(socket);
@@ -199,7 +205,7 @@ export const pollingSocketJoinGroup =
 	(groupId: string): AppThunk =>
 	async (dispatch, getState) => {
 		try {
-			const { events, polls } = await pollingSocketEmit(
+			const { events, polls, pollsVotes } = await pollingSocketEmit(
 				"group:join",
 				{ groupId } satisfies GroupJoinReq,
 				groupJoinResSchema
@@ -218,6 +224,7 @@ export const pollingSocketJoinGroup =
 			}
 			dispatch(pollingUserSetEvent(activeEvent || null));
 			dispatch(pollingUserSetPolls(polls));
+			dispatch(pollingUserSetPollsVotes(pollsVotes));
 		} catch (error) {
 			dispatch(handleError(error));
 		}

@@ -210,7 +210,7 @@ export const pollDeletedIndSchema = pollIdSchema;
 export type PollDeletedInd = z.infer<typeof pollDeletedIndSchema>; // param for poll:deleted indication
 
 export const pollVoteSchema = z.object({
-	id: pollIdSchema,
+	pollId: pollIdSchema,
 	votes: z.number().array(),
 });
 export type PollVote = z.infer<typeof pollVoteSchema>;
@@ -221,8 +221,8 @@ export const pollResultReqSchema = z.object({
 export type PollResultReq = z.infer<typeof pollResultReqSchema>; // param for result:get request
 
 export const pollResultSchema = z.object({
-	pollId: pollIdSchema,
 	SAPIN: z.number(),
+	pollId: pollIdSchema,
 	votes: z.number().array(),
 });
 export type PollResult = z.infer<typeof pollResultSchema>;
@@ -265,5 +265,6 @@ export const groupJoinResSchema = z.object({
 	groupId: groupIdSchema,
 	events: eventsSchema,
 	polls: pollsSchema,
+	pollsVotes: pollResultSchema.array(), // votes by this user for the polls listed
 });
 export type GroupJoinRes = z.infer<typeof groupJoinResSchema>; // param for group:join response
