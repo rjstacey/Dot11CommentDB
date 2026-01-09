@@ -8,7 +8,7 @@ import { verifyToken } from "../auth/jwt.js";
 type NextFunction = (err?: Error) => void;
 
 async function authSocket(socket: Socket, next: NextFunction) {
-	console.log("auth");
+	//console.log("auth");
 	try {
 		const token = socket.handshake.query.token;
 		if (typeof token !== "string") throw new Error("Invalid token");
@@ -24,9 +24,8 @@ async function authSocket(socket: Socket, next: NextFunction) {
 	}
 }
 
-let io: SocketIoServer;
 export function init(httpServer: HttpServer) {
-	io = new SocketIoServer(httpServer);
+	const io = new SocketIoServer(httpServer);
 	io.of(pollingSocketName).use(authSocket);
 	pollingRegister(io.of(pollingSocketName));
 }

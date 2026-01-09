@@ -6,16 +6,18 @@ export function pollingRegister(nsp: Namespace) {
 	nsp.on("connection", (socket: Socket) => {
 		const user: UserContext = socket.data.user;
 
-		console.log("register " + user.Name + " for polling");
-		socket.onAny((event, ...args) => {
-			console.log("in", event, args);
-		});
-		socket.onAnyOutgoing((event, ...args) => {
-			console.log("out", event, args);
-		});
-		socket.on("disconnect", () => {
-			console.log("disconnect ", user);
-		});
+		if (process.env.NODE_ENV === "development") {
+			console.log("register " + user.Name + " for polling");
+			socket.onAny((event, ...args) => {
+				console.log("in", event, args);
+			});
+			socket.onAnyOutgoing((event, ...args) => {
+				console.log("out", event, args);
+			});
+			socket.on("disconnect", () => {
+				console.log("disconnect ", user.Name);
+			});
+		}
 		pollingGroupRegister(socket, user);
 	});
 }

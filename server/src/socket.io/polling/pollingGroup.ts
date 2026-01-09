@@ -1,7 +1,12 @@
 import { Namespace, Socket } from "socket.io";
 import debounce from "lodash.debounce";
 import { AccessLevel } from "@schemas/access.js";
-import { groupJoinReqSchema, GroupJoinRes, Poll } from "@schemas/poll.js";
+import {
+	groupJoinReqSchema,
+	GroupJoinRes,
+	Poll,
+	PollsQuery,
+} from "@schemas/poll.js";
 import { Member } from "@schemas/members.js";
 import type { UserContext } from "../../services/users.js";
 import { ForbiddenError, NotFoundError } from "../../utils/index.js";
@@ -19,6 +24,30 @@ import {
 	pollingEventRegister,
 	pollingEventUnregister,
 } from "./pollingEvent.js";
+
+function userToNonVotingMember(user: UserContext, groupId: string): Member {
+	return {
+		...user,
+		groupId,
+		FirstName: "",
+		MI: "",
+		LastName: "",
+		Affiliation: "",
+		Employer: "",
+		ContactInfo: null,
+		ContactEmails: [],
+		ObsoleteSAPINs: [],
+		ReplacedBySAPIN: null,
+		StatusChangeDate: null,
+		StatusChangeHistory: [],
+		StatusChangeOverride: false,
+		DateAdded: new Date().toISOString(),
+		MemberID: null,
+		Notes: null,
+		InRoster: false,
+		Status: "Non-Voter",
+	};
+}
 
 export class GroupContext {
 	constructor(nsp: Namespace, groupId: string) {
@@ -87,6 +116,10 @@ export class GroupContext {
 		}
 	}
 
+	async referenceCount() {
+		return (await this.nsp.to(this.id).fetchSockets()).length;
+	}
+
 	private async sendVoted(): Promise<void> {
 		const members = this.memberIds.map(
 			(sapin) => this.memberEntities[sapin]
@@ -113,47 +146,29 @@ async function onGroupJoin(
 		const access = group.permissions.polling || AccessLevel.none;
 		if (access < AccessLevel.ro) throw new ForbiddenError();
 
-		let member = await getMember(groupId, user.SAPIN);
-		if (!member) {
-			member = {
-				...user,
-				groupId,
-				FirstName: "",
-				MI: "",
-				LastName: "",
-				Affiliation: "",
-				Employer: "",
-				ContactInfo: null,
-				ContactEmails: [],
-				ObsoleteSAPINs: [],
-				ReplacedBySAPIN: null,
-				StatusChangeDate: null,
-				StatusChangeHistory: [],
-				StatusChangeOverride: false,
-				DateAdded: new Date().toISOString(),
-				MemberID: null,
-				Notes: null,
-				InRoster: false,
-				Status: "Non-Voter",
-			};
-		}
+		const member =
+			(await getMember(groupId, user.SAPIN)) ||
+			userToNonVotingMember(user, groupId);
+
+		const events = await getPollEvents({ groupId });
+		const publishedEvent = events.find((e) => e.isPublished);
+		const query: PollsQuery = publishedEvent
+			? { eventId: publishedEvent.id }
+			: { groupId, state: ["shown", "opened", "closed"] };
+		const polls = await getPolls(query);
+		const activePoll = polls.find((p) => p.state !== null);
+
 		this.join(groupId);
 		let gc = groupsContext[groupId];
 		if (!gc) {
 			gc = new GroupContext(this.nsp, groupId);
 			groupsContext[groupId] = gc;
+			if (publishedEvent) gc.setPublishedEventId(publishedEvent.id);
+			if (activePoll) gc.setActivePoll(activePoll);
 		}
 		gc.addMember(member, access);
 		pollingEventRegister(this, gc, member);
 		pollingPollRegister(this, gc, member);
-
-		const events = await getPollEvents({ groupId });
-		const activeEvent = events.find((e) => e.isPublished);
-		const polls = activeEvent
-			? await getPolls({ eventId: activeEvent.id })
-			: [];
-		const activePoll = polls.find((p) => p.state !== null);
-		if (activePoll) gc.setActivePoll(activePoll);
 
 		okCallback(callback, {
 			groupId,
@@ -176,9 +191,7 @@ async function onGroupLeave(this: Socket) {
 		const gc = groupsContext[room];
 		if (gc) {
 			gc.removeMember(user.SAPIN);
-			if (gc.memberIds.length === 0) {
-				delete groupsContext[room];
-			}
+			if ((await gc.referenceCount()) === 0) delete groupsContext[room];
 		}
 	}
 }
