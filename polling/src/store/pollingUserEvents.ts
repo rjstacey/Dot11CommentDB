@@ -8,32 +8,36 @@ import {
 } from "@schemas/poll";
 import { store } from ".";
 import {
-	setEvent,
 	setPolls,
+	setPollsVotes,
 	setPoll,
 	addPoll,
 	removePoll,
+	selectPollingUserPolls,
+	removePolls,
+	removePollsVotes,
 } from "./pollingUser";
 
 function pollingUserEventPublished(params: unknown) {
 	const { dispatch } = store;
 	try {
-		const { event, polls } = eventPublishedIndSchema.parse(params);
-		console.log("event published", event);
-		dispatch(setEvent(event));
+		const { polls, pollsVotes } = eventPublishedIndSchema.parse(params);
 		dispatch(setPolls(polls));
+		dispatch(setPollsVotes(pollsVotes));
 	} catch (error) {
 		console.log("event published", error);
 	}
 }
 
 function pollingUserEventUnpublished(params: unknown) {
-	const { dispatch } = store;
+	const { dispatch, getState } = store;
 	try {
 		const { eventId } = eventUnpublishedIndSchema.parse(params);
-		console.log("event unpublished", eventId);
-		dispatch(setEvent(null));
-		dispatch(setPolls([]));
+		const ids = selectPollingUserPolls(getState())
+			.filter((poll) => poll.eventId === eventId)
+			.map((poll) => poll.id);
+		dispatch(removePolls(ids));
+		dispatch(removePollsVotes(ids));
 	} catch (error) {
 		console.log("event unpublished", error);
 	}

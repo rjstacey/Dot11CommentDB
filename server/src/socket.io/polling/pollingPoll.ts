@@ -64,10 +64,10 @@ async function pollWasUpdated(gc: GroupContext, poll: Poll) {
 	const eventId = gc.publishedEventId;
 	if (poll.eventId === eventId || poll.state !== null) {
 		// Send updates to everyone
-		gc.userEmit("poll:updated", poll satisfies PollUpdatedInd);
+		gc.usersEmit("poll:updated", poll satisfies PollUpdatedInd);
 	} else {
 		// Send updates to admins only
-		gc.adminEmit("poll:updated", poll satisfies PollUpdatedInd);
+		gc.adminsEmit("poll:updated", poll satisfies PollUpdatedInd);
 	}
 	maybeSetActivePoll(gc, poll);
 }
@@ -102,9 +102,9 @@ async function onPollCreate(
 			throw new NotFoundError(`Event id=${add.eventId} not found`);
 		const poll = await addPoll(add);
 		if (event.isPublished || poll.state !== null) {
-			gc.userEmit("poll:added", poll satisfies PollAddedInd);
+			gc.usersEmit("poll:added", poll satisfies PollAddedInd);
 		} else {
-			gc.adminEmit("poll:added", poll satisfies PollAddedInd);
+			gc.adminsEmit("poll:added", poll satisfies PollAddedInd);
 		}
 		okCallback(callback, poll satisfies PollCreateRes);
 	} catch (error) {
@@ -147,7 +147,7 @@ async function onPollDelete(
 				isPublished: true,
 			});
 			if (event || poll.state !== null) {
-				gc.userEmit("poll:deleted", id satisfies PollDeletedInd);
+				gc.usersEmit("poll:deleted", id satisfies PollDeletedInd);
 			}
 			maybeSetActivePoll(gc, { ...poll, state: null });
 		}

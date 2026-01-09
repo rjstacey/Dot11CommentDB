@@ -1,12 +1,7 @@
 import { Namespace, Socket } from "socket.io";
 import debounce from "lodash.debounce";
 import { AccessLevel } from "@schemas/access.js";
-import {
-	groupJoinReqSchema,
-	GroupJoinRes,
-	Poll,
-	PollsQuery,
-} from "@schemas/poll.js";
+import { groupJoinReqSchema, GroupJoinRes, Poll } from "@schemas/poll.js";
 import { Member } from "@schemas/members.js";
 import type { UserContext } from "../../services/users.js";
 import { ForbiddenError, NotFoundError } from "../../utils/index.js";
@@ -95,6 +90,10 @@ export class GroupContext {
 		return this.accessEntities[sapin] || AccessLevel.none;
 	}
 
+	getMembers(): Member[] {
+		return this.memberIds.map((sapin) => this.memberEntities[sapin]);
+	}
+
 	setActivePoll(poll: Poll | null) {
 		this.activePoll = poll;
 		this.sendVotedInd();
@@ -104,11 +103,18 @@ export class GroupContext {
 		this.publishedEventId = eventId;
 	}
 
-	userEmit(event: string, payload: unknown) {
+	usersEmit(event: string, payload: unknown) {
 		this.nsp.to(this.id).emit(event, payload);
 	}
 
-	async adminEmit(event: string, payload: unknown) {
+	async userEmit(sapin: number, event: string, payload: unknown) {
+		for (const s of await this.nsp.to(this.id).fetchSockets()) {
+			const user: UserContext = s.data.user;
+			if (user.SAPIN === sapin) s.emit(event, payload);
+		}
+	}
+
+	async adminsEmit(event: string, payload: unknown) {
 		for (const s of await this.nsp.to(this.id).fetchSockets()) {
 			const user: UserContext = s.data.user;
 			const access = this.getMemberAccess(user.SAPIN);
@@ -125,7 +131,7 @@ export class GroupContext {
 			(sapin) => this.memberEntities[sapin]
 		);
 		const voted = await pollingPollVotedInd(this.activePoll, members);
-		this.adminEmit("poll:voted", voted);
+		this.adminsEmit("poll:voted", voted);
 	}
 }
 
@@ -150,28 +156,35 @@ async function onGroupJoin(
 		if (!member) member = userToNonVotingMember(user, groupId);
 
 		const events = await getPollEvents({ groupId });
-		const publishedEvent = events.find((e) => e.isPublished);
-		const query: PollsQuery = publishedEvent
-			? { eventId: publishedEvent.id }
-			: { groupId, state: ["shown", "opened", "closed"] };
-		const polls = await getPolls(query);
-		const activePoll = polls.find((p) => p.state !== null);
-		const pollsVotes = await pollResults({
-			pollId: polls.map((p) => p.id),
-			SAPIN: member.SAPIN,
-		});
 
 		this.join(groupId);
 		let gc = groupsContext[groupId];
 		if (!gc) {
 			gc = new GroupContext(this.nsp, groupId);
 			groupsContext[groupId] = gc;
+			const [activePoll] = await getPolls({
+				groupId,
+				state: ["shown", "opened", "closed"],
+			});
+			const publishedEvent = events.find((e) => e.isPublished);
 			if (publishedEvent) gc.setPublishedEventId(publishedEvent.id);
 			if (activePoll) gc.setActivePoll(activePoll);
 		}
 		gc.addMember(member, access);
 		pollingEventRegister(this, gc, member);
 		pollingPollRegister(this, gc, member);
+
+		let polls: Poll[] = [];
+		if (gc.publishedEventId)
+			polls = await getPolls({ eventId: gc.publishedEventId });
+		if (gc.activePoll && gc.activePoll.eventId !== gc.publishedEventId)
+			polls.push(gc.activePoll);
+		const pollsVotes = await pollResults({
+			pollId: polls.map((p) => p.id),
+			SAPIN: member.SAPIN,
+		});
+
+		console.log((await gc.nsp.fetchSockets()).length);
 
 		okCallback(callback, {
 			groupId,

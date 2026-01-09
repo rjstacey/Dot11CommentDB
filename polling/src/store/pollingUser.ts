@@ -25,7 +25,6 @@ const pollVotesAdapter = createEntityAdapter<PollResult>({
 
 /* Create slice */
 const initialState = {
-	event: null as Event | null,
 	polls: pollsAdapter.getInitialState(),
 	pollsVotes: pollVotesAdapter.getInitialState(),
 	selectedPollId: null as number | null,
@@ -35,9 +34,6 @@ const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		setEvent(state, action: PayloadAction<Event | null>) {
-			state.event = action.payload;
-		},
 		setPolls(state, action: PayloadAction<Poll[]>) {
 			pollsAdapter.setAll(state.polls, action.payload);
 		},
@@ -56,11 +52,17 @@ const slice = createSlice({
 		removePoll(state, action: PayloadAction<number>) {
 			pollsAdapter.removeOne(state.polls, action.payload);
 		},
+		removePolls(state, action: PayloadAction<number[]>) {
+			pollsAdapter.removeMany(state.polls, action.payload);
+		},
 		setSelectedPollId(state, action: PayloadAction<number | null>) {
 			state.selectedPollId = action.payload;
 		},
 		setPollsVotes(state, action: PayloadAction<PollResult[]>) {
 			pollVotesAdapter.setAll(state.pollsVotes, action.payload);
+		},
+		removePollsVotes(state, action: PayloadAction<number[]>) {
+			pollVotesAdapter.removeMany(state.pollsVotes, action.payload);
 		},
 		upsertPollsVotes(state, action: PayloadAction<PollResult>) {
 			pollVotesAdapter.upsertOne(state.pollsVotes, action.payload);
@@ -72,22 +74,22 @@ export default slice;
 
 /** Slice actions */
 export const {
-	setEvent,
 	setPolls,
 	setPoll,
 	addPoll,
 	updatePoll,
 	upsertPoll,
 	removePoll,
+	removePolls,
 	setPollsVotes,
+	removePollsVotes,
 	upsertPollsVotes,
 	setSelectedPollId,
 } = slice.actions;
 
 /** Selectors */
 export const selectPollingUserState = (state: RootState) => state[dataSet];
-export const selectPollingUserEvent = (state: RootState) =>
-	selectPollingUserState(state).event;
+
 export const selectPollingUserPolls = createSelector(
 	(state: RootState) => selectPollingUserState(state).polls,
 	(polls) => pollsAdapter.getSelectors().selectAll(polls)

@@ -24,6 +24,7 @@ import {
 	deletePollEvent,
 	updatePollEvent,
 	getPolls,
+	pollResults,
 } from "../../services/poll.js";
 
 import {
@@ -64,15 +65,14 @@ export async function onEventAction(
 ) {
 	if (!validCallback(callback)) return;
 	try {
-		const groupId = gc.id;
 		const { eventId } = eventActionReqSchema.parse(payload);
 		const [event] = await getPollEvents({ id: eventId });
 		if (!event) throw new NotFoundError("No such event id=" + eventId);
-		const [activeEvent] = await getPollEvents({
-			groupId,
-			isPublished: true,
-		});
-		if (activeEvent && activeEvent.id !== eventId && action === "publish") {
+		if (
+			gc.publishedEventId &&
+			gc.publishedEventId !== eventId &&
+			action === "publish"
+		) {
 			throw new TypeError("Another event is already published");
 		}
 		const isPublished = action === "publish";
@@ -82,18 +82,29 @@ export async function onEventAction(
 		});
 		okCallback(callback);
 		if (isPublished) {
-			const publishedEventId = gc.publishedEventId;
-			if (publishedEventId !== eventId) gc.setPublishedEventId(eventId);
+			if (gc.publishedEventId !== eventId)
+				gc.setPublishedEventId(eventId);
 			const polls = await getPolls({ eventId });
-			const params: EventPublishedInd = { event: updatedEvent, polls };
-			gc.userEmit("event:published", params);
-		} else {
-			const publishedEventId = gc.publishedEventId;
-			if (publishedEventId === eventId) {
-				gc.setPublishedEventId(null);
-				const params: EventUnpublishedInd = { eventId };
-				gc.userEmit("event:unpublished", params);
+			const activePoll = gc.activePoll;
+			if (activePoll && activePoll.eventId !== eventId)
+				polls.push(activePoll);
+			const ids = polls.map((p) => p.id);
+			for (const m of gc.getMembers()) {
+				const pollsVotes = await pollResults({
+					pollId: ids,
+					SAPIN: m.SAPIN,
+				});
+				const params: EventPublishedInd = {
+					event: updatedEvent,
+					polls,
+					pollsVotes,
+				};
+				gc.userEmit(m.SAPIN, "event:published", params);
 			}
+		} else {
+			if (gc.publishedEventId === eventId) gc.setPublishedEventId(null);
+			const params: EventUnpublishedInd = { eventId };
+			gc.usersEmit("event:unpublished", params);
 		}
 	} catch (error) {
 		errorCallback(callback, error);
@@ -117,7 +128,7 @@ export async function onEventCreate(
 			datetime: addIn.datetime || new Date().toISOString(),
 		};
 		const event = await addPollEvent(add);
-		gc.adminEmit("event:added", event satisfies EventAddedInd);
+		gc.adminsEmit("event:added", event satisfies EventAddedInd);
 		okCallback(callback, event satisfies EventCreateRes);
 	} catch (error) {
 		errorCallback(callback, error);
@@ -137,13 +148,13 @@ export async function onEventUpdate(
 		if (event.id === gc.publishedEventId) {
 			// Send updates to everyone
 			if (!event.isPublished) {
-				gc.userEmit("event:unpublished", {
+				gc.usersEmit("event:unpublished", {
 					eventId: event.id,
 				} satisfies EventUnpublishedInd);
 			}
 		}
 		// Send updates to admins only
-		gc.adminEmit("event:updated", event satisfies EventUpdatedInd);
+		gc.adminsEmit("event:updated", event satisfies EventUpdatedInd);
 		okCallback(callback, event satisfies EventUpdateRes);
 	} catch (error) {
 		errorCallback(callback, error);
@@ -162,13 +173,13 @@ export async function onEventDelete(
 		await deletePollEvent(eventId);
 		if (eventId === gc.publishedEventId) {
 			// Send updates to everyone
-			gc.userEmit("event:unpublished", {
+			gc.usersEmit("event:unpublished", {
 				eventId,
 			} satisfies EventUnpublishedInd);
 		}
 
 		// Send updates to admins only
-		gc.adminEmit("event:deleted", eventId satisfies EventDeletedInd);
+		gc.adminsEmit("event:deleted", eventId satisfies EventDeletedInd);
 		okCallback(callback);
 	} catch (error) {
 		errorCallback(callback, error);

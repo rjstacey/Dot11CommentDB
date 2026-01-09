@@ -249,6 +249,7 @@ export type EventActionReq = z.infer<typeof eventActionReqSchema>; // param for 
 export const eventPublishedIndSchema = z.object({
 	event: eventSchema,
 	polls: pollsSchema,
+	pollsVotes: pollResultSchema.array(),
 });
 export const eventUnpublishedIndSchema = z.object({
 	eventId: eventIdSchema,

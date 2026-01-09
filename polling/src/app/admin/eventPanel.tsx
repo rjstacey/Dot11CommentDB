@@ -2,7 +2,6 @@ import { Button, Row, Col, ToggleButton } from "react-bootstrap";
 import cx from "clsx";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-	selectPollingAdminPolls,
 	pollingAdminEventPublish,
 	pollingAdminPollCreate,
 	defaultMotion,
@@ -10,6 +9,7 @@ import {
 	Event,
 	Poll,
 	selectPollingAdminSelectedEvent,
+	selectPollingAdminSelectedPolls,
 } from "@/store/pollingAdmin";
 
 import { PollsList } from "./pollsList";
@@ -82,7 +82,7 @@ function EventActions({ event, polls }: { event: Event; polls: Poll[] }) {
 
 function EventPanel() {
 	const event = useAppSelector(selectPollingAdminSelectedEvent);
-	const polls = useAppSelector(selectPollingAdminPolls);
+	const polls = useAppSelector(selectPollingAdminSelectedPolls);
 
 	if (!event) return null;
 

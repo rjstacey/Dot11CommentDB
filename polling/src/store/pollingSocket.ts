@@ -18,7 +18,6 @@ import {
 	setPolls as pollingAdminSetPolls,
 } from "./pollingAdmin";
 import {
-	setEvent as pollingUserSetEvent,
 	setPolls as pollingUserSetPolls,
 	setPollsVotes as pollingUserSetPollsVotes,
 } from "./pollingUser";
@@ -222,7 +221,6 @@ export const pollingSocketJoinGroup =
 				);
 				dispatch(pollingAdminSetSelectedPollId(activePoll?.id || null));
 			}
-			dispatch(pollingUserSetEvent(activeEvent || null));
 			dispatch(pollingUserSetPolls(polls));
 			dispatch(pollingUserSetPollsVotes(pollsVotes));
 		} catch (error) {

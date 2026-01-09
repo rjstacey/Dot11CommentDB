@@ -230,9 +230,14 @@ export const selectPollingAdminEvents = createSelector(
 	(events) => eventsAdapter.getSelectors().selectAll(events)
 );
 
-export const selectPollingAdminPolls = createSelector(
+export const selectPollingAdminSelectedPolls = createSelector(
+	(state: RootState) => selectPollingAdminSelectedEventId(state),
 	(state: RootState) => selectPollingAdminState(state).polls,
-	(polls) => pollsAdapter.getSelectors().selectAll(polls)
+	(eventId, polls) =>
+		pollsAdapter
+			.getSelectors()
+			.selectAll(polls)
+			.filter((poll) => poll.eventId === eventId)
 );
 
 export const selectPollingAdminVoted = (state: RootState) =>
