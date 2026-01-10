@@ -1,15 +1,14 @@
-import type { Poll } from "@/store/pollingAdmin";
-import { PollResult } from "@/components/poll";
+import { Poll } from "@/store/pollingAdmin";
 
 export function PollState({ poll }: { poll: Poll }) {
-	if (poll.state === null || poll.state === "closed") {
-		return <PollResult poll={poll} />;
-	}
-
 	let className = "btn show";
 	let icon = "";
 	let title = "";
-	if (poll.state === "shown") {
+	if (poll.state === null && poll.resultsSummary === null) {
+		className += " btn-outline-secondary";
+		icon = "bi-eye-slash";
+		title = "Unshown";
+	} else if (poll.state === "shown") {
 		className += " btn-outline-primary";
 		icon = "bi-eye";
 		title = "Shown";
@@ -17,12 +16,11 @@ export function PollState({ poll }: { poll: Poll }) {
 		className += " btn-outline-success";
 		icon = "bi-play";
 		title = "Open";
-	} else if (poll.state === "closed") {
+	} else if (poll.state === "closed" || poll.resultsSummary !== null) {
 		className += " btn-outline-warning";
 		icon = "bi-stop";
 		title = "Closed";
 	}
-	className += " opacity-50";
 	return (
 		<div className={className}>
 			<i className={icon + " me-2"} />

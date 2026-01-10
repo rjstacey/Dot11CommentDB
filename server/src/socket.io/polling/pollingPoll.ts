@@ -44,9 +44,8 @@ import { GroupContext } from "./pollingGroup.js";
 import { Member, MemberStatus } from "@schemas/members.js";
 
 function maybeSetActivePoll(gc: GroupContext, poll: Poll) {
-	const activePoll = gc.activePoll;
-	if (activePoll) {
-		if (activePoll.id === poll.id) {
+	if (gc.activePoll) {
+		if (gc.activePoll.id === poll.id) {
 			if (poll.state === null) {
 				gc.setActivePoll(null);
 			} else {
@@ -202,10 +201,10 @@ async function onPollAction(
 		}
 		const changes: PollChange = {
 			state: null,
-			resultsSummary: null,
 		};
 		if (action === "reset") {
 			await pollClearVotes(poll);
+			changes.resultsSummary = null;
 			if (poll.state) changes.state = "shown";
 		} else if (action === "show") {
 			changes.state = "shown";

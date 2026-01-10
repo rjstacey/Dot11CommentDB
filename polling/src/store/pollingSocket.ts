@@ -20,6 +20,7 @@ import {
 import {
 	setPolls as pollingUserSetPolls,
 	setPollsVotes as pollingUserSetPollsVotes,
+	setStatus as pollingUserSetStatus,
 } from "./pollingUser";
 import { pollingAdminEventsRegister } from "./pollingAdminEvents";
 import { pollingUserEventsRegister } from "./pollingUserEvents";
@@ -204,11 +205,12 @@ export const pollingSocketJoinGroup =
 	(groupId: string): AppThunk =>
 	async (dispatch, getState) => {
 		try {
-			const { events, polls, pollsVotes } = await pollingSocketEmit(
-				"group:join",
-				{ groupId } satisfies GroupJoinReq,
-				groupJoinResSchema
-			);
+			const { events, polls, pollsVotes, status } =
+				await pollingSocketEmit(
+					"group:join",
+					{ groupId } satisfies GroupJoinReq,
+					groupJoinResSchema
+				);
 			const group = selectGroup(getState(), groupId);
 			const access = group?.permissions.polling || AccessLevel.none;
 			const activeEvent = events.find((e) => e.isPublished);
@@ -223,6 +225,7 @@ export const pollingSocketJoinGroup =
 			}
 			dispatch(pollingUserSetPolls(polls));
 			dispatch(pollingUserSetPollsVotes(pollsVotes));
+			dispatch(pollingUserSetStatus(status));
 		} catch (error) {
 			dispatch(handleError(error));
 		}

@@ -19,7 +19,7 @@ export function PollSummary({
 					dangerouslySetInnerHTML={{ __html: poll.body }}
 				/>
 			</div>
-			<PollState state={poll.state} muted />
+			<PollState poll={poll} />
 		</div>
 	);
 }

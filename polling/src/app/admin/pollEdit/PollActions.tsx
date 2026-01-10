@@ -5,6 +5,7 @@ import {
 	selectPollingAdminVoted,
 	pollingAdminPollResultsGet,
 } from "@/store/pollingAdmin";
+import { PollResult } from "@/components/poll";
 
 import css from "@/components/poll-layout.module.css";
 
@@ -22,23 +23,6 @@ function PollReturns({ poll }: { poll: Poll }) {
 		<span>
 			<i className="bi-check-all me-1" />
 			{`${numVotes} / ${numVoters}`}
-		</span>
-	);
-}
-
-function PollResult({ poll }: { poll: Poll }) {
-	if (
-		poll.type !== "m" ||
-		poll.state !== "closed" ||
-		poll.resultsSummary === null
-	)
-		return null;
-
-	const [y, n, a] = poll.resultsSummary;
-	const approvalRate = (y / (y + n)) * 100;
-	return (
-		<span>
-			{`Y / N / A = ${y} / ${n} / ${a} (approval rate: ${approvalRate.toFixed(1)}%)`}
 		</span>
 	);
 }
@@ -119,7 +103,9 @@ export function PollActions({
 					name="reset"
 					variant="outline-warning"
 					onClick={resetPoll}
-					disabled={poll.state === null}
+					disabled={
+						poll.state === null && poll.resultsSummary === null
+					}
 				>
 					<i className="bi-rewind me-1" />
 					{"Reset"}

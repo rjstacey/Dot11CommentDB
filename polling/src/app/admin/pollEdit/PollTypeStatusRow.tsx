@@ -5,7 +5,7 @@ import { selectPollingAdminVoted } from "@/store/pollingAdmin";
 import { PollTypeSelect } from "./PollTypeSelect";
 import { PollVotersSelect } from "./PollVotersSelect";
 import { PollRecordSelect } from "./PollRecordSelect";
-import { PollState } from "../pollSummary/PollState";
+import { PollState } from "./PollState";
 
 import css from "@/components/poll-layout.module.css";
 
@@ -51,7 +51,7 @@ export function PollTypeStatusRow({
 			</div>
 			<div className={css["poll-action-group"]}>
 				<span>This poll is:</span>
-				<PollState state={poll.state} />
+				<PollState poll={poll} />
 			</div>
 		</div>
 	);

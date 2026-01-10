@@ -58,6 +58,9 @@ function pollingUserPollUpdated(params: unknown) {
 	try {
 		const poll = pollUpdatedIndSchema.parse(params);
 		dispatch(setPoll(poll));
+		if (poll.state === null || poll.state === "shown") {
+			dispatch(removePollsVotes([poll.id]));
+		}
 	} catch (error) {
 		console.log("poll updated", error);
 	}
@@ -68,6 +71,7 @@ function pollingUserPollRemoved(params: unknown) {
 	try {
 		const id = pollDeletedIndSchema.parse(params);
 		dispatch(removePoll(id));
+		dispatch(removePollsVotes([id]));
 	} catch (error) {
 		console.log("poll removed", error);
 	}

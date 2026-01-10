@@ -11,12 +11,14 @@ import {
 	PollVote,
 	PollChoice,
 	PollResult,
+	PollVotersType,
 } from "@schemas/poll";
+import type { MemberStatus } from "@schemas/members";
 import { RootState, AppThunk, selectUser } from ".";
 import { handleError, pollingSocketEmit } from "./pollingSocket";
 
-export type { Event, Poll };
-export { PollChoice };
+export type { Event, Poll, PollResult };
+export { PollChoice, PollVotersType };
 
 const pollsAdapter = createEntityAdapter<Poll>();
 const pollVotesAdapter = createEntityAdapter<PollResult>({
@@ -28,6 +30,7 @@ const initialState = {
 	polls: pollsAdapter.getInitialState(),
 	pollsVotes: pollVotesAdapter.getInitialState(),
 	selectedPollId: null as number | null,
+	status: "Non-Voter" as MemberStatus,
 };
 const dataSet = "pollingUser";
 const slice = createSlice({
@@ -67,6 +70,9 @@ const slice = createSlice({
 		upsertPollsVotes(state, action: PayloadAction<PollResult>) {
 			pollVotesAdapter.upsertOne(state.pollsVotes, action.payload);
 		},
+		setStatus(state, action: PayloadAction<MemberStatus>) {
+			state.status = action.payload;
+		},
 	},
 });
 
@@ -85,10 +91,14 @@ export const {
 	removePollsVotes,
 	upsertPollsVotes,
 	setSelectedPollId,
+	setStatus,
 } = slice.actions;
 
 /** Selectors */
 export const selectPollingUserState = (state: RootState) => state[dataSet];
+
+export const selectPollingUserStatus = (state: RootState) =>
+	selectPollingUserState(state).status;
 
 export const selectPollingUserPolls = createSelector(
 	(state: RootState) => selectPollingUserState(state).polls,

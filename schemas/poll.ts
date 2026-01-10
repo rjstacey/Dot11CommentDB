@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { groupIdSchema } from "./groups.js";
+import { memberStatusSchema } from "./members.js";
 
 /** Client/Server terminology
  * Client <-------------> Server
@@ -267,5 +268,6 @@ export const groupJoinResSchema = z.object({
 	events: eventsSchema,
 	polls: pollsSchema,
 	pollsVotes: pollResultSchema.array(), // votes by this user for the polls listed
+	status: memberStatusSchema,
 });
 export type GroupJoinRes = z.infer<typeof groupJoinResSchema>; // param for group:join response

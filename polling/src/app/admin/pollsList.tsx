@@ -15,7 +15,7 @@ function PollEntry({ poll, isSelected }: { poll: Poll; isSelected: boolean }) {
 	return (
 		<Accordion.Item eventKey={poll.id.toString()} className={css.item}>
 			<Accordion.Header>
-				{!isSelected && <PollSummary poll={poll} className="summary" />}
+				{!isSelected && <PollSummary poll={poll} />}
 			</Accordion.Header>
 			<Accordion.Body>
 				{isSelected && <PollEditForm poll={poll} />}

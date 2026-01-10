@@ -9,7 +9,7 @@ import {
 
 import css from "@/components/poll-list.module.css";
 
-import { PollDetail } from "../currentPoll";
+import { PollDetail } from "./PollDetail";
 import { PollSummary } from "../../admin/pollSummary";
 
 function PollEntry({ poll, isSelected }: { poll: Poll; isSelected: boolean }) {
@@ -19,7 +19,7 @@ function PollEntry({ poll, isSelected }: { poll: Poll; isSelected: boolean }) {
 				{!isSelected && <PollSummary poll={poll} className="summary" />}
 			</Accordion.Header>
 			<Accordion.Body>
-				{isSelected && <PollDetail poll={poll} readOnly />}
+				{isSelected && <PollDetail poll={poll} />}
 			</Accordion.Body>
 		</Accordion.Item>
 	);

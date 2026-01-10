@@ -191,6 +191,7 @@ async function onGroupJoin(
 			events,
 			polls,
 			pollsVotes,
+			status: member.Status,
 		} satisfies GroupJoinRes);
 	} catch (error) {
 		errorCallback(callback, error);
