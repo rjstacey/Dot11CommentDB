@@ -130,7 +130,6 @@ function useEpollsInitState() {
 	);
 
 	React.useEffect(() => {
-		console.log("effect");
 		resetState();
 	}, [selected, resetState]);
 

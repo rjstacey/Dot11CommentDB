@@ -1,3 +1,4 @@
+import React from "react";
 import { Dropdown, Form, Row, Col } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -8,7 +9,6 @@ import type {
 import type { ColumnProperties, ChangeableColumnProperties } from "./AppTable";
 
 import styles from "./TableColumnSelector.module.css";
-import React from "react";
 
 export type ColumnSelectorProps = {
 	columns: Array<ColumnProperties>;
@@ -80,16 +80,10 @@ function ColumnSelectorDropdown({
 					</Col>
 				</Form.Group>
 				<div className={styles.list}>
-					<style>{`
-						.form-check > label {
-							width: 100%;
-						}
-					`}</style>
 					{selectableColumns.map((col) => (
 						<Dropdown.Item
-							key={col.key}
-							style={{ paddingLeft: "2rem" }}
 							as={Form.Check}
+							key={col.key}
 							active={col.shown}
 							id={"col-enable-" + col.key}
 							checked={col.shown}
@@ -108,12 +102,9 @@ function ColumnSelectorDropdown({
 
 const ColumnSelector = (props: ColumnSelectorProps) => (
 	<Dropdown align="end" title="Configure table">
-		<Dropdown.Toggle
-			split
-			variant="outline-secondary"
-			className="bi-layout-three-columns"
-		>
-			{" Columns "}
+		<Dropdown.Toggle split variant="outline-secondary">
+			<i className="bi-layout-three-columns me-1" />
+			<span className="me-1">{"Columns"}</span>
 		</Dropdown.Toggle>
 		<ColumnSelectorDropdown {...props} />
 	</Dropdown>

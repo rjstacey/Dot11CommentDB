@@ -25,13 +25,13 @@ export function SplitPanelButton({
 
 	return (
 		<Button
-			className="bi-book"
 			variant="outline-secondary"
 			title={title || "Show detail"}
 			active={isSplit}
 			onClick={toggleIsSplit}
 		>
-			{" Detail"}
+			<i className="bi-book me-1" />
+			<span className="me-1">{"Detail"}</span>
 		</Button>
 	);
 }

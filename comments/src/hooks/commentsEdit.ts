@@ -67,7 +67,7 @@ function commentFromCommentResolution(cr: CommentResolution): Comment {
 		CommenterSAPIN: cr.CommenterSAPIN,
 		CommenterName: cr.CommenterName,
 		CommenterEmail: cr.CommenterEmail,
-		Vote: cr.Vote,
+		//Vote: cr.Vote,
 		LastModifiedBy: cr.LastModifiedBy,
 		LastModifiedTime: cr.LastModifiedTime,
 	} satisfies Comment;
