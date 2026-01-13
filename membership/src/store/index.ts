@@ -11,7 +11,7 @@ import {
 	type PersistConfig,
 } from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
-import { get, set, del } from "idb-keyval";
+import storage from "redux-persist/lib/storage"; // defaults to localStorage for web
 
 import groupsSlice from "./groups";
 import timeZonesSlice from "./timeZones";
@@ -79,12 +79,7 @@ const rootReducer = (
 const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	key: "membership",
 	version: PERSIST_VERSION,
-	storage: {
-		// IndexedDB for storage using idb-keyval
-		setItem: set,
-		getItem: get,
-		removeItem: del,
-	},
+	storage,
 	whitelist: [
 		userSlice.name,
 		groupsSlice.name,
