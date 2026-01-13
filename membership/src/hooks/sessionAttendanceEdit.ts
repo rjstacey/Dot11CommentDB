@@ -25,8 +25,12 @@ import {
 	type ImatAttendanceSummary,
 } from "@/store/imatAttendanceSummary";
 import {
+	addAttendanceSummaries,
+	updateAttendanceSummaries,
 	getNullAttendanceSummary,
 	selectAttendanceSummaryEntitiesForSession,
+	SessionAttendanceSummaryCreate,
+	SessionAttendanceSummaryUpdate,
 	type SessionAttendanceSummary,
 	type SessionAttendanceSummaryChange,
 } from "@/store/attendanceSummaries";
@@ -144,9 +148,10 @@ export type MemberAttendanceEditState =
 	| {
 			action: "updateMany";
 			ids: number[];
-			adds: MemberCreate[];
-			updates: MemberUpdate[];
-			attendances: SessionAttendanceSummary[];
+			memberAdds: MemberCreate[];
+			memberUpdates: MemberUpdate[];
+			attendanceAdds: SessionAttendanceSummaryCreate[];
+			attendanceUpdates: SessionAttendanceSummaryUpdate[];
 	  }
 	| {
 			action: null;
@@ -224,9 +229,10 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 				} satisfies MemberAttendanceEditState;
 			}
 		} else {
-			const updates: MemberUpdate[] = [];
-			const adds: MemberCreate[] = [];
-			const attendances: SessionAttendanceSummary[] = [];
+			const memberAdds: MemberCreate[] = [];
+			const memberUpdates: MemberUpdate[] = [];
+			const attendanceAdds: SessionAttendanceSummaryCreate[] = [];
+			const attendanceUpdates: SessionAttendanceSummaryUpdate[] = [];
 			for (const sapin of ids) {
 				const member = memberEntities[sapin];
 				const attendee = attendeeEntities[sapin];
@@ -237,13 +243,13 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 						attendee
 					);
 					if (Object.keys(changes).length > 0)
-						updates.push({ id: sapin, changes });
+						memberUpdates.push({ id: sapin, changes });
 				} else {
 					const newMember = sessionAttendeeToNewMember(
 						attendee,
 						session
 					);
-					adds.push(newMember);
+					memberAdds.push(newMember);
 				}
 				const attendanceSummary =
 					attendanceSummaryEntities[sapin] ||
@@ -252,18 +258,24 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					attendanceSummary,
 					attendee
 				);
-				const attendanceEdit: SessionAttendanceSummary =
-					Object.keys(changes).length > 0
-						? { ...attendanceSummary, ...changes }
-						: attendanceSummary;
-				attendances.push(attendanceEdit);
+				if (attendanceSummary.id) {
+					if (Object.keys(changes).length > 0) {
+						attendanceUpdates.push({
+							id: attendanceSummary.id,
+							changes,
+						});
+					}
+				} else {
+					attendanceAdds.push({ ...attendanceSummary, ...changes });
+				}
 			}
 			return {
 				action: "updateMany",
 				ids,
-				adds,
-				updates,
-				attendances,
+				memberAdds,
+				memberUpdates,
+				attendanceAdds,
+				attendanceUpdates,
 			} satisfies MemberAttendanceEditState;
 		}
 	}, [
@@ -348,7 +360,10 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 				(state.memberEdit !== state.memberSaved ||
 					state.attendanceEdit !== state.attendanceSaved)) ||
 			(state.action === "updateMany" &&
-				(state.adds.length > 0 || state.updates.length > 0)),
+				(state.memberAdds.length > 0 ||
+					state.memberUpdates.length > 0 ||
+					state.attendanceAdds.length > 0 ||
+					state.attendanceUpdates.length > 0)),
 		[state]
 	);
 
@@ -398,11 +413,17 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 					attendanceEdit,
 				});
 			} else if (action === "updateMany") {
-				if (doAddMembers) await dispatch(addMembers(state.adds));
+				if (doAddMembers) await dispatch(addMembers(state.memberAdds));
 				if (doUpdateMembers)
-					await dispatch(updateMembers(state.updates));
-				if (doUpdateAttendance)
-					await attendanceUpdate(state.attendances);
+					await dispatch(updateMembers(state.memberUpdates));
+				if (doUpdateAttendance) {
+					await Promise.all([
+						dispatch(addAttendanceSummaries(state.attendanceAdds)),
+						dispatch(
+							updateAttendanceSummaries(state.attendanceUpdates)
+						),
+					]);
+				}
 			}
 		},
 		[attendanceUpdate, state, dispatch, setState, initState]

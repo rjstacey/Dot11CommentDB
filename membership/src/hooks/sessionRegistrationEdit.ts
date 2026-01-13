@@ -1,7 +1,7 @@
 import React from "react";
 import isEqual from "lodash.isequal";
 
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectSessionRegistrationState,
 	selectSessionRegistrationEntities,
@@ -12,7 +12,11 @@ import { selectIeeeMemberEntities } from "@/store/ieeeMembers";
 import { selectMemberEntities, type MemberCreate } from "@/store/members";
 import {
 	getNullAttendanceSummary,
+	addAttendanceSummaries,
+	updateAttendanceSummaries,
 	selectAttendanceSummaryEntitiesForSession,
+	SessionAttendanceSummaryCreate,
+	SessionAttendanceSummaryUpdate,
 	type SessionAttendanceSummary,
 	type SessionAttendanceSummaryChange,
 } from "@/store/attendanceSummaries";
@@ -72,7 +76,8 @@ export type SessionRegistrationEditState =
 	| {
 			action: "updateMany";
 			ids: number[];
-			attendances: SessionAttendanceSummary[];
+			adds: SessionAttendanceSummaryCreate[];
+			updates: SessionAttendanceSummaryUpdate[];
 	  }
 	| {
 			action: null;
@@ -158,7 +163,8 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 				registration,
 			} satisfies SessionRegistrationEditState;
 		} else {
-			const attendances: SessionAttendanceSummary[] = [];
+			const updates: SessionAttendanceSummaryUpdate[] = [];
+			const adds: SessionAttendanceSummaryCreate[] = [];
 			for (const id of ids) {
 				const registration = registrationEntities[id];
 				if (!registration) throw new Error("Invalid selection");
@@ -173,17 +179,20 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 						attendanceSummary,
 						registration
 					);
-					const attendanceEdit: SessionAttendanceSummary =
-						Object.keys(changes).length > 0
-							? { ...attendanceSummary, ...changes }
-							: attendanceSummary;
-					attendances.push(attendanceEdit);
+					if (attendanceSummary.id) {
+						if (Object.keys(changes).length > 0) {
+							updates.push({ id: attendanceSummary.id, changes });
+						}
+					} else {
+						adds.push({ ...attendanceSummary, ...changes });
+					}
 				}
 			}
 			return {
 				action: "updateMany",
 				ids,
-				attendances,
+				adds,
+				updates,
 			} satisfies SessionRegistrationEditState;
 		}
 	}, [
@@ -198,6 +207,7 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 }
 
 export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
+	const dispatch = useAppDispatch();
 	const initState = useInitState(ids);
 
 	const [state, setState] =
@@ -233,24 +243,27 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 		() =>
 			(state.action === "updateOne" &&
 				state.attendanceEdit !== state.attendanceSaved) ||
-			(state.action === "updateMany" && state.attendances.length > 0),
+			(state.action === "updateMany" &&
+				(state.adds.length > 0 || state.updates.length > 0)),
 		[state]
 	);
 
 	const attendanceUpdate = useAttendanceUpdate();
 
 	const submit = React.useCallback(async () => {
-		const { action } = state;
-		if (action === "updateOne") {
+		if (state.action === "updateOne") {
 			await attendanceUpdate(
 				state.attendances,
 				state.attendanceEdit,
 				state.attendanceSaved
 			);
-		} else if (action === "updateMany") {
-			await attendanceUpdate(state.attendances);
+		} else if (state.action === "updateMany") {
+			await Promise.all([
+				dispatch(addAttendanceSummaries(state.adds)),
+				dispatch(updateAttendanceSummaries(state.updates)),
+			]);
 		}
-	}, [attendanceUpdate, state]);
+	}, [attendanceUpdate, dispatch, state]);
 
 	const cancel = React.useCallback(() => {
 		setState((state) => {

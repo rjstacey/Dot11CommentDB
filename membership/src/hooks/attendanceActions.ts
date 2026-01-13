@@ -23,8 +23,8 @@ export function useAttendanceUpdate() {
 	return React.useCallback(
 		async (
 			attendances: SessionAttendanceSummary[],
-			edited?: MultipleSessionAttendanceSummary,
-			saved?: MultipleSessionAttendanceSummary
+			edited: MultipleSessionAttendanceSummary,
+			saved: MultipleSessionAttendanceSummary
 		) => {
 			const changes =
 				edited && saved
