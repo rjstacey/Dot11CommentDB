@@ -30,8 +30,10 @@ function PollOptionEdit({
 	}
 	const id = `poll-option-${index}`;
 	return (
-		<div className={cx(css["poll-option"], css.edit)}>
-			<Form.Check id={id} className="me-2" />
+		<div
+			className={cx(css["poll-option"], readOnly && "pe-none", css.edit)}
+		>
+			<Form.Check id={id} className="me-2 pe-none" />
 			<Form.Control
 				type="text"
 				id={id + "-label"}
@@ -41,7 +43,8 @@ function PollOptionEdit({
 				onChange={(e) => onChange(e.target.value)}
 				placeholder={"Option " + (index + 1)}
 				disabled={disabled}
-				readOnly={readOnly}
+				className={readOnly ? "pe-none" : undefined}
+				tabIndex={readOnly ? -1 : undefined}
 			/>
 			{!readOnly && (
 				<button

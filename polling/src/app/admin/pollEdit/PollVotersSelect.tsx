@@ -12,11 +12,13 @@ export function PollVotersSelect({
 	poll,
 	changePoll,
 	disabled,
+	readOnly,
 	className,
 }: {
 	poll: Poll;
 	changePoll: (changes: Partial<Poll>) => void;
 	disabled?: boolean;
+	readOnly?: boolean;
 	className?: string;
 }) {
 	const { pollId, numVoters } = useAppSelector(selectPollingAdminVoted);
@@ -29,7 +31,13 @@ export function PollVotersSelect({
 		changePoll({ votersType: value });
 
 	return (
-		<div className={cx("d-flex align-items-center gap-2", className)}>
+		<div
+			className={cx(
+				"d-flex align-items-center gap-2",
+				readOnly && "pe-none",
+				className
+			)}
+		>
 			<div className="d-flex flex-column align-items-center">
 				<span>Voters:</span>
 				{countElement}

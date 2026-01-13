@@ -6,15 +6,23 @@ export function PollRecordSelect({
 	value,
 	onChange,
 	disabled,
+	readOnly,
 	className,
 }: {
 	value: PollRecordType;
 	onChange: (value: PollRecordType) => void;
 	disabled?: boolean;
+	readOnly?: boolean;
 	className?: string;
 }) {
 	return (
-		<div className={cx("d-flex align-items-center gap-2", className)}>
+		<div
+			className={cx(
+				"d-flex align-items-center gap-2",
+				readOnly && "pe-none",
+				className
+			)}
+		>
 			<span>Result:</span>
 			<Form.Group>
 				<Form.Check

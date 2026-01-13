@@ -8,34 +8,44 @@ import { PollMovedRow } from "./PollMovedRow";
 import { PollActions } from "./PollActions";
 
 export function PollEditForm({ poll }: { poll: Poll }) {
-	const { edited, onChange, onAction, onDelete } = usePollEdit(poll);
+	const readOnly =
+		poll.state === "opened" ||
+		poll.state === "closed" ||
+		poll.resultsSummary !== null;
 
-	const disabled = poll.state === "opened" || poll.state === "closed";
+	const { edited, onChange, onAction, onDelete } = usePollEdit(
+		poll,
+		readOnly
+	);
 
 	return (
 		<>
 			<PollTypeStatusRow
 				poll={edited}
 				changePoll={onChange}
-				disabled={disabled}
+				readOnly={readOnly}
 			/>
 			<PollTitleRow
 				value={edited.title}
 				onChange={(title) => onChange({ title })}
-				disabled={disabled}
+				readOnly={readOnly}
 			/>
 			<PollBodyRow
 				poll={edited}
 				changePoll={onChange}
-				disabled={disabled}
+				readOnly={readOnly}
 			/>
 			<PollOptionsRow
 				poll={edited}
 				changePoll={onChange}
-				disabled={disabled}
+				readOnly={readOnly}
 			/>
 			{edited.type === "m" && (
-				<PollMovedRow poll={edited} changePoll={onChange} />
+				<PollMovedRow
+					poll={edited}
+					changePoll={onChange}
+					readOnly={readOnly}
+				/>
 			)}
 			<PollActions
 				poll={edited}

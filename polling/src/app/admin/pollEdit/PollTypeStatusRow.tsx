@@ -24,6 +24,7 @@ export function PollTypeStatusRow({
 	poll,
 	changePoll,
 	disabled,
+	readOnly,
 }: {
 	poll: Poll;
 	changePoll: (changes: Partial<Poll>) => void;
@@ -37,16 +38,19 @@ export function PollTypeStatusRow({
 					value={poll.type}
 					onChange={(type) => changePoll({ type })}
 					disabled={disabled}
+					readOnly={readOnly}
 				/>
 				<PollVotersSelect
 					poll={poll}
 					changePoll={changePoll}
 					disabled={disabled}
+					readOnly={readOnly}
 				/>
 				<PollRecordSelect
 					value={poll.recordType}
 					onChange={(recordType) => changePoll({ recordType })}
 					disabled={disabled}
+					readOnly={readOnly}
 				/>
 			</div>
 			<div className={css["poll-action-group"]}>

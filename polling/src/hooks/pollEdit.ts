@@ -11,12 +11,16 @@ import {
 	setSelectedPollId,
 } from "@/store/pollingAdmin";
 
-export function usePollEdit(poll: Poll) {
+export function usePollEdit(poll: Poll, readOnly?: boolean) {
 	const dispatch = useAppDispatch();
 	const [edited, setEdited] = React.useState(poll);
 
 	const onChange = React.useCallback(
 		(changes: Partial<Poll>) => {
+			if (readOnly) {
+				console.warn("pollEdit: onChange while readOnly");
+				return;
+			}
 			if ("type" in changes) {
 				const changedPoll = { ...edited, ...changes };
 				let title: string;
@@ -47,11 +51,9 @@ export function usePollEdit(poll: Poll) {
 
 	const onAction = React.useCallback(
 		async (action: PollAction) => {
-			console.log("onAction");
 			const state = await dispatch(
 				pollingAdminPollAction(poll.id, action)
 			);
-			console.log("action result", state);
 			setEdited((edited) => ({ ...edited, state }));
 		},
 		[edited, poll.id]
