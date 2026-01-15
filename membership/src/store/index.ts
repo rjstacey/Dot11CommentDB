@@ -11,7 +11,7 @@ import {
 	type PersistConfig,
 } from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
-import storage from "redux-persist/lib/storage"; // defaults to localStorage for web
+import createIdbStorage from "@piotr-cz/redux-persist-idb-storage";
 
 import groupsSlice from "./groups";
 import timeZonesSlice from "./timeZones";
@@ -39,6 +39,11 @@ import {
 export { setError, setUser, selectUser, resetStore, type User } from "@common";
 
 const PERSIST_VERSION = 4;
+
+const storage = createIdbStorage({
+	name: "802tools",
+	storeName: "membership",
+});
 
 /* Transform presistant state so that we reset "loading" state */
 type GenericObject = Record<string, unknown>;
