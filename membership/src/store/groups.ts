@@ -4,6 +4,7 @@ import {
 	Action,
 	PayloadAction,
 	EntityId,
+	Dictionary,
 } from "@reduxjs/toolkit";
 import { v4 as uuid } from "uuid";
 
@@ -28,6 +29,7 @@ import {
 	GroupCreate,
 	GroupUpdate,
 	groupsSchema,
+	groupTypesOrdered,
 } from "@schemas/groups";
 import { AccessLevel } from "@schemas/access";
 export type { GroupType, Group, GroupCreate, GroupUpdate };
@@ -64,7 +66,6 @@ export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(
 	([value, label]) =>
 		({ value, label }) as { value: GroupType; label: string }
 );
-const groupTypes = Object.keys(GroupTypeLabels);
 
 export const GroupStatusOptions = [
 	{ value: 0, label: "Inactive" },
@@ -86,6 +87,55 @@ export const fields = {
 	},
 	symbol: { label: "Committee" },
 };
+
+function arrangeIdsHeirarchically(
+	ids: EntityId[],
+	entities: Dictionary<Group>
+) {
+	interface Node {
+		id: EntityId;
+		children: Node[];
+	}
+
+	// Order by group type and then alphabetically
+	function compare(id1: EntityId, id2: EntityId) {
+		const g1 = entities[id1]!;
+		const g2 = entities[id2]!;
+		const g1TypeIndex = g1.type
+			? groupTypesOrdered.indexOf(g1.type)
+			: groupTypesOrdered.length;
+		const g2TypeIndex = g2.type
+			? groupTypesOrdered.indexOf(g2.type)
+			: groupTypesOrdered.length;
+		let n = g1TypeIndex - g2TypeIndex;
+		if (n === 0) n = g1.name.localeCompare(g2.name);
+		return n;
+	}
+
+	function buildTree(parent_id: EntityId | null): Node[] {
+		return ids
+			.filter((id) => entities[id]!.parent_id === parent_id)
+			.sort(compare)
+			.map((id) => ({ id, children: buildTree(id) }));
+	}
+
+	function flattenTree(nodes: Node[]): EntityId[] {
+		let ids: EntityId[] = [];
+		for (const node of nodes)
+			ids = ids.concat(node.id, flattenTree(node.children));
+		return ids;
+	}
+
+	const nodes = buildTree(null);
+	const sortedIds = flattenTree(nodes);
+
+	if (ids.length !== sortedIds.length) {
+		console.warn("One or more groups present without its parent");
+		return ids;
+	}
+
+	return sortedIds.join() !== ids.join() ? sortedIds : ids;
+}
 
 /** Create slice */
 const initialState: {
@@ -115,52 +165,11 @@ const slice = createAppTableDataSlice({
 				action: PayloadAction<{ groupName: string; groups: Group[] }>
 			) => {
 				const { groupName, groups } = action.payload;
-				state.lastLoad[groupName] = new Date().toISOString();
 				dataAdapter.setMany(state, groups); // add or replace
+				state.lastLoad[groupName] = new Date().toISOString();
 				state.loading = false;
 				state.valid = true;
-				const { ids, entities } = state;
-
-				interface Node {
-					id: EntityId;
-					children: Node[];
-				}
-
-				// Order by group type and then alphabetically
-				function compare(id1: EntityId, id2: EntityId) {
-					const g1 = entities[id1]!;
-					const g2 = entities[id2]!;
-					let n =
-						groupTypes.indexOf(g1.type || "") -
-						groupTypes.indexOf(g2.type || "");
-					if (n === 0) n = g1.name.localeCompare(g2.name);
-					return n;
-				}
-
-				function buildTree(parent_id: EntityId | null): Node[] {
-					return ids
-						.filter((id) => entities[id]!.parent_id === parent_id)
-						.sort(compare)
-						.map((id) => ({ id, children: buildTree(id) }));
-				}
-
-				function flattenTree(nodes: Node[]): EntityId[] {
-					let ids: EntityId[] = [];
-					for (const node of nodes)
-						ids = ids.concat(node.id, flattenTree(node.children));
-					return ids;
-				}
-
-				const nodes = buildTree(null);
-				const sortedIds = flattenTree(nodes);
-
-				if (ids.length !== sortedIds.length) {
-					console.warn(
-						"One or more groups present without its parent"
-					);
-				} else {
-					if (sortedIds.join() !== ids.join()) state.ids = sortedIds;
-				}
+				state.ids = arrangeIdsHeirarchically(state.ids, state.entities);
 			}
 		);
 	},
@@ -302,40 +311,19 @@ export const selectUserGroupsAccess = (state: RootState) => {
 /* Thunk actions */
 const baseUrl = "/api/groups";
 
-export const setWorkingGroupId =
-	(groupId: string | null): AppThunk<Group | undefined> =>
-	async (dispatch, getState) => {
-		dispatch(setTopLevelGroupId(groupId));
-		return selectWorkingGroup(getState());
-	};
-
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-const loadingPromise: Record<string, Promise<Group[]> | undefined> = {};
+const loadingPromise: Record<string, Promise<void> | undefined> = {};
 export const loadGroups =
-	(groupName: string = ""): AppThunk<Group[]> =>
+	(groupName: string = ""): AppThunk =>
 	async (dispatch, getState) => {
-		if (groupName) {
-			await loadingPromise[""];
-			if (selectWorkingGroup(getState())?.name !== groupName) {
-				const group = selectTopLevelGroupByName(getState(), groupName);
-				if (!group) {
-					setError(
-						"Unable to load subgroups",
-						"Invalid top level group: " + groupName
-					);
-					return [];
-				}
-				dispatch(setWorkingGroupId(group.id));
-			}
-		}
-		if (loadingPromise[groupName]) {
-			return loadingPromise[groupName]!;
-		}
+		// if already loading, return existing promise
+		if (loadingPromise[groupName]) return loadingPromise[groupName];
+
+		// If the cached data is still fresh, don't reload
 		const age = selectGroupsAge(getState(), groupName);
-		if (age && age < AGE_STALE) {
-			return loadingPromise[groupName]!;
-		}
+		if (age && age < AGE_STALE) return;
+
 		dispatch(getPending());
 		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
 		loadingPromise[groupName] = fetcher
@@ -343,17 +331,15 @@ export const loadGroups =
 			.then((response) => {
 				const groups = groupsSchema.parse(response);
 				dispatch(getSuccess2({ groupName, groups }));
-				return groups;
 			})
 			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
-				return [];
 			})
 			.finally(() => {
 				delete loadingPromise[groupName];
 			});
-		return loadingPromise[groupName]!;
+		return loadingPromise[groupName];
 	};
 
 export const addGroup =

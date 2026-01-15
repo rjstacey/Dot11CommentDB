@@ -71,7 +71,7 @@ function arrangeIdsHeirarchically(
 	return sortedIds.join() !== ids.join() ? sortedIds : ids;
 }
 
-/* Create slice */
+/** Create slice */
 const dataSet = "groups";
 const dataAdapter = createEntityAdapter<Group>();
 const initialState: {
@@ -92,17 +92,19 @@ const slice = createSlice({
 		setTopLevelGroupId(state, action: PayloadAction<string | null>) {
 			state.topLevelGroupId = action.payload;
 		},
-		getPending(state, action: PayloadAction<{ groupName: string }>) {
-			const { groupName } = action.payload;
+		getPending(state) {
 			state.loading = true;
-			state.lastLoad[groupName] = new Date().toISOString();
 		},
 		getFailure(state) {
 			state.loading = false;
 		},
-		getSuccess(state, action: PayloadAction<Group[]>) {
-			const groups = action.payload;
+		getSuccess(
+			state,
+			action: PayloadAction<{ groupName: string; groups: Group[] }>
+		) {
+			const { groupName, groups } = action.payload;
 			dataAdapter.setMany(state, groups); // add or replace
+			state.lastLoad[groupName] = new Date().toISOString();
 			state.loading = false;
 			state.valid = true;
 			state.ids = arrangeIdsHeirarchically(state.ids, state.entities);
@@ -248,47 +250,31 @@ export const selectGroupPermissions = (
 /* Thunk actions */
 const baseUrl = "/api/groups";
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-const loadingPromise: Record<string, Promise<Group[]> | undefined> = {};
+const loadingPromise: Record<string, Promise<void> | undefined> = {};
 export const loadGroups =
-	(groupName: string = ""): AppThunk<Group[]> =>
+	(groupName: string = ""): AppThunk =>
 	async (dispatch, getState) => {
-		if (groupName) {
-			await loadingPromise[""];
-			if (selectTopLevelGroup(getState())?.name !== groupName) {
-				const group = selectTopLevelGroupByName(getState(), groupName);
-				if (!group) {
-					setError(
-						"Unable to load subgroups",
-						"Invalid top level group: " + groupName
-					);
-					return [];
-				}
-				dispatch(setTopLevelGroupId(group.id));
-			}
-		}
-		if (loadingPromise[groupName]) {
-			return loadingPromise[groupName]!;
-		}
+		// if already loading, return existing promise
+		if (loadingPromise[groupName]) return loadingPromise[groupName];
+
+		// If the cached data is still fresh, don't reload
 		const age = selectGroupsAge(getState(), groupName);
-		if (age && age < AGE_STALE) {
-			return loadingPromise[groupName]!;
-		}
-		dispatch(getPending({ groupName }));
+		if (age && age < AGE_STALE) return;
+
+		dispatch(getPending());
 		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
 		loadingPromise[groupName] = fetcher
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
-			.then((response: unknown) => {
+			.then((response) => {
 				const groups = groupsSchema.parse(response);
-				dispatch(getSuccess(groups));
-				return groups;
+				dispatch(getSuccess({ groupName, groups }));
 			})
-			.catch((error: unknown) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
-				return [];
 			})
 			.finally(() => {
 				delete loadingPromise[groupName];
 			});
-		return loadingPromise[groupName]!;
+		return loadingPromise[groupName];
 	};
