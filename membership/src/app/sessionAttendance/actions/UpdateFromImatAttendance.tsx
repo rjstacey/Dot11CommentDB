@@ -40,11 +40,12 @@ function UpdateForm({ close }: { close: () => void }) {
 
 	let numAdds = 0;
 	if (state.action === "addOne") numAdds = 1;
-	else if (state.action === "updateMany") numAdds = state.adds.length;
+	else if (state.action === "updateMany") numAdds = state.memberAdds.length;
 
 	let numUpdates = 0;
 	if (state.action === "updateOne") numUpdates = 1;
-	else if (state.action === "updateMany") numUpdates = state.updates.length;
+	else if (state.action === "updateMany")
+		numUpdates = state.memberUpdates.length;
 
 	return (
 		<Form

@@ -53,7 +53,7 @@ export function RegistrationDetail() {
 	} else if (state.action === "updateMany") {
 		content = (
 			<RegistrationUpdateForm
-				attendances={state.attendances}
+				numUpdates={state.adds.length + state.updates.length}
 				hasChanges={hasChanges}
 				submit={submit}
 				cancel={cancel}

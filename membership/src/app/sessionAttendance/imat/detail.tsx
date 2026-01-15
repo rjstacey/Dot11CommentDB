@@ -57,8 +57,8 @@ export function MemberAttendanceDetail() {
 	} else if (state.action === "updateMany") {
 		content = (
 			<AttendanceUpdateForm
-				adds={state.adds}
-				updates={state.updates}
+				adds={state.memberAdds}
+				updates={state.memberUpdates}
 				hasChanges={hasChanges}
 				submit={submit}
 				cancel={cancel}

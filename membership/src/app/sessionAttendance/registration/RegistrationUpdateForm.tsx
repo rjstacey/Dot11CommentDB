@@ -4,12 +4,12 @@ import { Row, Form } from "react-bootstrap";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 export function RegistrationUpdateForm({
-	attendances,
+	numUpdates,
 	hasChanges,
 	submit,
 	cancel,
 }: {
-	attendances: unknown[];
+	numUpdates: number;
 	hasChanges: () => boolean;
 	submit: () => Promise<void>;
 	cancel: () => void;
@@ -26,7 +26,7 @@ export function RegistrationUpdateForm({
 	return (
 		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
 			<Form.Group as={Row} className="mb-3">
-				<Form.Text>{`${attendances.length} updates`}</Form.Text>
+				<Form.Text>{`${numUpdates} updates`}</Form.Text>
 			</Form.Group>
 			{hasChanges() && (
 				<SubmitCancelRow
