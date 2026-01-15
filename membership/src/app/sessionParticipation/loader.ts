@@ -1,6 +1,10 @@
 import type { LoaderFunction } from "react-router";
 import { store } from "@/store";
-import { selectTopLevelGroupByName, AccessLevel } from "@/store/groups";
+import {
+	selectTopLevelGroupByName,
+	AccessLevel,
+	loadGroups,
+} from "@/store/groups";
 import { loadSessions } from "@/store/sessions";
 import { loadRecentAttendanceSummaries } from "@/store/sessionParticipation";
 import { selectAttendanceSummariesGroupName } from "@/store/attendanceSummaries";
@@ -19,6 +23,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
+	await dispatch(loadGroups());
 	const group = selectTopLevelGroupByName(getState(), groupName);
 	if (!group) throw new Error(`Group ${groupName} not found`);
 	const access = group.permissions.members || AccessLevel.none;
