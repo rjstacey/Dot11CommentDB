@@ -2,6 +2,7 @@ import { useRouteError } from "react-router";
 
 export function AppErrorPage() {
 	const error = useRouteError();
+	console.error(error);
 	let message: string;
 	if (typeof error === "string") {
 		message = error;
