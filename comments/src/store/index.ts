@@ -12,7 +12,7 @@ import {
 	PersistConfig,
 } from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
-import storage from "redux-persist/lib/storage";
+import createIdbStorage from "@piotr-cz/redux-persist-idb-storage";
 import {
 	errorsSlice,
 	userSlice,
@@ -34,6 +34,11 @@ import liveUpdateSlice, { registerLiveUpdate } from "./liveUpdate";
 export { selectUser, setUser, resetStore } from "@common";
 
 const STORE_FORMAT_VERSION = 1;
+
+const storage = createIdbStorage({
+	name: "802tools",
+	storeName: "comments",
+});
 
 const dataAppSliceNames = [
 	groupsSlice.name,

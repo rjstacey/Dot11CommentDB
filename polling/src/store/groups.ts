@@ -265,31 +265,17 @@ export const selectGroupPermissions = (
 /* Thunk actions */
 const baseUrl = "/api/groups";
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-const loadingPromise: Record<string, Promise<Group[]> | undefined> = {};
+const loadingPromise: Record<string, Promise<void> | undefined> = {};
 export const loadGroups =
-	(groupName: string = ""): AppThunk<Group[]> =>
+	(groupName: string = ""): AppThunk =>
 	async (dispatch, getState) => {
-		if (groupName) {
-			await loadingPromise[""];
-			if (selectTopLevelGroup(getState())?.name !== groupName) {
-				const group = selectTopLevelGroupByName(getState(), groupName);
-				if (!group) {
-					setError(
-						"Unable to load subgroups",
-						"Invalid top level group: " + groupName
-					);
-					return [];
-				}
-				dispatch(setTopLevelGroupId(group.id));
-			}
-		}
-		if (loadingPromise[groupName]) {
-			return loadingPromise[groupName]!;
-		}
+		// if already loading, return existing promise
+		if (loadingPromise[groupName]) return loadingPromise[groupName];
+
+		// If the cached data is still fresh, don't reload
 		const age = selectGroupsAge(getState(), groupName);
-		if (age && age < AGE_STALE) {
-			return loadingPromise[groupName]!;
-		}
+		if (age && age < AGE_STALE) return;
+
 		dispatch(getPending({ groupName }));
 		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
 		loadingPromise[groupName] = fetcher
@@ -297,12 +283,10 @@ export const loadGroups =
 			.then((response: unknown) => {
 				const groups = groupsSchema.parse(response);
 				dispatch(getSuccess(groups));
-				return groups;
 			})
 			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
-				return [];
 			})
 			.finally(() => {
 				delete loadingPromise[groupName];

@@ -24,7 +24,6 @@ export default defineConfig(({ command, mode }) => {
 							"@reduxjs/toolkit",
 							"react-redux",
 							"redux-persist",
-							"idb-keyval",
 							"redux-logger",
 						],
 					},

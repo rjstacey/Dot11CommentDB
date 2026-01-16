@@ -12,7 +12,7 @@ import {
 	PersistConfig,
 } from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
-import storage from "redux-persist/lib/storage";
+import createIdbStorage from "@piotr-cz/redux-persist-idb-storage";
 
 import {
 	errorsSlice,
@@ -31,6 +31,11 @@ import pollingUserSlice from "./pollingUser";
 export { setUser, selectUser, setError, resetStore } from "@common";
 
 const PERSIST_VERSION = 1;
+
+const storage = createIdbStorage({
+	name: "802tools",
+	storeName: "polling",
+});
 
 /* Transform presistant state so that we reset "loading" state */
 type GenericObject = Record<string, unknown>;
