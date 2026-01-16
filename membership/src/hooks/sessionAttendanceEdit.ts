@@ -205,7 +205,10 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 
 			if (member) {
 				const changes = sessionAttendeeMemberChanges(member, attendee);
-				const memberEdit = deepMerge(member, changes);
+				const memberEdit =
+					Object.keys(changes).length > 0
+						? deepMerge(member, changes)
+						: member;
 				const memberSaved = member;
 				return {
 					action: "updateOne",
