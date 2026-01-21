@@ -1,6 +1,6 @@
 import { useAppSelector } from "@/store/hooks";
 import { selectUserMembersAccess, AccessLevel } from "@/store/members";
-import { selectImatAttendanceSummarySelected } from "@/store/imatAttendanceSummary";
+import { selectSyncedImatAttendanceSummarySelectedIds } from "@/store/imatAttendanceSummary";
 
 import ShowAccess from "@/components/ShowAccess";
 import { AttendanceEditForm } from "./AttendanceEditForm";
@@ -11,7 +11,7 @@ export function MemberAttendanceDetail() {
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 	const selected = useAppSelector(
-		selectImatAttendanceSummarySelected
+		selectSyncedImatAttendanceSummarySelectedIds
 	) as number[];
 
 	const {

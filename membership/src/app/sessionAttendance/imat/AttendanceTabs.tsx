@@ -5,18 +5,17 @@ import {
 	setUiProperties,
 	selectUiProperties,
 } from "@/store/imatAttendanceSummary";
-import type { MemberChange, MemberCreate } from "@/store/members";
-import { SessionAttendanceSummaryChange } from "@/store/attendanceSummaries";
+import type { Member, MemberChange, MemberCreate } from "@/store/members";
+import type {
+	SessionAttendanceSummary,
+	SessionAttendanceSummaryChange,
+} from "@/store/attendanceSummaries";
 
 import { MemberBasicEdit } from "../../members/detail/MemberBasicEdit";
 import { MemberStatusEdit } from "../../members/detail/MemberStatusEdit";
 import { MemberContactEdit } from "../../members/detail/MemberContactEdit";
 import { AttendanceInfoEdit } from "./AttendanceInfoEdit";
-import type {
-	EditAction,
-	MultipleMember,
-	MultipleSessionAttendanceSummary,
-} from "@/hooks/sessionAttendanceEdit";
+import type { EditAction } from "@/hooks/sessionAttendanceEdit";
 
 export function AttendanceTabs({
 	sapin,
@@ -30,11 +29,11 @@ export function AttendanceTabs({
 }: {
 	action: EditAction;
 	sapin: number;
-	editedMember: MultipleMember | MemberCreate;
-	savedMember?: MultipleMember;
+	editedMember: Member | MemberCreate;
+	savedMember?: Member;
 	memberOnChange: (changes: MemberChange) => void;
-	editedAttendance: MultipleSessionAttendanceSummary;
-	savedAttendance: MultipleSessionAttendanceSummary;
+	editedAttendance: SessionAttendanceSummary;
+	savedAttendance: SessionAttendanceSummary;
 	attendanceOnChange: (changes: SessionAttendanceSummaryChange) => void;
 	readOnly?: boolean;
 }) {

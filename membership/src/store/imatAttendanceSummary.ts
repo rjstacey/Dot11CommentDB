@@ -196,32 +196,50 @@ export const selectSyncedImatAttendanceSummaryEntities = createSelector(
 	selectImatAttendanceSummarySessionId,
 	(ids, entities, attendanceSummaryEntities, memberEntities, session_id) => {
 		const syncedEntities: Record<EntityId, SyncedSessionAttendee> = {};
+		const allSAPINs = new Set<number>(
+			ids
+				.map(Number)
+				.concat(Object.keys(attendanceSummaryEntities).map(Number))
+		);
 
-		ids.forEach((id) => {
-			const entity = entities[id]!;
+		allSAPINs.forEach((sapin) => {
+			const entity = entities[sapin];
+			const m = memberEntities[sapin];
 			const a =
-				attendanceSummaryEntities[entity.SAPIN] ||
-				getNullAttendanceSummary(session_id || 0, entity.SAPIN);
+				attendanceSummaryEntities[sapin] ||
+				getNullAttendanceSummary(session_id || 0, sapin);
+			const AttendancePercentage = a.AttendancePercentage || 0;
 			const syncedEntity: SyncedSessionAttendee = {
 				...a,
+				AttendancePercentage,
+				Name: "",
+				FirstName: "",
+				LastName: "",
+				MI: "",
+				Email: "",
+				Employer: undefined,
+				Affiliation: "",
+				ContactInfo: undefined,
 				...entity,
+				CurrentAttendancePercentage: null,
 				CurrentAffiliation: null,
 				CurrentEmployer: null,
 				CurrentName: null,
 				CurrentEmail: null,
 				CurrentContactInfo: null,
-				CurrentAttendancePercentage: null,
 				Status: "New",
 			};
 			if (
 				syncedEntity.AttendancePercentage.toFixed(1) !==
-				a.AttendancePercentage?.toFixed(1)
-			)
-				syncedEntity.CurrentAttendancePercentage =
-					a.AttendancePercentage;
-			const m = memberEntities[id];
-			if (m) {
-				syncedEntity.Status = m.Status;
+				AttendancePercentage.toFixed(1)
+			) {
+				syncedEntity.CurrentAttendancePercentage = AttendancePercentage;
+			}
+			if (m) syncedEntity.Status = m.Status;
+			if (m && entity) {
+				if (m.Name !== entity.Name) syncedEntity.CurrentName = m.Name;
+				if (m.Email !== entity.Email)
+					syncedEntity.CurrentEmail = m.Email;
 				if (m.Affiliation !== syncedEntity.Affiliation)
 					syncedEntity.CurrentAffiliation = m.Affiliation;
 				if (
@@ -229,25 +247,40 @@ export const selectSyncedImatAttendanceSummaryEntities = createSelector(
 					m.Employer !== entity.Employer
 				)
 					syncedEntity.CurrentEmployer = m.Employer;
-				if (m.Email !== entity.Email)
-					syncedEntity.CurrentEmail = m.Email;
-				if (m.Name !== entity.Name) syncedEntity.CurrentName = m.Name;
 				if (
-					syncedEntity.Employer !== undefined &&
+					syncedEntity.ContactInfo !== undefined &&
 					!isEqual(m.ContactInfo, entity.ContactInfo)
 				) {
 					syncedEntity.CurrentContactInfo = m.ContactInfo;
 				}
 			}
-			syncedEntities[id] = syncedEntity;
+			syncedEntities[sapin] = syncedEntity;
 		});
 		return syncedEntities;
 	}
 );
 
+export const selectSyncedImatAttendanceSummaryIds = createSelector(
+	selectSyncedImatAttendanceSummaryEntities,
+	(entities) =>
+		Object.keys(entities)
+			.map(Number)
+			.sort((a, b) => a - b)
+);
+
+export const selectSyncedImatAttendanceSummarySelectedIds = createSelector(
+	(state: RootState) => selectImatAttendanceSummaryState(state).selected,
+	selectSyncedImatAttendanceSummaryEntities,
+	(selected, entities) => selected.filter((id) => Boolean(entities[id]))
+);
+
 export const sessionAttendeesSelectors = getAppTableDataSelectors(
 	selectImatAttendanceSummaryState,
-	{ selectEntities: selectSyncedImatAttendanceSummaryEntities, getField }
+	{
+		selectEntities: selectSyncedImatAttendanceSummaryEntities,
+		selectIds: selectSyncedImatAttendanceSummaryIds,
+		getField,
+	}
 );
 
 export const selectUiProperties = sessionAttendeesSelectors.selectUiProperties;

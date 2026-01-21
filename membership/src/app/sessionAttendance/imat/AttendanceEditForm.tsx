@@ -4,16 +4,15 @@ import { Row, Form } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 
 import { AttendanceTabs } from "./AttendanceTabs";
-import type { SessionAttendanceSummaryChange } from "@/store/attendanceSummaries";
-import type { MemberChange, MemberCreate } from "@/store/members";
+import type {
+	SessionAttendanceSummary,
+	SessionAttendanceSummaryChange,
+} from "@/store/attendanceSummaries";
+import type { Member, MemberChange, MemberCreate } from "@/store/members";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
-import type {
-	EditAction,
-	MultipleMember,
-	MultipleSessionAttendanceSummary,
-} from "@/hooks/sessionAttendanceEdit";
+import type { EditAction } from "@/hooks/sessionAttendanceEdit";
 
 export function AttendanceEditForm({
 	action,
@@ -33,15 +32,16 @@ export function AttendanceEditForm({
 	cancel: () => void;
 	action: EditAction;
 	sapin: number;
-	editedMember: MultipleMember | MemberCreate;
-	savedMember?: MultipleMember;
+	editedMember: Member | MemberCreate;
+	savedMember?: Member;
 	memberOnChange: (changes: MemberChange) => void;
-	editedAttendance: MultipleSessionAttendanceSummary;
-	savedAttendance: MultipleSessionAttendanceSummary;
+	editedAttendance: SessionAttendanceSummary;
+	savedAttendance: SessionAttendanceSummary;
 	attendanceOnChange: (changes: SessionAttendanceSummaryChange) => void;
 	hasChanges: () => boolean;
 	readOnly?: boolean;
 }) {
+	const formRef = React.useRef<HTMLFormElement>(null);
 	const [busy, setBusy] = React.useState(false);
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -56,7 +56,13 @@ export function AttendanceEditForm({
 	}
 
 	return (
-		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
+		<Form
+			ref={formRef}
+			noValidate
+			validated
+			onSubmit={handleSubmit}
+			className="p-3"
+		>
 			<Row>
 				<AttendanceTabs
 					action={action}
@@ -74,6 +80,7 @@ export function AttendanceEditForm({
 				<SubmitCancelRow
 					submitLabel={action === "addOne" ? "Add" : "Update"}
 					cancel={cancel}
+					disabled={!formRef.current?.checkValidity()}
 					busy={busy}
 				/>
 			)}

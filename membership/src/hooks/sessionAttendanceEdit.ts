@@ -20,28 +20,21 @@ import {
 import type { Session } from "@/store/sessions";
 import {
 	selectImatAttendanceSummaryState,
-	selectImatAttendanceSummaryEntities,
 	selectImatAttendanceSummarySession,
+	selectSyncedImatAttendanceSummaryEntities,
 	type ImatAttendanceSummary,
+	type SyncedSessionAttendee,
 } from "@/store/imatAttendanceSummary";
 import {
 	addAttendanceSummaries,
 	updateAttendanceSummaries,
-	getNullAttendanceSummary,
-	selectAttendanceSummaryEntitiesForSession,
-	SessionAttendanceSummaryCreate,
-	SessionAttendanceSummaryUpdate,
-	type SessionAttendanceSummary,
+	type SessionAttendanceSummaryCreate,
 	type SessionAttendanceSummaryChange,
+	type SessionAttendanceSummaryUpdate,
+	type SessionAttendanceSummary,
 } from "@/store/attendanceSummaries";
 
-import type { MultipleMember } from "./memberActions";
-import {
-	useAttendanceUpdate,
-	type MultipleSessionAttendanceSummary,
-} from "./attendanceActions";
-
-export type { MultipleMember, MultipleSessionAttendanceSummary };
+import { useAttendanceUpdate } from "./attendanceActions";
 
 /** Create a new member from attendee */
 export function sessionAttendeeToNewMember(
@@ -90,37 +83,23 @@ export function sessionAttendeeToNewMember(
 }
 
 /** Identify changes to an existing member */
-function sessionAttendeeMemberChanges(
-	member: Member,
-	attendee: ImatAttendanceSummary
-) {
-	const memberChanges: MemberChange = {
-		Name: attendee.Name,
-		FirstName: attendee.FirstName,
-		LastName: attendee.LastName,
-		MI: attendee.MI,
-		Email: attendee.Email,
-		Affiliation: attendee.Affiliation,
-		ContactInfo: attendee.ContactInfo,
-	};
-	if (attendee.Employer !== undefined)
-		memberChanges.Employer = attendee.Employer;
-	if (attendee.ContactInfo !== undefined)
-		memberChanges.ContactInfo = attendee.ContactInfo;
-
-	return deepDiff(member, memberChanges) as MemberChange;
+function sessionAttendeeMemberChanges(entity: SyncedSessionAttendee) {
+	const changes: MemberChange = {};
+	if (entity.CurrentName !== null) changes.Name = entity.Name;
+	if (entity.CurrentEmail !== null) changes.Email = entity.Email;
+	if (entity.CurrentAffiliation !== null)
+		changes.Affiliation = entity.Affiliation;
+	if (entity.CurrentEmployer !== null) changes.Employer = entity.Employer;
+	if (entity.CurrentContactInfo !== null)
+		changes.ContactInfo = entity.ContactInfo;
+	return changes;
 }
 
 /** Identify changes to member attendance summary */
-function sessionAttendeeAttendanceChanges(
-	attendanceSummary: SessionAttendanceSummary,
-	attendee: ImatAttendanceSummary
-) {
+function sessionAttendeeAttendanceChanges(entity: SyncedSessionAttendee) {
 	const changes: SessionAttendanceSummaryChange = {};
-	if (
-		attendanceSummary.AttendancePercentage !== attendee.AttendancePercentage
-	)
-		changes.AttendancePercentage = attendee.AttendancePercentage;
+	if (entity.CurrentAttendancePercentage !== null)
+		changes.AttendancePercentage = entity.AttendancePercentage;
 	return changes;
 }
 
@@ -132,17 +111,17 @@ export type MemberAttendanceEditState =
 			ids: number[];
 			memberEdit: MemberCreate;
 			memberSaved: undefined;
-			attendanceEdit: MultipleSessionAttendanceSummary;
-			attendanceSaved: MultipleSessionAttendanceSummary;
+			attendanceEdit: SessionAttendanceSummary;
+			attendanceSaved: SessionAttendanceSummary;
 			attendances: SessionAttendanceSummary[];
 	  }
 	| {
 			action: "updateOne";
 			ids: number[];
-			memberEdit: MultipleMember;
-			memberSaved: MultipleMember;
-			attendanceEdit: MultipleSessionAttendanceSummary;
-			attendanceSaved: MultipleSessionAttendanceSummary;
+			memberEdit: Member;
+			memberSaved: Member;
+			attendanceEdit: SessionAttendanceSummary;
+			attendanceSaved: SessionAttendanceSummary;
 			attendances: SessionAttendanceSummary[];
 	  }
 	| {
@@ -163,12 +142,9 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 	const session = useAppSelector(selectImatAttendanceSummarySession);
 	if (!session) throw new Error("No session for IMAT attendance summary");
 	const { loading, valid } = useAppSelector(selectImatAttendanceSummaryState);
-	const attendeeEntities = useAppSelector(
-		selectImatAttendanceSummaryEntities
-	);
 	const memberEntities = useAppSelector(selectMemberEntities);
-	const attendanceSummaryEntities = useAppSelector((state) =>
-		selectAttendanceSummaryEntitiesForSession(state, session.id)
+	const synchedEntities = useAppSelector(
+		selectSyncedImatAttendanceSummaryEntities
 	);
 
 	return React.useMemo(() => {
@@ -185,31 +161,30 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 				message: "Nothing selected",
 			} satisfies MemberAttendanceEditState;
 		} else if (ids.length === 1) {
-			const sapin = ids[0] as number;
+			const sapin = ids[0];
 			const member = memberEntities[sapin];
-			const attendee = attendeeEntities[sapin];
-			if (!attendee) throw new Error("Invalid selection");
-			const attendanceSummary =
-				attendanceSummaryEntities[sapin] ||
-				getNullAttendanceSummary(session.id, sapin);
-			const attendanceSaved: MultipleSessionAttendanceSummary =
-				attendanceSummary;
-			const changes = sessionAttendeeAttendanceChanges(
-				attendanceSummary,
-				attendee
-			);
-			const attendanceEdit: MultipleSessionAttendanceSummary =
+			const entity = synchedEntities[sapin];
+			const changes = sessionAttendeeAttendanceChanges(entity);
+			const attendanceSaved: SessionAttendanceSummary = entity;
+			const attendanceEdit: SessionAttendanceSummary =
 				Object.keys(changes).length > 0
-					? { ...attendanceSummary, ...changes }
-					: attendanceSummary;
+					? { ...entity, ...changes }
+					: entity;
 
 			if (member) {
-				const changes = sessionAttendeeMemberChanges(member, attendee);
+				const changes = sessionAttendeeMemberChanges(entity);
 				const memberEdit =
 					Object.keys(changes).length > 0
 						? deepMerge(member, changes)
 						: member;
 				const memberSaved = member;
+				console.log(
+					"member changes:",
+					changes,
+					memberEdit,
+					memberSaved
+				);
+
 				return {
 					action: "updateOne",
 					ids,
@@ -217,10 +192,10 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					memberSaved,
 					attendanceEdit,
 					attendanceSaved,
-					attendances: [attendanceSummary],
+					attendances: [entity],
 				} satisfies MemberAttendanceEditState;
 			} else {
-				const newMember = sessionAttendeeToNewMember(attendee, session);
+				const newMember = sessionAttendeeToNewMember(entity, session);
 				return {
 					action: "addOne",
 					ids,
@@ -228,7 +203,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					memberSaved: undefined,
 					attendanceEdit,
 					attendanceSaved,
-					attendances: [attendanceSummary],
+					attendances: [entity],
 				} satisfies MemberAttendanceEditState;
 			}
 		} else {
@@ -238,38 +213,28 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 			const attendanceUpdates: SessionAttendanceSummaryUpdate[] = [];
 			for (const sapin of ids) {
 				const member = memberEntities[sapin];
-				const attendee = attendeeEntities[sapin];
-				if (!attendee) throw new Error("Invalid selection");
+				const entity = synchedEntities[sapin];
 				if (member) {
-					const changes = sessionAttendeeMemberChanges(
-						member,
-						attendee
-					);
+					const changes = sessionAttendeeMemberChanges(entity);
 					if (Object.keys(changes).length > 0)
 						memberUpdates.push({ id: sapin, changes });
 				} else {
 					const newMember = sessionAttendeeToNewMember(
-						attendee,
+						entity,
 						session
 					);
 					memberAdds.push(newMember);
 				}
-				const attendanceSummary =
-					attendanceSummaryEntities[sapin] ||
-					getNullAttendanceSummary(session.id, sapin);
-				const changes = sessionAttendeeAttendanceChanges(
-					attendanceSummary,
-					attendee
-				);
-				if (attendanceSummary.id) {
+				const changes = sessionAttendeeAttendanceChanges(entity);
+				if (entity.id) {
 					if (Object.keys(changes).length > 0) {
 						attendanceUpdates.push({
-							id: attendanceSummary.id,
+							id: entity.id,
 							changes,
 						});
 					}
 				} else {
-					attendanceAdds.push({ ...attendanceSummary, ...changes });
+					attendanceAdds.push({ ...entity, ...changes });
 				}
 			}
 			return {
@@ -281,15 +246,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 				attendanceUpdates,
 			} satisfies MemberAttendanceEditState;
 		}
-	}, [
-		loading,
-		valid,
-		ids,
-		memberEntities,
-		attendeeEntities,
-		attendanceSummaryEntities,
-		session,
-	]);
+	}, [loading, valid, ids, memberEntities, synchedEntities, session]);
 }
 
 export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
@@ -390,17 +347,16 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 					);
 				setState(initState);
 			} else if (action === "updateOne") {
-				let memberEdit = state.memberEdit;
-				let attendanceEdit = state.attendanceEdit;
 				if (doUpdateMembers) {
 					const changes = deepDiff(
 						state.memberSaved,
 						state.memberEdit
 					) as MemberChange;
-					await dispatch(
-						updateMembers([{ id: state.ids[0], changes }])
-					);
-					memberEdit = state.memberSaved;
+					if (changes) {
+						await dispatch(
+							updateMembers([{ id: state.ids[0], changes }])
+						);
+					}
 				}
 				if (doUpdateAttendance) {
 					await attendanceUpdate(
@@ -408,12 +364,11 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 						state.attendanceEdit,
 						state.attendanceSaved
 					);
-					attendanceEdit = state.attendanceSaved;
 				}
 				setState({
 					...state,
-					memberEdit,
-					attendanceEdit,
+					memberSaved: state.memberEdit,
+					attendanceSaved: state.attendanceEdit,
 				});
 			} else if (action === "updateMany") {
 				if (doAddMembers) await dispatch(addMembers(state.memberAdds));

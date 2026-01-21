@@ -1,12 +1,13 @@
 import { Form, Row, Col } from "react-bootstrap";
 import { isMultiple, MULTIPLE } from "@common";
 
-import { SessionAttendanceSummaryChange } from "@/store/attendanceSummaries";
+import {
+	SessionAttendanceSummary,
+	SessionAttendanceSummaryChange,
+} from "@/store/attendanceSummaries";
 
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 import { hasChangesStyle } from "@/components/utils";
-
-import type { MultipleSessionAttendanceSummary } from "@/hooks/sessionAttendanceEdit";
 
 function renderAttendancePercentage(pct: typeof MULTIPLE | null | number) {
 	return isMultiple(pct) ? (
@@ -30,8 +31,8 @@ export function AttendanceInfoEdit({
 	saved,
 	onChange,
 }: {
-	edited: MultipleSessionAttendanceSummary;
-	saved: MultipleSessionAttendanceSummary;
+	edited: SessionAttendanceSummary;
+	saved: SessionAttendanceSummary;
 	onChange: (changes: SessionAttendanceSummaryChange) => void;
 }) {
 	function AttendanceCheck({

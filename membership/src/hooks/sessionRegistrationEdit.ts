@@ -15,9 +15,9 @@ import {
 	addAttendanceSummaries,
 	updateAttendanceSummaries,
 	selectAttendanceSummaryEntitiesForSession,
-	SessionAttendanceSummaryCreate,
-	SessionAttendanceSummaryUpdate,
 	type SessionAttendanceSummary,
+	type SessionAttendanceSummaryCreate,
+	type SessionAttendanceSummaryUpdate,
 	type SessionAttendanceSummaryChange,
 } from "@/store/attendanceSummaries";
 
@@ -64,8 +64,8 @@ export type SessionRegistrationEditState =
 			ids: number[];
 			registration: SessionRegistration;
 			member: MemberCreate;
-			attendanceEdit: MultipleSessionAttendanceSummary;
-			attendanceSaved: MultipleSessionAttendanceSummary;
+			attendanceEdit: SessionAttendanceSummary;
+			attendanceSaved: SessionAttendanceSummary;
 			attendances: SessionAttendanceSummary[];
 	  }
 	| {
@@ -136,13 +136,13 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 							session.id,
 							registration.CurrentSAPIN
 						);
-					const attendanceSaved: MultipleSessionAttendanceSummary =
+					const attendanceSaved: SessionAttendanceSummary =
 						attendanceSummary;
 					const changes = sessionRegistrationAttendanceChanges(
 						attendanceSummary,
 						registration
 					);
-					const attendanceEdit: MultipleSessionAttendanceSummary =
+					const attendanceEdit: SessionAttendanceSummary =
 						Object.keys(changes).length > 0
 							? { ...attendanceSummary, ...changes }
 							: attendanceSummary;
