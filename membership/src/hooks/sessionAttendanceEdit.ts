@@ -21,7 +21,7 @@ import type { Session } from "@/store/sessions";
 import {
 	selectImatAttendanceSummaryState,
 	selectImatAttendanceSummarySession,
-	selectSyncedImatAttendanceSummaryEntities,
+	selectImatAttendanceSummarySyncedEntities,
 	type ImatAttendanceSummary,
 	type SyncedSessionAttendee,
 } from "@/store/imatAttendanceSummary";
@@ -144,7 +144,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 	const { loading, valid } = useAppSelector(selectImatAttendanceSummaryState);
 	const memberEntities = useAppSelector(selectMemberEntities);
 	const synchedEntities = useAppSelector(
-		selectSyncedImatAttendanceSummaryEntities
+		selectImatAttendanceSummarySyncedEntities
 	);
 
 	return React.useMemo(() => {
@@ -170,21 +170,14 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 				Object.keys(changes).length > 0
 					? { ...entity, ...changes }
 					: entity;
-
 			if (member) {
 				const changes = sessionAttendeeMemberChanges(entity);
+				console.log(changes, member, entity);
 				const memberEdit =
 					Object.keys(changes).length > 0
 						? deepMerge(member, changes)
 						: member;
 				const memberSaved = member;
-				console.log(
-					"member changes:",
-					changes,
-					memberEdit,
-					memberSaved
-				);
-
 				return {
 					action: "updateOne",
 					ids,

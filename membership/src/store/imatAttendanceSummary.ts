@@ -28,6 +28,7 @@ import {
 	imatAttendanceSummariesSchema,
 	type ImatAttendanceSummary,
 } from "@schemas/imat";
+import { selectIeeeMemberEntities } from "./ieeeMembers";
 export type { ImatAttendanceSummary };
 
 export const fields: Fields = {
@@ -184,7 +185,7 @@ export const selectImatAttendanceSummarySelected = createSelector(
 	(selected, entities) => selected.filter((id) => Boolean(entities[id]))
 );
 
-export const selectSyncedImatAttendanceSummaryEntities = createSelector(
+export const selectImatAttendanceSummarySyncedEntities = createSelector(
 	selectImatAttendanceSummaryIds,
 	selectImatAttendanceSummaryEntities,
 	(state: RootState) =>
@@ -192,18 +193,30 @@ export const selectSyncedImatAttendanceSummaryEntities = createSelector(
 			state,
 			selectImatAttendanceSummarySessionId(state)
 		),
+	selectIeeeMemberEntities,
 	selectMemberEntities,
 	selectImatAttendanceSummarySessionId,
-	(ids, entities, attendanceSummaryEntities, memberEntities, session_id) => {
+	(
+		ids,
+		entities,
+		attendanceSummaryEntities,
+		ieeeMemberEntities,
+		memberEntities,
+		session_id
+	) => {
 		const syncedEntities: Record<EntityId, SyncedSessionAttendee> = {};
 		const allSAPINs = new Set<number>(
 			ids
 				.map(Number)
-				.concat(Object.keys(attendanceSummaryEntities).map(Number))
+				.concat(
+					Object.values(attendanceSummaryEntities).map(
+						(a) => a!.SAPIN
+					)
+				)
 		);
-
 		allSAPINs.forEach((sapin) => {
 			const entity = entities[sapin];
+			const u = ieeeMemberEntities[sapin];
 			const m = memberEntities[sapin];
 			const a =
 				attendanceSummaryEntities[sapin] ||
@@ -212,14 +225,14 @@ export const selectSyncedImatAttendanceSummaryEntities = createSelector(
 			const syncedEntity: SyncedSessionAttendee = {
 				...a,
 				AttendancePercentage,
-				Name: "",
-				FirstName: "",
-				LastName: "",
-				MI: "",
-				Email: "",
-				Employer: undefined,
+				Name: u?.Name || "",
+				FirstName: u?.FirstName || "",
+				LastName: u?.LastName || "",
+				MI: u?.MI || "",
+				Email: u?.Email || "",
+				Employer: u?.Employer || "",
 				Affiliation: "",
-				ContactInfo: undefined,
+				ContactInfo: u?.ContactInfo || undefined,
 				...entity,
 				CurrentAttendancePercentage: null,
 				CurrentAffiliation: null,
@@ -235,50 +248,53 @@ export const selectSyncedImatAttendanceSummaryEntities = createSelector(
 			) {
 				syncedEntity.CurrentAttendancePercentage = AttendancePercentage;
 			}
-			if (m) syncedEntity.Status = m.Status;
-			if (m && entity) {
-				if (m.Name !== entity.Name) syncedEntity.CurrentName = m.Name;
-				if (m.Email !== entity.Email)
-					syncedEntity.CurrentEmail = m.Email;
-				if (m.Affiliation !== syncedEntity.Affiliation)
-					syncedEntity.CurrentAffiliation = m.Affiliation;
+			if (u && entity) {
+				if (u.Name !== entity.Name) syncedEntity.CurrentName = u.Name;
+				if (u.Email !== entity.Email)
+					syncedEntity.CurrentEmail = u.Email;
 				if (
-					syncedEntity.Employer !== undefined &&
-					m.Employer !== entity.Employer
-				)
-					syncedEntity.CurrentEmployer = m.Employer;
-				if (
-					syncedEntity.ContactInfo !== undefined &&
-					!isEqual(m.ContactInfo, entity.ContactInfo)
+					entity.Employer !== undefined &&
+					u.Employer !== entity.Employer
 				) {
-					syncedEntity.CurrentContactInfo = m.ContactInfo;
+					syncedEntity.CurrentEmployer = u.Employer;
+				}
+				if (
+					entity.ContactInfo !== undefined &&
+					!isEqual(u.ContactInfo, entity.ContactInfo)
+				) {
+					syncedEntity.CurrentContactInfo = u.ContactInfo;
 				}
 			}
+			if (m && entity) {
+				if (m.Affiliation !== entity.Affiliation)
+					syncedEntity.CurrentAffiliation = m.Affiliation;
+			}
+			if (m) syncedEntity.Status = m.Status;
 			syncedEntities[sapin] = syncedEntity;
 		});
 		return syncedEntities;
 	}
 );
 
-export const selectSyncedImatAttendanceSummaryIds = createSelector(
-	selectSyncedImatAttendanceSummaryEntities,
+export const selectImatAttendanceSummarySyncedIds = createSelector(
+	selectImatAttendanceSummarySyncedEntities,
 	(entities) =>
 		Object.keys(entities)
 			.map(Number)
 			.sort((a, b) => a - b)
 );
 
-export const selectSyncedImatAttendanceSummarySelectedIds = createSelector(
+export const selectImatAttendanceSummarySelectedSyncedIds = createSelector(
 	(state: RootState) => selectImatAttendanceSummaryState(state).selected,
-	selectSyncedImatAttendanceSummaryEntities,
+	selectImatAttendanceSummarySyncedEntities,
 	(selected, entities) => selected.filter((id) => Boolean(entities[id]))
 );
 
 export const sessionAttendeesSelectors = getAppTableDataSelectors(
 	selectImatAttendanceSummaryState,
 	{
-		selectEntities: selectSyncedImatAttendanceSummaryEntities,
-		selectIds: selectSyncedImatAttendanceSummaryIds,
+		selectEntities: selectImatAttendanceSummarySyncedEntities,
+		selectIds: selectImatAttendanceSummarySyncedIds,
 		getField,
 	}
 );

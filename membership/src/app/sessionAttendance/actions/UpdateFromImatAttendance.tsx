@@ -10,8 +10,8 @@ import {
 import { useSessionAttendanceEdit } from "@/hooks/sessionAttendanceEdit";
 import { useAppSelector } from "@/store/hooks";
 import {
-	selectSyncedImatAttendanceSummarySelectedIds,
-	selectSyncedImatAttendanceSummaryIds,
+	selectImatAttendanceSummarySelectedSyncedIds,
+	selectImatAttendanceSummarySyncedIds,
 } from "@/store/imatAttendanceSummary";
 
 function UpdateForm({ close }: { close: () => void }) {
@@ -21,10 +21,10 @@ function UpdateForm({ close }: { close: () => void }) {
 	const [importUpdates, setImportUpdates] = React.useState(true);
 	const [busy, setBusy] = React.useState(false);
 	const selected = useAppSelector(
-		selectSyncedImatAttendanceSummarySelectedIds
+		selectImatAttendanceSummarySelectedSyncedIds
 	) as number[];
 	const ids = useAppSelector(
-		selectSyncedImatAttendanceSummaryIds
+		selectImatAttendanceSummarySyncedIds
 	) as number[];
 
 	const { state, submit } = useSessionAttendanceEdit(

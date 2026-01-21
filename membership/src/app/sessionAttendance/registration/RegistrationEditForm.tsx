@@ -2,7 +2,10 @@ import React from "react";
 import { Row, Col, Table, Form, Button } from "react-bootstrap";
 
 import { AttendanceInfoEdit } from "../imat/AttendanceInfoEdit";
-import type { SessionAttendanceSummaryChange } from "@/store/attendanceSummaries";
+import type {
+	SessionAttendanceSummary,
+	SessionAttendanceSummaryChange,
+} from "@/store/attendanceSummaries";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
@@ -12,7 +15,6 @@ import {
 	type SessionRegistration,
 } from "@/store/sessionRegistration";
 import type { MemberCreate } from "@/store/members";
-import type { MultipleSessionAttendanceSummary } from "@/hooks/sessionRegistrationEdit";
 
 export function RegistrationEditForm({
 	member,
@@ -26,8 +28,8 @@ export function RegistrationEditForm({
 }: {
 	member: MemberCreate;
 	registration: SessionRegistration;
-	edited: MultipleSessionAttendanceSummary;
-	saved: MultipleSessionAttendanceSummary;
+	edited: SessionAttendanceSummary;
+	saved: SessionAttendanceSummary;
 	onChange: (changes: SessionAttendanceSummaryChange) => void;
 	hasChanges: () => boolean;
 	submit: () => Promise<void>;

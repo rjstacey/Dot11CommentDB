@@ -21,12 +21,7 @@ import {
 	type SessionAttendanceSummaryChange,
 } from "@/store/attendanceSummaries";
 
-import {
-	useAttendanceUpdate,
-	type MultipleSessionAttendanceSummary,
-} from "./attendanceActions";
-
-export type { MultipleSessionAttendanceSummary };
+import { useAttendanceUpdate } from "./attendanceActions";
 
 /** Identify changes to attendance summary */
 function sessionRegistrationAttendanceChanges(

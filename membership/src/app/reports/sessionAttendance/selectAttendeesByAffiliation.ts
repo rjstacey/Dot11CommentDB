@@ -1,8 +1,8 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { selectAffiliationMapper } from "@/store/affiliationMap";
 import {
-	selectSyncedImatAttendanceSummaryEntities,
-	selectImatAttendanceSummaryIds,
+	selectImatAttendanceSummarySyncedEntities,
+	selectImatAttendanceSummarySyncedIds,
 	SyncedSessionAttendee,
 } from "@/store/imatAttendanceSummary";
 
@@ -27,14 +27,15 @@ const nullEntry: StatusCountRecord = {
 };
 
 export const selectAttendeesByAffiliation = createSelector(
-	selectImatAttendanceSummaryIds,
-	selectSyncedImatAttendanceSummaryEntities,
+	selectImatAttendanceSummarySyncedIds,
+	selectImatAttendanceSummarySyncedEntities,
 	selectAffiliationMapper,
 	(attendeeIds, attendeeEntities, affiliationMapper) => {
 		const membersEntities: Record<string, SyncedSessionAttendee[]> = {};
 		let shortAffiliations: string[] = [];
 		for (const id of attendeeIds) {
 			const m = attendeeEntities[id];
+			if (!m.AttendancePercentage) continue;
 			const affiliation = affiliationMapper(m.Affiliation);
 			if (shortAffiliations.includes(affiliation)) {
 				membersEntities[affiliation].push(m);
