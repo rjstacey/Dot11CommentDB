@@ -14,10 +14,10 @@ export function SessionAttendanceSubmenu(
 		>
 			<Nav.Link
 				as={Link}
-				to={{ pathname: `${sessionNumber}/imat`, search }}
-				active={/imat$/i.test(pathname)}
+				to={{ pathname: `${sessionNumber}/attendance`, search }}
+				active={/attendance$/i.test(pathname)}
 			>
-				IMAT
+				Attendance
 			</Nav.Link>
 			<Nav.Link
 				as={Link}
@@ -25,13 +25,6 @@ export function SessionAttendanceSubmenu(
 				active={/registration$/i.test(pathname)}
 			>
 				Registration
-			</Nav.Link>
-			<Nav.Link
-				as={Link}
-				to={{ pathname: `${sessionNumber}/summary`, search }}
-				active={/summary$/i.test(pathname)}
-			>
-				Summary
 			</Nav.Link>
 		</Nav>
 	);

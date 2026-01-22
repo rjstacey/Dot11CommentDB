@@ -28,6 +28,7 @@ import {
 import {
 	addAttendanceSummaries,
 	updateAttendanceSummaries,
+	deleteAttendanceSummaries,
 	type SessionAttendanceSummaryCreate,
 	type SessionAttendanceSummaryChange,
 	type SessionAttendanceSummaryUpdate,
@@ -131,6 +132,7 @@ export type MemberAttendanceEditState =
 			memberUpdates: MemberUpdate[];
 			attendanceAdds: SessionAttendanceSummaryCreate[];
 			attendanceUpdates: SessionAttendanceSummaryUpdate[];
+			attendanceDeletes: number[];
 	  }
 	| {
 			action: null;
@@ -204,6 +206,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 			const memberUpdates: MemberUpdate[] = [];
 			const attendanceAdds: SessionAttendanceSummaryCreate[] = [];
 			const attendanceUpdates: SessionAttendanceSummaryUpdate[] = [];
+			const attendanceDeletes: number[] = [];
 			for (const sapin of ids) {
 				const member = memberEntities[sapin];
 				const entity = synchedEntities[sapin];
@@ -225,6 +228,9 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 							id: entity.id,
 							changes,
 						});
+					} else if (!entity.AttendancePercentage) {
+						// Delete entries with no attendance
+						attendanceDeletes.push(entity.id);
 					}
 				} else {
 					attendanceAdds.push({ ...entity, ...changes });
@@ -237,6 +243,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 				memberUpdates,
 				attendanceAdds,
 				attendanceUpdates,
+				attendanceDeletes,
 			} satisfies MemberAttendanceEditState;
 		}
 	}, [loading, valid, ids, memberEntities, synchedEntities, session]);
@@ -372,6 +379,9 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 						dispatch(addAttendanceSummaries(state.attendanceAdds)),
 						dispatch(
 							updateAttendanceSummaries(state.attendanceUpdates)
+						),
+						dispatch(
+							deleteAttendanceSummaries(state.attendanceDeletes)
 						),
 					]);
 				}

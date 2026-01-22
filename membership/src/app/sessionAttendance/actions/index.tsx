@@ -6,10 +6,8 @@ import { SessionSelectorNav } from "./SessionSelectorNav";
 import { SessionAttendanceSubmenu } from "./submenu";
 import { ImportRegistration } from "./ImportRegistration";
 import { UpdateFromImatAttendance } from "./UpdateFromImatAttendance";
-import { UpdateSummary } from "./UpdateSummary";
 import { ExportAttendeesList } from "./ExportAttendeesList";
 import { refresh as imatRefresh } from "../imat/loader";
-import { refresh as summaryRefresh } from "../summary/loader";
 
 import {
 	tableColumns as imatTableColumns,
@@ -21,17 +19,11 @@ import {
 	selectors as regTableSelectors,
 	actions as regTableActions,
 } from "../registration/tableColumns";
-import {
-	tableColumns as summaryTableColumns,
-	selectors as summaryTableSelectors,
-	actions as summaryTableActions,
-} from "../summary/tableColumns";
 
 function useRoute() {
 	const { pathname } = useLocation();
-	if (/imat$/i.test(pathname)) return "imat";
+	if (/attendance$/i.test(pathname)) return "attendance";
 	if (/registration$/i.test(pathname)) return "registration";
-	if (/summary$/i.test(pathname)) return "summary";
 	return "";
 }
 
@@ -43,7 +35,7 @@ export function SessionAttendanceActions() {
 	const route = useRoute();
 	let refresh: (() => void) | undefined = undefined;
 	let actions: JSX.Element | undefined = undefined;
-	if (route === "imat") {
+	if (route === "attendance") {
 		refresh = imatRefresh;
 		actions = (
 			<>
@@ -55,6 +47,10 @@ export function SessionAttendanceActions() {
 					columns={imatTableColumns}
 				/>
 				<UpdateFromImatAttendance />
+				<ExportAttendeesList
+					groupName={groupName}
+					sessionNumber={sessionNumber}
+				/>
 			</>
 		);
 	} else if (route === "registration") {
@@ -68,24 +64,6 @@ export function SessionAttendanceActions() {
 					columns={regTableColumns}
 				/>
 				<ImportRegistration
-					groupName={groupName}
-					sessionNumber={sessionNumber}
-				/>
-			</>
-		);
-	} else if (route === "summary") {
-		refresh = summaryRefresh;
-		actions = (
-			<>
-				<SplitTableButtonGroup
-					xs="auto"
-					className="ms-auto"
-					selectors={summaryTableSelectors}
-					actions={summaryTableActions}
-					columns={summaryTableColumns}
-				/>
-				<UpdateSummary />
-				<ExportAttendeesList
 					groupName={groupName}
 					sessionNumber={sessionNumber}
 				/>

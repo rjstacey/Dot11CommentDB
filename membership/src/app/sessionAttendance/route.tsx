@@ -2,9 +2,8 @@ import { RouteObject, Navigate } from "react-router";
 import { indexLoader, sessionAttendanceLoader } from "./loader";
 import SessionAttendanceLayout from "./layout";
 
-import imatRoute from "./imat/route";
+import attendanceRoute from "./imat/route";
 import registrationRoute from "./registration/route";
-import summaryRoute from "./summary/route";
 
 export const sessionAttendanceRoute: RouteObject = {
 	Component: SessionAttendanceLayout,
@@ -17,9 +16,8 @@ export const sessionAttendanceRoute: RouteObject = {
 			path: ":sessionNumber",
 			loader: sessionAttendanceLoader,
 			children: [
-				{ index: true, element: <Navigate to="imat" /> },
-				{ path: "imat", ...imatRoute },
-				{ path: "summary", ...summaryRoute },
+				{ index: true, element: <Navigate to="attendance" /> },
+				{ path: "attendance", ...attendanceRoute },
 				{ path: "registration", ...registrationRoute },
 			],
 		},
