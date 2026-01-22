@@ -5,7 +5,7 @@ import { SplitTableButtonGroup } from "@common";
 import { SessionSelectorNav } from "./SessionSelectorNav";
 import { SessionAttendanceSubmenu } from "./submenu";
 import { ImportRegistration } from "./ImportRegistration";
-import { UpdateFromImatAttendance } from "./UpdateFromImatAttendance";
+import { Updates } from "./Updates";
 import { ExportAttendeesList } from "./ExportAttendeesList";
 import { refresh as imatRefresh } from "../attendance/loader";
 
@@ -46,7 +46,7 @@ export function SessionAttendanceActions() {
 					actions={imatTableActions}
 					columns={imatTableColumns}
 				/>
-				<UpdateFromImatAttendance />
+				<Updates />
 				<ExportAttendeesList
 					groupName={groupName}
 					sessionNumber={sessionNumber}

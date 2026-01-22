@@ -97,7 +97,7 @@ function UpdateForm({ close }: { close: () => void }) {
 	);
 }
 
-export function UpdateFromImatAttendance() {
+export function Updates() {
 	const [show, setShow] = React.useState(false);
 	return (
 		<DropdownButton
