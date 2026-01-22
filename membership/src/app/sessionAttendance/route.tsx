@@ -2,7 +2,7 @@ import { RouteObject, Navigate } from "react-router";
 import { indexLoader, sessionAttendanceLoader } from "./loader";
 import SessionAttendanceLayout from "./layout";
 
-import attendanceRoute from "./imat/route";
+import attendanceRoute from "./attendance/route";
 import registrationRoute from "./registration/route";
 
 export const sessionAttendanceRoute: RouteObject = {

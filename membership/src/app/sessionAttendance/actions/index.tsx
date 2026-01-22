@@ -7,13 +7,13 @@ import { SessionAttendanceSubmenu } from "./submenu";
 import { ImportRegistration } from "./ImportRegistration";
 import { UpdateFromImatAttendance } from "./UpdateFromImatAttendance";
 import { ExportAttendeesList } from "./ExportAttendeesList";
-import { refresh as imatRefresh } from "../imat/loader";
+import { refresh as imatRefresh } from "../attendance/loader";
 
 import {
 	tableColumns as imatTableColumns,
 	selectors as imatTableSelectors,
 	actions as imatTableActions,
-} from "../imat/tableColumns";
+} from "../attendance/tableColumns";
 import {
 	tableColumns as regTableColumns,
 	selectors as regTableSelectors,

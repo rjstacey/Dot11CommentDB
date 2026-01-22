@@ -1,7 +1,7 @@
 import React from "react";
 import { Row, Col, Table, Form, Button } from "react-bootstrap";
 
-import { AttendanceInfoEdit } from "../imat/AttendanceInfoEdit";
+import { AttendanceInfoEdit } from "../attendance/AttendanceInfoEdit";
 import type {
 	SessionAttendanceSummary,
 	SessionAttendanceSummaryChange,
