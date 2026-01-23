@@ -1,7 +1,7 @@
 import React from "react";
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
-import { deepDiff, deepMerge } from "@common";
+import { shallowDiff, deepDiff, deepMerge } from "@common";
 
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
@@ -35,12 +35,10 @@ import {
 	type SessionAttendanceSummary,
 } from "@/store/attendanceSummaries";
 
-import { useAttendanceUpdate } from "./attendanceActions";
-
 /** Create a new member from attendee */
 export function sessionAttendeeToNewMember(
 	attendee: ImatAttendanceSummary,
-	session: Session
+	session: Session,
 ) {
 	const date = DateTime.fromISO(session.startDate, {
 		zone: session.timezone,
@@ -146,7 +144,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 	const { loading, valid } = useAppSelector(selectImatAttendanceSummaryState);
 	const memberEntities = useAppSelector(selectMemberEntities);
 	const synchedEntities = useAppSelector(
-		selectImatAttendanceSummarySyncedEntities
+		selectImatAttendanceSummarySyncedEntities,
 	);
 
 	return React.useMemo(() => {
@@ -174,7 +172,6 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					: entity;
 			if (member) {
 				const changes = sessionAttendeeMemberChanges(entity);
-				console.log(changes, member, entity);
 				const memberEdit =
 					Object.keys(changes).length > 0
 						? deepMerge(member, changes)
@@ -217,7 +214,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 				} else {
 					const newMember = sessionAttendeeToNewMember(
 						entity,
-						session
+						session,
 					);
 					memberAdds.push(newMember);
 				}
@@ -285,7 +282,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 				return state;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
 	const attendanceOnChange = React.useCallback(
@@ -310,7 +307,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 				return state;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
 	const hasChanges = React.useCallback(
@@ -323,47 +320,56 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 				(state.memberAdds.length > 0 ||
 					state.memberUpdates.length > 0 ||
 					state.attendanceAdds.length > 0 ||
-					state.attendanceUpdates.length > 0)),
-		[state]
+					state.attendanceUpdates.length > 0 ||
+					state.attendanceDeletes.length > 0)),
+		[state],
 	);
-
-	const attendanceUpdate = useAttendanceUpdate();
 
 	const submit = React.useCallback(
 		async (
 			doAddMembers = true,
 			doUpdateMembers = true,
-			doUpdateAttendance = true
+			doUpdateAttendance = true,
 		) => {
 			const { action } = state;
+
 			if (action === "addOne") {
 				if (doAddMembers)
 					await dispatch(addMembers([state.memberEdit]));
-				if (doUpdateAttendance)
-					await attendanceUpdate(
-						state.attendances,
+				if (doUpdateAttendance) {
+					const changes = shallowDiff(
+						state.attendanceSaved,
 						state.attendanceEdit,
-						state.attendanceSaved
-					);
+					) as SessionAttendanceSummaryChange;
+					if (Object.keys(changes).length > 0) {
+						updateAttendanceSummaries([
+							{ id: state.ids[0], changes },
+						]);
+					}
+				}
 				setState(initState);
 			} else if (action === "updateOne") {
 				if (doUpdateMembers) {
 					const changes = deepDiff(
 						state.memberSaved,
-						state.memberEdit
+						state.memberEdit,
 					) as MemberChange;
 					if (changes) {
 						await dispatch(
-							updateMembers([{ id: state.ids[0], changes }])
+							updateMembers([{ id: state.ids[0], changes }]),
 						);
 					}
 				}
 				if (doUpdateAttendance) {
-					await attendanceUpdate(
-						state.attendances,
+					const changes = shallowDiff(
+						state.attendanceSaved,
 						state.attendanceEdit,
-						state.attendanceSaved
-					);
+					) as SessionAttendanceSummaryChange;
+					if (Object.keys(changes).length > 0) {
+						updateAttendanceSummaries([
+							{ id: state.ids[0], changes },
+						]);
+					}
 				}
 				setState({
 					...state,
@@ -378,16 +384,16 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 					await Promise.all([
 						dispatch(addAttendanceSummaries(state.attendanceAdds)),
 						dispatch(
-							updateAttendanceSummaries(state.attendanceUpdates)
+							updateAttendanceSummaries(state.attendanceUpdates),
 						),
 						dispatch(
-							deleteAttendanceSummaries(state.attendanceDeletes)
+							deleteAttendanceSummaries(state.attendanceDeletes),
 						),
 					]);
 				}
 			}
 		},
-		[attendanceUpdate, state, dispatch, setState, initState]
+		[state, dispatch, setState, initState],
 	);
 
 	const cancel = React.useCallback(() => {

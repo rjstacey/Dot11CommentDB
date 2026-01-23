@@ -9,10 +9,6 @@ const sessionRegistraionSchema = z.object({
 	LastName: z.string(),
 	Email: z.string(),
 	RegType: z.string(),
-	Matched: z.enum(["SAPIN", "EMAIL"]).nullable(),
-	CurrentName: z.string().nullable(),
-	CurrentEmail: z.string().nullable(),
-	CurrentSAPIN: z.number().nullable(),
 });
 
 export const sessionRegistrationsSchema = sessionRegistraionSchema.array();

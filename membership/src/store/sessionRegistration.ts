@@ -14,12 +14,18 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { setError } from ".";
-import { selectAttendanceSummaryEntitiesForSession } from "./attendanceSummaries";
+import {
+	getNullAttendanceSummary,
+	selectAttendanceSummaryEntitiesForSession,
+	SessionAttendanceSummary,
+} from "./attendanceSummaries";
 import {
 	sessionRegistrationsSchema,
 	SessionRegistration,
 } from "@schemas/registration";
 import { selectSessionByNumber, selectSessionEntities } from "./sessions";
+import { IeeeMember, selectIeeeMemberEntities } from "./ieeeMembers";
+import { MemberCreate, selectMemberEntities } from "./members";
 
 export type { SessionRegistration };
 
@@ -40,13 +46,16 @@ export const fields: Fields = {
 	Notes: { label: "Notes" },
 };
 
-type SyncedSessionRegistration = SessionRegistration & {
-	IsRegistered: boolean | null;
-	InPerson: boolean | null;
-	AttendancePercentage: number | null;
-	DidAttend: boolean | null;
-	DidNotAttend: boolean | null;
-	Notes: string | null;
+export type SyncedSessionRegistration = SessionRegistration & {
+	Matched: "SAPIN" | "EMAIL" | null;
+	IsRegistered: SessionAttendanceSummary["IsRegistered"];
+	InPerson: SessionAttendanceSummary["InPerson"];
+	AttendancePercentage: SessionAttendanceSummary["AttendancePercentage"];
+	DidAttend: SessionAttendanceSummary["DidAttend"];
+	DidNotAttend: SessionAttendanceSummary["DidNotAttend"];
+	Notes: SessionAttendanceSummary["Notes"];
+	attendance: SessionAttendanceSummary | undefined;
+	member: MemberCreate | undefined;
 };
 
 export type SessionRegistrationUpdate = {
@@ -104,7 +113,7 @@ const slice = createAppTableDataSlice({
 						state.valid = false;
 						dataAdapter.removeAll(state);
 					}
-				}
+				},
 			)
 			.addMatcher(
 				(action: Action) =>
@@ -114,7 +123,7 @@ const slice = createAppTableDataSlice({
 					state.sessionId = null;
 					state.valid = false;
 					dataAdapter.removeAll(state);
-				}
+				},
 			);
 	},
 });
@@ -154,46 +163,100 @@ export const selectSessionRegistrationSession = (state: RootState) => {
 export const selectSessionRegistrationSelected = createSelector(
 	(state: RootState) => selectSessionRegistrationState(state).selected,
 	selectSessionRegistrationEntities,
-	(selected, entities) => selected.filter((id) => Boolean(entities[id]))
+	(selected, entities) => selected.filter((id) => Boolean(entities[id])),
 );
-export const selectSyncedSessionRegistrationEntities = createSelector(
+
+export const selectSessionRegistrationSyncedEntities = createSelector(
 	selectSessionRegistrationIds,
 	selectSessionRegistrationEntities,
 	(state: RootState) =>
 		selectAttendanceSummaryEntitiesForSession(
 			state,
-			selectSessionRegistrationSessionId(state)
+			selectSessionRegistrationSessionId(state),
 		),
-	(ids, entities, attendanceSummaryEntities) => {
+	selectIeeeMemberEntities,
+	selectMemberEntities,
+	selectSessionRegistrationSessionId,
+	(
+		ids,
+		entities,
+		attendanceSummaryEntities,
+		ieeeMemberEntities,
+		memberEntities,
+		session_id,
+	) => {
 		const syncedEntities: Record<EntityId, SyncedSessionRegistration> = {};
+		const users = Object.values(ieeeMemberEntities) as IeeeMember[];
 
 		ids.forEach((id) => {
 			const entity = entities[id]!;
-			const a = entity.CurrentSAPIN
-				? attendanceSummaryEntities[entity.CurrentSAPIN]
-				: undefined;
+
+			const email = entity.Email.toLowerCase();
+			const sapin = entity.SAPIN;
+			let Matched: null | "SAPIN" | "EMAIL" = null;
+			let user = users.find((u) => u.SAPIN === sapin);
+			if (user) {
+				Matched = "SAPIN";
+			} else {
+				user = users.find((u) => u.Email.toLowerCase() === email);
+				if (user) Matched = "EMAIL";
+			}
+
+			let member: MemberCreate | undefined;
+			if (user) {
+				let m = memberEntities[user.SAPIN];
+				if (m && m.Status === "Obsolete" && m.ReplacedBySAPIN)
+					m = memberEntities[m.ReplacedBySAPIN];
+				member = m || {
+					...user,
+					Affiliation: "",
+					Status: "Non-Voter",
+				};
+			}
+
+			let attendance: SessionAttendanceSummary | undefined;
+			if (member) {
+				attendance =
+					attendanceSummaryEntities[member.SAPIN] ||
+					getNullAttendanceSummary(session_id!, member.SAPIN);
+			}
+			const InPerson = /in-person/i.test(entity.RegType);
+			let DidNotAttend = false;
+			let Notes = attendance?.Notes || null;
+			if (/student/i.test(entity.RegType)) {
+				DidNotAttend = true;
+				if (Notes === null) {
+					Notes = "Student registration";
+				} else if (!/Student registration/i.test(Notes)) {
+					if (Notes.length > 0) Notes += "; ";
+					Notes += "Student registration";
+				}
+			}
 			const syncedEntity: SyncedSessionRegistration = {
 				...entity,
-				InPerson: a ? a.InPerson : null,
-				IsRegistered: a ? a.IsRegistered : null,
-				AttendancePercentage: a ? a.AttendancePercentage : null,
-				DidAttend: a ? a.DidAttend : null,
-				DidNotAttend: a ? a.DidNotAttend : null,
-				Notes: a ? a.Notes : null,
+				Matched,
+				InPerson,
+				IsRegistered: true,
+				AttendancePercentage: attendance?.AttendancePercentage || 0,
+				DidAttend: attendance?.DidAttend || false,
+				DidNotAttend,
+				Notes,
+				attendance,
+				member,
 			};
 			syncedEntities[id] = syncedEntity;
 		});
 		return syncedEntities;
-	}
+	},
 );
 
 export const sessionRegistrationSelectors = getAppTableDataSelectors(
 	selectSessionRegistrationState,
 	{
-		selectEntities: selectSyncedSessionRegistrationEntities,
+		selectEntities: selectSessionRegistrationSyncedEntities,
 		selectIds: selectSessionRegistrationIds,
 		getField,
-	}
+	},
 );
 
 /** Thunk actions */
@@ -203,7 +266,7 @@ export const loadSessionRegistration =
 		const session = selectSessionByNumber(getState(), sessionNumber);
 		if (!session) {
 			dispatch(
-				setError("Can't upload registration", "Bad session number")
+				setError("Can't upload registration", "Bad session number"),
 			);
 			return;
 		}

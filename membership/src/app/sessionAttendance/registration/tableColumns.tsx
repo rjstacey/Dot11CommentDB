@@ -12,7 +12,7 @@ import { ProvidedExisting } from "@/components/ProvidedExisting";
 import {
 	sessionRegistrationSelectors,
 	sessionRegistrationActions,
-	SessionRegistration,
+	SyncedSessionRegistration,
 } from "@/store/sessionRegistration";
 
 export {
@@ -20,16 +20,20 @@ export {
 	sessionRegistrationActions as actions,
 };
 
-const renderSAPIN = ({ rowData }: CellRendererProps<SessionRegistration>) => {
+const renderSAPIN = ({
+	rowData,
+}: CellRendererProps<SyncedSessionRegistration>) => {
 	const newStr = rowData.SAPIN?.toString() || "";
-	let oldStr = rowData.CurrentSAPIN?.toString() || null;
+	let oldStr = rowData.member?.SAPIN.toString() || null;
 	if (oldStr && newStr === oldStr) oldStr = null;
 	return <ProvidedExisting newStr={newStr} oldStr={oldStr} />;
 };
 
-const renderEmail = ({ rowData }: CellRendererProps<SessionRegistration>) => {
+const renderEmail = ({
+	rowData,
+}: CellRendererProps<SyncedSessionRegistration>) => {
 	const newStr = rowData.Email;
-	let oldStr = rowData.CurrentEmail;
+	let oldStr = rowData.member?.Email || null;
 	if (oldStr && oldStr.toLocaleLowerCase() === newStr.toLocaleLowerCase())
 		oldStr = null;
 	return <ProvidedExisting newStr={rowData.Email} oldStr={oldStr} />;
@@ -41,9 +45,11 @@ function matchNames(name1: string, name2: string): boolean {
 	return n1 === n2;
 }
 
-const renderName = ({ rowData }: CellRendererProps<SessionRegistration>) => {
+const renderName = ({
+	rowData,
+}: CellRendererProps<SyncedSessionRegistration>) => {
 	const newStr = rowData.Name;
-	let oldStr = rowData.CurrentName;
+	let oldStr = rowData.member?.Name || null;
 	if (oldStr && matchNames(newStr, oldStr)) oldStr = null;
 	return (
 		<ProvidedExisting className="fw-bold" newStr={newStr} oldStr={oldStr} />

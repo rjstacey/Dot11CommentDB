@@ -11,7 +11,7 @@ import {
 } from "./imat.js";
 import type { UserContext } from "./users.js";
 import type { Member, MemberStatus } from "@schemas/members.js";
-import { getMembers, getMembersSnapshot, getUsers } from "./members.js";
+import { getMembers, getMembersSnapshot } from "./members.js";
 import { genAttendanceSpreadsheet } from "./attendancesSpreadsheet.js";
 import type {
 	SessionAttendanceSummary,
@@ -22,7 +22,6 @@ import type {
 } from "@schemas/attendances.js";
 import { parseRegistrationSpreadsheet } from "./registrationSpreadsheet.js";
 import { ImatAttendanceSummary } from "@schemas/imat.js";
-import { SessionRegistration } from "@schemas/registration.js";
 
 const createViewMemberAttendanceSummary = `
 	DROP VIEW IF EXISTS memberAttendanceSummary;
@@ -88,7 +87,7 @@ function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
 				Array.isArray(value)
 					? "BIN_TO_UUID(??) IN (?)"
 					: "??=UUID_TO_BIN(?)",
-				[key, value]
+				[key, value],
 			);
 		}
 		if (key === "withAttendance") {
@@ -108,7 +107,7 @@ function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
  * Get attendances
  */
 export async function getAttendances(
-	query?: SessionAttendanceSummaryQuery
+	query?: SessionAttendanceSummaryQuery,
 ): Promise<SessionAttendanceSummary[]> {
 	const sql = getAttendancesSql(query);
 	const attendances =
@@ -123,7 +122,7 @@ export async function importAttendances(
 	user: UserContext,
 	group: Group,
 	session_id: number,
-	useDaily: boolean
+	useDaily: boolean,
 ) {
 	const [session] = await getSessions({ id: session_id });
 	if (!session)
@@ -134,18 +133,18 @@ export async function importAttendances(
 		const imatMeetingId = session.imatMeetingId;
 		if (!imatMeetingId)
 			throw new TypeError(
-				"IMAT meeting number not specified for session " + session.name
+				"IMAT meeting number not specified for session " + session.name,
 			);
 		imatAttendances = await getImatMeetingDailyAttendance(
 			user,
 			group,
-			imatMeetingId
+			imatMeetingId,
 		);
 	} else {
 		imatAttendances = await getImatMeetingAttendanceSummaryForSession(
 			user,
 			group,
-			session
+			session,
 		);
 	}
 
@@ -154,7 +153,7 @@ export async function importAttendances(
 	// Clear AttendancePercentage for current entries
 	sql = db.format(
 		"UPDATE attendanceSummary SET AttendancePercentage=NULL WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
-		[group.id, session.id]
+		[group.id, session.id],
 	);
 	await db.query(sql);
 
@@ -162,7 +161,7 @@ export async function importAttendances(
 	for (const a of imatAttendances) {
 		sql =
 			db.format(
-				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, AttendancePercentage) VALUES "
+				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, AttendancePercentage) VALUES ",
 			) +
 			db.format("(UUID_TO_BIN(?), ?, ?, ?)", [
 				group.id,
@@ -179,121 +178,18 @@ export async function importAttendances(
 	return attendances;
 }
 
-export async function uploadRegistration(
-	user: UserContext,
-	group: Group,
-	session_id: number,
-	filename: string,
-	buffer: Buffer
-) {
-	const [session] = await getSessions({ id: session_id });
-	if (!session)
-		throw new NotFoundError(`Session id=${session_id} does not exist`);
-
-	const ssRegistrations = await parseRegistrationSpreadsheet(
-		filename,
-		buffer
-	);
-	const users = await getUsers();
-	const registrations = ssRegistrations.map((r) => {
-		const email = r.Email.toLowerCase();
-		const sapin = r.SAPIN;
-		let Matched: null | "SAPIN" | "EMAIL" = null;
-		let user = users.find((u) => u.SAPIN === sapin);
-		if (user) {
-			Matched = "SAPIN";
-		} else {
-			user = users.find((u) => u.Email.toLowerCase() === email);
-			if (user) Matched = "EMAIL";
-		}
-		const entity: SessionRegistration = {
-			...r,
-			Matched,
-			CurrentSAPIN: user ? user.SAPIN : null,
-			CurrentName: user ? user.Name : null,
-			CurrentEmail: user ? user.Email : null,
-		};
-		return entity;
-	});
-
-	let sql: string;
-
-	// Clear InPerson and IsRegistered for current entries
-	sql = db.format(
-		"UPDATE attendanceSummary SET InPerson=NULL, IsRegistered=NULL WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
-		[group.id, session_id]
-	);
-	await db.query(sql);
-
-	const queries: Promise<ResultSetHeader>[] = [];
-	for (const r of registrations) {
-		if (r.CurrentSAPIN === null) continue; // Not (yet) present in users table
-		const InPerson = /virtual|remote/i.test(r.RegType) ? 0 : 1;
-		const IsRegistered = 1;
-		let DidNotAttend = 0;
-		let Notes: string | null = null;
-		if (/student/i.test(r.RegType)) {
-			DidNotAttend = 1;
-			Notes = "Student registration";
-		}
-		sql =
-			db.format(
-				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, InPerson, IsRegistered, DidNotAttend, Notes) VALUES "
-			) +
-			db.format("(UUID_TO_BIN(?), ?, ?, ?, ?, ?, ?)", [
-				group.id,
-				session_id,
-				r.CurrentSAPIN,
-				InPerson,
-				IsRegistered,
-				DidNotAttend,
-				Notes,
-			]) +
-			" ON DUPLICATE KEY UPDATE InPerson=VALUES(InPerson), IsRegistered=VALUES(IsRegistered), DidNotAttend=VALUES(DidNotAttend), Notes=VALUES(Notes)";
-		queries.push(db.query(sql));
-	}
-	await Promise.all(queries);
-
-	const attendances = await getAttendances({ groupId: group.id, session_id });
-	return { registrations, attendances };
-}
-
 export async function loadRegistration(
 	user: UserContext,
 	group: Group,
 	session_id: number,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ) {
 	const [session] = await getSessions({ id: session_id });
 	if (!session)
 		throw new NotFoundError(`Session id=${session_id} does not exist`);
 
-	const ssRegistrations = await parseRegistrationSpreadsheet(
-		filename,
-		buffer
-	);
-	const users = await getUsers();
-	const registrations = ssRegistrations.map((r) => {
-		const email = r.Email.toLowerCase();
-		const sapin = r.SAPIN;
-		let Matched: null | "SAPIN" | "EMAIL" = null;
-		let user = users.find((u) => u.SAPIN === sapin);
-		if (user) {
-			Matched = "SAPIN";
-		} else {
-			user = users.find((u) => u.Email.toLowerCase() === email);
-			if (user) Matched = "EMAIL";
-		}
-		const entity: SessionRegistration = {
-			...r,
-			Matched,
-			CurrentSAPIN: user ? user.SAPIN : null,
-			CurrentName: user ? user.Name : null,
-			CurrentEmail: user ? user.Email : null,
-		};
-		return entity;
-	});
+	const registrations = await parseRegistrationSpreadsheet(filename, buffer);
 
 	return registrations;
 }
@@ -311,7 +207,7 @@ export async function exportAttendeesForMinutes(
 	user: UserContext,
 	group: Group,
 	session_id: number,
-	res: Response
+	res: Response,
 ) {
 	const [session] = await getSessions({ id: session_id });
 	if (!session)
@@ -345,7 +241,7 @@ export async function exportAttendeesForMinutes(
 		group,
 		session,
 		memberAttendances,
-		res
+		res,
 	);
 }
 
@@ -372,7 +268,7 @@ export async function exportAttendeesForDVL(
 	user: UserContext,
 	group: Group,
 	session_id: number,
-	res: Response
+	res: Response,
 ) {
 	const [session] = await getSessions({ id: session_id });
 	if (!session)
@@ -430,13 +326,13 @@ function attendanceSummaryChanges(a: SessionAttendanceSummaryChange) {
 
 async function updateAttendance(
 	groupId: string,
-	{ id, changes }: SessionAttendanceSummaryUpdate
+	{ id, changes }: SessionAttendanceSummaryUpdate,
 ) {
 	changes = attendanceSummaryChanges(changes);
 	if (Object.keys(changes).length > 0) {
 		const sql = db.format(
 			"UPDATE attendanceSummary SET ? WHERE id=? AND groupId=UUID_TO_BIN(?)",
-			[changes, id, groupId]
+			[changes, id, groupId],
 		);
 		await db.query(sql);
 	}
@@ -446,23 +342,23 @@ async function updateAttendance(
 
 export async function updateAttendances(
 	groupId: string,
-	updates: SessionAttendanceSummaryUpdate[]
+	updates: SessionAttendanceSummaryUpdate[],
 ) {
 	const attendances = await Promise.all(
-		updates.map((update) => updateAttendance(groupId, update))
+		updates.map((update) => updateAttendance(groupId, update)),
 	);
 	return attendances;
 }
 
 async function addAttendance(
 	groupId: string,
-	attendanceIn: SessionAttendanceSummaryCreate
+	attendanceIn: SessionAttendanceSummaryCreate,
 ) {
 	const changes = attendanceSummaryChanges(attendanceIn);
 
 	const { insertId } = await db.query<ResultSetHeader>(
 		"INSERT attendanceSummary SET groupId=UUID_TO_BIN(?), ?",
-		[groupId, changes]
+		[groupId, changes],
 	);
 
 	const [attendance] = await getAttendances({ id: insertId });
@@ -471,10 +367,10 @@ async function addAttendance(
 
 export async function addAttendances(
 	groupId: string,
-	attendances: SessionAttendanceSummaryCreate[]
+	attendances: SessionAttendanceSummaryCreate[],
 ) {
 	attendances = await Promise.all(
-		attendances.map((a) => addAttendance(groupId, a))
+		attendances.map((a) => addAttendance(groupId, a)),
 	);
 	return attendances;
 }
@@ -483,7 +379,7 @@ export async function deleteAttendances(groupId: string, ids: number[]) {
 	if (ids.length === 0) return 0;
 	const sql = db.format(
 		"DELETE FROM attendanceSummary WHERE groupId=UUID_TO_BIN(?) AND ID IN (?)",
-		[groupId, ids]
+		[groupId, ids],
 	);
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
@@ -491,11 +387,11 @@ export async function deleteAttendances(groupId: string, ids: number[]) {
 
 export async function deleteAllSessionAttendances(
 	groupId: string,
-	sessionId: number
+	sessionId: number,
 ) {
 	const sql = db.format(
 		"DELETE FROM attendanceSummary WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
-		[groupId, sessionId]
+		[groupId, sessionId],
 	);
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;

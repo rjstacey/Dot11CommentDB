@@ -277,6 +277,7 @@ export const importAttendanceSummary =
 export const addAttendanceSummaries =
 	(adds: SessionAttendanceSummaryCreate[]): AppThunk =>
 	async (dispatch, getState) => {
+		if (adds.length === 0) return;
 		const groupName = selectAttendanceSummariesGroupName(getState());
 		const url = `/api/${groupName}/attendances`;
 		let attendances: SessionAttendanceSummary[];
@@ -293,6 +294,7 @@ export const addAttendanceSummaries =
 export const updateAttendanceSummaries =
 	(updates: SessionAttendanceSummaryUpdate[]): AppThunk =>
 	async (dispatch, getState) => {
+		if (updates.length === 0) return;
 		dispatch(updateMany(updates));
 		const groupName = selectAttendanceSummariesGroupName(getState());
 		const url = `/api/${groupName}/attendances`;
@@ -310,6 +312,7 @@ export const updateAttendanceSummaries =
 export const deleteAttendanceSummaries =
 	(ids: EntityId[]): AppThunk =>
 	async (dispatch, getState) => {
+		if (ids.length === 0) return;
 		dispatch(removeMany(ids));
 		const groupName = selectAttendanceSummariesGroupName(getState());
 		const url = `/api/${groupName}/attendances`;

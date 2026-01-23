@@ -17,6 +17,7 @@ import {
 import type { RootState, AppThunk } from ".";
 import { setError } from ".";
 import type { ContactInfo } from "./members";
+import { selectIeeeMemberEntities } from "./ieeeMembers";
 import { selectMemberEntities } from "./members";
 import { selectSessionEntities } from "./sessions";
 import {
@@ -28,7 +29,6 @@ import {
 	imatAttendanceSummariesSchema,
 	type ImatAttendanceSummary,
 } from "@schemas/imat";
-import { selectIeeeMemberEntities } from "./ieeeMembers";
 export type { ImatAttendanceSummary };
 
 export const fields: Fields = {
@@ -125,7 +125,7 @@ const slice = createAppTableDataSlice({
 						dataAdapter.removeAll(state);
 					}
 					state.lastLoad = new Date().toISOString();
-				}
+				},
 			)
 			.addMatcher(
 				(action: Action) =>
@@ -136,7 +136,7 @@ const slice = createAppTableDataSlice({
 					state.valid = false;
 					dataAdapter.removeAll(state);
 					state.lastLoad = null;
-				}
+				},
 			);
 	},
 });
@@ -182,7 +182,7 @@ export const selectImatAttendanceSummarySession = (state: RootState) => {
 export const selectImatAttendanceSummarySelected = createSelector(
 	(state: RootState) => selectImatAttendanceSummaryState(state).selected,
 	selectImatAttendanceSummaryEntities,
-	(selected, entities) => selected.filter((id) => Boolean(entities[id]))
+	(selected, entities) => selected.filter((id) => Boolean(entities[id])),
 );
 
 export const selectImatAttendanceSummarySyncedEntities = createSelector(
@@ -191,7 +191,7 @@ export const selectImatAttendanceSummarySyncedEntities = createSelector(
 	(state: RootState) =>
 		selectAttendanceSummaryEntitiesForSession(
 			state,
-			selectImatAttendanceSummarySessionId(state)
+			selectImatAttendanceSummarySessionId(state),
 		),
 	selectIeeeMemberEntities,
 	selectMemberEntities,
@@ -202,7 +202,7 @@ export const selectImatAttendanceSummarySyncedEntities = createSelector(
 		attendanceSummaryEntities,
 		ieeeMemberEntities,
 		memberEntities,
-		session_id
+		session_id,
 	) => {
 		const syncedEntities: Record<EntityId, SyncedSessionAttendee> = {};
 		const allSAPINs = new Set<number>(
@@ -210,9 +210,9 @@ export const selectImatAttendanceSummarySyncedEntities = createSelector(
 				.map(Number)
 				.concat(
 					Object.values(attendanceSummaryEntities).map(
-						(a) => a!.SAPIN
-					)
-				)
+						(a) => a!.SAPIN,
+					),
+				),
 		);
 		allSAPINs.forEach((sapin) => {
 			const entity = entities[sapin];
@@ -273,7 +273,7 @@ export const selectImatAttendanceSummarySyncedEntities = createSelector(
 			syncedEntities[sapin] = syncedEntity;
 		});
 		return syncedEntities;
-	}
+	},
 );
 
 export const selectImatAttendanceSummarySyncedIds = createSelector(
@@ -281,13 +281,13 @@ export const selectImatAttendanceSummarySyncedIds = createSelector(
 	(entities) =>
 		Object.keys(entities)
 			.map(Number)
-			.sort((a, b) => a - b)
+			.sort((a, b) => a - b),
 );
 
 export const selectImatAttendanceSummarySelectedSyncedIds = createSelector(
 	(state: RootState) => selectImatAttendanceSummaryState(state).selected,
 	selectImatAttendanceSummarySyncedEntities,
-	(selected, entities) => selected.filter((id) => Boolean(entities[id]))
+	(selected, entities) => selected.filter((id) => Boolean(entities[id])),
 );
 
 export const sessionAttendeesSelectors = getAppTableDataSelectors(
@@ -296,7 +296,7 @@ export const sessionAttendeesSelectors = getAppTableDataSelectors(
 		selectEntities: selectImatAttendanceSummarySyncedEntities,
 		selectIds: selectImatAttendanceSummarySyncedIds,
 		getField,
-	}
+	},
 );
 
 export const selectUiProperties = sessionAttendeesSelectors.selectUiProperties;
@@ -312,7 +312,7 @@ export const loadImatAttendanceSummary =
 		groupName: string,
 		sessionId: number,
 		useDaily = false,
-		force = false
+		force = false,
 	): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const session = selectSessionEntities(getState())[sessionId];
@@ -322,8 +322,8 @@ export const loadImatAttendanceSummary =
 					"Can't retrieve attendance",
 					session
 						? "No IMAT meeting associated with session"
-						: "Bad session"
-				)
+						: "Bad session",
+				),
 			);
 			dispatch(clearImatAttendanceSummary());
 			return;

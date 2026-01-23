@@ -18,7 +18,6 @@ import {
 	updateAttendances,
 	deleteAttendances,
 	importAttendances,
-	uploadRegistration,
 	loadRegistration,
 	exportAttendeesForMinutes,
 	deleteAllSessionAttendances,
@@ -71,7 +70,7 @@ function validatePermissions(req: Request, res: Response, next: NextFunction) {
 async function getSessionIdExport(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const user = req.user;
@@ -90,7 +89,7 @@ async function getSessionIdExport(
 async function postSessionIdImport(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const user = req.user;
@@ -105,36 +104,10 @@ async function postSessionIdImport(
 	}
 }
 
-async function postSessionIdUpload(
-	req: Request,
-	res: Response,
-	next: NextFunction
-) {
-	try {
-		const user = req.user;
-		const group = req.group!;
-		const session_id = sessionIdOrThrow(req);
-		const format = req.query.format;
-		if (format && format !== "registration")
-			throw new BadRequestError("Invalid format parameter");
-		const { filename, buffer } = fileBufferOrThrow(req);
-		const data = await uploadRegistration(
-			user,
-			group,
-			session_id,
-			filename,
-			buffer
-		);
-		res.json(data);
-	} catch (error) {
-		next(error);
-	}
-}
-
 async function postSessionIdLoad(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const user = req.user;
@@ -149,7 +122,7 @@ async function postSessionIdLoad(
 			group,
 			session_id,
 			filename,
-			buffer
+			buffer,
 		);
 		res.json(data);
 	} catch (error) {
@@ -171,7 +144,7 @@ async function get(req: Request, res: Response, next: NextFunction) {
 async function removeSessionId(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const groupId = req.group!.id;
@@ -187,7 +160,7 @@ async function addMany(req: Request, res: Response, next: NextFunction) {
 	try {
 		const groupId = req.group!.id;
 		const attendances = sessionAttendanceSummaryCreatesSchema.parse(
-			req.body
+			req.body,
 		);
 		const data = await addAttendances(groupId, attendances);
 		res.json(data);
@@ -224,7 +197,6 @@ router
 	.delete("/:session_id", removeSessionId)
 	.get("/:session_id/export", getSessionIdExport)
 	.post("/:session_id/import", postSessionIdImport)
-	.post("/:session_id/upload", postSessionIdUpload)
 	.post("/:session_id/load", postSessionIdLoad);
 router.route("/").get(get).post(addMany).patch(updateMany).delete(removeMany);
 

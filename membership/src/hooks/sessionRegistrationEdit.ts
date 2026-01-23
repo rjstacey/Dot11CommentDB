@@ -1,54 +1,38 @@
 import React from "react";
 import isEqual from "lodash.isequal";
+import { shallowDiff } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectSessionRegistrationState,
-	selectSessionRegistrationEntities,
+	selectSessionRegistrationSyncedEntities,
 	selectSessionRegistrationSession,
-	type SessionRegistration,
+	type SyncedSessionRegistration,
 } from "@/store/sessionRegistration";
-import { selectIeeeMemberEntities } from "@/store/ieeeMembers";
-import { selectMemberEntities, type MemberCreate } from "@/store/members";
 import {
-	getNullAttendanceSummary,
 	addAttendanceSummaries,
 	updateAttendanceSummaries,
-	selectAttendanceSummaryEntitiesForSession,
 	type SessionAttendanceSummary,
 	type SessionAttendanceSummaryCreate,
 	type SessionAttendanceSummaryUpdate,
 	type SessionAttendanceSummaryChange,
 } from "@/store/attendanceSummaries";
 
-import { useAttendanceUpdate } from "./attendanceActions";
-
 /** Identify changes to attendance summary */
 function sessionRegistrationAttendanceChanges(
-	attendanceSummary: SessionAttendanceSummary,
-	registration: SessionRegistration
+	entity: SyncedSessionRegistration,
 ) {
 	const changes: SessionAttendanceSummaryChange = {};
-	if (!attendanceSummary.IsRegistered) {
-		changes.IsRegistered = true;
-	}
-	if (/virtual/i.test(registration.RegType) && attendanceSummary.InPerson) {
-		changes.InPerson = false;
-	}
-	if (
-		/in-person/i.test(registration.RegType) &&
-		!attendanceSummary.InPerson
-	) {
-		changes.InPerson = true;
-	}
-	if (
-		/student/i.test(registration.RegType) &&
-		!attendanceSummary.DidNotAttend
-	) {
-		changes.DidNotAttend = true;
-		changes.Notes =
-			(attendanceSummary.Notes ? attendanceSummary.Notes + "; " : "") +
-			"Student registration";
+	const a = entity.attendance;
+	if (a) {
+		if (entity.IsRegistered !== a.IsRegistered)
+			changes.IsRegistered = entity.IsRegistered;
+		if (entity.InPerson !== a.InPerson) changes.InPerson = entity.InPerson;
+		if (entity.DidAttend !== a.DidAttend)
+			changes.DidAttend = entity.DidAttend;
+		if (entity.DidNotAttend !== a.DidNotAttend)
+			changes.DidNotAttend = entity.DidNotAttend;
+		if (entity.Notes !== a.Notes) changes.Notes = entity.Notes;
 	}
 	return changes;
 }
@@ -57,8 +41,7 @@ export type SessionRegistrationEditState =
 	| {
 			action: "updateOne";
 			ids: number[];
-			registration: SessionRegistration;
-			member: MemberCreate;
+			registration: SyncedSessionRegistration;
 			attendanceEdit: SessionAttendanceSummary;
 			attendanceSaved: SessionAttendanceSummary;
 			attendances: SessionAttendanceSummary[];
@@ -66,7 +49,7 @@ export type SessionRegistrationEditState =
 	| {
 			action: "unmatched";
 			ids: number[];
-			registration: SessionRegistration;
+			registration: SyncedSessionRegistration;
 	  }
 	| {
 			action: "updateMany";
@@ -84,13 +67,8 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 	const session = useAppSelector(selectSessionRegistrationSession);
 	if (!session) throw new Error("No session for session registration");
 	const { loading, valid } = useAppSelector(selectSessionRegistrationState);
-	const registrationEntities = useAppSelector(
-		selectSessionRegistrationEntities
-	);
-	const ieeeMemberEntities = useAppSelector(selectIeeeMemberEntities);
-	const memberEntities = useAppSelector(selectMemberEntities);
-	const attendanceSummaryEntities = useAppSelector((state) =>
-		selectAttendanceSummaryEntitiesForSession(state, session.id)
+	const syncedEntities = useAppSelector(
+		selectSessionRegistrationSyncedEntities,
 	);
 
 	return React.useMemo(() => {
@@ -108,49 +86,25 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 			} satisfies SessionRegistrationEditState;
 		} else if (ids.length === 1) {
 			const id = ids[0];
-			const registration = registrationEntities[id];
+			const registration = syncedEntities[id];
 			if (!registration) throw new Error("Invalid selection");
-			if (registration.CurrentSAPIN) {
-				let member: MemberCreate | undefined =
-					memberEntities[registration.CurrentSAPIN];
-				if (!member) {
-					const ieeeMember =
-						ieeeMemberEntities[registration.CurrentSAPIN];
-					if (ieeeMember) {
-						member = {
-							...ieeeMember,
-							Affiliation: "",
-							Status: "Non-Voter",
-						};
-					}
-				}
-				if (member) {
-					const attendanceSummary =
-						attendanceSummaryEntities[registration.CurrentSAPIN] ||
-						getNullAttendanceSummary(
-							session.id,
-							registration.CurrentSAPIN
-						);
-					const attendanceSaved: SessionAttendanceSummary =
-						attendanceSummary;
-					const changes = sessionRegistrationAttendanceChanges(
-						attendanceSummary,
-						registration
-					);
-					const attendanceEdit: SessionAttendanceSummary =
-						Object.keys(changes).length > 0
-							? { ...attendanceSummary, ...changes }
-							: attendanceSummary;
-					return {
-						action: "updateOne",
-						ids,
-						registration,
-						member,
-						attendanceEdit,
-						attendanceSaved,
-						attendances: [attendanceSummary],
-					} satisfies SessionRegistrationEditState;
-				}
+			const a = registration.attendance;
+			if (a) {
+				const attendanceSaved = a;
+				const changes =
+					sessionRegistrationAttendanceChanges(registration);
+				const attendanceEdit: SessionAttendanceSummary =
+					Object.keys(changes).length > 0
+						? { ...attendanceSaved, ...changes }
+						: attendanceSaved;
+				return {
+					action: "updateOne",
+					ids,
+					registration,
+					attendanceEdit,
+					attendanceSaved,
+					attendances: [attendanceSaved],
+				} satisfies SessionRegistrationEditState;
 			}
 			return {
 				action: "unmatched",
@@ -161,25 +115,19 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 			const updates: SessionAttendanceSummaryUpdate[] = [];
 			const adds: SessionAttendanceSummaryCreate[] = [];
 			for (const id of ids) {
-				const registration = registrationEntities[id];
+				const registration = syncedEntities[id];
 				if (!registration) throw new Error("Invalid selection");
-				if (registration.CurrentSAPIN) {
-					const attendanceSummary =
-						attendanceSummaryEntities[registration.CurrentSAPIN] ||
-						getNullAttendanceSummary(
-							session.id,
-							registration.CurrentSAPIN
-						);
-					const changes = sessionRegistrationAttendanceChanges(
-						attendanceSummary,
-						registration
-					);
-					if (attendanceSummary.id) {
+				const a = registration.attendance;
+				if (a) {
+					const changes =
+						sessionRegistrationAttendanceChanges(registration);
+					const id = a.id;
+					if (id) {
 						if (Object.keys(changes).length > 0) {
-							updates.push({ id: attendanceSummary.id, changes });
+							updates.push({ id, changes });
 						}
 					} else {
-						adds.push({ ...attendanceSummary, ...changes });
+						adds.push({ ...a, ...changes });
 					}
 				}
 			}
@@ -190,15 +138,7 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 				updates,
 			} satisfies SessionRegistrationEditState;
 		}
-	}, [
-		loading,
-		valid,
-		ids,
-		ieeeMemberEntities,
-		attendanceSummaryEntities,
-		registrationEntities,
-		session,
-	]);
+	}, [loading, valid, ids, syncedEntities, session]);
 }
 
 export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
@@ -231,7 +171,7 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 				return state;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
 	const hasChanges = React.useCallback(
@@ -240,25 +180,34 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 				state.attendanceEdit !== state.attendanceSaved) ||
 			(state.action === "updateMany" &&
 				(state.adds.length > 0 || state.updates.length > 0)),
-		[state]
+		[state],
 	);
-
-	const attendanceUpdate = useAttendanceUpdate();
 
 	const submit = React.useCallback(async () => {
 		if (state.action === "updateOne") {
-			await attendanceUpdate(
-				state.attendances,
-				state.attendanceEdit,
-				state.attendanceSaved
-			);
+			const id = state.attendanceSaved.id;
+			if (id) {
+				const changes = shallowDiff(
+					state.attendanceSaved,
+					state.attendanceEdit,
+				) as SessionAttendanceSummaryChange;
+				if (Object.keys(changes).length > 0) {
+					dispatch(updateAttendanceSummaries([{ id, changes }]));
+					setState({
+						...state,
+						attendanceSaved: state.attendanceEdit,
+					});
+				}
+			} else {
+				dispatch(addAttendanceSummaries([state.attendanceEdit]));
+			}
 		} else if (state.action === "updateMany") {
 			await Promise.all([
 				dispatch(addAttendanceSummaries(state.adds)),
 				dispatch(updateAttendanceSummaries(state.updates)),
 			]);
 		}
-	}, [attendanceUpdate, dispatch, state]);
+	}, [dispatch, setState, state]);
 
 	const cancel = React.useCallback(() => {
 		setState((state) => {

@@ -12,12 +12,10 @@ import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import { useAppDispatch } from "@/store/hooks";
 import {
 	updateOneSessionRegistration,
-	type SessionRegistration,
+	type SyncedSessionRegistration,
 } from "@/store/sessionRegistration";
-import type { MemberCreate } from "@/store/members";
 
 export function RegistrationEditForm({
-	member,
 	registration,
 	edited,
 	saved,
@@ -26,8 +24,7 @@ export function RegistrationEditForm({
 	submit,
 	cancel,
 }: {
-	member: MemberCreate;
-	registration: SessionRegistration;
+	registration: SyncedSessionRegistration;
 	edited: SessionAttendanceSummary;
 	saved: SessionAttendanceSummary;
 	onChange: (changes: SessionAttendanceSummaryChange) => void;
@@ -49,14 +46,15 @@ export function RegistrationEditForm({
 		dispatch(
 			updateOneSessionRegistration({
 				id: registration.id,
-				changes: { CurrentSAPIN: null },
-			})
+				changes: { SAPIN: 0 },
+			}),
 		);
 	}
+	const member = registration.member!;
 
 	return (
 		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
-			<Row className="mb-3">
+			<Row>
 				<Table>
 					<thead>
 						<tr>
@@ -93,6 +91,9 @@ export function RegistrationEditForm({
 						</tr>
 					</tbody>
 				</Table>
+			</Row>
+			<Row className="mb-3">
+				<p>{`Match by ${registration.Matched}`}</p>
 			</Row>
 			<Form.Group as={Row} controlId="registration-type" className="mb-3">
 				<Col>
