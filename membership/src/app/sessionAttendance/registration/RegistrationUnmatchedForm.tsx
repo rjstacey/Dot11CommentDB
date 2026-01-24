@@ -1,7 +1,4 @@
-import React from "react";
 import { Row, Col, Table, Form } from "react-bootstrap";
-
-import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 import { IeeeMemberSelector } from "@/components/IeeeMemberSelector";
 
 import {
@@ -12,25 +9,13 @@ import { useAppDispatch } from "@/store/hooks";
 
 export function RegistrationUnmatchedForm({
 	registration,
-	submit,
-	cancel,
 }: {
 	registration: SessionRegistration;
-	submit: () => Promise<void>;
-	cancel: () => void;
 }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault();
-		setBusy(true);
-		await submit();
-		setBusy(false);
-	}
 
 	return (
-		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
+		<Form noValidate validated className="p-3">
 			<Row>
 				<Table>
 					<thead>
@@ -70,11 +55,6 @@ export function RegistrationUnmatchedForm({
 					/>
 				</Col>
 			</Form.Group>
-			<SubmitCancelRow
-				submitLabel={"Update"}
-				cancel={cancel}
-				busy={busy}
-			/>
 		</Form>
 	);
 }

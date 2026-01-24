@@ -40,12 +40,9 @@ export function RegistrationDetail() {
 			/>
 		);
 	} else if (state.action === "unmatched") {
+		title = "No member match for registration";
 		content = (
-			<RegistrationUnmatchedForm
-				registration={state.registration}
-				submit={submit}
-				cancel={cancel}
-			/>
+			<RegistrationUnmatchedForm registration={state.registration} />
 		);
 	} else if (state.action === "updateMany") {
 		if (hasChanges()) title = "Update registrations";
