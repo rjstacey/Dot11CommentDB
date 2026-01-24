@@ -29,50 +29,49 @@ const renderSAPIN = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => {
 	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
 };
 
-const renderName = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => (
-	<TruncatedDiff
-		className="fw-bold"
-		newStr={rowData.Name}
-		oldStr={rowData.member?.Name || null}
-	/>
-);
+const renderName = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => {
+	const newStr = rowData.Name;
+	let oldStr = rowData.member?.Name || null;
+	if (oldStr && newStr === oldStr) oldStr = null;
+	return (
+		<TruncatedDiff className="fw-bold" newStr={newStr} oldStr={oldStr} />
+	);
+};
 
-const renderEmail = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => (
-	<TruncatedDiff
-		newStr={rowData.Email}
-		oldStr={rowData.member?.Email || null}
-	/>
-);
+const renderEmail = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => {
+	const newStr = rowData.Email;
+	let oldStr = rowData.member?.Email || null;
+	if (oldStr && newStr === oldStr) oldStr = null;
+	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
+};
 
 const renderEmployer = ({
 	rowData,
 }: CellRendererProps<SyncedSessionAttendee>) => {
 	// The "Employer" field is present with "daily attendance" but undefined with "attendance summary"
 	if (rowData.Employer === undefined) return "N/A";
-	return (
-		<TruncatedDiff
-			newStr={rowData.Employer}
-			oldStr={rowData.member?.Employer || null}
-		/>
-	);
+	const newStr = rowData.Employer;
+	let oldStr = rowData.member?.Employer || null;
+	if (oldStr && newStr === oldStr) oldStr = null;
+	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
 };
 
 const renderAffiliation = ({
 	rowData,
-}: CellRendererProps<SyncedSessionAttendee>) => (
-	<TruncatedDiff
-		newStr={rowData.Affiliation}
-		oldStr={rowData.member?.Affiliation || null}
-	/>
-);
+}: CellRendererProps<SyncedSessionAttendee>) => {
+	const newStr = rowData.Affiliation;
+	let oldStr = rowData.member?.Affiliation || null;
+	if (oldStr && newStr === oldStr) oldStr = null;
+	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
+};
 
 const renderAttendance = ({
 	rowData,
 }: CellRendererProps<SyncedSessionAttendee>) => {
 	const newStr = rowData.AttendancePercentage.toFixed(1) + "%";
-	let oldStr: string | null = null;
-	if (rowData.attendance && rowData.attendance.AttendancePercentage)
-		oldStr = rowData.attendance.AttendancePercentage.toFixed(1) + "%";
+	let oldStr: string | null =
+		(rowData.attendance?.AttendancePercentage || 0).toFixed(1) + "%";
+	if (newStr === oldStr) oldStr = null;
 	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
 };
 
