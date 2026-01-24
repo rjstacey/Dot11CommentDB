@@ -62,8 +62,8 @@ export function RegistrationUnmatchedForm({
 							dispatch(
 								updateOneSessionRegistration({
 									id: registration.id,
-									changes: { CurrentSAPIN: sapin },
-								})
+									changes: { SAPIN: sapin },
+								}),
 							)
 						}
 						showAll

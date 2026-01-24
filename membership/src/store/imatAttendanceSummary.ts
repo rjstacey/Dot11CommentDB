@@ -4,7 +4,6 @@ import {
 	EntityId,
 	Action,
 } from "@reduxjs/toolkit";
-import isEqual from "lodash.isequal";
 
 import {
 	fetcher,
@@ -16,8 +15,8 @@ import {
 
 import type { RootState, AppThunk } from ".";
 import { setError } from ".";
-import type { ContactInfo } from "./members";
-import { selectIeeeMemberEntities } from "./ieeeMembers";
+import type { MemberCreate } from "./members";
+import { selectIeeeMemberEntities, type IeeeMember } from "./ieeeMembers";
 import { selectMemberEntities } from "./members";
 import { selectSessionEntities } from "./sessions";
 import {
@@ -52,37 +51,64 @@ export const fields: Fields = {
 	Notes: { label: "Notes" },
 };
 
-type ImatAttendanceSummaryWithSummary = ImatAttendanceSummary &
-	SessionAttendanceSummary;
+/** Create an ImatAttendanceSummary with zero attendance percentage */
+function getImatAttendanceSummaryZero(
+	sapin: number,
+	u: IeeeMember | undefined,
+) {
+	return {
+		SAPIN: sapin,
+		Name: u ? u.Name : "",
+		FirstName: u ? u.FirstName : "",
+		MI: u ? u.MI : "",
+		LastName: u ? u.LastName : "",
+		Email: u ? u.Email : "",
+		Employer: u ? u.Employer : "",
+		Affiliation: "",
+		AttendancePercentage: 0,
+		Status: "New",
+	} satisfies ImatAttendanceSummary;
+}
 
-export type SyncedSessionAttendee = ImatAttendanceSummaryWithSummary & {
-	Status: string;
-	CurrentName: string | null;
-	CurrentAffiliation: string | null;
-	CurrentEmployer: string | null;
-	CurrentEmail: string | null;
-	CurrentContactInfo: ContactInfo | null;
-	CurrentAttendancePercentage: number | null;
+/*export type SyncedSessionAttendee = ImatAttendanceSummary &
+	SessionAttendanceSummary & {
+		Status: string;
+		CurrentName: string | null;
+		CurrentAffiliation: string | null;
+		CurrentEmployer: string | null;
+		CurrentEmail: string | null;
+		CurrentContactInfo: ContactInfo | null;
+		CurrentAttendancePercentage: number | null;
+	};*/
+export type SyncedSessionAttendee = ImatAttendanceSummary & {
+	member: MemberCreate | undefined;
+	attendance: SessionAttendanceSummary | undefined;
 };
 
 /* Fields derived from other fields */
 export function getField(entity: SyncedSessionAttendee, key: string) {
 	if (key === "SAPIN") {
-		return entity.SAPIN !== entity.CurrentSAPIN ? entity.SAPIN : "";
+		return entity.SAPIN !== entity.member?.SAPIN ? entity.SAPIN : "";
 	}
 	if (key === "AttendanceOverride") {
-		return entity.DidAttend
+		return entity.attendance?.DidAttend
 			? "Did attend"
-			: entity.DidNotAttend
+			: entity.attendance?.DidNotAttend
 				? "Did not attend"
 				: "";
 	}
-	return entity[key as keyof SessionAttendanceSummary];
+	if (["IsRegistered", "InPerson", "Notes"].includes(key)) {
+		return entity.attendance
+			? entity.attendance[key as keyof SessionAttendanceSummary]
+			: "";
+	}
+	if (key === "Status") {
+		return entity.member?.Status || "New";
+	}
+	return entity[key as keyof SyncedSessionAttendee];
 }
 
-/*
- * Slice
- */
+/** Slice */
 const selectId = (attendee: ImatAttendanceSummary) => attendee.SAPIN;
 const sortComparer = (m1: ImatAttendanceSummary, m2: ImatAttendanceSummary) =>
 	m1.SAPIN - m2.SAPIN;
@@ -143,9 +169,7 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-/*
- * Slice actions
- */
+/** Slice actions */
 export const sessionAttendeesActions = slice.actions;
 export const { setSelected, setUiProperties } = slice.actions;
 export const clearImatAttendanceSummary = createAction(dataSet + "/clear");
@@ -157,9 +181,7 @@ const getPending = createAction<{
 	useDaily: boolean;
 }>(dataSet + "/getPending");
 
-/*
- * Selectors
- */
+/** Selectors */
 export const selectImatAttendanceSummaryState = (state: RootState) =>
 	state[dataSet];
 const selectSessionAttendeesAge = (state: RootState) => {
@@ -205,71 +227,31 @@ export const selectImatAttendanceSummarySyncedEntities = createSelector(
 		session_id,
 	) => {
 		const syncedEntities: Record<EntityId, SyncedSessionAttendee> = {};
-		const allSAPINs = new Set<number>(
-			ids
-				.map(Number)
-				.concat(
-					Object.values(attendanceSummaryEntities).map(
-						(a) => a!.SAPIN,
-					),
-				),
-		);
-		allSAPINs.forEach((sapin) => {
-			const entity = entities[sapin];
-			const u = ieeeMemberEntities[sapin];
-			const m = memberEntities[sapin];
-			const a =
+		ids.forEach((sapin) => {
+			const entity = entities[sapin]!;
+			const member = memberEntities[sapin];
+			const attendance =
 				attendanceSummaryEntities[sapin] ||
-				getNullAttendanceSummary(session_id || 0, sapin);
-			const AttendancePercentage = a.AttendancePercentage || 0;
+				getNullAttendanceSummary(session_id || 0, sapin as number);
 			const syncedEntity: SyncedSessionAttendee = {
-				...a,
-				AttendancePercentage,
-				Name: u?.Name || "",
-				FirstName: u?.FirstName || "",
-				LastName: u?.LastName || "",
-				MI: u?.MI || "",
-				Email: u?.Email || "",
-				Employer: u?.Employer || "",
-				Affiliation: "",
-				ContactInfo: u?.ContactInfo || undefined,
 				...entity,
-				CurrentAttendancePercentage: null,
-				CurrentAffiliation: null,
-				CurrentEmployer: null,
-				CurrentName: null,
-				CurrentEmail: null,
-				CurrentContactInfo: null,
-				Status: "New",
+				attendance,
+				member,
 			};
-			if (
-				syncedEntity.AttendancePercentage.toFixed(1) !==
-				AttendancePercentage.toFixed(1)
-			) {
-				syncedEntity.CurrentAttendancePercentage = AttendancePercentage;
-			}
-			if (u && entity) {
-				if (u.Name !== entity.Name) syncedEntity.CurrentName = u.Name;
-				if (u.Email !== entity.Email)
-					syncedEntity.CurrentEmail = u.Email;
-				if (
-					entity.Employer !== undefined &&
-					u.Employer !== entity.Employer
-				) {
-					syncedEntity.CurrentEmployer = u.Employer;
-				}
-				if (
-					entity.ContactInfo !== undefined &&
-					!isEqual(u.ContactInfo, entity.ContactInfo)
-				) {
-					syncedEntity.CurrentContactInfo = u.ContactInfo;
-				}
-			}
-			if (m && entity) {
-				if (m.Affiliation !== entity.Affiliation)
-					syncedEntity.CurrentAffiliation = m.Affiliation;
-			}
-			if (m) syncedEntity.Status = m.Status;
+			syncedEntities[sapin] = syncedEntity;
+		});
+
+		Object.values(attendanceSummaryEntities).forEach((attendance) => {
+			const sapin = attendance!.SAPIN;
+			if (syncedEntities[sapin]) return;
+			const u = ieeeMemberEntities[sapin];
+			const entity = getImatAttendanceSummaryZero(sapin, u);
+			const member = memberEntities[sapin];
+			const syncedEntity: SyncedSessionAttendee = {
+				...entity,
+				attendance,
+				member,
+			};
 			syncedEntities[sapin] = syncedEntity;
 		});
 		return syncedEntities;

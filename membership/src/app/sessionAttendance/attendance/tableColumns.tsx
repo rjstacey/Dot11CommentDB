@@ -24,7 +24,7 @@ export {
 
 const renderSAPIN = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => {
 	const newStr = rowData.SAPIN.toString() || "";
-	let oldStr = rowData.CurrentSAPIN?.toString() || null;
+	let oldStr = rowData.member?.SAPIN?.toString() || null;
 	if (oldStr && newStr === oldStr) oldStr = null;
 	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
 };
@@ -33,12 +33,15 @@ const renderName = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => (
 	<TruncatedDiff
 		className="fw-bold"
 		newStr={rowData.Name}
-		oldStr={rowData.CurrentName}
+		oldStr={rowData.member?.Name || null}
 	/>
 );
 
 const renderEmail = ({ rowData }: CellRendererProps<SyncedSessionAttendee>) => (
-	<TruncatedDiff newStr={rowData.Email} oldStr={rowData.CurrentEmail} />
+	<TruncatedDiff
+		newStr={rowData.Email}
+		oldStr={rowData.member?.Email || null}
+	/>
 );
 
 const renderEmployer = ({
@@ -49,7 +52,7 @@ const renderEmployer = ({
 	return (
 		<TruncatedDiff
 			newStr={rowData.Employer}
-			oldStr={rowData.CurrentEmployer}
+			oldStr={rowData.member?.Employer || null}
 		/>
 	);
 };
@@ -59,7 +62,7 @@ const renderAffiliation = ({
 }: CellRendererProps<SyncedSessionAttendee>) => (
 	<TruncatedDiff
 		newStr={rowData.Affiliation}
-		oldStr={rowData.CurrentAffiliation}
+		oldStr={rowData.member?.Affiliation || null}
 	/>
 );
 
@@ -68,8 +71,8 @@ const renderAttendance = ({
 }: CellRendererProps<SyncedSessionAttendee>) => {
 	const newStr = rowData.AttendancePercentage.toFixed(1) + "%";
 	let oldStr: string | null = null;
-	if (rowData.CurrentAttendancePercentage !== null)
-		oldStr = rowData.CurrentAttendancePercentage.toFixed(1) + "%";
+	if (rowData.attendance && rowData.attendance.AttendancePercentage)
+		oldStr = rowData.attendance.AttendancePercentage.toFixed(1) + "%";
 	return <TruncatedDiff newStr={newStr} oldStr={oldStr} />;
 };
 

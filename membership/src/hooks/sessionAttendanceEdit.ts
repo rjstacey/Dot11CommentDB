@@ -33,6 +33,7 @@ import {
 	type SessionAttendanceSummaryChange,
 	type SessionAttendanceSummaryUpdate,
 	type SessionAttendanceSummary,
+	getNullAttendanceSummary,
 } from "@/store/attendanceSummaries";
 
 /** Create a new member from attendee */
@@ -84,21 +85,35 @@ export function sessionAttendeeToNewMember(
 /** Identify changes to an existing member */
 function sessionAttendeeMemberChanges(entity: SyncedSessionAttendee) {
 	const changes: MemberChange = {};
-	if (entity.CurrentName !== null) changes.Name = entity.Name;
-	if (entity.CurrentEmail !== null) changes.Email = entity.Email;
-	if (entity.CurrentAffiliation !== null)
-		changes.Affiliation = entity.Affiliation;
-	if (entity.CurrentEmployer !== null) changes.Employer = entity.Employer;
-	if (entity.CurrentContactInfo !== null)
-		changes.ContactInfo = entity.ContactInfo;
+	const member = entity.member;
+	if (member) {
+		if (entity.Name.toLowerCase() !== member.Name.toLowerCase())
+			changes.Name = entity.Name;
+		if (entity.Email.toLowerCase() !== member.Email.toLowerCase())
+			changes.Email = entity.Email;
+		if (entity.Affiliation !== member.Affiliation)
+			changes.Affiliation = entity.Affiliation;
+		if (entity.Employer && entity.Employer !== member.Employer)
+			changes.Employer = entity.Employer;
+		if (
+			entity.ContactInfo &&
+			!isEqual(entity.ContactInfo, member.ContactInfo)
+		)
+			changes.ContactInfo = entity.ContactInfo;
+	}
 	return changes;
 }
 
 /** Identify changes to member attendance summary */
 function sessionAttendeeAttendanceChanges(entity: SyncedSessionAttendee) {
 	const changes: SessionAttendanceSummaryChange = {};
-	if (entity.CurrentAttendancePercentage !== null)
-		changes.AttendancePercentage = entity.AttendancePercentage;
+	const attendance = entity.attendance;
+	if (attendance) {
+		const aPct1 = entity.AttendancePercentage.toFixed(1);
+		const aPct2 = attendance.AttendancePercentage?.toFixed(1) || "0";
+		if (aPct1 !== aPct2)
+			changes.AttendancePercentage = entity.AttendancePercentage;
+	}
 	return changes;
 }
 
@@ -165,11 +180,14 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 			const member = memberEntities[sapin];
 			const entity = synchedEntities[sapin];
 			const changes = sessionAttendeeAttendanceChanges(entity);
-			const attendanceSaved: SessionAttendanceSummary = entity;
+			const attendance =
+				entity.attendance ||
+				getNullAttendanceSummary(session.id, sapin);
+			const attendanceSaved: SessionAttendanceSummary = attendance;
 			const attendanceEdit: SessionAttendanceSummary =
 				Object.keys(changes).length > 0
-					? { ...entity, ...changes }
-					: entity;
+					? { ...attendance, ...changes }
+					: attendance;
 			if (member) {
 				const changes = sessionAttendeeMemberChanges(entity);
 				const memberEdit =
@@ -184,7 +202,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					memberSaved,
 					attendanceEdit,
 					attendanceSaved,
-					attendances: [entity],
+					attendances: [attendance],
 				} satisfies MemberAttendanceEditState;
 			} else {
 				const newMember = sessionAttendeeToNewMember(entity, session);
@@ -195,7 +213,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					memberSaved: undefined,
 					attendanceEdit,
 					attendanceSaved,
-					attendances: [entity],
+					attendances: [attendance],
 				} satisfies MemberAttendanceEditState;
 			}
 		} else {
@@ -218,19 +236,24 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					);
 					memberAdds.push(newMember);
 				}
-				const changes = sessionAttendeeAttendanceChanges(entity);
-				if (entity.id) {
+				const attendance = entity.attendance;
+				if (attendance) {
+					const changes = sessionAttendeeAttendanceChanges(entity);
 					if (Object.keys(changes).length > 0) {
 						attendanceUpdates.push({
-							id: entity.id,
+							id: attendance.id,
 							changes,
 						});
-					} else if (!entity.AttendancePercentage) {
+					} else if (!attendance.AttendancePercentage) {
 						// Delete entries with no attendance
-						attendanceDeletes.push(entity.id);
+						attendanceDeletes.push(attendance.id);
 					}
-				} else {
-					attendanceAdds.push({ ...entity, ...changes });
+				} else if (entity.AttendancePercentage) {
+					const a = {
+						...getNullAttendanceSummary(session.id, sapin),
+						AttendancePercentage: entity.AttendancePercentage,
+					};
+					attendanceAdds.push(a);
 				}
 			}
 			return {

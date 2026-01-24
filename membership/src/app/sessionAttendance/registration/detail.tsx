@@ -12,7 +12,7 @@ export function RegistrationDetail() {
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 	const selected = useAppSelector(
-		selectSessionRegistrationSelected
+		selectSessionRegistrationSelected,
 	) as number[];
 
 	const { state, submit, cancel, hasChanges, onChange } =
@@ -32,7 +32,6 @@ export function RegistrationDetail() {
 	} else if (state.action === "updateOne") {
 		content = (
 			<RegistrationEditForm
-				member={state.member}
 				registration={state.registration}
 				edited={state.attendanceEdit}
 				saved={state.attendanceSaved}
