@@ -19,9 +19,6 @@ export function RegistrationDetail() {
 		useSessionRegistrationEdit(selected, readOnly);
 
 	let title = "Registration detail";
-	if (state.action === "updateOne" && hasChanges()) {
-		title = "Update registration";
-	}
 	let content: React.ReactNode;
 	if (state.action === null) {
 		content = (
@@ -30,6 +27,7 @@ export function RegistrationDetail() {
 			</div>
 		);
 	} else if (state.action === "updateOne") {
+		if (hasChanges()) title = "Update registration";
 		content = (
 			<RegistrationEditForm
 				registration={state.registration}
@@ -50,6 +48,7 @@ export function RegistrationDetail() {
 			/>
 		);
 	} else if (state.action === "updateMany") {
+		if (hasChanges()) title = "Update registrations";
 		content = (
 			<RegistrationUpdateForm
 				numUpdates={state.adds.length + state.updates.length}

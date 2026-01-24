@@ -31,7 +31,7 @@ export function RegistrationUnmatchedForm({
 
 	return (
 		<Form noValidate validated onSubmit={handleSubmit} className="p-3">
-			<Row className="mb-3">
+			<Row>
 				<Table>
 					<thead>
 						<tr>

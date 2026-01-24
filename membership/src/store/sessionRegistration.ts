@@ -220,14 +220,14 @@ export const selectSessionRegistrationSyncedEntities = createSelector(
 					attendanceSummaryEntities[member.SAPIN] ||
 					getNullAttendanceSummary(session_id!, member.SAPIN);
 			}
-			const InPerson = /in-person/i.test(entity.RegType);
+			const InPerson = /person/i.test(entity.RegType); // "In person" or "In-person"
 			let DidNotAttend = false;
 			let Notes = attendance?.Notes || null;
 			if (/student/i.test(entity.RegType)) {
 				DidNotAttend = true;
 				if (Notes === null) {
 					Notes = "Student registration";
-				} else if (!/Student registration/i.test(Notes)) {
+				} else if (!/Student/i.test(Notes)) {
 					if (Notes.length > 0) Notes += "; ";
 					Notes += "Student registration";
 				}

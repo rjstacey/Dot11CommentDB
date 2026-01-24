@@ -44,7 +44,6 @@ export type SessionRegistrationEditState =
 			registration: SyncedSessionRegistration;
 			attendanceEdit: SessionAttendanceSummary;
 			attendanceSaved: SessionAttendanceSummary;
-			attendances: SessionAttendanceSummary[];
 	  }
 	| {
 			action: "unmatched";
@@ -88,22 +87,20 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 			const id = ids[0];
 			const registration = syncedEntities[id];
 			if (!registration) throw new Error("Invalid selection");
-			const a = registration.attendance;
-			if (a) {
-				const attendanceSaved = a;
+			const attendance = registration.attendance;
+			if (attendance) {
 				const changes =
 					sessionRegistrationAttendanceChanges(registration);
 				const attendanceEdit: SessionAttendanceSummary =
 					Object.keys(changes).length > 0
-						? { ...attendanceSaved, ...changes }
-						: attendanceSaved;
+						? { ...attendance, ...changes }
+						: attendance;
 				return {
 					action: "updateOne",
 					ids,
 					registration,
 					attendanceEdit,
-					attendanceSaved,
-					attendances: [attendanceSaved],
+					attendanceSaved: attendance,
 				} satisfies SessionRegistrationEditState;
 			}
 			return {
@@ -117,17 +114,17 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 			for (const id of ids) {
 				const registration = syncedEntities[id];
 				if (!registration) throw new Error("Invalid selection");
-				const a = registration.attendance;
-				if (a) {
+				const attendance = registration.attendance;
+				if (attendance) {
 					const changes =
 						sessionRegistrationAttendanceChanges(registration);
-					const id = a.id;
+					const id = attendance.id;
 					if (id) {
 						if (Object.keys(changes).length > 0) {
 							updates.push({ id, changes });
 						}
 					} else {
-						adds.push({ ...a, ...changes });
+						adds.push({ ...attendance, ...changes });
 					}
 				}
 			}
@@ -220,7 +217,7 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 			}
 			return state;
 		});
-	}, [setState, initState]);
+	}, [setState]);
 
 	return {
 		state,

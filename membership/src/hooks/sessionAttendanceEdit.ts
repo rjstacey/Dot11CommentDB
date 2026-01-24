@@ -127,7 +127,6 @@ export type MemberAttendanceEditState =
 			memberSaved: undefined;
 			attendanceEdit: SessionAttendanceSummary;
 			attendanceSaved: SessionAttendanceSummary;
-			attendances: SessionAttendanceSummary[];
 	  }
 	| {
 			action: "updateOne";
@@ -136,7 +135,6 @@ export type MemberAttendanceEditState =
 			memberSaved: Member;
 			attendanceEdit: SessionAttendanceSummary;
 			attendanceSaved: SessionAttendanceSummary;
-			attendances: SessionAttendanceSummary[];
 	  }
 	| {
 			action: "updateMany";
@@ -202,7 +200,6 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					memberSaved,
 					attendanceEdit,
 					attendanceSaved,
-					attendances: [attendance],
 				} satisfies MemberAttendanceEditState;
 			} else {
 				const newMember = sessionAttendeeToNewMember(entity, session);
@@ -213,7 +210,6 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					memberSaved: undefined,
 					attendanceEdit,
 					attendanceSaved,
-					attendances: [attendance],
 				} satisfies MemberAttendanceEditState;
 			}
 		} else {
@@ -356,9 +352,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 		) => {
 			const { action } = state;
 
-			if (action === "addOne") {
-				if (doAddMembers)
-					await dispatch(addMembers([state.memberEdit]));
+			if (action === "addOne" || action === "updateOne") {
 				if (doUpdateAttendance) {
 					const changes = shallowDiff(
 						state.attendanceSaved,
@@ -370,35 +364,30 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 						]);
 					}
 				}
-				setState(initState);
-			} else if (action === "updateOne") {
-				if (doUpdateMembers) {
-					const changes = deepDiff(
-						state.memberSaved,
-						state.memberEdit,
-					) as MemberChange;
-					if (changes) {
-						await dispatch(
-							updateMembers([{ id: state.ids[0], changes }]),
-						);
+				if (action === "addOne") {
+					if (doAddMembers) {
+						await dispatch(addMembers([state.memberEdit]));
 					}
+					setState(initState);
 				}
-				if (doUpdateAttendance) {
-					const changes = shallowDiff(
-						state.attendanceSaved,
-						state.attendanceEdit,
-					) as SessionAttendanceSummaryChange;
-					if (Object.keys(changes).length > 0) {
-						updateAttendanceSummaries([
-							{ id: state.ids[0], changes },
-						]);
+				if (action === "updateOne") {
+					if (doUpdateMembers) {
+						const changes = deepDiff(
+							state.memberSaved,
+							state.memberEdit,
+						) as MemberChange;
+						if (changes) {
+							await dispatch(
+								updateMembers([{ id: state.ids[0], changes }]),
+							);
+						}
 					}
+					setState({
+						...state,
+						memberSaved: state.memberEdit,
+						attendanceSaved: state.attendanceEdit,
+					});
 				}
-				setState({
-					...state,
-					memberSaved: state.memberEdit,
-					attendanceSaved: state.attendanceEdit,
-				});
 			} else if (action === "updateMany") {
 				if (doAddMembers) await dispatch(addMembers(state.memberAdds));
 				if (doUpdateMembers)
@@ -423,7 +412,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 		setState((state) => {
 			const { action } = state;
 			if (action === "addOne") return initState;
-			else if (action === "updateOne")
+			if (action === "updateOne")
 				return {
 					...state,
 					memberEdit: state.memberSaved,
