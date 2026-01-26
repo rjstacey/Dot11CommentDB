@@ -6,7 +6,6 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
 	selectSessionRegistrationState,
 	selectSessionRegistrationSyncedEntities,
-	selectSessionRegistrationSession,
 	type SyncedSessionRegistration,
 } from "@/store/sessionRegistration";
 import {
@@ -63,8 +62,6 @@ export type SessionRegistrationEditState =
 	  };
 
 function useInitState(ids: number[]): SessionRegistrationEditState {
-	const session = useAppSelector(selectSessionRegistrationSession);
-	if (!session) throw new Error("No session for session registration");
 	const { loading, valid } = useAppSelector(selectSessionRegistrationState);
 	const syncedEntities = useAppSelector(
 		selectSessionRegistrationSyncedEntities,
@@ -135,7 +132,7 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 				updates,
 			} satisfies SessionRegistrationEditState;
 		}
-	}, [loading, valid, ids, syncedEntities, session]);
+	}, [loading, valid, ids, syncedEntities]);
 }
 
 export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {

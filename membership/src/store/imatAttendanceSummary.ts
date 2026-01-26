@@ -70,16 +70,6 @@ function getImatAttendanceSummaryZero(
 	} satisfies ImatAttendanceSummary;
 }
 
-/*export type SyncedSessionAttendee = ImatAttendanceSummary &
-	SessionAttendanceSummary & {
-		Status: string;
-		CurrentName: string | null;
-		CurrentAffiliation: string | null;
-		CurrentEmployer: string | null;
-		CurrentEmail: string | null;
-		CurrentContactInfo: ContactInfo | null;
-		CurrentAttendancePercentage: number | null;
-	};*/
 export type SyncedSessionAttendee = ImatAttendanceSummary & {
 	member: MemberCreate | undefined;
 	attendance: SessionAttendanceSummary | undefined;
@@ -87,8 +77,10 @@ export type SyncedSessionAttendee = ImatAttendanceSummary & {
 
 /* Fields derived from other fields */
 export function getField(entity: SyncedSessionAttendee, key: string) {
-	if (key === "SAPIN") {
-		return entity.SAPIN !== entity.member?.SAPIN ? entity.SAPIN : "";
+	if (key === "CurrentSAPIN") {
+		return entity.member && entity.SAPIN !== entity.member.SAPIN
+			? entity.member.SAPIN
+			: "";
 	}
 	if (key === "AttendanceOverride") {
 		return entity.attendance?.DidAttend
@@ -103,7 +95,8 @@ export function getField(entity: SyncedSessionAttendee, key: string) {
 			: "";
 	}
 	if (key === "Status") {
-		return entity.member?.Status || "New";
+		if (!entity.member) return "New";
+		return entity.Status;
 	}
 	return entity[key as keyof SyncedSessionAttendee];
 }

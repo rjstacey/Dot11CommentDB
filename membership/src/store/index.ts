@@ -22,7 +22,6 @@ import attendanceSummariesSlice from "./attendanceSummaries";
 import attendancesSlice from "./sessionParticipation";
 import ballotParticipationSlice from "./ballotParticipation";
 import imatAttendanceSummarySlice from "./imatAttendanceSummary";
-import sessionAttendanceSummarySlice from "./sessionAttendanceSummary";
 import sessionRegistrationSlice from "./sessionRegistration";
 import imatCommitteesSlice from "./imatCommittees";
 import sessionsSlice from "./sessions";
@@ -64,7 +63,6 @@ const appReducer = combineReducers({
 	[ballotParticipationSlice.name]: ballotParticipationSlice.reducer,
 	[imatAttendanceSummarySlice.name]: imatAttendanceSummarySlice.reducer,
 	[imatCommitteesSlice.name]: imatCommitteesSlice.reducer,
-	[sessionAttendanceSummarySlice.name]: sessionAttendanceSummarySlice.reducer,
 	[sessionRegistrationSlice.name]: sessionRegistrationSlice.reducer,
 	[timeZonesSlice.name]: timeZonesSlice.reducer,
 	[emailTemlatesSlice.name]: emailTemlatesSlice.reducer,
@@ -75,7 +73,7 @@ const appReducer = combineReducers({
 
 const rootReducer = (
 	state: ReturnType<typeof appReducer> | undefined,
-	action: Action<unknown>
+	action: Action<unknown>,
 ) => {
 	if (action.type === RESET_STORE_ACTION) state = undefined;
 	return appReducer(state, action);
@@ -97,7 +95,6 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 		ballotParticipationSlice.name,
 		imatAttendanceSummarySlice.name,
 		imatCommitteesSlice.name,
-		sessionAttendanceSummarySlice.name,
 		sessionRegistrationSlice.name,
 		timeZonesSlice.name,
 		emailTemlatesSlice.name,

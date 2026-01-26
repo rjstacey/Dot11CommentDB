@@ -2,7 +2,7 @@ import * as React from "react";
 import { Form, Button, Row, Col, DropdownButton } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
-import { exportAttendees } from "@/store/sessionAttendanceSummary";
+import { exportAttendees } from "@/store/attendanceSummaries";
 
 function ExportAttendeesListForm({
 	groupName,
@@ -64,7 +64,7 @@ function ExportAttendeesListForm({
 }
 
 export function ExportAttendeesList(
-	props: React.ComponentProps<typeof ExportAttendeesListForm>
+	props: React.ComponentProps<typeof ExportAttendeesListForm>,
 ) {
 	return (
 		<DropdownButton

@@ -85,10 +85,7 @@ function PureTableRow({
 				dataKey,
 			});
 		} else {
-			content =
-				dataKey in rowData
-					? rowData[dataKey]
-					: getField(rowData, dataKey);
+			content = getField(rowData, dataKey);
 			if (dataRenderer) content = dataRenderer(content);
 		}
 		return (
@@ -187,7 +184,7 @@ function AppTableRow({
 			onRowClick
 				? (event: React.MouseEvent) => onRowClick({ event, rowIndex })
 				: undefined,
-		[onRowClick, rowIndex]
+		[onRowClick, rowIndex],
 	);
 
 	return (

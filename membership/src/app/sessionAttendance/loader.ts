@@ -11,10 +11,7 @@ import {
 	clearImatAttendanceSummary,
 	selectImatAttendanceSummaryState,
 } from "@/store/imatAttendanceSummary";
-import {
-	loadSessionAttendanceSummary,
-	clearSessionAttendanceSummary,
-} from "@/store/sessionAttendanceSummary";
+import { loadAttendanceSummary } from "@/store/attendanceSummaries";
 import {
 	clearSessionRegistration,
 	selectSessionRegistrationState,
@@ -29,16 +26,16 @@ export function refresh() {
 		selectImatAttendanceSummaryState(getState());
 	if (sessionId) {
 		dispatch(
-			loadImatAttendanceSummary(groupName, sessionId, useDaily, true)
+			loadImatAttendanceSummary(groupName, sessionId, useDaily, true),
 		);
-		dispatch(loadSessionAttendanceSummary(groupName, sessionId, true));
+		dispatch(loadAttendanceSummary(groupName, sessionId, true));
 	}
 }
 
 export const indexLoader: LoaderFunction = async () => {
 	const { dispatch } = store;
 	dispatch(clearImatAttendanceSummary());
-	dispatch(clearSessionAttendanceSummary());
+	//dispatch(clearSessionAttendanceSummary());
 	dispatch(clearSessionRegistration());
 
 	return null;
@@ -69,7 +66,7 @@ export const sessionAttendanceLoader: LoaderFunction = async ({
 	const session = selectSessionByNumber(getState(), Number(sessionNumber));
 	if (session) {
 		dispatch(loadImatAttendanceSummary(groupName, session.id, useDaily));
-		dispatch(loadSessionAttendanceSummary(groupName, session.id));
+		dispatch(loadAttendanceSummary(groupName, session.id));
 		const regState = selectSessionRegistrationState(getState());
 		if (
 			regState.groupName !== groupName ||

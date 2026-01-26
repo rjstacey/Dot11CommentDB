@@ -6,7 +6,7 @@ import {
 	loadImatAttendanceSummary,
 	selectImatAttendanceSummaryState,
 } from "@/store/imatAttendanceSummary";
-import { loadSessionAttendanceSummary } from "@/store/sessionAttendanceSummary";
+import { loadAttendanceSummary } from "@/store/attendanceSummaries";
 import { loadSessions, selectSessionByNumber } from "@/store/sessions";
 
 export function refresh() {
@@ -17,9 +17,9 @@ export function refresh() {
 		selectImatAttendanceSummaryState(getState());
 	if (sessionId) {
 		dispatch(
-			loadImatAttendanceSummary(groupName, sessionId, useDaily, true)
+			loadImatAttendanceSummary(groupName, sessionId, useDaily, true),
 		);
-		dispatch(loadSessionAttendanceSummary(groupName, sessionId, true));
+		dispatch(loadAttendanceSummary(groupName, sessionId, true));
 	}
 }
 
@@ -43,6 +43,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 	const session = selectSessionByNumber(getState(), Number(sessionNumber));
 	if (session) {
 		dispatch(loadImatAttendanceSummary(groupName, session.id, useDaily));
+		dispatch(loadAttendanceSummary(groupName, session.id));
 	} else {
 		throw new Error("Can't find session " + sessionNumber);
 	}

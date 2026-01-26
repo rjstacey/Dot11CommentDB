@@ -23,6 +23,7 @@ import {
 	SessionAttendanceSummaryChange,
 	SessionAttendanceSummaryUpdate,
 	sessionAttendanceSummariesSchema,
+	SessionAttendeesExportQuery,
 } from "@schemas/attendances";
 
 export type {
@@ -30,11 +31,12 @@ export type {
 	SessionAttendanceSummaryCreate,
 	SessionAttendanceSummaryChange,
 	SessionAttendanceSummaryUpdate,
+	SessionAttendeesExportQuery,
 };
 
 export function getNullAttendanceSummary(
 	session_id: number,
-	SAPIN: number
+	SAPIN: number,
 ): SessionAttendanceSummary {
 	return {
 		id: 0,
@@ -85,7 +87,7 @@ const slice = createSlice({
 	reducers: {
 		getPending(
 			state,
-			action: PayloadAction<{ groupName: string; session_id: number }>
+			action: PayloadAction<{ groupName: string; session_id: number }>,
 		) {
 			const { groupName, session_id } = action.payload;
 			state.loading[session_id] = true;
@@ -101,7 +103,7 @@ const slice = createSlice({
 			action: PayloadAction<{
 				session_id: number;
 				attendanceSummaries: SessionAttendanceSummary[];
-			}>
+			}>,
 		) {
 			const { session_id, attendanceSummaries } = action.payload;
 			state.loading[session_id] = false;
@@ -109,7 +111,7 @@ const slice = createSlice({
 				state.sessionIds.push(session_id);
 			}
 			const ids = state.ids.filter(
-				(id) => state.entities[id]?.session_id === session_id
+				(id) => state.entities[id]?.session_id === session_id,
 			);
 			dataAdapter.removeMany(state, ids);
 			dataAdapter.setMany(state, attendanceSummaries);
@@ -144,7 +146,7 @@ const selectAttendanceSummariesAge = (state: RootState, session_id: number) => {
 };
 const selectAttendanceSummariesLoading = (
 	state: RootState,
-	session_id: number
+	session_id: number,
 ) => selectAttendanceSummariesState(state).loading[session_id];
 export const selectAttendanceSummariesIds = (state: RootState) =>
 	selectAttendanceSummariesState(state).ids;
@@ -166,7 +168,7 @@ export const selectAttendanceSummaryEntitiesForSession = createSelector(
 				newEntities[entity.SAPIN] = entity;
 		}
 		return newEntities;
-	}
+	},
 );
 
 export type MemberSessionAttendanceSummaries = Record<
@@ -208,12 +210,10 @@ export const selectMemberAttendances = createSelector(
 			}
 		}
 		return membersAttendanceEntities;
-	}
+	},
 );
 
-/*
- * Thunk actions
- */
+/** Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
 const loadingPromise: Record<number, Promise<void>> = {};
@@ -251,7 +251,7 @@ export const importAttendanceSummary =
 		const session = selectSessionByNumber(getState(), sessionNumber);
 		if (!session) {
 			dispatch(
-				setError("Can't retrieve attendance", "Bad session number")
+				setError("Can't retrieve attendance", "Bad session number"),
 			);
 			return;
 		}
@@ -269,7 +269,7 @@ export const importAttendanceSummary =
 			updateSession({
 				id: session.id,
 				changes: { attendees: attendances.length },
-			})
+			}),
 		);
 		dispatch(setMany(attendances));
 	};
@@ -320,5 +320,33 @@ export const deleteAttendanceSummaries =
 			await fetcher.delete(url, ids);
 		} catch (error) {
 			dispatch(setError("DELETE " + url, error));
+		}
+	};
+
+export const exportAttendees =
+	(
+		groupName: string,
+		sessionNumber: number,
+		format: "minutes" | "dvl",
+	): AppThunk =>
+	async (dispatch, getState) => {
+		const session = selectSessionByNumber(getState(), sessionNumber);
+		if (!session) {
+			dispatch(setError("Can't export attendees", "Bad session number"));
+			return;
+		}
+		const url = `/api/${groupName}/attendances/${session.id}/export`;
+		try {
+			await fetcher.getFile(url, {
+				format,
+			} satisfies SessionAttendeesExportQuery);
+		} catch (error) {
+			dispatch(
+				setError(
+					"Unable to export attendees for session " +
+						`id=${session.id}`,
+					error,
+				),
+			);
 		}
 	};
