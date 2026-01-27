@@ -1,7 +1,7 @@
 import React from "react";
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
-import { shallowDiff, deepDiff, deepMerge } from "@common";
+import { shallowDiff, deepMerge } from "@common";
 
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
@@ -329,19 +329,32 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 		[readOnly, setState],
 	);
 
-	const hasChanges = React.useCallback(
+	const hasMemberChanges = React.useCallback(
 		() =>
 			state.action === "addOne" ||
 			(state.action === "updateOne" &&
-				(state.memberEdit !== state.memberSaved ||
-					state.attendanceEdit !== state.attendanceSaved)) ||
+				state.memberEdit !== state.memberSaved) ||
 			(state.action === "updateMany" &&
 				(state.memberAdds.length > 0 ||
-					state.memberUpdates.length > 0 ||
-					state.attendanceAdds.length > 0 ||
+					state.memberUpdates.length > 0)),
+		[state],
+	);
+
+	const hasAttendanceChanges = React.useCallback(
+		() =>
+			state.action === "addOne" ||
+			(state.action === "updateOne" &&
+				state.attendanceEdit !== state.attendanceSaved) ||
+			(state.action === "updateMany" &&
+				(state.attendanceAdds.length > 0 ||
 					state.attendanceUpdates.length > 0 ||
 					state.attendanceDeletes.length > 0)),
 		[state],
+	);
+
+	const hasChanges = React.useCallback(
+		() => hasMemberChanges() || hasAttendanceChanges(),
+		[hasMemberChanges, hasAttendanceChanges],
 	);
 
 	const submit = React.useCallback(
@@ -354,14 +367,15 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 
 			if (action === "addOne" || action === "updateOne") {
 				if (doUpdateAttendance) {
+					const id = state.attendanceSaved.id;
 					const changes = shallowDiff(
 						state.attendanceSaved,
 						state.attendanceEdit,
 					) as SessionAttendanceSummaryChange;
 					if (Object.keys(changes).length > 0) {
-						updateAttendanceSummaries([
-							{ id: state.ids[0], changes },
-						]);
+						await dispatch(
+							updateAttendanceSummaries([{ id, changes }]),
+						);
 					}
 				}
 				if (action === "addOne") {
@@ -372,7 +386,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 				}
 				if (action === "updateOne") {
 					if (doUpdateMembers) {
-						const changes = deepDiff(
+						const changes = shallowDiff(
 							state.memberSaved,
 							state.memberEdit,
 						) as MemberChange;
@@ -427,6 +441,8 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 		submit,
 		cancel,
 		hasChanges,
+		hasMemberChanges,
+		hasAttendanceChanges,
 		memberOnChange,
 		attendanceOnChange,
 	};

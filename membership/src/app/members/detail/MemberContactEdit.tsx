@@ -8,6 +8,7 @@ import {
 	FormLabel,
 	FormGroup,
 	Button,
+	FormText,
 } from "react-bootstrap";
 import { DateTime } from "luxon";
 
@@ -71,7 +72,7 @@ function MemberContactEmails({
 			const id =
 				contactEmails.reduce(
 					(maxId, h) => (h.id > maxId ? h.id : maxId),
-					0
+					0,
 				) + 1;
 			const contactEmail: ContactEmail = {
 				id,
@@ -86,10 +87,10 @@ function MemberContactEmails({
 
 		function updateContactEmail(
 			id: number,
-			changes: Partial<ContactEmail>
+			changes: Partial<ContactEmail>,
 		) {
 			const ContactEmails = contactEmails.map((h) =>
-				h.id === id ? { ...h, ...changes } : h
+				h.id === id ? { ...h, ...changes } : h,
 			);
 			onChange({ ContactEmails });
 		}
@@ -208,40 +209,50 @@ export function MemberContactEdit({
 	const editedContactInfo = edited.ContactInfo || memberContactInfoEmpty;
 	const savedContactInfo = saved?.ContactInfo;
 
-	const contactInfoRows = ContactInfoFields.map((f) => (
-		<FormGroup
-			as={Row}
-			key={f.key}
-			controlId={f.key}
-			className="d-flex align-items-center mb-3"
-		>
-			<FormLabel column xs={4} style={{ fontWeight: "bold", width: 100 }}>
-				{f.label}
-			</FormLabel>
-			<Col xs={8}>
-				<FormControl
-					type="text"
-					style={hasChangesStyle(
-						editedContactInfo,
-						savedContactInfo || undefined,
-						f.key
+	const contactInfoRows = ContactInfoFields.map((f) => {
+		const value = editedContactInfo[f.key];
+		const oldValue = savedContactInfo ? savedContactInfo[f.key] : undefined;
+		return (
+			<FormGroup
+				as={Row}
+				key={f.key}
+				controlId={f.key}
+				className="d-flex align-items-center mb-3"
+			>
+				<FormLabel
+					column
+					xs={4}
+					style={{ fontWeight: "bold", width: 100 }}
+				>
+					{f.label}
+				</FormLabel>
+				<Col xs={8}>
+					<FormControl
+						type="text"
+						style={hasChangesStyle(
+							editedContactInfo,
+							savedContactInfo || undefined,
+							f.key,
+						)}
+						value={value}
+						onChange={(e) =>
+							onChange({
+								ContactInfo: {
+									...editedContactInfo,
+									[f.key]: e.target.value,
+								},
+							})
+						}
+						disabled={readOnly}
+						autoComplete="none"
+					/>
+					{oldValue !== undefined && oldValue !== value && (
+						<FormText muted>{oldValue || "(Blank)"}</FormText>
 					)}
-					//size={f.size}
-					value={editedContactInfo[f.key]}
-					onChange={(e) =>
-						onChange({
-							ContactInfo: {
-								...editedContactInfo,
-								[f.key]: e.target.value,
-							},
-						})
-					}
-					disabled={readOnly}
-					autoComplete="none"
-				/>
-			</Col>
-		</FormGroup>
-	));
+				</Col>
+			</FormGroup>
+		);
+	});
 
 	return (
 		<Container fluid>

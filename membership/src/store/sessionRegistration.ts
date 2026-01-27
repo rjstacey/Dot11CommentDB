@@ -30,8 +30,8 @@ import { MemberCreate, selectMemberEntities } from "./members";
 export type { SessionRegistration };
 
 export const fields: Fields = {
-	CurrentSAPIN: { label: "SA PIN", type: FieldType.NUMERIC },
-	SAPIN: { label: "SA PIN (Provided)", type: FieldType.NUMERIC },
+	CurrentSAPIN: { type: FieldType.NUMERIC },
+	SAPIN: { type: FieldType.NUMERIC },
 	Name: { label: "Name" },
 	LastName: { label: "Last name" },
 	FirstName: { label: "First name" },

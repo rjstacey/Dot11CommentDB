@@ -9,7 +9,7 @@ import {
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
 import { hasChangesStyle } from "@/components/utils";
 
-function renderAttendancePercentage(pct: typeof MULTIPLE | null | number) {
+/*function renderAttendancePercentage(pct: typeof MULTIPLE | null | number) {
 	return isMultiple(pct) ? (
 		<i>{MULTIPLE_STR}</i>
 	) : pct === null ? (
@@ -17,11 +17,11 @@ function renderAttendancePercentage(pct: typeof MULTIPLE | null | number) {
 	) : (
 		pct.toFixed(1) + "%"
 	);
-}
+}*/
 
 function setIndeterminate(
 	ref: HTMLInputElement | null,
-	value: boolean | typeof MULTIPLE | null
+	value: boolean | typeof MULTIPLE | null,
 ) {
 	if (ref) ref.indeterminate = isMultiple(value) ? true : false;
 }
@@ -76,11 +76,44 @@ export function AttendanceInfoEdit({
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
 				<Col>
-					<Form.Label as="span">Attendance percentage:</Form.Label>
+					<Form.Label htmlFor="attendance-percentage">
+						Attendance percentage:
+					</Form.Label>
 				</Col>
 				<Col xs={12} md={8}>
-					{renderAttendancePercentage(edited.AttendancePercentage)}
+					<Form.Control
+						type="text"
+						id="attendance-percentage"
+						style={hasChangesStyle(
+							edited,
+							saved,
+							"AttendancePercentage",
+						)}
+						//readOnly
+						value={
+							isMultiple(edited.AttendancePercentage) ||
+							edited.AttendancePercentage === null
+								? ""
+								: edited.AttendancePercentage
+						}
+						onChange={(e) =>
+							onChange({
+								AttendancePercentage: e.target.value
+									? parseFloat(e.target.value)
+									: null,
+							})
+						}
+						placeholder={
+							isMultiple(edited.AttendancePercentage)
+								? MULTIPLE_STR
+								: BLANK_STR
+						}
+						pattern="^\d*\.?\d*$"
+					/>
 				</Col>
+				{/*<Col xs="auto" className="align-self-center">
+					{renderAttendancePercentage(edited.AttendancePercentage)}
+				</Col>*/}
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
 				<Col>

@@ -11,7 +11,7 @@ export function MemberAttendanceDetail() {
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 	const selected = useAppSelector(
-		selectImatAttendanceSummarySelectedSyncedIds
+		selectImatAttendanceSummarySelectedSyncedIds,
 	) as number[];
 
 	const {
@@ -19,6 +19,8 @@ export function MemberAttendanceDetail() {
 		submit,
 		cancel,
 		hasChanges,
+		hasMemberChanges,
+		hasAttendanceChanges,
 		memberOnChange,
 		attendanceOnChange,
 	} = useSessionAttendanceEdit(selected, readOnly);
@@ -48,7 +50,8 @@ export function MemberAttendanceDetail() {
 				editedAttendance={state.attendanceEdit}
 				savedAttendance={state.attendanceSaved}
 				attendanceOnChange={attendanceOnChange}
-				hasChanges={hasChanges}
+				hasMemberChanges={hasMemberChanges}
+				hasAttendanceChanges={hasAttendanceChanges}
 				submit={submit}
 				cancel={cancel}
 				readOnly={readOnly}

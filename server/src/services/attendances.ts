@@ -347,6 +347,7 @@ export async function updateAttendances(
 	const attendances = await Promise.all(
 		updates.map((update) => updateAttendance(groupId, update)),
 	);
+	console.log(attendances);
 	return attendances;
 }
 
