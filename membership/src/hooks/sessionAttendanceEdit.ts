@@ -119,39 +119,45 @@ function sessionAttendeeAttendanceChanges(entity: SyncedSessionAttendee) {
 
 export type EditAction = "addOne" | "updateOne" | "updateMany" | null;
 
-export type MemberAttendanceEditState =
-	| {
-			action: "addOne";
-			ids: number[];
-			memberEdit: MemberCreate;
-			memberSaved: undefined;
-			attendanceEdit: SessionAttendanceSummary;
-			attendanceSaved: SessionAttendanceSummary;
-	  }
-	| {
-			action: "updateOne";
-			ids: number[];
-			memberEdit: Member;
-			memberSaved: Member;
-			attendanceEdit: SessionAttendanceSummary;
-			attendanceSaved: SessionAttendanceSummary;
-	  }
-	| {
-			action: "updateMany";
-			ids: number[];
-			memberAdds: MemberCreate[];
-			memberUpdates: MemberUpdate[];
-			attendanceAdds: SessionAttendanceSummaryCreate[];
-			attendanceUpdates: SessionAttendanceSummaryUpdate[];
-			attendanceDeletes: number[];
-	  }
+export type SessionAttendanceAddOneState = {
+	action: "addOne";
+	ids: number[];
+	memberEdit: MemberCreate;
+	memberSaved: undefined;
+	attendanceEdit: SessionAttendanceSummary;
+	attendanceSaved: SessionAttendanceSummary;
+};
+
+export type SessionAttendanceUpdateOneState = {
+	action: "updateOne";
+	ids: number[];
+	memberEdit: Member;
+	memberSaved: Member;
+	attendanceEdit: SessionAttendanceSummary;
+	attendanceSaved: SessionAttendanceSummary;
+};
+
+export type SessionAttendanceUpdateManyState = {
+	action: "updateMany";
+	ids: number[];
+	memberAdds: MemberCreate[];
+	memberUpdates: MemberUpdate[];
+	attendanceAdds: SessionAttendanceSummaryCreate[];
+	attendanceUpdates: SessionAttendanceSummaryUpdate[];
+	attendanceDeletes: number[];
+};
+
+export type SessionAttendanceEditState =
+	| SessionAttendanceAddOneState
+	| SessionAttendanceUpdateOneState
+	| SessionAttendanceUpdateManyState
 	| {
 			action: null;
 			ids: number[];
 			message: string;
 	  };
 
-function useInitState(ids: number[]): MemberAttendanceEditState {
+function useInitState(ids: number[]): SessionAttendanceEditState {
 	const session = useAppSelector(selectImatAttendanceSummarySession);
 	if (!session) throw new Error("No session for IMAT attendance summary");
 	const { loading, valid } = useAppSelector(selectImatAttendanceSummaryState);
@@ -166,13 +172,13 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 				action: null,
 				ids,
 				message: "Loading...",
-			} satisfies MemberAttendanceEditState;
+			} satisfies SessionAttendanceEditState;
 		} else if (ids.length === 0) {
 			return {
 				action: null,
 				ids,
 				message: "Nothing selected",
-			} satisfies MemberAttendanceEditState;
+			} satisfies SessionAttendanceEditState;
 		} else if (ids.length === 1) {
 			const sapin = ids[0];
 			const member = memberEntities[sapin];
@@ -200,7 +206,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					memberSaved,
 					attendanceEdit,
 					attendanceSaved,
-				} satisfies MemberAttendanceEditState;
+				} satisfies SessionAttendanceEditState;
 			} else {
 				const newMember = sessionAttendeeToNewMember(entity, session);
 				return {
@@ -210,7 +216,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 					memberSaved: undefined,
 					attendanceEdit,
 					attendanceSaved,
-				} satisfies MemberAttendanceEditState;
+				} satisfies SessionAttendanceEditState;
 			}
 		} else {
 			const memberAdds: MemberCreate[] = [];
@@ -260,7 +266,7 @@ function useInitState(ids: number[]): MemberAttendanceEditState {
 				attendanceAdds,
 				attendanceUpdates,
 				attendanceDeletes,
-			} satisfies MemberAttendanceEditState;
+			} satisfies SessionAttendanceEditState;
 		}
 	}, [loading, valid, ids, memberEntities, synchedEntities, session]);
 }
@@ -271,7 +277,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 	const initState = useInitState(ids);
 
 	const [state, setState] =
-		React.useState<MemberAttendanceEditState>(initState);
+		React.useState<SessionAttendanceEditState>(initState);
 
 	React.useEffect(() => {
 		if (!isEqual(ids, state.ids)) setState(initState);

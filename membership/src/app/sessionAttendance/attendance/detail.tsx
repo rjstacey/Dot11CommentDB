@@ -42,13 +42,9 @@ export function MemberAttendanceDetail() {
 	} else if (state.action === "addOne" || state.action === "updateOne") {
 		content = (
 			<AttendanceEditForm
-				action={state.action}
+				state={state}
 				sapin={state.ids[0]}
-				editedMember={state.memberEdit}
-				savedMember={state.memberSaved}
 				memberOnChange={memberOnChange}
-				editedAttendance={state.attendanceEdit}
-				savedAttendance={state.attendanceSaved}
 				attendanceOnChange={attendanceOnChange}
 				hasMemberChanges={hasMemberChanges}
 				hasAttendanceChanges={hasAttendanceChanges}
@@ -60,8 +56,7 @@ export function MemberAttendanceDetail() {
 	} else if (state.action === "updateMany") {
 		content = (
 			<AttendanceUpdateForm
-				adds={state.memberAdds}
-				updates={state.memberUpdates}
+				state={state}
 				hasChanges={hasChanges}
 				submit={submit}
 				cancel={cancel}

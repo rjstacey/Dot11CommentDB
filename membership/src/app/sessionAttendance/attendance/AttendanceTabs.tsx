@@ -15,7 +15,6 @@ import { MemberBasicEdit } from "../../members/detail/MemberBasicEdit";
 import { MemberStatusEdit } from "../../members/detail/MemberStatusEdit";
 import { MemberContactEdit } from "../../members/detail/MemberContactEdit";
 import { AttendanceInfoEdit } from "./AttendanceInfoEdit";
-import type { EditAction } from "@/hooks/sessionAttendanceEdit";
 
 export function AttendanceTabs({
 	sapin,
@@ -27,7 +26,6 @@ export function AttendanceTabs({
 	attendanceOnChange,
 	readOnly,
 }: {
-	action: EditAction;
 	sapin: number;
 	editedMember: Member | MemberCreate;
 	savedMember?: Member;

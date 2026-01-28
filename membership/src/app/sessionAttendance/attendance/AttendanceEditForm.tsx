@@ -4,22 +4,18 @@ import { Row, Col, Form, Button, Spinner } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 
 import { AttendanceTabs } from "./AttendanceTabs";
-import type {
-	SessionAttendanceSummary,
-	SessionAttendanceSummaryChange,
-} from "@/store/attendanceSummaries";
-import type { Member, MemberChange, MemberCreate } from "@/store/members";
+import type { SessionAttendanceSummaryChange } from "@/store/attendanceSummaries";
+import type { MemberChange } from "@/store/members";
 
-import type { EditAction } from "@/hooks/sessionAttendanceEdit";
+import type {
+	SessionAttendanceAddOneState,
+	SessionAttendanceUpdateOneState,
+} from "@/hooks/sessionAttendanceEdit";
 
 export function AttendanceEditForm({
-	action,
+	state,
 	sapin,
-	editedMember,
-	savedMember,
 	memberOnChange,
-	editedAttendance,
-	savedAttendance,
 	attendanceOnChange,
 	hasMemberChanges,
 	hasAttendanceChanges,
@@ -27,19 +23,15 @@ export function AttendanceEditForm({
 	cancel,
 	readOnly,
 }: {
+	state: SessionAttendanceAddOneState | SessionAttendanceUpdateOneState;
 	submit: (
 		doAddMembers: boolean,
 		doUpdateMembers: boolean,
 		doUpdateAttendance: boolean,
 	) => Promise<void>;
 	cancel: () => void;
-	action: EditAction;
 	sapin: number;
-	editedMember: Member | MemberCreate;
-	savedMember?: Member;
 	memberOnChange: (changes: MemberChange) => void;
-	editedAttendance: SessionAttendanceSummary;
-	savedAttendance: SessionAttendanceSummary;
 	attendanceOnChange: (changes: SessionAttendanceSummaryChange) => void;
 	hasMemberChanges: () => boolean;
 	hasAttendanceChanges: () => boolean;
@@ -78,13 +70,12 @@ export function AttendanceEditForm({
 		<Form ref={formRef} noValidate validated className="p-3">
 			<Row>
 				<AttendanceTabs
-					action={action}
 					sapin={sapin}
-					editedMember={editedMember}
-					savedMember={savedMember}
+					editedMember={state.memberEdit}
+					savedMember={state.memberSaved}
 					memberOnChange={memberOnChange}
-					editedAttendance={editedAttendance}
-					savedAttendance={savedAttendance}
+					editedAttendance={state.attendanceEdit}
+					savedAttendance={state.attendanceSaved}
 					attendanceOnChange={attendanceOnChange}
 					readOnly={readOnly}
 				/>
@@ -104,7 +95,9 @@ export function AttendanceEditForm({
 								hidden={!busy || !hasMemberChanges()}
 								className="me-2"
 							/>
-							{"Update Member"}
+							{state.action === "addOne"
+								? "Add Member"
+								: "Update Member"}
 						</Button>
 					</Col>
 					<Col className="d-flex justify-content-center">

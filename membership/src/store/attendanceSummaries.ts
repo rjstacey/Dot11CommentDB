@@ -194,9 +194,21 @@ export const selectMemberAttendances = createSelector(
 			const member = memberEntities[sapin];
 			if (member) {
 				if (member.ReplacedBySAPIN) sapin = member.ReplacedBySAPIN;
+				const a = { ...entity, CurrentSAPIN: sapin };
+				if (membersAttendanceEntities[sapin]) {
+					// Don't replace if current entry has higher attendance
+					const a_current =
+						membersAttendanceEntities[sapin][entity.session_id];
+					if (
+						a_current &&
+						(a_current.AttendancePercentage || 0) >=
+							(a.AttendancePercentage || 0)
+					)
+						continue;
+				}
 				membersAttendanceEntities[sapin] = {
 					...membersAttendanceEntities[sapin],
-					[entity.session_id]: { ...entity, CurrentSAPIN: sapin },
+					[entity.session_id]: a,
 				};
 			}
 		}

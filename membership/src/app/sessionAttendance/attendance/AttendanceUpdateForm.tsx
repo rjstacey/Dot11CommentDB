@@ -1,24 +1,22 @@
 import React from "react";
 import { Row, Form } from "react-bootstrap";
 
-import type { MemberCreate, MemberUpdate } from "@/store/members";
+import type { SessionAttendanceUpdateManyState } from "@/hooks/sessionAttendanceEdit";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 export function AttendanceUpdateForm({
-	adds,
-	updates,
+	state,
 	hasChanges,
 	submit,
 	cancel,
 }: {
-	adds: MemberCreate[];
-	updates: MemberUpdate[];
+	state: SessionAttendanceUpdateManyState;
 	hasChanges: () => boolean;
 	submit: (
 		doAddMember?: boolean,
 		doUpdateMember?: boolean,
-		doUpdateAttendance?: boolean
+		doUpdateAttendance?: boolean,
 	) => Promise<void>;
 	cancel: () => void;
 }) {
@@ -42,6 +40,9 @@ export function AttendanceUpdateForm({
 					onChange={() => setImportAttendance(!importAttendance)}
 					label="Update session attendance"
 				/>
+				<Form.Text>{`${state.attendanceAdds.length} adds`}</Form.Text>
+				<Form.Text>{`${state.attendanceUpdates.length} updates`}</Form.Text>
+				<Form.Text>{`${state.attendanceDeletes.length} deletes`}</Form.Text>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
 				<Form.Check
@@ -49,7 +50,7 @@ export function AttendanceUpdateForm({
 					onChange={() => setImportNew(!importNew)}
 					label="Add new members"
 				/>
-				<Form.Text>{`${adds.length} new members`}</Form.Text>
+				<Form.Text>{`${state.memberAdds.length} new members`}</Form.Text>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
 				<Form.Check
@@ -57,7 +58,7 @@ export function AttendanceUpdateForm({
 					onChange={() => setImportUpdates(!importUpdates)}
 					label="Update member details"
 				/>
-				<Form.Text>{`${updates.length} members to be updated`}</Form.Text>
+				<Form.Text>{`${state.memberUpdates.length} members to be updated`}</Form.Text>
 			</Form.Group>
 			{hasChanges() && (
 				<SubmitCancelRow

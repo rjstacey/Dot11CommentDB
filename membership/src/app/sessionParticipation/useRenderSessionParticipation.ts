@@ -3,6 +3,7 @@ import { Dictionary } from "@reduxjs/toolkit";
 
 import { useAppSelector } from "@/store/hooks";
 import {
+	getNullAttendanceSummary,
 	selectMemberAttendances,
 	SessionAttendanceSummary,
 } from "@/store/attendanceSummaries";
@@ -16,12 +17,12 @@ export function renderSessionParticipation(
 	SAPIN: number,
 	session_ids: number[],
 	sessionEntities: Dictionary<Session>,
-	attendances: Record<number, SessionAttendanceSummary>
+	attendances: Record<number, SessionAttendanceSummary>,
 ) {
 	const headings = ["Session", "Attendance", "Notes"];
 	const values = session_ids.map((id) => {
 		const session = sessionEntities[id];
-		const a = attendances[id];
+		const a = attendances[id] || getNullAttendanceSummary(id, SAPIN);
 
 		let notes = a.Notes || "";
 		if (a.DidAttend) {
@@ -57,8 +58,8 @@ export function useRenderSessionParticipation() {
 				SAPIN,
 				sessionIds as number[],
 				sessionEntities,
-				attendances[SAPIN] || {}
+				attendances[SAPIN] || {},
 			),
-		[sessionIds, sessionEntities, attendances]
+		[sessionIds, sessionEntities, attendances],
 	);
 }
