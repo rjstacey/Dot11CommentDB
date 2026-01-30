@@ -6,22 +6,11 @@ import {
 	selectResultsState,
 	deleteResultsMany,
 	setSelectedResults as setSelected,
-	//addResult,
+	selectResultExtendedEntities,
 	updateResults,
-	//type ResultCreate,
 	type ResultChange,
-	type Result,
+	type ResultExtended,
 } from "@/store/results";
-
-/*
-function getDefaultResult(ballot_id: number): ResultCreate {
-	return {
-		ballot_id,
-		SAPIN: 0,
-		Status: "Voter",
-	} satisfies ResultCreate;
-}
-*/
 
 type ResultsEditState = (
 	| {
@@ -29,23 +18,20 @@ type ResultsEditState = (
 			message: string;
 	  }
 	| {
-			action: "add";
-			edited: Result; //ResultCreate;
-	  }
-	| {
 			action: "update";
-			edited: Result;
-			saved: Result;
+			edited: ResultExtended;
+			saved: ResultExtended;
 	  }
 ) & {
 	ballot_id: number | null;
-	results: Result[];
+	results: ResultExtended[];
 };
 
 function useResultsInitState() {
 	const dispatch = useAppDispatch();
-	const { selected, entities, loading, valid, ballot_id } =
+	const { selected, loading, valid, ballot_id } =
 		useAppSelector(selectResultsState);
+	const entities = useAppSelector(selectResultExtendedEntities);
 
 	const initState = React.useCallback((): ResultsEditState => {
 		const results = selected.map((id) => entities[id]!).filter(Boolean);
@@ -78,20 +64,11 @@ function useResultsInitState() {
 
 	const resetState = React.useCallback(
 		() => setState(initState),
-		[setState, initState]
+		[setState, initState],
 	);
 
 	React.useEffect(() => {
-		if (state.action === "add") {
-			if (selected.length > 0) {
-				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
-				).then((ok) => {
-					if (ok) resetState();
-					else dispatch(setSelected([]));
-				});
-			}
-		} else if (state.action === "update") {
+		if (state.action === "update") {
 			if (state.edited === state.saved) {
 				resetState();
 				return;
@@ -99,7 +76,7 @@ function useResultsInitState() {
 			const ids = state.results.map((r) => r.id);
 			if (!isEqual(selected, ids)) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected(ids));
@@ -110,26 +87,10 @@ function useResultsInitState() {
 		}
 	}, [selected, resetState]);
 
-	/*const onAdd = React.useCallback(() => {
-		setState((state) => {
-			if (!ballot_id) {
-				console.warn("onAdd: ballot_id not set");
-				return state;
-			}
-			return {
-				...state,
-				action: "add",
-				edited: getDefaultVoter(ballot_id),
-			};
-		});
-		dispatch(setSelected([]));
-	}, [dispatch, ballot_id]);*/
-
 	return {
 		state,
 		setState,
 		resetState,
-		//onAdd,
 	};
 }
 
@@ -139,10 +100,8 @@ export function useResultsEdit(readOnly: boolean) {
 	const { state, setState, resetState } = useResultsInitState();
 
 	const hasChanges = React.useCallback(
-		() =>
-			state.action === "add" ||
-			(state.action === "update" && state.edited !== state.saved),
-		[state]
+		() => state.action === "update" && state.edited !== state.saved,
+		[state],
 	);
 
 	const onChange = React.useCallback(
@@ -152,12 +111,7 @@ export function useResultsEdit(readOnly: boolean) {
 					console.warn("onChange: state is readOnly");
 					return state;
 				}
-				if (state.action === "add") {
-					return {
-						...state,
-						edited: { ...state.edited, ...changes },
-					};
-				} else if (state.action === "update") {
+				if (state.action === "update") {
 					let edited = { ...state.edited, ...changes };
 					if (isEqual(edited, state.saved)) edited = state.saved;
 					return { ...state, edited };
@@ -166,18 +120,22 @@ export function useResultsEdit(readOnly: boolean) {
 				return state;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
 	const submit = React.useCallback(async () => {
 		if (readOnly) {
 			console.warn("submit: state is readOnly");
-			/*} else if (state.action === "add") {
-			const voter = await dispatch(addResult(state.edited));
-			if (voter) dispatch(setSelected([voter.id]));*/
 		} else if (state.action === "update") {
 			const id = state.edited.id;
 			const changes = shallowDiff(state.saved, state.edited);
+			if (
+				state.edited.ballot_id !== state.edited.lastBallotId &&
+				!changes.vote
+			) {
+				// Carry over the vote if the last vote was not for this ballot
+				changes.vote = state.edited.vote;
+			}
 			await dispatch(updateResults(state.ballot_id!, [{ id, changes }]));
 			setState({ ...state, saved: state.edited });
 		} else {
@@ -189,7 +147,7 @@ export function useResultsEdit(readOnly: boolean) {
 		const list = state.results.map((v) => v.SAPIN).join(", ");
 		const ids = state.results.map((v) => v.id);
 		const ok = await ConfirmModal.show(
-			`Are you sure you want to delete ${list}?`
+			`Are you sure you want to delete ${list}?`,
 		);
 		if (!ok) return;
 		await dispatch(deleteResultsMany(ids));
@@ -201,7 +159,6 @@ export function useResultsEdit(readOnly: boolean) {
 		onChange,
 		submit,
 		cancel: resetState,
-		//onAdd,
 		onDelete,
 	};
 }

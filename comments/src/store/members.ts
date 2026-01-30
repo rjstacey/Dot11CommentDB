@@ -75,7 +75,7 @@ const selectMembersAge = (state: RootState) => {
 export const selectMembers = createSelector(
 	selectMemberIds,
 	selectMemberEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 export const selectMemberName = (state: RootState, sapin: number) => {
@@ -86,17 +86,16 @@ export const selectMemberName = (state: RootState, sapin: number) => {
 /* Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 let loading = false;
-let loadingPromise: Promise<UserMember[]>;
+let loadingPromise: Promise<void>;
 export const loadMembers =
-	(groupName: string): AppThunk<UserMember[]> =>
+	(groupName: string): AppThunk =>
 	(dispatch, getState) => {
 		const state = getState();
 		const currentGroupName = selectMembersState(state).groupName;
 		if (currentGroupName === groupName) {
 			if (loading) return loadingPromise;
 			const age = selectMembersAge(state);
-			if (age && age < AGE_STALE)
-				return Promise.resolve(selectMembers(state));
+			if (age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/members/user`;
@@ -106,12 +105,10 @@ export const loadMembers =
 			.then((response: unknown) => {
 				const userMembers = userMembersSchema.parse(response);
 				dispatch(getSuccess(userMembers));
-				return selectMembers(getState());
 			})
 			.catch((error: unknown) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
-				return selectMembers(getState());
 			})
 			.finally(() => {
 				loading = false;

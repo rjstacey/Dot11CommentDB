@@ -24,11 +24,15 @@ const voteOptions = [
 export function SelectVote({
 	value,
 	onChange,
+	style,
 	...props
 }: {
 	value: string;
 	onChange: (value: string) => void;
-} & Pick<React.ComponentProps<typeof Select>, "readOnly" | "disabled" | "id">) {
+} & Pick<
+	React.ComponentProps<typeof Select>,
+	"readOnly" | "disabled" | "id" | "style" | "className"
+>) {
 	let options = voteOptions;
 	let values = voteOptions.filter((v) => v.value === value);
 	if (value && values.length === 0) {
@@ -38,7 +42,7 @@ export function SelectVote({
 	}
 	return (
 		<Select
-			style={{ width: 220 }}
+			style={{ width: 220, ...style }}
 			options={options}
 			values={values}
 			onChange={(values) => onChange(values[0].value)}

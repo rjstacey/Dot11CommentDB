@@ -19,7 +19,7 @@ import {
 	updateBallotsLocal,
 	selectBallotEntities,
 	selectBallot,
-	BallotTypeLabels,
+	getBallotId,
 } from "./ballots";
 import { selectGroupPermissions, AccessLevel } from "./groups";
 import {
@@ -70,7 +70,7 @@ const slice = createAppTableDataSlice({
 						dataAdapter.removeAll(state);
 					}
 					state.lastLoad = new Date().toISOString();
-				}
+				},
 			)
 			.addMatcher(
 				(action: Action) => action.type === clearResults.toString(),
@@ -78,7 +78,7 @@ const slice = createAppTableDataSlice({
 					state.ballot_id = null;
 					state.valid = false;
 					dataAdapter.removeAll(state);
-				}
+				},
 			);
 	},
 });
@@ -100,7 +100,7 @@ export { setSelectedResults };
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ ballot_id: number | null }>(
-	dataSet + "/getPending"
+	dataSet + "/getPending",
 );
 export const clearResults = createAction(dataSet + "/clear");
 
@@ -121,36 +121,35 @@ export const selectResultsBallot_id = (state: RootState) =>
 	selectResultsState(state).ballot_id;
 
 export type ResultExtended = Result & {
-	//lastSAPIN: number | undefined;
 	BallotName: string | null;
 };
 
-const selectResultExtendedEntities = createSelector(
+export const selectResultExtendedEntities = createSelector(
+	selectResultsIds,
 	selectResultsEntities,
 	selectResultsBallot_id,
 	selectBallotEntities,
-	(entities, ballot_id, ballotEntities) => {
+	(ids, entities, ballot_id, ballotEntities) => {
 		const newEntities: Record<string, ResultExtended> = {};
-		Object.values(entities).forEach((entity) => {
+		for (const id of ids) {
+			const entity = entities[id]!;
 			let BallotName: string | null = null;
-			if (entity!.lastBallotId && entity!.lastBallotId !== ballot_id) {
-				const ballot = ballotEntities[entity!.lastBallotId];
-				BallotName = ballot
-					? BallotTypeLabels[ballot.Type] + ballot.number
-					: "??";
+			if (entity.lastBallotId && entity.lastBallotId !== ballot_id) {
+				const ballot = ballotEntities[entity.lastBallotId];
+				BallotName = ballot ? getBallotId(ballot) : "??";
 			}
 			const lastSAPIN =
-				(entity!.lastSAPIN === entity!.SAPIN
+				entity.lastSAPIN === entity.SAPIN
 					? undefined
-					: entity!.lastSAPIN) || undefined;
-			newEntities[entity!.id] = {
-				...entity!,
+					: entity.lastSAPIN;
+			newEntities[id] = {
+				...entity,
 				lastSAPIN,
 				BallotName,
 			};
-		});
+		}
 		return newEntities;
-	}
+	},
 );
 
 export const selectResultsAccess = (state: RootState) => {

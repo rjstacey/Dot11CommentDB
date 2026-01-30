@@ -2,9 +2,8 @@ import React from "react";
 import { Form, Row, Col } from "react-bootstrap";
 import { TextArea } from "@common";
 
-import { type Result, type ResultChange } from "@/store/results";
+import type { ResultExtended, ResultChange } from "@/store/results";
 import { SelectVote } from "./SelectVote";
-import { MemberSelect } from "../voters/MemberSelect";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 export function ResultEditForm({
@@ -17,7 +16,7 @@ export function ResultEditForm({
 	readOnly,
 }: {
 	action: "add" | "update";
-	edited: Result;
+	edited: ResultExtended;
 	onChange: (changes: ResultChange) => void;
 	hasChanges: () => boolean;
 	submit: () => Promise<void>;
@@ -38,16 +37,37 @@ export function ResultEditForm({
 	return (
 		<Form onSubmit={onSubmit} className={className}>
 			<Row className="mb-3">
-				<Form.Label column htmlFor="result-name">
-					Name:
-				</Form.Label>
 				<Col>
-					<MemberSelect
-						id="result-name"
-						value={edited.SAPIN!}
-						onChange={() => {}}
-						readOnly
-					/>
+					<Form.Label as="span">Name:</Form.Label>
+				</Col>
+				<Col className="d-flex justify-content-end">
+					<span className="fw-bold">{edited.Name}</span>
+				</Col>
+			</Row>
+			{edited.Email && (
+				<Row className="mb-3">
+					<Col>
+						<Form.Label as="span">Email:</Form.Label>
+					</Col>
+					<Col className="d-flex justify-content-end">
+						<a href={"mailto:" + edited.Email}>{edited.Email}</a>
+					</Col>
+				</Row>
+			)}
+			<Row className="mb-3">
+				<Col>
+					<Form.Label as="span">Affiliation:</Form.Label>
+				</Col>
+				<Col className="d-flex justify-content-end">
+					<span>{edited.Affiliation}</span>
+				</Col>
+			</Row>
+			<Row className="mb-3">
+				<Col>
+					<Form.Label as="span">Status:</Form.Label>
+				</Col>
+				<Col className="d-flex justify-content-end">
+					<span>{edited.Status}</span>
 				</Col>
 			</Row>
 			<Form.Group as={Row} className="mb-3">
@@ -57,10 +77,16 @@ export function ResultEditForm({
 				<Col xs="auto">
 					<SelectVote
 						id="result-vote"
+						style={{ minWidth: 270 }}
 						value={edited.vote}
 						onChange={(vote) => onChange({ vote })}
 						readOnly={readOnly}
 					/>
+					{!hasChanges() && edited.BallotName && (
+						<Form.Text className="float-end">
+							{"From " + edited.BallotName}
+						</Form.Text>
+					)}
 				</Col>
 			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
