@@ -25,7 +25,6 @@ export function refresh() {
 
 export const indexLoader: LoaderFunction = async () => {
 	store.dispatch(clearComments());
-	return null;
 };
 
 export const ballotIdLoader: LoaderFunction = async ({ params }) => {

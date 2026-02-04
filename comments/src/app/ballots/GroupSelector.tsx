@@ -1,11 +1,17 @@
-import * as React from "react";
+import React from "react";
 import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectGroups, Group, selectGroupEntities } from "@/store/groups";
 
+type GroupOption = {
+	id: string;
+	label: string;
+	active: boolean;
+};
+
 function renderGroupName(
 	group: Group,
-	entities: ReturnType<typeof selectGroupEntities>
+	entities: ReturnType<typeof selectGroupEntities>,
 ) {
 	let label: string;
 	if (group.type === "wg") {
@@ -22,6 +28,34 @@ function renderGroupName(
 
 	return label;
 }
+
+function useGroupOptions() {
+	const entities = useAppSelector(selectGroupEntities);
+	const groups = useAppSelector(selectGroups);
+	return React.useMemo(() => {
+		return groups
+			.sort((g1, g2) => {
+				if (g1.status === g2.status) return 0;
+				if (g1.status && !g2.status) return -1;
+				return 1;
+			})
+			.map(
+				(group) =>
+					({
+						id: group.id,
+						label: renderGroupName(group, entities),
+						active: Boolean(group.status),
+					}) satisfies GroupOption,
+			);
+	}, [groups, entities]);
+}
+
+const renderOption = ({ item }: { item: GroupOption }) =>
+	item.active ? (
+		<span>{item.label}</span>
+	) : (
+		<i>{`${item.label} (inactive)`}</i>
+	);
 
 function SelectGroup({
 	value,
@@ -40,14 +74,11 @@ function SelectGroup({
 	| "isInvalid"
 	| "className"
 >) {
-	const entities = useAppSelector(selectGroupEntities);
-	const options = useAppSelector(selectGroups);
+	const options = useGroupOptions();
+	console.log(options);
 	const values = options.filter((o) => value === o.id);
 	const handleChange = (values: typeof options) =>
 		onChange(values.length > 0 ? values[0].id : null);
-
-	const renderGroup = ({ item: group }: { item: Group }) =>
-		renderGroupName(group, entities);
 
 	return (
 		<Select
@@ -58,10 +89,7 @@ function SelectGroup({
 			clearable
 			searchable
 			dropdownPosition="auto"
-			valueField="id"
-			labelField="name"
-			itemRenderer={renderGroup}
-			selectItemRenderer={renderGroup}
+			itemRenderer={renderOption}
 			{...otherProps}
 		/>
 	);

@@ -5,6 +5,7 @@ import {
 	loadGroups,
 	selectTopLevelGroupByName,
 	AccessLevel,
+	setTopLevelGroupId,
 } from "@/store/groups";
 import { loadMembers } from "@/store/members";
 import { loadBallots } from "@/store/ballots";
@@ -19,6 +20,8 @@ export const groupLoader: LoaderFunction = async ({ params }) => {
 	const group = selectTopLevelGroupByName(getState(), groupName);
 
 	if (!group) throw new Error("Invalid group: " + groupName);
+	dispatch(setTopLevelGroupId(group.id));
+
 	const access = group.permissions.ballots || AccessLevel.none;
 	if (access < AccessLevel.ro)
 		throw new Error("You don't have permission to view this data");
