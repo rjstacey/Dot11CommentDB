@@ -9,13 +9,7 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 	{ key: "document", ...fields.document, width: 200 },
 	{ key: "topic", ...fields.topic, width: 500 },
 	{ key: "resultsSummary", ...fields.resultsSummary, width: 100 },
-	{
-		key: "ballot_id",
-		label: "Already Present",
-		width: 200,
-		cellRenderer: ({ rowData }) => (rowData.ballot_id ? "Yes" : ""),
-		headerRenderer: () => "",
-	},
+	{ key: "present", ...fields.present, width: 100 },
 ];
 
 export const defaultTablesConfig: TablesConfig = {};

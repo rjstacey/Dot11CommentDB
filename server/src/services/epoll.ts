@@ -20,7 +20,7 @@ function parseDateTime(dateStr: string) {
 	);
 }
 
-function parseClosedEpollsPage(body: string): Epoll[] {
+function parseEpollsPage(body: string): Epoll[] {
 	const epolls: Epoll[] = [];
 	const $ = cheerioLoad(body);
 
@@ -56,28 +56,32 @@ function parseClosedEpollsPage(body: string): Epoll[] {
 /**
  * Get ePolls
  *
- * Parameters: n = number of entries to get
+ * @param n number of entries to get
  */
 export async function getEpolls(
 	user: UserContext,
 	groupName: string,
-	n: number
+	n: number,
 ): Promise<Epoll[]> {
 	const { ieeeClient } = user;
 	if (!ieeeClient) throw new AuthError("Not logged in");
 
-	async function recursivePageGet(epolls: Epoll[], n: number, page: number) {
-		console.log("get epolls n=", n);
+	async function recursivePageGet(
+		epolls: Epoll[],
+		n: number,
+		type: "open" | "closed",
+		page: number,
+	) {
+		//console.log("get epolls n=", n);
 
-		const url = `https://mentor.ieee.org/${groupName}/polls/closed?n=${page}`;
+		const url = `https://mentor.ieee.org/${groupName}/polls/${type}?n=${page}`;
 		const data = await ieeeClient!.getHtml(url);
-		console.log(data.slice(0, 100));
+		//console.log(data.slice(0, 100));
 
-		const epollsPage = parseClosedEpollsPage(data);
+		const epollsPage = parseEpollsPage(data);
 		let end = n - epolls.length;
-		if (end > epollsPage.length) {
-			end = epollsPage.length;
-		}
+		if (end > epollsPage.length) end = epollsPage.length;
+
 		epolls = epolls.concat(epollsPage.slice(0, end));
 
 		if (epolls.length === n || epollsPage.length === 0) {
@@ -85,10 +89,13 @@ export async function getEpolls(
 			return epolls;
 		}
 
-		return recursivePageGet(epolls, n, page + 1);
+		return recursivePageGet(epolls, n, type, page + 1);
 	}
 
-	return recursivePageGet([], n, 1);
+	let epolls = await recursivePageGet([], n, "open", 1);
+	n = n - epolls.length;
+	if (n > 0) epolls = await recursivePageGet(epolls, n, "closed", 1);
+	return epolls;
 }
 
 type PageResult = {
@@ -114,7 +121,7 @@ export function parseEpollResultsHtml(body: string) {
 				const result = {
 					Vote: tds.eq(1).text(),
 					Name: tds.eq(2).text(),
-					Email: unescape(emailLink.replace("mailto:", "")),
+					Email: decodeURIComponent(emailLink.replace("mailto:", "")),
 					Affiliation: tds.eq(3).text(),
 				};
 				//console.log(result)
@@ -192,14 +199,14 @@ function parseEpollComment(cid: number, c: string[]): EpollComment | null {
 export async function parseEpollComments(
 	startCommentId: number,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ): Promise<EpollComment[]> {
 	const rows = await parseSpreadsheet(
 		filename,
 		buffer,
 		epollCommentsHeader,
 		0,
-		epollCommentsHeader.length + 2
+		epollCommentsHeader.length + 2,
 	);
 
 	const comments: EpollComment[] = [];
@@ -226,7 +233,7 @@ function parseUserComment(
 	user: UserContext,
 	CommentID: number,
 	C_Index: number,
-	c: string[]
+	c: string[],
 ): EpollComment {
 	const C_Page = c[2] ? c[2].trim() : "";
 	const C_Line = c[4] ? c[4].trim() : "";
@@ -262,17 +269,17 @@ export async function parseEpollUserComments(
 	startCommentId: number,
 	startIndex: number,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ): Promise<EpollComment[]> {
 	const rows = await parseSpreadsheet(
 		filename,
 		buffer,
 		epollUserCommentsHeader,
-		3
+		3,
 	);
 
 	return rows.map((row, index) =>
-		parseUserComment(user, startCommentId + index, startIndex + index, row)
+		parseUserComment(user, startCommentId + index, startIndex + index, row),
 	);
 }
 
@@ -286,7 +293,7 @@ type EpollResult = {
 
 export async function parseEpollResults(
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ): Promise<EpollResult[]> {
 	const rows = await parseSpreadsheet(filename, buffer, epollResultsHeader);
 

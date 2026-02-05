@@ -28,11 +28,16 @@ export const fields: Fields = {
 	document: { label: "Document" },
 	topic: { label: "Topic" },
 	resultsSummary: { label: "Result", type: FieldType.NUMERIC },
-	ballot_id: {
-		label: "Already Present",
-		dataRenderer: (v) => (v ? "Yes" : "No"),
+	present: {
+		label: "Present",
+		type: FieldType.STRING,
 	},
 };
+
+export function getField(entity: SyncedEpoll, dataKey: string) {
+	if (dataKey === "present") return entity.ballot_id ? "Yes" : "No";
+	return entity[dataKey as keyof SyncedEpoll];
+}
 
 const initialState = {
 	groupName: null as string | null,
@@ -59,14 +64,14 @@ const slice = createAppTableDataSlice({
 						state.valid = false;
 						dataAdapter.removeAll(state);
 					}
-				}
+				},
 			)
 			.addMatcher(
 				(action: Action) => action.type === clearEpolls.toString(),
 				(state) => {
 					dataAdapter.removeAll(state);
 					state.valid = false;
-				}
+				},
 			);
 	},
 });
@@ -76,7 +81,7 @@ export default slice;
 /* Slice actions */
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ groupName: string | null; n: number }>(
-	dataSet + "/getPending"
+	dataSet + "/getPending",
 );
 const { getSuccess, getFailure, setSelected } = slice.actions;
 
@@ -107,7 +112,7 @@ export const selectSyncedEntities = createSelector(
 		for (const epollNum of epollIds) {
 			const ballot_id =
 				(ballotIds as number[]).find(
-					(id) => ballotEntities[id]!.EpollNum === epollNum
+					(id) => ballotEntities[id]!.EpollNum === epollNum,
 				) || null;
 			syncedEntities[epollNum] = {
 				...epollEntities[epollNum]!,
@@ -115,11 +120,12 @@ export const selectSyncedEntities = createSelector(
 			};
 		}
 		return syncedEntities;
-	}
+	},
 );
 
 export const epollsSelectors = getAppTableDataSelectors(selectEpollsState, {
 	selectEntities: selectSyncedEntities,
+	getField,
 });
 
 /* Thunk actions */
