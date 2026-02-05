@@ -31,11 +31,11 @@ export function BallotSeriesRows({
 	function ballotSeriesNode(
 		b: Ballot,
 		i: number,
-		style?: React.CSSProperties
+		style?: React.CSSProperties,
 	) {
 		return (
 			<span
-				key={i}
+				key={b.id}
 				style={{
 					marginRight: 20,
 					...style,
@@ -71,11 +71,13 @@ export function BallotSeriesRows({
 				Start,
 			});
 			ballotSeriesNodes = prevBallots.map((b, i) =>
-				ballotSeriesNode(b, i, { fontStyle: "italic" })
+				ballotSeriesNode(b, i, { fontStyle: "italic" }),
 			);
 			if (ballotSeriesNodes.length > 0) {
 				ballotSeriesNodes.unshift(
-					<span style={{ fontStyle: "italic" }}>{"(possible: "}</span>
+					<span style={{ fontStyle: "italic" }}>
+						{"(possible: "}
+					</span>,
 				);
 				ballotSeriesNodes.push(
 					<span
@@ -86,7 +88,7 @@ export function BallotSeriesRows({
 						}}
 					>
 						{")"}
-					</span>
+					</span>,
 				);
 			}
 		}
@@ -106,10 +108,10 @@ export function BallotSeriesRows({
 		.concat(
 			ballotSeriesNode(edited as Ballot, stage, {
 				fontWeight: "bold",
-			})
+			}),
 		)
 		.concat(
-			futureBallots.map((b, i) => ballotSeriesNode(b, i + stage + 1))
+			futureBallots.map((b, i) => ballotSeriesNode(b, i + stage + 1)),
 		);
 
 	function togglePrevId() {

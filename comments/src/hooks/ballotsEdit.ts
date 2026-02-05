@@ -43,7 +43,7 @@ export function useGetBallotSeries() {
 			}
 			return ballotSeries;
 		},
-		[ids, entities]
+		[ids, entities],
 	);
 
 	/** Get ballot series that references the supplied ballot_id */
@@ -61,7 +61,7 @@ export function useGetBallotSeries() {
 			} while (ballot);
 			return ballotSeries;
 		},
-		[ids, entities]
+		[ids, entities],
 	);
 
 	/** Get ballot series that potentially precedes the supplied ballot */
@@ -88,12 +88,12 @@ export function useGetBallotSeries() {
 						b.Project === Project &&
 						new Date(b.Start!).getTime() <
 							new Date(Start!).getTime() &&
-						b.id !== id
+						b.id !== id,
 				)
 				.sort(
 					(b1, b2) =>
 						new Date(b1.Start!).getTime() -
-						new Date(b2.Start!).getTime()
+						new Date(b2.Start!).getTime(),
 				);
 			if (prevBallots.length > 0) {
 				const ballot = prevBallots[prevBallots.length - 1];
@@ -101,7 +101,7 @@ export function useGetBallotSeries() {
 			}
 			return [];
 		},
-		[ids, entities, getPrevBallots]
+		[ids, entities, getPrevBallots],
 	);
 
 	return {
@@ -123,14 +123,14 @@ function nextBallotNumber(ballots: Ballot[], type: number) {
 export function getDefaultBallot(
 	ids: EntityId[],
 	entities: Dictionary<Ballot>,
-	ballotTemplate?: Ballot
+	ballotTemplate?: Ballot,
 ): BallotCreate {
 	const allBallots = ids.map((id) => entities[id]!);
 	const now = new Date();
 	const today = new Date(
 		now.getFullYear(),
 		now.getMonth(),
-		now.getDate()
+		now.getDate(),
 	).toISOString();
 	let groupId: string = "";
 	let project: string = "";
@@ -147,7 +147,7 @@ export function getDefaultBallot(
 			.sort(
 				(b1, b2) =>
 					new Date(b1.Start || "").valueOf() -
-					new Date(b2.Start || "").valueOf()
+					new Date(b2.Start || "").valueOf(),
 			);
 		const latestBallot = ballots[ballots.length - 1];
 		if (latestBallot) {
@@ -238,7 +238,7 @@ function useBallotsInitState(readOnly: boolean) {
 
 	const resetState = React.useCallback(
 		() => setState(initState),
-		[setState, initState]
+		[setState, initState],
 	);
 
 	const onAdd = React.useCallback(() => {
@@ -267,7 +267,7 @@ function useBallotsInitState(readOnly: boolean) {
 		const list = state.ballots.map(getBallotId).join(", ");
 		const ids = state.ballots.map((b) => b.id);
 		const ok = await ConfirmModal.show(
-			`Are you sure you want to delete ${list}?`
+			`Are you sure you want to delete ${list}?`,
 		);
 		if (ok) await dispatch(deleteBallots(ids));
 		dispatch(setSelected([]));
@@ -277,7 +277,7 @@ function useBallotsInitState(readOnly: boolean) {
 		if (state.action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected([]));
@@ -291,7 +291,7 @@ function useBallotsInitState(readOnly: boolean) {
 			const ids = state.ballots.map((s) => s.id);
 			if (!isEqual(selected, ids)) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected(ids));
@@ -315,7 +315,7 @@ export function useBallotsUpdate(
 	readOnly: boolean,
 	state: BallotsEditState,
 	setState: React.Dispatch<React.SetStateAction<BallotsEditState>>,
-	resetState: () => void
+	resetState: () => void,
 ) {
 	const dispatch = useAppDispatch();
 
@@ -323,7 +323,7 @@ export function useBallotsUpdate(
 		() =>
 			state.action === "add" ||
 			(state.action === "update" && state.edited !== state.saved),
-		[state]
+		[state],
 	);
 
 	const onChange = React.useCallback(
@@ -345,7 +345,7 @@ export function useBallotsUpdate(
 				return state;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
 	const submit = React.useCallback(async () => {
@@ -360,7 +360,7 @@ export function useBallotsUpdate(
 			const updates: BallotUpdate[] = [];
 			const editChanges = shallowDiff(
 				state.saved,
-				state.edited
+				state.edited,
 			) as BallotChange;
 			for (const ballot of state.ballots) {
 				const updatedBallot = { ...ballot, ...editChanges };
@@ -391,7 +391,7 @@ export function useBallotsEdit(readOnly: boolean) {
 		readOnly,
 		state,
 		setState,
-		resetState
+		resetState,
 	);
 
 	return {

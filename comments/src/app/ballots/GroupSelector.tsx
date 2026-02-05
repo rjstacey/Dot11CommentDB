@@ -75,7 +75,6 @@ function SelectGroup({
 	| "className"
 >) {
 	const options = useGroupOptions();
-	console.log(options);
 	const values = options.filter((o) => value === o.id);
 	const handleChange = (values: typeof options) =>
 		onChange(values.length > 0 ? values[0].id : null);
