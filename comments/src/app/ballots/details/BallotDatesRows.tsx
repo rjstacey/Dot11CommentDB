@@ -11,7 +11,7 @@ function dateToShortDate(isoDate: string | null) {
 	if (!isoDate) return "";
 	const utcDate = new Date(isoDate);
 	const date = new Date(
-		utcDate.toLocaleString("en-US", { timeZone: "America/New_York" })
+		utcDate.toLocaleString("en-US", { timeZone: "America/New_York" }),
 	);
 	return (
 		date.getFullYear() +
@@ -26,7 +26,7 @@ function dateToShortDate(isoDate: string | null) {
 function shortDateToDate(shortDateStr: string) {
 	const date = new Date(shortDateStr); // local time
 	const easternDate = new Date(
-		date.toLocaleString("en-US", { timeZone: "America/New_York" })
+		date.toLocaleString("en-US", { timeZone: "America/New_York" }),
 	);
 	const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
 	const diff = utcDate.getTime() - easternDate.getTime();
@@ -47,13 +47,12 @@ function BallotDateInput({
 	onChange: (changes: BallotChange) => void;
 	readOnly?: boolean;
 }) {
-	const [value, setValue] = React.useState<string>(
-		isMultiple(edited[dataKey]) ? "" : dateToShortDate(edited[dataKey])
-	);
+	const value = isMultiple(edited[dataKey])
+		? ""
+		: dateToShortDate(edited[dataKey]);
 
 	const changeDate: React.ChangeEventHandler<HTMLInputElement> = (e) => {
 		const { name, value } = e.target;
-		setValue(value);
 		const dateStr = shortDateToDate(value);
 		if (dateStr) onChange({ [name]: dateStr });
 	};
@@ -81,7 +80,7 @@ function BallotDateInput({
 						? MULTIPLE_STR
 						: new Date(saved[dataKey] || "").toLocaleDateString(
 								"en-US",
-								{ timeZone: "America/New_York" }
+								{ timeZone: "America/New_York" },
 							)}
 				</Form.Text>
 			)}
