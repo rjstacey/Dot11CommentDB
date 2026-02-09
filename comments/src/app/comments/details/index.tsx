@@ -1,5 +1,12 @@
 import * as React from "react";
-import { Container, Row, Col, Button, Form } from "react-bootstrap";
+import {
+	Container,
+	Row,
+	Col,
+	Button,
+	ToggleButton,
+	Form,
+} from "react-bootstrap";
 import { MULTIPLE, isMultiple } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -64,12 +71,11 @@ export function CommentsDetail() {
 	const isOnline = useAppSelector(selectIsOnline);
 
 	const [showHistory, setShowHistory] = React.useState(false);
-	const toggleShowHistory = () => setShowHistory(!showHistory);
 
 	const editMode: boolean | undefined =
 		useAppSelector(selectCommentsState).ui.editMode;
-	const toggleEditMode = () =>
-		dispatch(setUiProperties({ editMode: !editMode }));
+	const setEditMode = (editMode: boolean) =>
+		dispatch(setUiProperties({ editMode }));
 	const readOnly = !editMode;
 
 	const {
@@ -84,37 +90,26 @@ export function CommentsDetail() {
 
 	const actionElements = (
 		<>
-			<Button
+			<ToggleButton
+				id="toggle-show-history"
 				variant="outline-primary"
-				className="bi-clock-history"
-				onClick={toggleShowHistory}
-				active={showHistory}
+				type="checkbox"
+				value="1"
+				onChange={(e) => setShowHistory(e.target.checked)}
+				checked={showHistory}
 				disabled={
 					state.action !== "update" ||
 					state.commentResolutions.length === 0 ||
 					!isOnline
 				}
 			>
-				{" History"}
-			</Button>
-			{(commentsAccess >= AccessLevel.rw ||
-				resolutionsAccess >= AccessLevel.rw) && (
-				<Button
-					variant="outline-primary"
-					className="bi-pencil"
-					title="Edit mode"
-					disabled={state.action !== "update" || showHistory}
-					active={editMode}
-					onClick={toggleEditMode}
-				>
-					{" Edit"}
-				</Button>
-			)}
+				<i className="bi-clock-history me-1" />
+				{"History"}
+			</ToggleButton>
 			{commentsAccess >= AccessLevel.rw && (
 				<>
 					<Button
 						variant="outline-primary"
-						className="bi-plus-lg"
 						title="Create alternate resolution"
 						disabled={
 							state.action !== "update" ||
@@ -123,11 +118,11 @@ export function CommentsDetail() {
 						}
 						onClick={onAddResolutions}
 					>
-						{" Add Resn"}
+						<i className="bi-plus-lg me-1" />
+						{"Add Resn"}
 					</Button>
 					<Button
 						variant="outline-primary"
-						className="bi-trash"
 						title="Delete resolution"
 						disabled={
 							state.action !== "update" ||
@@ -136,7 +131,8 @@ export function CommentsDetail() {
 						}
 						onClick={onDeleteResolutions}
 					>
-						{" Delete Resn"}
+						<i className="bi-trash me-1" />
+						{"Delete Resn"}
 					</Button>
 				</>
 			)}
@@ -181,8 +177,24 @@ export function CommentsDetail() {
 	return (
 		<Container fluid="lg">
 			<Row>
-				<Col xs="auto">
+				<Col xs="auto" className="d-flex align-items-center gap-2">
 					<RoleSelect />
+					{(commentsAccess >= AccessLevel.rw ||
+						resolutionsAccess >= AccessLevel.rw) && (
+						<ToggleButton
+							id="toggle-edit-mode"
+							type="checkbox"
+							variant="outline-primary"
+							title="Edit mode"
+							disabled={state.action !== "update" || showHistory}
+							value="1"
+							checked={editMode}
+							onChange={(e) => setEditMode(e.target.checked)}
+						>
+							<i className="bi-pencil me-1" />
+							{"Edit"}
+						</ToggleButton>
+					)}
 				</Col>
 				<Col className="d-flex justify-content-end gap-2">
 					{actionElements}
