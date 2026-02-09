@@ -108,11 +108,13 @@ const editorConfig = {
 		{
 			replace: ParagraphNode,
 			with: () => new RichParagraphNode(),
+			withKlass: RichParagraphNode,
 		},
 		RichTextNode,
 		{
 			replace: TextNode,
 			with: (node: TextNode) => new RichTextNode(node.__text),
+			withKlass: RichTextNode,
 		},
 		TextNode,
 	],
