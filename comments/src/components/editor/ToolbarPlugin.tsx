@@ -108,7 +108,7 @@ function BlockStyleButtons({
 				if ($isListNode(element)) {
 					const parentList = $getNearestNodeOfType(
 						anchorNode,
-						ListNode
+						ListNode,
 					);
 					type = parentList ? parentList.getTag() : element.getTag();
 				} else if ($isHeadingNode(element)) {
@@ -137,8 +137,8 @@ function BlockStyleButtons({
 					updateState();
 					return false;
 				},
-				LowPriority
-			)
+				LowPriority,
+			),
 		);
 	}, [editor]);
 
@@ -148,7 +148,7 @@ function BlockStyleButtons({
 				blockType !== "ul"
 					? INSERT_UNORDERED_LIST_COMMAND
 					: REMOVE_LIST_COMMAND,
-				undefined
+				undefined,
 			);
 			return;
 		}
@@ -157,7 +157,7 @@ function BlockStyleButtons({
 				blockType !== "ol"
 					? INSERT_ORDERED_LIST_COMMAND
 					: REMOVE_LIST_COMMAND,
-				undefined
+				undefined,
 			);
 			return;
 		}
@@ -190,7 +190,7 @@ function BlockStyleButtons({
 				selection.getNodes().forEach((node) => {
 					const blockNode = $findMatchingParent(
 						node,
-						$isParagraphNode
+						$isParagraphNode,
 					);
 					if (blockNode) blockNode.setIndent(0);
 				});
@@ -220,7 +220,7 @@ function BlockStyleButtons({
 				editor={editor}
 				value={formatType}
 				disabled={disabled}
-			/>
+			/>,
 		);
 	let moreButtons: JSX.Element[] = [];
 
@@ -313,8 +313,8 @@ function InlineStyleButtons({
 					updateFormatState();
 					return false;
 				},
-				LowPriority
-			)
+				LowPriority,
+			),
 		);
 	}, [editor]);
 
@@ -326,7 +326,7 @@ function InlineStyleButtons({
 				if (!$isRangeSelection(selection)) return;
 				const node = $findMatchingParent(
 					getSelectedNode(selection),
-					$isAutoLinkNode
+					$isAutoLinkNode,
 				);
 				node?.replace($createLinkNode(node.getURL()), true);
 			});
@@ -334,7 +334,7 @@ function InlineStyleButtons({
 			// Toggle link
 			editor.dispatchCommand(
 				TOGGLE_LINK_COMMAND,
-				isLink ? null : "https://"
+				isLink ? null : "https://",
 			);
 		}
 	}, [editor, isLink, isAutoLink]);
@@ -360,7 +360,7 @@ function InlineStyleButtons({
 				title={(isLink ? "Remove" : "Insert") + " link"}
 				active={isLink}
 				className="bi-link"
-			/>
+			/>,
 		);
 	let moreButtons: JSX.Element[] = [];
 
@@ -436,7 +436,7 @@ function SelectAlignment({
 					</Dropdown.Item>
 				) : (
 					<Dropdown.Divider key={i} />
-				)
+				),
 			)}
 		</DropdownButton>
 	);
@@ -461,7 +461,7 @@ function UndoRedo({
 						setCanUndo(payload);
 						return false;
 					},
-					LowPriority
+					LowPriority,
 				),
 				editor.registerCommand(
 					CAN_REDO_COMMAND,
@@ -469,10 +469,10 @@ function UndoRedo({
 						setCanRedo(payload);
 						return false;
 					},
-					LowPriority
-				)
+					LowPriority,
+				),
 			),
-		[editor]
+		[editor],
 	);
 
 	return (
@@ -503,7 +503,7 @@ type Size = "small" | "medium" | "large";
 const breakpointSmall = 525;
 const breakpointMedium = 625;
 
-export default function ToolbarPlugin({ style }: React.ComponentProps<"div">) {
+export default function ToolbarPlugin() {
 	const [editor] = useLexicalComposerContext();
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const [size, setSize] = React.useState<Size>("large");
@@ -528,7 +528,6 @@ export default function ToolbarPlugin({ style }: React.ComponentProps<"div">) {
 		<div
 			ref={containerRef}
 			className={styles.toolbar}
-			style={style}
 			onMouseDown={(e) => {
 				e.preventDefault();
 			}}

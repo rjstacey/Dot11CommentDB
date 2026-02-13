@@ -108,6 +108,7 @@ export function ResolutionRow({
 						onChange={(value) =>
 							updateResolution({ Resolution: value })
 						}
+						submission={resolution.Submission}
 						placeholder={
 							isMultiple(resolution.Resolution)
 								? MULTIPLE_STR

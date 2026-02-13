@@ -1,20 +1,12 @@
 import * as React from "react";
-import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
-import { ListPlugin } from "@lexical/react/LexicalListPlugin";
+import { LexicalExtensionComposer } from "@lexical/react/LexicalExtensionComposer";
+import { HistoryExtension } from "@lexical/history";
+import { ListExtension } from "@lexical/list";
+import { LinkExtension, AutoLinkNode } from "@lexical/link";
+import { RichTextExtension } from "@lexical/rich-text";
+import { defineExtension, ParagraphNode, TextNode } from "lexical";
 
-import { HeadingNode, QuoteNode } from "@lexical/rich-text";
-import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
-import { ListItemNode, ListNode } from "@lexical/list";
-import { CodeNode } from "@lexical/code";
-import { AutoLinkNode, LinkNode } from "@lexical/link";
-import { ParagraphNode, TextNode } from "lexical";
-
-import ListMaxIndentLevelPlugin from "./ListMaxIndentLevelPlugin";
-import AutoLinkPlugin from "./AutoLinkPlugin";
-import LinkEditorPlugin from "./LinkEditorPlugin";
-import InportExportPlugin from "./ImportExportPlugin";
+import AutoLink from "./AutoLink";
 import RichTextPlugin from "./RichTextPlugin";
 import RichTextNode from "./RichTextNode";
 import RichParagraphNode from "./RichParagraphNode";
@@ -82,43 +74,34 @@ export function useEditorStylesheet(className: string) {
 	}, [className]);
 }
 
-const editorConfig = {
-	namespace: "editor",
-	// The editor theme
-	theme,
-	// Handling of errors during update
-	onError(error: unknown) {
-		throw error;
+const nodes = [
+	AutoLinkNode,
+	RichParagraphNode,
+	{
+		replace: ParagraphNode,
+		with: () => new RichParagraphNode(),
+		withKlass: RichParagraphNode,
 	},
-	// Any custom nodes go here
-	nodes: [
-		HeadingNode,
-		ListNode,
-		ListItemNode,
-		QuoteNode,
-		CodeNode,
-		TableNode,
-		TableCellNode,
-		TableRowNode,
-		AutoLinkNode,
-		LinkNode,
-		AutoLinkNode,
-		ParagraphNode,
-		RichParagraphNode,
-		{
-			replace: ParagraphNode,
-			with: () => new RichParagraphNode(),
-			withKlass: RichParagraphNode,
-		},
-		RichTextNode,
-		{
-			replace: TextNode,
-			with: (node: TextNode) => new RichTextNode(node.__text),
-			withKlass: RichTextNode,
-		},
-		TextNode,
+	RichTextNode,
+	{
+		replace: TextNode,
+		with: (node: TextNode) => new RichTextNode(node.__text),
+		withKlass: RichTextNode,
+	},
+];
+
+const editorExtension = defineExtension({
+	name: "[root]",
+	namespace: "@802tools/comments",
+	nodes,
+	dependencies: [
+		HistoryExtension,
+		RichTextExtension,
+		ListExtension,
+		LinkExtension,
 	],
-};
+	theme,
+});
 
 function Editor({
 	id,
@@ -126,6 +109,7 @@ function Editor({
 	style,
 	value,
 	onChange,
+	submission,
 	readOnly,
 	placeholder = "Enter text here...",
 }: {
@@ -134,32 +118,28 @@ function Editor({
 	style?: React.CSSProperties;
 	value: string | null;
 	onChange: (value: string | null) => void;
+	submission?: string | null;
 	readOnly?: boolean;
 	placeholder?: string;
 }) {
 	useEditorStylesheet(styles.container);
 
 	return (
-		<LexicalComposer initialConfig={editorConfig}>
+		<LexicalExtensionComposer
+			extension={editorExtension}
+			contentEditable={null}
+		>
 			<RichTextPlugin
 				id={id}
 				className={className}
 				style={style}
+				value={value}
+				onChange={onChange}
 				placeholder={placeholder}
 				readOnly={readOnly}
 			/>
-			<LinkEditorPlugin />
-			<InportExportPlugin
-				value={value}
-				onChange={onChange}
-				readOnly={readOnly}
-			/>
-			<HistoryPlugin />
-			<ListPlugin />
-			<LinkPlugin />
-			<AutoLinkPlugin />
-			<ListMaxIndentLevelPlugin maxDepth={4} />
-		</LexicalComposer>
+			<AutoLink submission={submission} />
+		</LexicalExtensionComposer>
 	);
 }
 

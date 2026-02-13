@@ -5,10 +5,10 @@ import {
 	$addUpdateTag,
 	SKIP_DOM_SELECTION_TAG,
 	type LexicalNode,
+	HISTORY_MERGE_TAG,
 } from "lexical";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useDebounce } from "@common";
 
@@ -25,7 +25,7 @@ function $recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
 	}
 }
 
-function InportExportPlugin({
+export function useImportExport({
 	value,
 	onChange,
 	readOnly,
@@ -36,19 +36,6 @@ function InportExportPlugin({
 }) {
 	const [editor] = useLexicalComposerContext();
 	const [output, setOutput] = React.useState<string | null>(null);
-
-	const debouncedOnChange = useDebounce(() => {
-		if (readOnly) return;
-		editor.read(() => {
-			const newValue = $getRoot().getTextContent()
-				? $generateHtmlFromNodes(editor)
-				: "";
-			if (newValue != value) {
-				onChange(newValue);
-				setOutput(newValue);
-			}
-		});
-	});
 
 	React.useEffect(() => {
 		// If the value in is different from what was sent out, then update the editor state
@@ -72,7 +59,6 @@ function InportExportPlugin({
 			}
 			const nodes = $generateNodesFromDOM(editor, dom);
 			$getRoot().clear().select().insertNodes(nodes);
-			//console.log(nodes);
 
 			$recursivelyReplaceLinkWithAutoLink($getRoot());
 
@@ -82,17 +68,36 @@ function InportExportPlugin({
 		});
 	}, [value]);
 
+	const debouncedOnChange = useDebounce(() => {
+		if (readOnly) return;
+		editor.read(() => {
+			const newValue = $getRoot().getTextContent()
+				? $generateHtmlFromNodes(editor)
+				: "";
+			if (newValue != value) {
+				onChange(newValue);
+				setOutput(newValue);
+			}
+		});
+	});
+
+	React.useEffect(() => {
+		return editor.registerUpdateListener(
+			({ dirtyElements, dirtyLeaves, prevEditorState, tags }) => {
+				if (
+					(dirtyElements.size === 0 && dirtyLeaves.size === 0) ||
+					tags.has(HISTORY_MERGE_TAG) ||
+					prevEditorState.isEmpty()
+				) {
+					return;
+				}
+
+				debouncedOnChange();
+			},
+		);
+	}, [editor, debouncedOnChange]);
+
 	React.useEffect(() => {
 		editor.setEditable(!readOnly);
 	}, [editor, readOnly]);
-
-	return (
-		<OnChangePlugin
-			onChange={debouncedOnChange}
-			ignoreHistoryMergeTagChange
-			ignoreSelectionChange
-		/>
-	);
 }
-
-export default InportExportPlugin;

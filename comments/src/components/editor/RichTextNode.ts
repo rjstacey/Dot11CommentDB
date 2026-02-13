@@ -13,7 +13,7 @@ import {
 
 function wrapElementWith(
 	element: HTMLElement | Text,
-	tag: string
+	tag: string,
 ): HTMLElement {
 	const el = document.createElement(tag);
 	el.appendChild(element);
@@ -125,7 +125,6 @@ export class RichTextNode extends TextNode {
 	}
 
 	isSimpleText() {
-		console.error("simple text");
 		return (
 			(this.__type === "text" || this.__type === "rich-text") &&
 			this.__mode === 0
@@ -231,7 +230,7 @@ export function $createRichTextNode(text: string): RichTextNode {
 }
 
 export function $isRichTextNode(
-	node: LexicalNode | null | undefined
+	node: LexicalNode | null | undefined,
 ): node is RichTextNode {
 	return node instanceof RichTextNode;
 }

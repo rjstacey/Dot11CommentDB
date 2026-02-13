@@ -1,5 +1,5 @@
 .container {
-	position: relative;
+	position: static;
 	display: flex;
 	align-items: center;
 
@@ -61,6 +61,13 @@
 		user-select: none;
 		pointer-events: none;
 	}
+
+	&:not(:focus-within) {
+		& .toolbar,
+		& .link-editor {
+			display: none;
+		}
+	}
 }
 
 .toolbar {
@@ -100,5 +107,69 @@
 
 	& :global(.dropdown-menu) {
 		--bs-dropdown-min-width: unset;
+	}
+}
+
+.link-editor {
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	max-width: 400px;
+	width: 100%;
+	opacity: 0;
+	background-color: #fff;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+	border-radius: 0 0 8px 8px;
+	transition: opacity 0.5s;
+	will-change: transform;
+
+	& button {
+		border-radius: 8px;
+		cursor: pointer;
+		margin: 0 4px;
+		padding: 2;
+		border: none;
+		font-size: larger;
+		background-color: inherit;
+
+		&:hover {
+			background-color: rgb(223, 232, 250);
+		}
+	}
+
+	& input {
+		display: block;
+		width: calc(100% - 75px);
+		box-sizing: border-box;
+		margin: 12px 12px;
+		padding: 8px 12px;
+		border-radius: 15px;
+		background-color: #eee;
+		font-size: 15px;
+		color: rgb(5, 5, 5);
+		border: 0;
+		outline: 0;
+		position: relative;
+		font-family: inherit;
+	}
+
+	& a {
+		display: block;
+		word-break: break-word;
+		width: calc(100% - 33px);
+		margin: 8px 12px;
+		padding: 8px 12px;
+		color: rgb(33, 111, 219);
+		text-decoration: underline;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+
+		&:hover {
+			text-decoration: underline;
+		}
 	}
 }
