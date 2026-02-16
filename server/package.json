@@ -37,7 +37,7 @@
 		"socket.io": "^4.8.1",
 		"tough-cookie": "^4.1.4",
 		"tzdata": "^1.0.46",
-		"undici": "^7.15.0"
+		"undici": "^7.18.2"
 	},
 	"devDependencies": {
 		"@types/csv-parse": "^1.2.2",
