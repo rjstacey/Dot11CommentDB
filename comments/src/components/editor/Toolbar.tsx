@@ -403,27 +403,6 @@ function SelectAlignment({
 		else editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value);
 	}
 
-	/*return (
-		<DropdownButton
-			title={<i className="bi-text-left" />}
-			align="end"
-			disabled={disabled}
-		>
-			{alignmentOptions.map((o, i) =>
-				o.value ? (
-					<Dropdown.Item
-						key={i}
-						className={value === o.value ? "active" : undefined}
-						onClick={() => onChange(o.value!)}
-					>
-						<i className={o.icon} />
-					</Dropdown.Item>
-				) : (
-					<Dropdown.Divider key={i} />
-				),
-			)}
-		</DropdownButton>
-	);*/
 	return (
 		<DropdownButton
 			title={<i className="bi-text-left" />}
@@ -510,7 +489,7 @@ type Size = "small" | "medium" | "large";
 const breakpointSmall = 525;
 const breakpointMedium = 625;
 
-export default function ToolbarPlugin() {
+export function Toolbar() {
 	const [editor] = useLexicalComposerContext();
 	const containerRef = React.useRef<HTMLDivElement>(null);
 	const [size, setSize] = React.useState<Size>("large");

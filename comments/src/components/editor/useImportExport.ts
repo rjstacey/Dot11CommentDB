@@ -25,15 +25,11 @@ function $recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
 	}
 }
 
-export function useImportExport({
-	value,
-	onChange,
-	readOnly,
-}: {
-	value: string | null;
-	onChange: (value: string | null) => void;
-	readOnly?: boolean;
-}) {
+export function useImportExport(
+	value: string | null,
+	onChange: (value: string | null) => void,
+	readOnly?: boolean,
+) {
 	const [editor] = useLexicalComposerContext();
 	const [output, setOutput] = React.useState<string | null>(null);
 

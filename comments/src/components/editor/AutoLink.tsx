@@ -86,11 +86,7 @@ function submissionMatcher(
 	return null;
 }
 
-export default function AutoLink({
-	submission,
-}: {
-	submission?: string | null;
-}) {
+export function AutoLink({ submission }: { submission?: string | null }) {
 	const groupName = useParams().groupName || "";
 	const matchers = React.useMemo(
 		() => [

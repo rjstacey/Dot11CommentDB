@@ -1,11 +1,11 @@
 import * as React from "react";
 
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	$isAutoLinkNode,
 	$isLinkNode,
 	TOGGLE_LINK_COMMAND,
 } from "@lexical/link";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $findMatchingParent, mergeRegister } from "@lexical/utils";
 import { $isAtNodeEnd } from "@lexical/selection";
 import {
@@ -330,15 +330,12 @@ function FloatingLinkEditor({
 	);
 }
 
-function FloatingLinkEditorPlugin({
-	anchorElem = document.body,
-}: {
-	anchorElem?: HTMLElement;
-}) {
+export function LinkEditor() {
 	const [editor] = useLexicalComposerContext();
 	const [activeEditor, setActiveEditor] = React.useState(editor);
 	const [isLink, setIsLink] = React.useState(false);
 	const [isLinkEditMode, setIsLinkEditMode] = React.useState(false);
+	const anchorElem = document.body;
 
 	React.useEffect(() => {
 		function updateToolbar() {
@@ -399,5 +396,3 @@ function FloatingLinkEditorPlugin({
 		/>
 	);
 }
-
-export default FloatingLinkEditorPlugin;

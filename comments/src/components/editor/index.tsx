@@ -4,6 +4,7 @@ import { HistoryExtension } from "@lexical/history";
 import { ListExtension } from "@lexical/list";
 import { LinkExtension, AutoLinkNode } from "@lexical/link";
 import { RichTextExtension } from "@lexical/rich-text";
+import { CodeExtension } from "@lexical/code";
 import {
 	defineExtension,
 	EditorThemeClasses,
@@ -11,11 +12,9 @@ import {
 	TextNode,
 } from "lexical";
 
-import AutoLink from "./AutoLink";
-import RichTextPlugin from "./RichTextPlugin";
+import { Editor } from "./Editor";
 import RichTextNode from "./RichTextNode";
 import RichParagraphNode from "./RichParagraphNode";
-import { CodeExtension } from "@lexical/code";
 
 const theme: EditorThemeClasses = {
 	ltr: "ltr",
@@ -75,42 +74,15 @@ const editorExtension = defineExtension({
 	theme,
 });
 
-function Editor({
-	id,
-	className,
-	style,
-	value,
-	onChange,
-	submission,
-	readOnly,
-	placeholder = "Enter text here...",
-}: {
-	id?: string;
-	className?: string;
-	style?: React.CSSProperties;
-	value: string | null;
-	onChange: (value: string | null) => void;
-	submission?: string | null;
-	readOnly?: boolean;
-	placeholder?: string;
-}) {
+function EditorComposer(props: React.ComponentProps<typeof Editor>) {
 	return (
 		<LexicalExtensionComposer
 			extension={editorExtension}
 			contentEditable={null}
 		>
-			<RichTextPlugin
-				id={id}
-				className={className}
-				style={style}
-				value={value}
-				onChange={onChange}
-				placeholder={placeholder}
-				readOnly={readOnly}
-			/>
-			<AutoLink submission={submission} />
+			<Editor {...props} />
 		</LexicalExtensionComposer>
 	);
 }
 
-export default Editor;
+export default EditorComposer;

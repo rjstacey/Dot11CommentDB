@@ -12,11 +12,18 @@ import {
 	$isTextNode,
 } from "lexical";
 import { $generateNodesFromDOM } from "@lexical/html";
+import { ResnStatusType } from "@/store/comments";
+
+const whitespaceOnlyRegex = /^[\s\u00A0]*$/;
+
+const resnStatusRegex =
+	/^\s*(accepted|accept)|(revised|revise)|(rejected|reject)\s*$/i;
 
 function insertClipboardData(
 	dataTransfer: DataTransfer,
 	selection: BaseSelection,
 	editor: LexicalEditor,
+	onChangeResnStatus?: (value: ResnStatusType) => void, // present if editing resolution field
 ): void {
 	const htmlString = dataTransfer.getData("text/html");
 	const plainString = dataTransfer.getData("text/plain");
@@ -32,9 +39,21 @@ function insertClipboardData(
 				(node) =>
 					!(
 						($isParagraphNode(node) || $isTextNode(node)) &&
-						/^[\s\u00A0]{0,2}$/.test(node.getTextContent())
+						whitespaceOnlyRegex.test(node.getTextContent())
 					),
 			); // Remove top-level text and paragraphs that contain only whitespace
+			if (onChangeResnStatus) {
+				// If the first paragraph looks like a resolution status, extract it and remove it from the pasted content
+				const node = nodes[0];
+				if (node && $isParagraphNode(node)) {
+					const m = resnStatusRegex.exec(node.getTextContent());
+					if (m) {
+						const status = m[1] ? "A" : m[2] ? "V" : "J";
+						onChangeResnStatus(status);
+						nodes.splice(0, 1); // Remove the status node so it doesn't get pasted into the editor
+					}
+				}
+			}
 			selection.insertNodes(nodes);
 			return;
 		} catch (error) {
@@ -71,7 +90,7 @@ function insertClipboardData(
 	}
 }
 
-export function usePaste() {
+export function usePaste(onChangeResnStatus?: (value: ResnStatusType) => void) {
 	const [editor] = useLexicalComposerContext();
 	React.useEffect(() => {
 		return editor.registerCommand<ClipboardEvent>(
@@ -82,12 +101,17 @@ export function usePaste() {
 					const selection = $getSelection();
 					const clipboardData = event.clipboardData;
 					if (clipboardData != null && $isRangeSelection(selection)) {
-						insertClipboardData(clipboardData, selection, editor);
+						insertClipboardData(
+							clipboardData,
+							selection,
+							editor,
+							onChangeResnStatus,
+						);
 					}
 				});
 				return true;
 			},
 			COMMAND_PRIORITY_NORMAL,
 		);
-	}, [editor]);
+	}, [editor, onChangeResnStatus]);
 }

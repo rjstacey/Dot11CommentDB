@@ -86,6 +86,17 @@ export function ResolutionRow({
 	}
 	if (readOnly) className += " readonly";
 
+	const onChangeResnStatus = React.useCallback(
+		(value: ResnStatusType | null) =>
+			updateResolution({ ResnStatus: value }),
+		[updateResolution],
+	);
+
+	const onChangeResolution = React.useCallback(
+		(value: string | null) => updateResolution({ Resolution: value }),
+		[updateResolution],
+	);
+
 	return (
 		<Row className="mt-3 mb-2">
 			<Col className={styles.resolutionField}>
@@ -93,9 +104,7 @@ export function ResolutionRow({
 				<div className={className}>
 					<ResnStatus
 						value={resolution.ResnStatus}
-						onChange={(value) =>
-							updateResolution({ ResnStatus: value })
-						}
+						onChange={onChangeResnStatus}
 						readOnly={readOnly}
 					/>
 					<Editor
@@ -105,9 +114,8 @@ export function ResolutionRow({
 								? ""
 								: resolution.Resolution || ""
 						}
-						onChange={(value) =>
-							updateResolution({ Resolution: value })
-						}
+						onChange={onChangeResolution}
+						onChangeResnStatus={onChangeResnStatus}
 						submission={resolution.Submission}
 						placeholder={
 							isMultiple(resolution.Resolution)
