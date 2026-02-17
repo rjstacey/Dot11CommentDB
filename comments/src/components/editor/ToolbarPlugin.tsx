@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Dropdown, DropdownButton, Button } from "react-bootstrap";
+import { DropdownButton, Button } from "react-bootstrap";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	CAN_REDO_COMMAND,
@@ -72,10 +72,9 @@ const blockTypeOptions = [
 	{ value: "paragraph", label: "Clear formatting", icon: "bi-eraser" },
 	{ value: "h1", label: "Heading 1", icon: "bi-type-h1" },
 	{ value: "h2", label: "Heading 2", icon: "bi-type-h2" },
-	{ value: "h3", label: "Heading 3", icon: "bi-type-h3" },
-	{ value: "quote", label: "Quote", icon: "bi-blockquote-left" },
 	{ value: "ul", label: "Bullet List", icon: "bi-list-ul" },
 	{ value: "ol", label: "Numbered List", icon: "bi-list-ol" },
+	{ value: "quote", label: "Quote", icon: "bi-blockquote-left" },
 	{ value: "code", label: "Code", icon: "bi-code" },
 ];
 
@@ -170,11 +169,7 @@ function BlockStyleButtons({
 					createNode = $createQuoteNode;
 				} else if (newBlockType === "code") {
 					createNode = $createCodeNode;
-				} else if (
-					newBlockType === "h1" ||
-					newBlockType === "h2" ||
-					newBlockType === "h3"
-				) {
+				} else if (newBlockType === "h1" || newBlockType === "h2") {
 					createNode = () => $createHeadingNode(newBlockType);
 				} else {
 					createNode = $createParagraphNode;
@@ -198,41 +193,27 @@ function BlockStyleButtons({
 		}
 	}
 
-	const buttons = blockTypeOptions
-		.map((o) => (
-			<Button
-				key={o.value}
-				className={
-					o.icon +
-					(blockType !== "paragraph" && blockType === o.value
-						? " active"
-						: "")
-				}
-				disabled={disabled}
-				onClick={() => onChange(o.value)}
-				aria-label={o.label}
-				title={o.label}
-			/>
-		))
-		.concat(
-			<SelectAlignment
-				key="alignment"
-				editor={editor}
-				value={formatType}
-				disabled={disabled}
-			/>,
-		);
-	let moreButtons: JSX.Element[] = [];
+	const buttons = blockTypeOptions.map((o) => (
+		<Button
+			key={o.value}
+			className={
+				o.icon +
+				(blockType !== "paragraph" && blockType === o.value
+					? " active"
+					: "")
+			}
+			disabled={disabled}
+			onClick={() => onChange(o.value)}
+			aria-label={o.label}
+			title={o.label}
+		/>
+	));
 
+	let moreButtons: JSX.Element[] = [];
 	if (size === "medium") {
-		moreButtons = buttons.splice(1, 3);
-		moreButtons.push(buttons.pop()!);
-		moreButtons.push(buttons.pop()!);
+		moreButtons = buttons.splice(-3, 3);
 	} else if (size === "small") {
-		moreButtons = buttons.splice(1, 3);
-		moreButtons.concat(buttons.splice(-1, 1));
-		moreButtons.push(<div key="div1" className="divider" />);
-		moreButtons.push(buttons.pop()!);
+		moreButtons = buttons.splice(-6, 6);
 	}
 
 	return (
@@ -247,6 +228,12 @@ function BlockStyleButtons({
 					<div className="button-group">{moreButtons}</div>
 				</DropdownButton>
 			)}
+			<SelectAlignment
+				key="alignment"
+				editor={editor}
+				value={formatType}
+				disabled={disabled}
+			/>
 		</div>
 	);
 }
@@ -339,7 +326,7 @@ function InlineStyleButtons({
 		}
 	}, [editor, isLink, isAutoLink]);
 
-	let buttons = inlineFormatOptions
+	const buttons = inlineFormatOptions
 		.map((o) => (
 			<Button
 				key={o.value}
@@ -362,13 +349,10 @@ function InlineStyleButtons({
 				className="bi-link"
 			/>,
 		);
-	let moreButtons: JSX.Element[] = [];
 
-	if (size === "medium") {
-		moreButtons = buttons.splice(buttons.length - 2, 2);
-	} else if (size === "small") {
-		moreButtons = buttons;
-		buttons = [];
+	let moreButtons: JSX.Element[] = [];
+	if (size === "medium" || size == "small") {
+		moreButtons = buttons.splice(-3, 3);
 	}
 
 	return (
@@ -419,7 +403,7 @@ function SelectAlignment({
 		else editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value);
 	}
 
-	return (
+	/*return (
 		<DropdownButton
 			title={<i className="bi-text-left" />}
 			align="end"
@@ -438,6 +422,29 @@ function SelectAlignment({
 					<Dropdown.Divider key={i} />
 				),
 			)}
+		</DropdownButton>
+	);*/
+	return (
+		<DropdownButton
+			title={<i className="bi-text-left" />}
+			align="end"
+			disabled={disabled}
+		>
+			<div className="button-group">
+				{alignmentOptions.map((o, i) =>
+					o.value ? (
+						<Button
+							key={i}
+							className={value === o.value ? "active" : undefined}
+							onClick={() => onChange(o.value!)}
+						>
+							<i className={o.icon} />
+						</Button>
+					) : (
+						<div className="vertical-divider" key={i} />
+					),
+				)}
+			</div>
 		</DropdownButton>
 	);
 }

@@ -7,9 +7,10 @@ import { $getRoot, $createParagraphNode } from "lexical";
 import ToolbarPlugin from "./ToolbarPlugin";
 import LinkEditorPlugin from "./LinkEditorPlugin";
 import { useImportExport } from "./useImportExport";
+import { usePaste } from "./usePaste";
 
 import styles from "./editor.module.css";
-import { usePaste } from "./usePaste";
+import "./editor-style.css";
 
 const Placeholder = (props: React.ComponentProps<"i">) => (
 	<div className={styles.placeholder + " " + styles.innerContainer}>
@@ -61,9 +62,7 @@ function RichTextPlugin({
 			<ToolbarPlugin />
 			<div className={styles.outerContainer}>
 				<ContentEditable
-					className={styles.innerContainer}
-					//onFocus={() => setShowToolbar(true)}
-					//onBlur={() => setShowToolbar(false)}
+					className={cx(styles.innerContainer, "editor-style")}
 					aria-placeholder={placeholder || ""}
 					placeholder={<Placeholder>{placeholder}</Placeholder>}
 				/>

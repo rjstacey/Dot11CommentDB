@@ -98,7 +98,7 @@ const resnStatusRenderer = (resnStatus: ResnStatusType | null) =>
 function renderDataCellResolution({ rowData }: { rowData: CommentResolution }) {
 	const resnStatus = rowData["ResnStatus"];
 
-	let className = styles.resolutionContainer;
+	let className = styles.resolutionContainer + " editor-style";
 	if (resnStatus === "A") className += " accepted";
 	else if (resnStatus === "V") className += " revised";
 	else if (resnStatus === "J") className += " rejected";
