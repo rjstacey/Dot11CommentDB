@@ -52,11 +52,8 @@
 		position: absolute;
 		top: 0;
 		left: 0;
-		margin: 16px 0;
 		display: inline-block;
 		color: #999;
-		overflow: hidden;
-		text-overflow: ellipsis;
 		font-size: 15px;
 		user-select: none;
 		pointer-events: none;

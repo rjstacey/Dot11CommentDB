@@ -13,7 +13,13 @@ import styles from "./editor.module.css";
 import "./editor-style.css";
 
 const Placeholder = (props: React.ComponentProps<"i">) => (
-	<div className={styles.placeholder + " " + styles.innerContainer}>
+	<div
+		className={cx(
+			styles.placeholder,
+			styles.innerContainer,
+			"editor-style",
+		)}
+	>
 		<p>
 			<i {...props} />
 		</p>
