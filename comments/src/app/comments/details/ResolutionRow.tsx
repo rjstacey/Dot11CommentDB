@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Row, Col, Form } from "react-bootstrap";
+import cx from "clsx";
 import { isMultiple, MULTIPLE, Multiple } from "@common";
 
 import type { Resolution, ResnStatusType } from "@/store/comments";
@@ -25,11 +26,7 @@ function ResnStatus({
 		onChange(e.target.checked ? (e.target.value as ResnStatusType) : null);
 
 	return (
-		<Form.Group
-			className={
-				styles.resolutionStatus + (className ? ` ${className}` : "")
-			}
-		>
+		<Form.Group className={cx(styles.resolutionStatus, className)}>
 			<Form.Check
 				id="accepted-checkbox"
 				name="ResnStatus"
@@ -39,7 +36,7 @@ function ResnStatus({
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="ACCEPTED"
-				className={styles.acceptedCheckbox}
+				className={cx(styles.acceptedCheckbox, readOnly && "pe-none")}
 			/>
 			<Form.Check
 				id="revised-checkbox"
@@ -50,7 +47,7 @@ function ResnStatus({
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="REVISED"
-				className={styles.revisedCheckbox}
+				className={cx(styles.revisedCheckbox, readOnly && "pe-none")}
 			/>
 			<Form.Check
 				id="rejected-checkbox"
@@ -61,7 +58,7 @@ function ResnStatus({
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="REJECTED"
-				className={styles.rejectedCheckbox}
+				className={cx(styles.rejectedCheckbox, readOnly && "pe-none")}
 			/>
 			<div className={styles.shadow} />
 			<div className={styles.block} />
