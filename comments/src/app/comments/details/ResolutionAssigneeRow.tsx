@@ -43,7 +43,7 @@ export function ResolutionAssigneeRow({
 					}
 					placeholder={
 						isMultiple(
-							resolution.AssigneeSAPIN || resolution.AssigneeName
+							resolution.AssigneeSAPIN || resolution.AssigneeName,
 						)
 							? MULTIPLE_STR
 							: BLANK_STR

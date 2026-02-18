@@ -37,6 +37,7 @@ function ResnStatus({
 				readOnly={readOnly}
 				label="ACCEPTED"
 				className={cx(styles.acceptedCheckbox, readOnly && "pe-none")}
+				tabIndex={readOnly ? -1 : undefined}
 			/>
 			<Form.Check
 				id="revised-checkbox"
@@ -48,6 +49,7 @@ function ResnStatus({
 				readOnly={readOnly}
 				label="REVISED"
 				className={cx(styles.revisedCheckbox, readOnly && "pe-none")}
+				tabIndex={readOnly ? -1 : undefined}
 			/>
 			<Form.Check
 				id="rejected-checkbox"
@@ -59,6 +61,7 @@ function ResnStatus({
 				readOnly={readOnly}
 				label="REJECTED"
 				className={cx(styles.rejectedCheckbox, readOnly && "pe-none")}
+				tabIndex={readOnly ? -1 : undefined}
 			/>
 			<div className={styles.shadow} />
 			<div className={styles.block} />

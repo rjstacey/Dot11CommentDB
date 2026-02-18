@@ -41,7 +41,7 @@ export function ResolutionApprovalRow({
 						ref={(ref) =>
 							ref &&
 							(ref.indeterminate = isMultiple(
-								resolution.ReadyForMotion
+								resolution.ReadyForMotion,
 							))
 						}
 						checked={!!resolution.ReadyForMotion}
@@ -65,7 +65,7 @@ export function ResolutionApprovalRow({
 						ref={(ref) =>
 							ref &&
 							(ref.indeterminate = isMultiple(
-								resolution.ApprovedByMotion
+								resolution.ApprovedByMotion,
 							))
 						}
 						checked={!!resolution.ApprovedByMotion}
@@ -85,6 +85,7 @@ export function ResolutionApprovalRow({
 						onChange={changeApproved}
 						placeholder={placeholder}
 						readOnly={readOnly}
+						tabIndex={readOnly ? -1 : undefined}
 					/>
 				</Col>
 			</Form.Group>
