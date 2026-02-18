@@ -35,7 +35,8 @@ export function useImportExport(
 
 	React.useEffect(() => {
 		// If the value in is different from what was sent out, then update the editor state
-		if (output === value) return;
+		//if (output === value) return;
+		console.log("update", value);
 		editor.update(() => {
 			let s = value || "";
 			s = s.replace(/<p><br><\/p>/g, "");
@@ -62,24 +63,24 @@ export function useImportExport(
 
 			setOutput(value);
 		});
-	}, [value]);
+	}, [value !== output]);
 
-	const debouncedOnChange = useDebounce(() => {
-		if (readOnly) return;
+	const triggerSave = useDebounce(() => {
 		editor.read(() => {
 			const newValue = $getRoot().getTextContent()
 				? $generateHtmlFromNodes(editor)
 				: "";
-			if (newValue != value) {
-				onChange(newValue);
-				setOutput(newValue);
-			}
+			//if (newValue != value) {
+			onChange(newValue);
+			setOutput(newValue);
+			//}
 		});
 	});
 
 	React.useEffect(() => {
 		return editor.registerUpdateListener(
 			({ dirtyElements, dirtyLeaves, prevEditorState, tags }) => {
+				if (readOnly) return;
 				if (
 					(dirtyElements.size === 0 && dirtyLeaves.size === 0) ||
 					tags.has(HISTORY_MERGE_TAG) ||
@@ -88,10 +89,10 @@ export function useImportExport(
 					return;
 				}
 
-				debouncedOnChange();
+				triggerSave();
 			},
 		);
-	}, [editor, debouncedOnChange]);
+	}, [editor, onChange, readOnly]);
 
 	React.useEffect(() => {
 		editor.setEditable(!readOnly);

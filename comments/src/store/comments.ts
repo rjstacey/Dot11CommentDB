@@ -103,7 +103,7 @@ export const resnStatusOptions: {
 	(value: ResnStatusType | null) => ({
 		value,
 		label: resnStatusMap[value!],
-	})
+	}),
 );
 resnStatusOptions.unshift({ value: null, label: "(Blank)" });
 
@@ -118,7 +118,7 @@ const mustSatisfyLabels = mustSatisfyOptions.reduce(
 		obj[o.value] = o.label;
 		return obj;
 	},
-	{} as Record<number, string>
+	{} as Record<number, string>,
 );
 
 function getCID(b: Ballot | undefined, c: CommentResolution) {
@@ -188,7 +188,7 @@ type Update<T> = {
 function getResolutionCountUpdates(
 	ids: EntityId[],
 	entities: Dictionary<CommentResolution>,
-	comment_ids: number[]
+	comment_ids: number[],
 ) {
 	const updates: CommentResolutionUpdate[] = [];
 	for (const comment_id of comment_ids) {
@@ -199,7 +199,10 @@ function getResolutionCountUpdates(
 		}
 		const ResolutionCount = comments.length;
 		updates.push(
-			...comments.map((c) => ({ id: c.id, changes: { ResolutionCount } }))
+			...comments.map((c) => ({
+				id: c.id,
+				changes: { ResolutionCount },
+			})),
 		);
 	}
 	return updates;
@@ -239,14 +242,14 @@ const slice = createAppTableDataSlice({
 					}
 					state.ballot_id = ballot_id;
 					state.lastLoad = new Date().toISOString();
-				}
+				},
 			)
 			.addMatcher(
 				(action: Action) => action.type === clearComments.toString(),
 				(state) => {
 					dataAdapter.removeAll(state);
 					state.valid = false;
-				}
+				},
 			)
 			.addMatcher(
 				(action) => action.type === getCommit.toString(),
@@ -257,7 +260,7 @@ const slice = createAppTableDataSlice({
 						changes: c,
 					}));
 					dataAdapter.updateMany(state, updates);
-				}
+				},
 			)
 			.addMatcher(
 				(action) => action.type === updateCommit.toString(),
@@ -268,7 +271,7 @@ const slice = createAppTableDataSlice({
 						changes: c,
 					}));
 					dataAdapter.updateMany(state, updates);
-				}
+				},
 			)
 			.addMatcher(
 				(action) => action.type === addManyRollback.toString(),
@@ -277,17 +280,17 @@ const slice = createAppTableDataSlice({
 					if (!Array.isArray(added_ids))
 						console.error("missing or bad payload; expected array");
 					const comment_ids = added_ids.map(
-						(id) => state.entities[id]!.comment_id
+						(id) => state.entities[id]!.comment_id,
 					);
 					dataAdapter.removeMany(state, added_ids);
 					const { ids, entities } = state;
 					const updates = getResolutionCountUpdates(
 						ids,
 						entities,
-						comment_ids
+						comment_ids,
 					);
 					dataAdapter.updateMany(state, updates);
-				}
+				},
 			)
 			.addMatcher(
 				(action) => action.type === removeManyRollback.toString(),
@@ -301,10 +304,10 @@ const slice = createAppTableDataSlice({
 					const updates = getResolutionCountUpdates(
 						ids,
 						entities,
-						comment_ids
+						comment_ids,
 					);
 					dataAdapter.updateMany(state, updates);
-				}
+				},
 			);
 	},
 });
@@ -328,17 +331,17 @@ const {
 
 // Overload getPending() with one that sets ballot_id
 const getPending = createAction<{ ballot_id: number | null }>(
-	dataSet + "/getPending"
+	dataSet + "/getPending",
 );
 export const clearComments = createAction(dataSet + "/clear");
 
 const getCommit = createAction<CommentResolution[]>(dataSet + "/getCommit");
 const updateCommit = createAction<{ comments: CommentResolution[] }>(
-	dataSet + "/updateCommit"
+	dataSet + "/updateCommit",
 );
 const addManyRollback = createAction<EntityId[]>(dataSet + "/addManyRollback");
 const removeManyRollback = createAction<CommentResolution[]>(
-	dataSet + "/removeManyRollback"
+	dataSet + "/removeManyRollback",
 );
 
 export { setSelected, setUiProperties, setRoleGroupId, setPanelIsSplit };
@@ -400,7 +403,7 @@ const selectCommentsLastModified = createSelector(
 			return lastModified;
 		});
 		return new Date(lastModified).toISOString();
-	}
+	},
 );
 
 export const selectSyncedCommentEntities = createSelector(
@@ -420,7 +423,7 @@ export const selectSyncedCommentEntities = createSelector(
 			return { ...entities, ...changedEntities };
 		}
 		return entities;
-	}
+	},
 );
 
 export const commentsSelectors = getAppTableDataSelectors(selectCommentsState, {
@@ -445,7 +448,7 @@ export const selectCommentsSearch = createSelector(
 				if (cid) searchParams.append("cid", cid);
 			});
 		return searchParams.toString();
-	}
+	},
 );
 
 /*
@@ -525,7 +528,7 @@ export const updateComments =
 				localUpdates.push({ id, changes: u.changes });
 				const changes: CommentResolutionChange = {};
 				for (const key of Object.keys(
-					u.changes
+					u.changes,
 				) as (keyof CommentResolution)[]) {
 					// @ts-expect-error - 2322
 					changes[key] = c[key];
@@ -536,9 +539,9 @@ export const updateComments =
 		dispatch(localUpdateMany(localUpdates));
 		const url = `${baseCommentsUrl}/${ballot_id}?modifiedSince=${lastModified}`;
 		const effect: Effect = { url, method: "PATCH", params: updates };
-		const commit: Action = { type: updateCommit.toString() };
+		//const commit: Action = { type: updateCommit.toString() };
 		const rollback: Action = localUpdateMany(rollbackUpdates);
-		dispatch(offlineFetch({ effect, commit, rollback }));
+		dispatch(offlineFetch({ effect, /*commit,*/ rollback }));
 	};
 
 export const deleteComments =
@@ -663,7 +666,7 @@ const updateMany =
 			const changes: Partial<CommentResolution> = {};
 			const entity = entities[id]!;
 			for (const key of Object.keys(
-				u.changes
+				u.changes,
 			) as (keyof CommentResolution)[]) {
 				// @ts-expect-error - abcd
 				changes[key] = entity[key];
@@ -673,9 +676,10 @@ const updateMany =
 		dispatch(localUpdateMany(updates));
 		const url = `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`;
 		const effect: Effect = { url, method: "PATCH", params: updates };
-		const commit: Action = { type: updateCommit.toString() };
+		// When updates are slow, the commit might overwrite later changes
+		//const commit: Action = { type: updateCommit.toString() };
 		const rollback: Action = localUpdateMany(rollbackUpdates);
-		dispatch(offlineFetch({ effect, commit, rollback }));
+		dispatch(offlineFetch({ effect, /*commit,*/ rollback }));
 	};
 
 const removeMany =
@@ -720,7 +724,7 @@ export const addResolutions =
 
 			// Find a unique ResolutionID
 			const existingResolutionIDs = new Set(
-				comments.map((c) => c.ResolutionID)
+				comments.map((c) => c.ResolutionID),
 			);
 			let ResolutionID = 0;
 			while (existingResolutionIDs.has(ResolutionID)) ResolutionID++;
@@ -757,7 +761,7 @@ export const addResolutions =
 					...comments.map((c) => ({
 						id: c.id,
 						changes: { ResolutionCount },
-					}))
+					})),
 				);
 			}
 
@@ -805,7 +809,7 @@ export const deleteResolutions =
 			resolution_ids.sort(
 				(id1, id2) =>
 					(entities[id1]!.ResolutionID || 0) -
-					(entities[id2]!.ResolutionID || 0)
+					(entities[id2]!.ResolutionID || 0),
 			);
 
 			// Find all comments that would remain
@@ -814,7 +818,7 @@ export const deleteResolutions =
 				.filter(
 					(c) =>
 						c.comment_id === comment_id &&
-						!resolution_ids.includes(c.id)
+						!resolution_ids.includes(c.id),
 				);
 
 			if (remainingComments.length === 0) {
@@ -839,7 +843,7 @@ export const deleteResolutions =
 					...remainingComments.map((c) => ({
 						id: c.id,
 						changes: { ResolutionCount },
-					}))
+					})),
 				);
 
 				// Select the first of the remaining comments
@@ -877,7 +881,7 @@ export const uploadResolutions =
 		matchAlgorithm: MatchAlgo,
 		matchUpdate: MatchUpdate,
 		sheetName: string,
-		file: File
+		file: File,
 	): AppThunk<UploadResult | undefined> =>
 	async (dispatch) => {
 		const url = `${baseResolutionsUrl}/${ballot_id}/upload`;
@@ -916,7 +920,7 @@ export const exportCommentsSpreadsheet =
 		format: CommentsExportFormat,
 		style: CommentsExportStyle,
 		file?: File,
-		appendSheets = false
+		appendSheets = false,
 	): AppThunk =>
 	async (dispatch) => {
 		const params: CommentsExportParams = {

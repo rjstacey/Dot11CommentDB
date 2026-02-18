@@ -75,7 +75,7 @@ const slice = createSlice({
 						outbox,
 					};
 				}
-			}
+			},
 		);
 	},
 });
@@ -209,7 +209,7 @@ export type Effect<T extends object = object> = {
 
 export type OfflineFetchAction = {
 	effect: Effect;
-	commit: Action;
+	commit?: Action;
 	rollback?: Action;
 };
 
@@ -230,7 +230,7 @@ export function registerOffline(store: StoreType) {
 	function onChange(online: boolean) {
 		if (window.requestAnimationFrame) {
 			window.requestAnimationFrame(() =>
-				store.dispatch(networkStateChange(online))
+				store.dispatch(networkStateChange(online)),
 			);
 		} else {
 			setTimeout(() => store.dispatch(networkStateChange(online)), 0);
