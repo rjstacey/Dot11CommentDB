@@ -12,7 +12,6 @@ import { useEmailTemplateEdit } from "@/hooks/emailTemplateEdit";
 import {
 	useEmailSubstitution,
 	genEmailAddress,
-	substitutionTags,
 	SELECTED_MEMBERS_KEY,
 } from "@/hooks/emailSubstitutionTags";
 
@@ -125,7 +124,7 @@ function NotificationEmail() {
 						variant="outline-secondary"
 						onClick={togglePreview}
 						active={isPreview}
-						className="d-inline-flex gap-2"
+						className="d-inline-flex gap-2 align-items-center"
 					>
 						<i className="bi-eye" />
 						<span>Preview</span>
@@ -133,7 +132,7 @@ function NotificationEmail() {
 					<Button
 						variant="outline-secondary"
 						onClick={onSend}
-						className="d-inline-flex gap-2"
+						className="d-inline-flex gap-2 align-items-center"
 					>
 						<i className="bi-send" />
 						<span>Send</span>
@@ -157,7 +156,6 @@ function NotificationEmail() {
 						key={"" + isPreview + email.id}
 						body={email.body}
 						onChangeBody={(body) => changeEmailTemplate({ body })}
-						tags={substitutionTags}
 						readOnly={isPreview}
 					/>
 				</div>

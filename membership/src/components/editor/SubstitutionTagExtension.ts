@@ -1,5 +1,3 @@
-import * as React from "react";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	$createTextNode,
 	$isTextNode,
@@ -8,6 +6,8 @@ import {
 	$isRangeSelection,
 	$getNodeByKey,
 	HISTORY_MERGE_TAG,
+	defineExtension,
+	type LexicalEditor,
 } from "lexical";
 import { mergeRegister } from "@lexical/utils";
 
@@ -20,7 +20,7 @@ import {
 
 function handleSubsitutionTagEdit(
 	node: SubstitutionTagNode,
-	tags: string[]
+	tags: string[],
 ): void {
 	const textContent = node.getTextContent();
 	const match = RegExp(SUBSTITUTION_TAG_PATTERN).exec(textContent);
@@ -58,7 +58,7 @@ function handleSubsitutionTagEdit(
 
 		const actualTag = match[1];
 		const matchingTag = tags.find(
-			(tag) => tag.toLowerCase() === actualTag.toLowerCase()
+			(tag) => tag.toLowerCase() === actualTag.toLowerCase(),
 		);
 		const text = `{{${matchingTag || actualTag}}}`;
 		const valid = Boolean(matchingTag);
@@ -103,11 +103,11 @@ function handleTextEdit(node: TextNode, tags: string[]): void {
 
 		const actualTag = match[1];
 		const matchingTag = tags.find(
-			(tag) => tag.toLowerCase() === actualTag.toLowerCase()
+			(tag) => tag.toLowerCase() === actualTag.toLowerCase(),
 		);
 		const substitutionTagNode = $createSubstitutionTagNode(
 			`{{${matchingTag || actualTag}}}`,
-			Boolean(matchingTag)
+			Boolean(matchingTag),
 		);
 
 		if (beforeText) {
@@ -135,50 +135,54 @@ function handleTextEdit(node: TextNode, tags: string[]): void {
 	}
 }
 
-export default function SubstitutionTagPlugin({ tags }: { tags: string[] }) {
-	const [editor] = useLexicalComposerContext();
+const defaultConfig = {
+	tags: [] as string[],
+};
 
-	React.useEffect(() => {
-		if (!editor.hasNodes([SubstitutionTagNode])) {
-			throw new Error(
-				"SubstitutionTagPlugin: SubstitutionTagNode not registered"
-			);
-		}
-
-		return mergeRegister(
-			editor.registerNodeTransform(
-				SubstitutionTagNode,
-				(node: SubstitutionTagNode) => {
-					handleSubsitutionTagEdit(node, tags);
-				}
-			),
-			editor.registerNodeTransform(TextNode, (node: TextNode) => {
-				handleTextEdit(node, tags);
-			}),
-			/* When a SubstitutionTagNode is created, set the tag validity */
-			editor.registerMutationListener(
-				SubstitutionTagNode,
-				(mutatedNodes) => {
-					for (const [nodeKey, mutation] of mutatedNodes) {
-						if (mutation === "created") {
-							editor.update(
-								() => {
-									const node = $getNodeByKey(
-										nodeKey
-									) as SubstitutionTagNode;
-									const valid = tags.includes(node.getTag());
-									if (node.getValid() !== valid)
-										node.setValid(valid);
-								},
-								{ tag: HISTORY_MERGE_TAG }
-							);
-						}
+function registerSubstitutionTag(
+	editor: LexicalEditor,
+	config = defaultConfig,
+): () => void {
+	const { tags } = config;
+	return mergeRegister(
+		editor.registerNodeTransform(
+			SubstitutionTagNode,
+			(node: SubstitutionTagNode) => {
+				handleSubsitutionTagEdit(node, tags);
+			},
+		),
+		editor.registerNodeTransform(TextNode, (node: TextNode) => {
+			handleTextEdit(node, tags);
+		}),
+		/* When a SubstitutionTagNode is created, set the tag validity */
+		editor.registerMutationListener(
+			SubstitutionTagNode,
+			(mutatedNodes) => {
+				for (const [nodeKey, mutation] of mutatedNodes) {
+					if (mutation === "created") {
+						editor.update(
+							() => {
+								const node = $getNodeByKey(
+									nodeKey,
+								) as SubstitutionTagNode;
+								const valid = tags.includes(node.getTag());
+								if (node.getValid() !== valid)
+									node.setValid(valid);
+							},
+							{ tag: HISTORY_MERGE_TAG },
+						);
 					}
-				},
-				{ skipInitialization: false }
-			)
-		);
-	}, [editor]);
-
-	return null;
+				}
+			},
+			{ skipInitialization: false },
+		),
+	);
 }
+
+export const SubstitutionTagExtension = defineExtension({
+	name: "SubstitutionTagExtension",
+	nodes: [SubstitutionTagNode],
+	dependencies: [],
+	config: defaultConfig,
+	register: registerSubstitutionTag,
+});

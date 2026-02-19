@@ -2,13 +2,15 @@ import { $isAtNodeEnd } from "@lexical/selection";
 import { RangeSelection, ElementNode, TextNode } from "lexical";
 
 export const emailStylesObj: Record<string, string> = {
-	paragraph: "font-size: 14px; line-height: 24px; margin: 16px 0",
+	paragraph: "font-size: 1em; margin: 1em 0;",
 	link: "color: #067df7; text-decoration: none;",
 	quote: "font-family: 'TimesNewRoman', serif; margin: 10px 20px; padding: 0 0;",
 	code: 'background-color: #f3f3f3; font-family: "Inconsolata", "Menlo", "Consolas", monospace; font-size: 16px; margin: 14px 0;',
-	h1: "font-size: 24px; color: rgb(5, 5, 5); font-weight: 400; margin: 0; margin-bottom: 12px; padding: 0;",
-	h2: "font-size: 15px; color: rgb(101, 103, 107); font-weight: 700; margin: 0; margin-top: 10px; padding: 0; text-transform: uppercase;",
-	ul: "font-family: 'TimesNewRoman', serif; list-style-type: '— '",
+	h1: "font-size: 1.3em; color: rgb(5, 5, 5); font-weight: 400; margin: 0; margin-bottom: 12px; padding: 0;",
+	h2: "font-size: 1.25em; color: rgb(101, 103, 107); font-weight: 700; margin: 0; margin-top: 10px; padding: 0;",
+	h3: "font-size: 1.125em; font-weight: 700; margin: 0; margin-top: 1.2em; padding: 0;",
+	ul: "font-size: 1em; list-style-type: '— '",
+	ol: "font-size: 1em; list-style-type: decimal;",
 	strikethrough: "text-decoration: line-through;",
 	underline: "text-decoration: underline;",
 	bold: "font-weight: bold;",
@@ -16,14 +18,12 @@ export const emailStylesObj: Record<string, string> = {
 };
 
 function substituteStyleForClass(n: HTMLElement) {
-	let styles = [n.style.cssText];
+	const styles = [n.style.cssText];
 	n.classList.forEach((cn) => {
-		if (Object.keys(emailStylesObj).includes(cn)) {
-			styles.push(emailStylesObj[cn]);
-			n.classList.remove(cn);
-		}
+		const style = emailStylesObj[cn];
+		if (style) styles.push(style);
 	});
-	styles = styles.filter((s) => Boolean(s));
+	n.removeAttribute("class");
 	if (styles.length > 0) n.style.cssText = styles.join("; ");
 }
 
@@ -63,7 +63,7 @@ export function sanitizeUrl(url: string): string {
 }
 
 export function getSelectedNode(
-	selection: RangeSelection
+	selection: RangeSelection,
 ): TextNode | ElementNode {
 	const anchor = selection.anchor;
 	const focus = selection.focus;

@@ -5,6 +5,7 @@ import { setUiProperties, selectUiProperties } from "@/store/members";
 import ListServUpdate from "./ListServUpdate";
 
 const NotificationEmail = React.lazy(() => import("./NotificationEmail"));
+//import NotificationEmail from "./NotificationEmail";
 
 export function NotificationDetail() {
 	const dispatch = useAppDispatch();

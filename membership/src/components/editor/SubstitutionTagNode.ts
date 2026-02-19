@@ -1,15 +1,14 @@
-import type { Spread } from "lexical";
-
 import {
 	$createTextNode,
-	DOMConversionMap,
-	DOMConversionOutput,
-	DOMExportOutput,
-	EditorConfig,
-	LexicalNode,
-	NodeKey,
-	SerializedTextNode,
 	TextNode,
+	type DOMConversionMap,
+	type DOMConversionOutput,
+	type DOMExportOutput,
+	type EditorConfig,
+	type LexicalNode,
+	type NodeKey,
+	type SerializedTextNode,
+	type Spread,
 } from "lexical";
 
 export type SerializedSubstitutionTagNode = Spread<
@@ -24,7 +23,7 @@ export type SerializedSubstitutionTagNode = Spread<
 export const SUBSTITUTION_TAG_PATTERN = "{{([A-Za-z_-]+)}}";
 
 function convertSubstitutionTagElement(
-	domNode: HTMLElement
+	domNode: HTMLElement,
 ): DOMConversionOutput | null {
 	const node: LexicalNode[] = [];
 	let textContent = domNode.textContent;
@@ -61,7 +60,7 @@ export class SubstitutionTagNode extends TextNode {
 	getTag(): string {
 		const self = this.getLatest();
 		const match = RegExp(SUBSTITUTION_TAG_PATTERN).exec(
-			self.getTextContent()
+			self.getTextContent(),
 		);
 		return match ? match[1] : "";
 	}
@@ -86,7 +85,7 @@ export class SubstitutionTagNode extends TextNode {
 	}
 
 	static importJSON(
-		serializedNode: SerializedSubstitutionTagNode
+		serializedNode: SerializedSubstitutionTagNode,
 	): SubstitutionTagNode {
 		const node = $createSubstitutionTagNode(serializedNode.text);
 		node.setTextContent(serializedNode.text);
@@ -162,14 +161,14 @@ export class SubstitutionTagNode extends TextNode {
 
 export function $createSubstitutionTagNode(
 	text: string = "",
-	valid: boolean = false
+	valid: boolean = false,
 ): SubstitutionTagNode {
 	const node = new SubstitutionTagNode(text, valid);
 	return node;
 }
 
 export function $isSubstitutionTagNode(
-	node: LexicalNode | null | undefined
+	node: LexicalNode | null | undefined,
 ): node is SubstitutionTagNode {
 	return node instanceof SubstitutionTagNode;
 }

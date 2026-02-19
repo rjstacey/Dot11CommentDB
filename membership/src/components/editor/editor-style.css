@@ -1,0 +1,72 @@
+.editor-style {
+	p,
+	.paragraph {
+		all: revert;
+	}
+
+	ul,
+	.ul {
+		all: revert;
+	}
+
+	ol,
+	.ol {
+		all: revert;
+	}
+
+	a,
+	.link {
+		all: revert;
+	}
+
+	blockquote,
+	.quote {
+		all: revert;
+	}
+
+	h1,
+	.h1 {
+		all: revert;
+	}
+
+	h2,
+	.h2 {
+		all: revert;
+	}
+
+	h3,
+	.h3 {
+		all: revert;
+	}
+
+	s,
+	.strikethrough {
+		text-decoration: line-through;
+	}
+
+	u,
+	.underline {
+		text-decoration: underline;
+	}
+
+	.strikethrough.underline {
+		text-decoration: line-through underline;
+	}
+
+	b,
+	.bold {
+		font-weight: bold;
+	}
+
+	i,
+	.italic {
+		font-style: italic;
+	}
+
+	mark,
+	.highlight {
+		all: revert;
+		background-color: yellow;
+		padding: 0;
+	}
+}
