@@ -3,6 +3,7 @@
  *
  * Robert Stacey
  */
+import { setGlobalDispatcher, EnvHttpProxyAgent } from "undici";
 import dotenv from "dotenv";
 import path from "node:path";
 import { createServer } from "node:http";
@@ -29,6 +30,9 @@ import { init as attendancesInit } from "./services/attendances.js";
 import { init as pollInit } from "./services/poll.js";
 
 dotenv.config();
+
+// EnvHttpProxyAgent automatically reads HTTP_PROXY, HTTPS_PROXY, and NO_PROXY environment variables
+setGlobalDispatcher(new EnvHttpProxyAgent());
 
 async function initDatabase() {
 	process.stdout.write("init database... ");
@@ -166,25 +170,25 @@ function initExpressApp() {
 	/* If we can't find the static file, send the index page
 	 * (e.g., a request for old asset) */
 	app.get("/login", (req, res) =>
-		res.sendFile(path.join(dir, "auth/index.html"))
+		res.sendFile(path.join(dir, "auth/index.html")),
 	);
 	app.get("/logout", (req, res) =>
-		res.sendFile(path.join(dir, "auth/logout.html"))
+		res.sendFile(path.join(dir, "auth/logout.html")),
 	);
 	app.get(/\/home\/.*/, (req, res) =>
-		res.sendFile(path.join(dir, "home/index.html"))
+		res.sendFile(path.join(dir, "home/index.html")),
 	);
 	app.get(/\/comments\/.*/, (req, res) =>
-		res.sendFile(path.join(dir, "comments/index.html"))
+		res.sendFile(path.join(dir, "comments/index.html")),
 	);
 	app.get(/\/membership\/.*/, (req, res) =>
-		res.sendFile(path.join(dir, "membership/index.html"))
+		res.sendFile(path.join(dir, "membership/index.html")),
 	);
 	app.get(/\/meetings\/.*/, (req, res) =>
-		res.sendFile(path.join(dir, "meetings/index.html"))
+		res.sendFile(path.join(dir, "meetings/index.html")),
 	);
 	app.get(/\/polling\/.*/, (req, res) =>
-		res.sendFile(path.join(dir, "polling/index.html"))
+		res.sendFile(path.join(dir, "polling/index.html")),
 	);
 
 	// Redirect root to /root

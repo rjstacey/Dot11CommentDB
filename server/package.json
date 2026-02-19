@@ -17,7 +17,10 @@
 	},
 	"dependencies": {
 		"@aws-sdk/client-ses": "^3.862.0",
+		"@aws-sdk/config": "^3.994.0",
 		"@aws-sdk/credential-providers": "^3.862.0",
+		"@aws-sdk/fetch-http-handler": "^3.370.0",
+		"@aws-sdk/node-http-handler": "^3.370.0",
 		"cheerio": "^1.1.2",
 		"cors": "^2.8.5",
 		"csv-parse": "^5.5.5",

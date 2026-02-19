@@ -6,8 +6,11 @@ import {
 	SendEmailCommandInput,
 	SendEmailCommandOutput,
 } from "@aws-sdk/client-ses";
+import { FetchHttpHandler } from "@aws-sdk/fetch-http-handler";
 
 import type { Email } from "@schemas/email.js";
+
+const requestHandler = new FetchHttpHandler();
 
 const region = "us-west-2";
 let credentials: ReturnType<typeof fromIni>;
@@ -22,6 +25,7 @@ export function init() {
 		credentials,
 		retryMode: "adaptive",
 		maxAttempts: 10,
+		requestHandler,
 	});
 }
 
