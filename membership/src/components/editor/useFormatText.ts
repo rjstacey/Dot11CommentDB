@@ -2,11 +2,12 @@ import * as React from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	SELECTION_CHANGE_COMMAND,
-	FORMAT_TEXT_COMMAND,
 	$getSelection,
 	$isRangeSelection,
 	RangeSelection,
 	COMMAND_PRIORITY_LOW,
+	FORMAT_TEXT_COMMAND,
+	TextFormatType,
 } from "lexical";
 import {
 	$isLinkNode,
@@ -33,7 +34,7 @@ function getSelectedNode(selection: RangeSelection) {
 	}
 }
 
-export function FormatTextButtons({ disabled }: { disabled: boolean }) {
+export function useFormatText() {
 	const [editor] = useLexicalComposerContext();
 	const [isBold, setIsBold] = React.useState(false);
 	const [isItalic, setIsItalic] = React.useState(false);
@@ -68,8 +69,8 @@ export function FormatTextButtons({ disabled }: { disabled: boolean }) {
 			editor.registerCommand(
 				SELECTION_CHANGE_COMMAND,
 				updateFormatState,
-				COMMAND_PRIORITY_LOW
-			)
+				COMMAND_PRIORITY_LOW,
+			),
 		);
 	}, [editor]);
 
@@ -81,7 +82,7 @@ export function FormatTextButtons({ disabled }: { disabled: boolean }) {
 				if (!$isRangeSelection(selection)) return;
 				const node = $findMatchingParent(
 					getSelectedNode(selection),
-					$isAutoLinkNode
+					$isAutoLinkNode,
 				);
 				node?.replace($createLinkNode(node.getURL()), true);
 			});
@@ -89,74 +90,26 @@ export function FormatTextButtons({ disabled }: { disabled: boolean }) {
 			// Toggle link
 			editor.dispatchCommand(
 				TOGGLE_LINK_COMMAND,
-				isLink ? null : "https://"
+				isLink ? null : "https://",
 			);
 		}
 	}, [editor, isLink, isAutoLink]);
 
-	return (
-		<>
-			<button
-				onClick={() => {
-					editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
-				}}
-				className={isBold ? "active" : ""}
-				aria-label="Format Bold"
-				disabled={disabled}
-			>
-				<i className="bi-type-bold" />
-			</button>
-			<button
-				onClick={() => {
-					editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
-				}}
-				className={isItalic ? "active" : ""}
-				aria-label="Format Italics"
-				disabled={disabled}
-			>
-				<i className="bi-type-italic" />
-			</button>
-			<button
-				onClick={() => {
-					editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline");
-				}}
-				className={isUnderline ? "active" : ""}
-				aria-label="Format Underline"
-				disabled={disabled}
-			>
-				<i className="bi-type-underline" />
-			</button>
-			<button
-				onClick={() => {
-					editor.dispatchCommand(
-						FORMAT_TEXT_COMMAND,
-						"strikethrough"
-					);
-				}}
-				className={isStrikethrough ? "active" : ""}
-				aria-label="Format Strikethrough"
-				disabled={disabled}
-			>
-				<i className="bi-type-strikethrough" />
-			</button>
-			<button
-				onClick={() => {
-					editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code");
-				}}
-				className={isCode ? "active" : ""}
-				aria-label="Insert Code"
-				disabled={disabled}
-			>
-				<i className="bi-code" />
-			</button>
-			<button
-				onClick={insertLink}
-				className={isLink ? "active" : ""}
-				aria-label="Insert Link"
-				disabled={disabled}
-			>
-				<i className="bi-link" />
-			</button>
-		</>
+	const setFormat = React.useCallback(
+		(format: TextFormatType) => {
+			editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
+		},
+		[editor],
 	);
+
+	return {
+		isBold,
+		isItalic,
+		isUnderline,
+		isStrikethrough,
+		isCode,
+		isLink,
+		insertLink,
+		setFormat,
+	};
 }

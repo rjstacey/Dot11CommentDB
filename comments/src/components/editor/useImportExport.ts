@@ -36,7 +36,6 @@ export function useImportExport(
 	React.useEffect(() => {
 		// If the value in is different from what was sent out, then update the editor state
 		//if (output === value) return;
-		console.log("update", value);
 		editor.update(() => {
 			let s = value || "";
 			s = s.replace(/<p><br><\/p>/g, "");

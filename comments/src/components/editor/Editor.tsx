@@ -6,7 +6,7 @@ import { $getRoot, $createParagraphNode } from "lexical";
 
 import { ResnStatusType } from "@/store/comments";
 
-import { Toolbar } from "./Toolbar";
+import { Toolbar } from "./toolbar";
 import { LinkEditor } from "./LinkEditor";
 import { AutoLink } from "./AutoLink";
 import { useImportExport } from "./useImportExport";

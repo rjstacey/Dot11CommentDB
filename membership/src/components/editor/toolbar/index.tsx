@@ -1,13 +1,13 @@
-import * as React from "react";
+import { useEffect, useState } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { FOCUS_COMMAND, BLUR_COMMAND, COMMAND_PRIORITY_LOW } from "lexical";
 import { mergeRegister } from "@lexical/utils";
 
 import { UndoRedo } from "./UndoRedo";
-import { SelectTextBlockType } from "./SelectTextBlobkType";
+import { SelectTextBlockType } from "./SelectTextBlock";
 import { SelectFontFamily } from "./SelectFontFamily";
 import { SelectFontSize } from "./SelectFontSize";
-import { FormatTextButtons } from "./FormatTextButtons";
+import { TextFormatGroup } from "./TextFormatGroup";
 import { SelectAlignment } from "./SelectAlignment";
 import { SelectSubstituteTag } from "./SelectSubstituteTag";
 
@@ -17,10 +17,10 @@ const Divider = () => <div className={css.divider} />;
 
 export function Toolbar({ tags }: { tags: string[] }) {
 	const [editor] = useLexicalComposerContext();
-	const [hasFocus, setHasFocus] = React.useState(false);
-	const [isEditable, setIsEditable] = React.useState(true);
+	const [hasFocus, setHasFocus] = useState(false);
+	const [isEditable, setIsEditable] = useState(true);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		return mergeRegister(
 			editor.registerEditableListener(setIsEditable),
 			editor.registerCommand(
@@ -56,7 +56,7 @@ export function Toolbar({ tags }: { tags: string[] }) {
 			<SelectFontFamily disabled={disabled} />
 			<SelectFontSize disabled={disabled} />
 			<Divider />
-			<FormatTextButtons disabled={disabled} />
+			<TextFormatGroup disabled={disabled} />
 			<Divider />
 			<SelectAlignment disabled={disabled} />
 			<Divider />

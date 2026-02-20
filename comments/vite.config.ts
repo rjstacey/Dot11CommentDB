@@ -29,7 +29,7 @@ export default defineConfig(({ command, mode }) => {
 							"redux-logger",
 							"@redux-offline/redux-offline",
 						],
-						editor: ["lexical"],
+						//editor: ["lexical"],
 						//common: ["@common"],
 						store: ["./src/store"],
 					},

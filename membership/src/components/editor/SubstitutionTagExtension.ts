@@ -8,6 +8,9 @@ import {
 	HISTORY_MERGE_TAG,
 	defineExtension,
 	type LexicalEditor,
+	type LexicalCommand,
+	createCommand,
+	COMMAND_PRIORITY_LOW,
 } from "lexical";
 import { mergeRegister } from "@lexical/utils";
 
@@ -17,6 +20,9 @@ import {
 	SubstitutionTagNode,
 	SUBSTITUTION_TAG_PATTERN,
 } from "./SubstitutionTagNode";
+
+export const INSERT_SUBSTITUTION_TAG_COMMAND: LexicalCommand<string | null> =
+	createCommand();
 
 function handleSubsitutionTagEdit(
 	node: SubstitutionTagNode,
@@ -106,7 +112,7 @@ function handleTextEdit(node: TextNode, tags: string[]): void {
 			(tag) => tag.toLowerCase() === actualTag.toLowerCase(),
 		);
 		const substitutionTagNode = $createSubstitutionTagNode(
-			`{{${matchingTag || actualTag}}}`,
+			matchingTag || actualTag,
 			Boolean(matchingTag),
 		);
 
@@ -175,6 +181,41 @@ function registerSubstitutionTag(
 				}
 			},
 			{ skipInitialization: false },
+		),
+		editor.registerCommand(
+			INSERT_SUBSTITUTION_TAG_COMMAND,
+			(tag: string | null) => {
+				const selection = $getSelection();
+				if (!$isRangeSelection(selection)) return false;
+				const anchorNode = selection.anchor.getNode();
+				if ($isSubstitutionTagNode(anchorNode)) {
+					if (tag) {
+						if (
+							selection.anchor.offset ===
+							anchorNode.getTextContent().length
+						) {
+							const newNode = $createSubstitutionTagNode(
+								tag,
+								true,
+							);
+							anchorNode.insertAfter(newNode);
+							newNode.select(0, tag.length);
+						} else {
+							anchorNode.setTextContent(`{{${tag}}}`);
+							anchorNode.setValid(true);
+							anchorNode.select(0, tag.length + 4);
+						}
+					} else {
+						anchorNode.remove();
+					}
+				} else if (tag) {
+					selection.insertNodes([
+						$createSubstitutionTagNode(tag, true),
+					]);
+				}
+				return false;
+			},
+			COMMAND_PRIORITY_LOW,
 		),
 	);
 }

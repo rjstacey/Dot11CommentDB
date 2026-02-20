@@ -32,7 +32,7 @@ function convertSubstitutionTagElement(
 		if (match) {
 			const beforeText = textContent.slice(0, match.index);
 			if (beforeText) node.push($createTextNode(beforeText));
-			node.push($createSubstitutionTagNode(match[0]));
+			node.push($createSubstitutionTagNode(match[1]));
 			textContent = textContent.substring(match.index + match[0].length);
 		} else {
 			node.push($createTextNode(textContent));
@@ -97,7 +97,8 @@ export class SubstitutionTagNode extends TextNode {
 		return node;
 	}
 
-	constructor(text?: string, valid: boolean = false, key?: NodeKey) {
+	constructor(tag?: string, valid: boolean = false, key?: NodeKey) {
+		const text = `{{${tag}}}`;
 		super(text, key);
 		this.__valid = valid;
 	}

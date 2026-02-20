@@ -1,5 +1,4 @@
-import { DropdownButton, DropdownItem, DropdownDivider } from "react-bootstrap";
-import cx from "clsx";
+import { DropdownButton, Button } from "react-bootstrap";
 import { useAlignmentSelect, type AlignmentFormat } from "../useAlignmentEdit";
 
 export type AlignmentOption = {
@@ -8,13 +7,6 @@ export type AlignmentOption = {
 	icon: string;
 	disabled?: boolean;
 };
-
-const iconLabel = (icon: string, text: string) => (
-	<>
-		<i className={cx("me-1", icon)} />
-		<span>{text}</span>
-	</>
-);
 
 const options: AlignmentOption[] = [
 	{ value: "left", label: "Left Align", icon: "bi-text-left" },
@@ -32,22 +24,23 @@ export function SelectAlignment({ disabled }: { disabled?: boolean }) {
 		<DropdownButton
 			title={<i className="bi-text-left" />}
 			align="end"
-			drop="up"
 			disabled={disabled}
 		>
-			{options.map((o, i) =>
-				o.value ? (
-					<DropdownItem
-						key={i}
-						className={value === o.value ? "active" : undefined}
-						onClick={() => onChange(o.value!)}
-					>
-						{iconLabel(o.icon, o.label)}
-					</DropdownItem>
-				) : (
-					<DropdownDivider key={i} />
-				),
-			)}
+			<div className="button-group">
+				{options.map((o, i) =>
+					o.value ? (
+						<Button
+							key={i}
+							className={value === o.value ? "active" : undefined}
+							onClick={() => onChange(o.value!)}
+						>
+							<i className={o.icon} />
+						</Button>
+					) : (
+						<div className="vertical-divider" key={i} />
+					),
+				)}
+			</div>
 		</DropdownButton>
 	);
 }

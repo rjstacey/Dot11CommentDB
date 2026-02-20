@@ -1,0 +1,54 @@
+import * as React from "react";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import {
+	$getSelection,
+	$isRangeSelection,
+	SELECTION_CHANGE_COMMAND,
+	COMMAND_PRIORITY_LOW,
+} from "lexical";
+import {
+	$patchStyleText,
+	$getSelectionStyleValueForProperty,
+} from "@lexical/selection";
+import { mergeRegister } from "@lexical/utils";
+
+export function useFontSizeEdit() {
+	const [editor] = useLexicalComposerContext();
+	const [fontSize, setFontSize] = React.useState<string | null>(null);
+
+	const onChange = React.useCallback(
+		(value: string | null) => {
+			editor.update(() => {
+				const selection = $getSelection();
+				if ($isRangeSelection(selection))
+					$patchStyleText(selection, { "font-size": value });
+			});
+		},
+		[editor],
+	);
+
+	React.useEffect(() => {
+		function updateValues() {
+			const selection = $getSelection();
+			if (!$isRangeSelection(selection)) return false;
+			const fontSize = $getSelectionStyleValueForProperty(
+				selection,
+				"font-size",
+			);
+			setFontSize(fontSize);
+			return false;
+		}
+		return mergeRegister(
+			editor.registerCommand(
+				SELECTION_CHANGE_COMMAND,
+				updateValues,
+				COMMAND_PRIORITY_LOW,
+			),
+			editor.registerUpdateListener(({ editorState }) => {
+				editorState.read(updateValues);
+			}),
+		);
+	}, [editor]);
+
+	return { value: fontSize, onChange };
+}

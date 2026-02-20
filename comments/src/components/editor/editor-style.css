@@ -1,9 +1,7 @@
 .editor-style {
 	p,
 	.paragraph {
-		all: inherit;
-		display: block;
-		margin: 1em 0;
+		all: revert;
 
 		&:first-child {
 			margin-top: 0;
@@ -15,30 +13,26 @@
 
 	ul,
 	.ul {
-		all: inherit;
-		display: block;
-		padding-left: 2em;
+		all: revert;
 		list-style-type: "— ";
 	}
 
 	ol,
 	.ol {
-		all: inherit;
-		display: block;
-		padding-left: 2em;
+		all: revert;
 		list-style-type: decimal;
 	}
 
 	a,
 	.link {
+		all: revert;
 		color: #067df7;
 		text-decoration: none;
 	}
 
 	blockquote,
 	.quote {
-		all: inherit;
-		display: block;
+		all: revert;
 		margin: 1em 0;
 		padding: 0 1em;
 		background-color: #f3f3f330;
@@ -46,8 +40,7 @@
 
 	code,
 	.code {
-		all: initial;
-		display: block;
+		all: revert;
 		margin: 1em 0;
 		padding: 0 1em;
 		background-color: #f3f3f330;
@@ -57,7 +50,7 @@
 
 	h1,
 	.h1 {
-		all: inherit;
+		all: revert;
 		font-size: 1.3em;
 		color: rgb(5, 5, 5);
 		font-weight: 400;
@@ -67,7 +60,7 @@
 
 	h2,
 	.h2 {
-		all: inherit;
+		all: revert;
 		font-size: 1.125em;
 		color: rgb(5, 5, 5);
 		font-weight: 400;
@@ -101,8 +94,7 @@
 
 	mark,
 	.highlight {
-		all: inherit;
-		display: inline;
+		all: revert;
 		background-color: yellow;
 		padding: 0;
 	}

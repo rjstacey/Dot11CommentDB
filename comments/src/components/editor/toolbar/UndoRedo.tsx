@@ -1,7 +1,7 @@
 import { Button } from "react-bootstrap";
 import { useUndoRedo } from "../useUndoRedo";
 
-export function UndoRedo({ disabled }: { disabled: boolean }) {
+export function UndoRedo({ disabled }: { disabled?: boolean }) {
 	const { canUndo, canRedo, undo, redo } = useUndoRedo();
 
 	return (
@@ -10,16 +10,16 @@ export function UndoRedo({ disabled }: { disabled: boolean }) {
 				disabled={!canUndo || disabled}
 				onClick={undo}
 				aria-label="Undo"
-			>
-				<i className="bi-arrow-counterclockwise" />
-			</Button>
+				title="Undo (Ctrl-z)"
+				className="bi-arrow-counterclockwise"
+			/>
 			<Button
 				disabled={!canRedo || disabled}
 				onClick={redo}
 				aria-label="Redo"
-			>
-				<i className="bi-arrow-clockwise" />
-			</Button>
+				title="Redo (Ctrl-r)"
+				className="bi-arrow-clockwise"
+			/>
 		</div>
 	);
 }
