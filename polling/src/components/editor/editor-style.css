@@ -1,0 +1,101 @@
+.editor-style {
+	p,
+	.paragraph {
+		all: revert;
+
+		&:first-child {
+			margin-top: 0;
+		}
+		&:last-child {
+			margin-bottom: 0;
+		}
+	}
+
+	ul,
+	.ul {
+		all: revert;
+		list-style-type: "— ";
+	}
+
+	ol,
+	.ol {
+		all: revert;
+		list-style-type: decimal;
+	}
+
+	a,
+	.link {
+		all: revert;
+		color: #067df7;
+		text-decoration: none;
+	}
+
+	blockquote,
+	.quote {
+		all: revert;
+		margin: 1em 0;
+		padding: 0 1em;
+		background-color: #f3f3f330;
+	}
+
+	code,
+	.code {
+		all: revert;
+		margin: 1em 0;
+		padding: 0 1em;
+		background-color: #f3f3f330;
+		font-family: "Inconsolata", "Menlo", "Consolas", monospace;
+		font-size: 0.875em;
+	}
+
+	h1,
+	.h1 {
+		all: revert;
+		font-size: 1.3em;
+		color: rgb(5, 5, 5);
+		font-weight: 400;
+		margin: 0 0 0.375rem 0;
+		padding: 0;
+	}
+
+	h2,
+	.h2 {
+		all: revert;
+		font-size: 1.125em;
+		color: rgb(5, 5, 5);
+		font-weight: 400;
+		margin: 0.375em 0;
+		padding: 0;
+	}
+
+	s,
+	.strikethrough {
+		text-decoration: line-through;
+	}
+
+	u,
+	.underline {
+		text-decoration: underline;
+	}
+
+	.strikethrough.underline {
+		text-decoration: line-through underline;
+	}
+
+	b,
+	.bold {
+		font-weight: bold;
+	}
+
+	i,
+	.italic {
+		font-style: italic;
+	}
+
+	mark,
+	.highlight {
+		all: revert;
+		background-color: yellow;
+		padding: 0;
+	}
+}

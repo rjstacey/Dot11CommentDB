@@ -31,6 +31,13 @@
 			pointer-events: none;
 		}
 	}
+
+	&:not(:focus-within) {
+		& .toolbar,
+		& .link-editor {
+			display: none;
+		}
+	}
 }
 
 .toolbar {

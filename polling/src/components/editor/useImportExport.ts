@@ -1,14 +1,14 @@
-import * as React from "react";
+import { useEffect, useState } from "react";
 import {
 	$getRoot,
 	$isElementNode,
 	$addUpdateTag,
 	SKIP_DOM_SELECTION_TAG,
 	type LexicalNode,
+	HISTORY_MERGE_TAG,
 } from "lexical";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useDebounce } from "@common";
 
@@ -25,34 +25,17 @@ function $recursivelyReplaceLinkWithAutoLink(node: LexicalNode) {
 	}
 }
 
-function InportExportPlugin({
-	value,
-	onChange,
-	readOnly,
-}: {
-	value: string | null;
-	onChange: (value: string | null) => void;
-	readOnly?: boolean;
-}) {
+export function useImportExport(
+	value: string | null,
+	onChange: (value: string | null) => void,
+	readOnly?: boolean,
+) {
 	const [editor] = useLexicalComposerContext();
-	const [output, setOutput] = React.useState<string | null>(null);
+	const [output, setOutput] = useState<string | null>(null);
 
-	const debouncedOnChange = useDebounce(() => {
-		if (readOnly) return;
-		editor.read(() => {
-			const newValue = $getRoot().getTextContent()
-				? $generateHtmlFromNodes(editor)
-				: "";
-			if (newValue != value) {
-				onChange(newValue);
-				setOutput(newValue);
-			}
-		});
-	});
-
-	React.useEffect(() => {
+	useEffect(() => {
 		// If the value in is different from what was sent out, then update the editor state
-		if (output === value) return;
+		//if (output === value) return;
 		editor.update(() => {
 			let s = value || "";
 			s = s.replace(/<p><br><\/p>/g, "");
@@ -72,7 +55,6 @@ function InportExportPlugin({
 			}
 			const nodes = $generateNodesFromDOM(editor, dom);
 			$getRoot().clear().select().insertNodes(nodes);
-			//console.log(nodes);
 
 			$recursivelyReplaceLinkWithAutoLink($getRoot());
 
@@ -80,19 +62,38 @@ function InportExportPlugin({
 
 			setOutput(value);
 		});
-	}, [value]);
+	}, [value !== output]);
 
-	React.useEffect(() => {
+	const triggerSave = useDebounce(() => {
+		editor.read(() => {
+			const newValue = $getRoot().getTextContent()
+				? $generateHtmlFromNodes(editor)
+				: "";
+			//if (newValue != value) {
+			onChange(newValue);
+			setOutput(newValue);
+			//}
+		});
+	});
+
+	useEffect(() => {
+		return editor.registerUpdateListener(
+			({ dirtyElements, dirtyLeaves, prevEditorState, tags }) => {
+				if (readOnly) return;
+				if (
+					(dirtyElements.size === 0 && dirtyLeaves.size === 0) ||
+					tags.has(HISTORY_MERGE_TAG) ||
+					prevEditorState.isEmpty()
+				) {
+					return;
+				}
+
+				triggerSave();
+			},
+		);
+	}, [editor, onChange, readOnly]);
+
+	useEffect(() => {
 		editor.setEditable(!readOnly);
 	}, [editor, readOnly]);
-
-	return (
-		<OnChangePlugin
-			onChange={debouncedOnChange}
-			ignoreHistoryMergeTagChange
-			ignoreSelectionChange
-		/>
-	);
 }
-
-export default InportExportPlugin;

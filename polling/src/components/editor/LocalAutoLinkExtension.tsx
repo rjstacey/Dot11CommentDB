@@ -1,4 +1,5 @@
-import { AutoLinkPlugin } from "@lexical/react/LexicalAutoLinkPlugin";
+import { configExtension } from "lexical";
+import { AutoLinkExtension } from "@lexical/link";
 
 const URL_MATCHER =
 	/((https?:\/\/(www\.)?)|(www\.))[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
@@ -6,7 +7,7 @@ const URL_MATCHER =
 const EMAIL_MATCHER =
 	/(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))/;
 
-const MATCHERS = [
+const matchers = [
 	(text: string) => {
 		const match = URL_MATCHER.exec(text);
 		return (
@@ -31,6 +32,6 @@ const MATCHERS = [
 	},
 ];
 
-export default function Plugin() {
-	return <AutoLinkPlugin matchers={MATCHERS} />;
-}
+export const LocalAutoLinkExtension = configExtension(AutoLinkExtension, {
+	matchers,
+});
