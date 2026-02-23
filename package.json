@@ -14,7 +14,7 @@
 	],
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build": "npm run build --workspaces"
+		"build": "npm version patch && npm run build --workspaces"
 	},
 	"repository": {
 		"type": "git",
