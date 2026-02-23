@@ -81,45 +81,6 @@ const createViewCommentResolutionsSQL =
 		"LEFT JOIN users m1 ON (r.AssigneeSAPIN = m1.SAPIN)"
 
 export async function init() {
-	await db.query(
-		"UPDATE comments SET CommentGroup='' WHERE CommentGroup IS NULL"
-	);
-	await db.query("UPDATE comments SET AdHoc='' WHERE AdHoc IS NULL");
-	await db
-		.query(
-			"ALTER TABLE comments MODIFY CommentGroup VARCHAR(128) NOT NULL DEFAULT ''"
-		)
-		.catch(() => {});
-	await db
-		.query(
-			"ALTER TABLE comments MODIFY AdHoc VARCHAR(128) NOT NULL DEFAULT ''"
-		)
-		.catch(() => {});
-
-	await db.query(
-		"UPDATE resolutions SET Submission='' WHERE Submission IS NULL"
-	);
-	await db.query(
-		"UPDATE resolutions SET ReadyForMotion=0 WHERE ReadyForMotion IS NULL"
-	);
-	await db.query(
-		"UPDATE resolutions SET ApprovedByMotion='' WHERE ApprovedByMotion IS NULL"
-	);
-	await db
-		.query(
-			"ALTER TABLE resolutions MODIFY Submission VARCHAR(256) NOT NULL DEFAULT ''"
-		)
-		.catch(() => {});
-	await db
-		.query(
-			"ALTER TABLE resolutions MODIFY ReadyForMotion TINYINT(1) NOT NULL DEFAULT 0"
-		)
-		.catch(() => {});
-	await db
-		.query(
-			"ALTER TABLE resolutions MODIFY ApprovedByMotion VARCHAR(45) NOT NULL DEFAULT ''"
-		)
-		.catch(() => {});
 	await db.query(createViewCommentResolutionsSQL);
 }
 
@@ -138,14 +99,14 @@ function getConditions(constraints: QueryConstraints) {
 				conditions.push(
 					db.format("LastModifiedTime > CAST(? as DATETIME)", [
 						dateTime.toUTC().toFormat("yyyy-MM-dd HH:mm:ss"),
-					])
+					]),
 				);
 		} else {
 			conditions.push(
 				db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
 					key,
 					value,
-				])
+				]),
 			);
 		}
 	});
@@ -160,7 +121,7 @@ function getConditions(constraints: QueryConstraints) {
  */
 export function selectComments(
 	constraints1?: QueryConstraints,
-	constraints2?: QueryConstraints
+	constraints2?: QueryConstraints,
 ): Promise<CommentResolution[]> {
 	const conditions1 = constraints1 ? getConditions(constraints1) : [];
 	const conditions2 = constraints2 ? getConditions(constraints2) : [];
@@ -192,7 +153,7 @@ export function selectComments(
  */
 export function getComments(
 	ballot_id: number,
-	modifiedSince?: string
+	modifiedSince?: string,
 ): Promise<CommentResolution[]> {
 	const constraints: QueryConstraints = {};
 	if (ballot_id) constraints.ballot_id = ballot_id;
@@ -201,7 +162,7 @@ export function getComments(
 }
 
 export async function getCommentsSummary(
-	ballot_id: number
+	ballot_id: number,
 ): Promise<CommentsSummary | undefined> {
 	// prettier-ignore
 	const sql =
@@ -220,7 +181,7 @@ function commentsSetSql(changes: CommentChange) {
 	for (const [key, value] of Object.entries(changes)) {
 		const sql = db.format(
 			"??=" + (key === "AdHocGroupId" ? "UUID_TO_BIN(?)" : "?"),
-			[key, value]
+			[key, value],
 		);
 		sets.push(sql);
 	}
@@ -239,7 +200,7 @@ async function updateComment(
 	user: UserContext,
 	ballot_id: number,
 	id: number,
-	changes: CommentChange
+	changes: CommentChange,
 ) {
 	if (Object.keys(changes).length === 0) return;
 	const sql =
@@ -247,7 +208,7 @@ async function updateComment(
 		commentsSetSql(changes) +
 		db.format(
 			", LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP() WHERE ballot_id=? AND id=?",
-			[user.SAPIN, ballot_id, id]
+			[user.SAPIN, ballot_id, id],
 		);
 	return db.query<ResultSetHeader>(sql);
 }
@@ -257,7 +218,7 @@ export async function updateComments(
 	ballot_id: number,
 	access: number,
 	updates: CommentUpdate[],
-	modifiedSince?: string
+	modifiedSince?: string,
 ) {
 	const ids = updates.map((u) => u.id);
 
@@ -268,7 +229,7 @@ export async function updateComments(
 		});
 		if (!updates.every((u) => comments.find((c) => c.comment_id === u.id)))
 			throw new NotFoundError(
-				"At least one of the comment identifiers is invalid"
+				"At least one of the comment identifiers is invalid",
 			);
 		// To determine comment level access, all the comments must be assigned to an ad-hoc group
 		if (comments.every((c) => c.AdHocGroupId)) {
@@ -279,24 +240,24 @@ export async function updateComments(
 				groups.every(
 					(group) =>
 						(group.permissions.comments || AccessLevel.none) >=
-						AccessLevel.rw
+						AccessLevel.rw,
 				)
 			)
 				access = AccessLevel.rw;
 		}
 		if (access < AccessLevel.rw)
 			throw new ForbiddenError(
-				"User does not have ballot level or comment level read-write prvileges"
+				"User does not have ballot level or comment level read-write prvileges",
 			);
 	}
 
 	await Promise.all(
-		updates.map((u) => updateComment(user, ballot_id, u.id, u.changes))
+		updates.map((u) => updateComment(user, ballot_id, u.id, u.changes)),
 	);
 
 	const comments = await selectComments(
 		{ comment_id: ids },
-		{ ballot_id, modifiedSince }
+		{ ballot_id, modifiedSince },
 	);
 
 	return { comments };
@@ -314,17 +275,17 @@ export async function updateComments(
 export async function setStartCommentId(
 	user: UserContext,
 	ballot_id: number,
-	startCommentId: number
+	startCommentId: number,
 ) {
 	const sql =
 		`SET @offset = ${db.escape(
-			startCommentId
+			startCommentId,
 		)} - (SELECT MIN(CommentID) FROM comments WHERE ballot_id=${db.escape(
-			ballot_id
+			ballot_id,
 		)}); ` +
 		"UPDATE comments " +
 		`SET LastModifiedBy=${db.escape(
-			user.SAPIN
+			user.SAPIN,
 		)}, CommentID=CommentID+@offset ` +
 		`WHERE ballot_id=${db.escape(ballot_id)};`;
 	await db.query(sql);
@@ -358,14 +319,14 @@ export async function deleteComments(user: UserContext, ballot_id: number) {
 async function insertComments(
 	user: UserContext,
 	ballot_id: number,
-	commentsIn: CommentCreate[]
+	commentsIn: CommentCreate[],
 ) {
 	if (commentsIn.length) {
 		// Insert the comments
 		const sql1 =
 			db.format(
 				"INSERT INTO comments (ballot_id, LastModifiedBy, LastModifiedTime, ??) VALUES ",
-				[Object.keys(commentsIn[0])]
+				[Object.keys(commentsIn[0])],
 			) +
 			commentsIn
 				.map((c) =>
@@ -373,7 +334,7 @@ async function insertComments(
 						ballot_id,
 						user.SAPIN,
 						Object.values(c),
-					])
+					]),
 				)
 				.join(", ");
 		await db.query(sql1);
@@ -384,7 +345,7 @@ async function insertComments(
 				"SELECT id, 0, ?, UTC_TIMESTAMP() " +
 				"FROM comments " +
 				"WHERE ballot_id=? AND id NOT IN (SELECT comment_id FROM resolutions);",
-			[user.SAPIN, ballot_id]
+			[user.SAPIN, ballot_id],
 		);
 		await db.query(sql2);
 	}
@@ -405,7 +366,7 @@ async function insertComments(
 async function replaceComments(
 	user: UserContext,
 	ballot_id: number,
-	comments: CommentCreate[]
+	comments: CommentCreate[],
 ) {
 	// Delete existing comments (and resolutions) for this ballot
 	await deleteComments(user, ballot_id);
@@ -419,7 +380,7 @@ async function replaceComments(
 export async function importEpollComments(
 	user: UserContext,
 	ballot: Ballot,
-	startCommentId: number
+	startCommentId: number,
 ) {
 	if (!ballot.EpollNum)
 		throw new TypeError("Ballot does not have an ePoll number");
@@ -427,12 +388,12 @@ export async function importEpollComments(
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
 
 	const buffer = await user.ieeeClient.getCsv(
-		`https://mentor.ieee.org/802.11/poll-comments.csv?p=${ballot.EpollNum}`
+		`https://mentor.ieee.org/802.11/poll-comments.csv?p=${ballot.EpollNum}`,
 	);
 	const comments = await parseEpollComments(
 		startCommentId,
 		"poll-comments.csv",
-		buffer
+		buffer,
 	);
 	//console.log(comments[0])
 
@@ -450,14 +411,14 @@ export async function uploadComments(
 	ballot: Ballot,
 	startCommentId: number,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ) {
 	let comments: Partial<Comment>[];
 	if (ballot.Type === BallotType.SA) {
 		comments = await parseMyProjectComments(
 			startCommentId,
 			filename,
-			buffer
+			buffer,
 		);
 	} else {
 		comments = await parseEpollComments(startCommentId, filename, buffer);
@@ -491,7 +452,7 @@ export async function uploadUserComments(
 	ballot: Ballot,
 	sapin: number,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ) {
 	const commenter = await selectUser({ SAPIN: sapin });
 	if (!commenter) throw new NotFoundError(`User SAPIN=${sapin} not found`);
@@ -505,7 +466,7 @@ export async function uploadUserComments(
 		startCommentId,
 		startIndex,
 		filename,
-		buffer
+		buffer,
 	);
 
 	return insertComments(user, ballot.id, comments);
@@ -518,7 +479,7 @@ export async function uploadPublicReviewComments(
 	user: UserContext,
 	ballot: Ballot,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ) {
 	const { MaxCommentId } = await getHighestIndexes(ballot.id);
 	const startCommentId = MaxCommentId ? MaxCommentId + 1 : 1;
@@ -526,7 +487,7 @@ export async function uploadPublicReviewComments(
 	const comments: CommentCreate[] = await parsePublicReviewComments(
 		startCommentId,
 		filename,
-		buffer
+		buffer,
 	);
 	return insertComments(user, ballot.id, comments);
 }

@@ -16,29 +16,7 @@ import {
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Member } from "@schemas/members.js";
 
-export async function init() {
-	let sql =
-		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="polls" and column_name = "recordType";';
-	let rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
-	if (rows.length === 0)
-		db.query(
-			"ALTER TABLE polls ADD COLUMN recordType TINYINT default 0 after type;"
-		);
-	sql =
-		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="polls" and column_name = "votersType";';
-	rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
-	if (rows.length === 0)
-		db.query(
-			"ALTER TABLE polls ADD COLUMN votersType TINYINT default 0 after recordType;"
-		);
-	sql =
-		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="polls" and column_name = "isComplete";';
-	rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
-	if (rows.length === 0)
-		db.query(
-			"ALTER TABLE polls ADD COLUMN isComplete TINYINT(1) default 0;"
-		);
-}
+export async function init() {}
 
 export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 	// prettier-ignore
@@ -72,7 +50,7 @@ export async function addPollEvent(event: EventAdd) {
 	const { groupId, ...rest } = event;
 	const sql = db.format(
 		"INSERT INTO pollEvents SET groupId=UUID_TO_BIN(?), ?",
-		[groupId, rest]
+		[groupId, rest],
 	);
 	const { insertId: id } = await db.query<ResultSetHeader>(sql);
 	const [eventOut] = await getPollEvents({ id });
@@ -141,7 +119,7 @@ function pollSetSql(poll: Partial<Poll>) {
 			s.push(
 				db.format("resultsSummary=?", [
 					JSON.stringify(poll.resultsSummary),
-				])
+				]),
 			);
 		else s.push(db.format("??=?", [key, poll[key]]));
 	}
@@ -213,7 +191,7 @@ export async function pollVote(member: Member, poll: Poll, votes: number[]) {
 
 	const sql = db.format(
 		"REPLACE INTO pollVotes (pollId, SAPIN, votes) VALUES (?, ?, ?)",
-		[poll.id, member.SAPIN, JSON.stringify(votes)]
+		[poll.id, member.SAPIN, JSON.stringify(votes)],
 	);
 	await db.query(sql);
 }
@@ -227,7 +205,7 @@ export async function pollClearVotes(poll: Poll) {
 export async function pollVoteCount(poll: Poll) {
 	const sql = db.format(
 		"SELECT COUNT(*) as count FROM pollVotes WHERE pollId=?",
-		[poll.id]
+		[poll.id],
 	);
 	const [row] = await db.query<(RowDataPacket & { count: number })[]>(sql);
 	return row.count;

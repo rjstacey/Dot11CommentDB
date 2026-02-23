@@ -75,13 +75,6 @@ const createMeetingsViewSQL = `
 `;
 
 export async function init() {
-	const sql =
-		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="meetings" and column_name = "imatGracePeriod";';
-	const rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
-	if (rows.length === 0)
-		db.query(
-			"ALTER TABLE meetings ADD COLUMN imatGracePeriod INT default 0 after imatBreakoutId;"
-		);
 	await db.query(createMeetingsViewSQL);
 }
 
@@ -99,7 +92,7 @@ function selectMeetingsSql(constraints: MeetingsQuery) {
 			db.format("(o.parent_id=UUID_TO_BIN(?) OR o.id=UUID_TO_BIN(?))", [
 				groupId,
 				groupId,
-			])
+			]),
 		);
 	}
 
@@ -123,7 +116,7 @@ function selectMeetingsSql(constraints: MeetingsQuery) {
 			.plus({ days: 1 })
 			.toUTC();
 		wheres.push(
-			db.format("start <= ?", date.toFormat("yyyy-MM-dd HH:mm:ss"))
+			db.format("start <= ?", date.toFormat("yyyy-MM-dd HH:mm:ss")),
 		);
 	}
 
@@ -133,8 +126,8 @@ function selectMeetingsSql(constraints: MeetingsQuery) {
 				db.format(Array.isArray(value) ? "m.?? IN (?)" : "m.??=?", [
 					key,
 					value,
-				])
-			)
+				]),
+			),
 		);
 	}
 
@@ -152,7 +145,7 @@ function selectMeetingsSql(constraints: MeetingsQuery) {
 async function selectMeetings(constraints: MeetingsQuery) {
 	if (constraints.groupId && !constraints.organizationId) {
 		const organizationId = await getGroupAndSubgroupIds(
-			constraints.groupId
+			constraints.groupId,
 		);
 		constraints = { ...constraints, organizationId };
 		delete constraints.groupId;
@@ -170,12 +163,12 @@ async function selectMeetings(constraints: MeetingsQuery) {
  */
 export async function getMeetings(
 	user: UserContext,
-	constraints: MeetingsQuery
+	constraints: MeetingsQuery,
 ): Promise<MeetingsGetResponse> {
 	const meetings = await selectMeetings(constraints);
 	const ids = meetings.reduce(
 		(ids, m) => (m.webexMeetingId ? ids.concat([m.webexMeetingId]) : ids),
-		[] as string[]
+		[] as string[],
 	);
 	let webexMeetings: WebexMeeting[] = [];
 	if (ids.length > 0) {
@@ -188,7 +181,8 @@ export async function getMeetings(
 	// Normalize webexMeetings
 	const webexMeetingEntities: Record<string, WebexMeeting> = {};
 	webexMeetings.forEach(
-		(webexMeeting) => (webexMeetingEntities[webexMeeting.id] = webexMeeting)
+		(webexMeeting) =>
+			(webexMeetingEntities[webexMeeting.id] = webexMeeting),
 	);
 	// Make sure the webexAccountId matches. It is possible that a new account has been created.
 	const updates: MeetingUpdate[] = [];
@@ -300,11 +294,11 @@ function meetingToWebexMeeting(meeting: MeetingCreate) {
 
 function webexMeetingUpdateNeeded(
 	webexMeeting: WebexMeeting,
-	webexMeetingChanges: Partial<WebexMeeting>
+	webexMeetingChanges: Partial<WebexMeeting>,
 ): boolean {
 	/* Don't update if the meeting has already started */
 	const start = DateTime.fromISO(
-		webexMeetingChanges.start || webexMeeting.start
+		webexMeetingChanges.start || webexMeeting.start,
 	);
 	if (start < DateTime.now()) return false;
 
@@ -314,13 +308,13 @@ function webexMeetingUpdateNeeded(
 		} else if (key === "start" || key === "end") {
 			if (
 				!DateTime.fromISO(webexMeeting[key]).equals(
-					DateTime.fromISO(webexMeetingChanges[key]!)
+					DateTime.fromISO(webexMeetingChanges[key]!),
 				)
 			) {
 				console.log(
 					`Mismatch for ${key}: `,
 					webexMeeting[key],
-					webexMeetingChanges[key]
+					webexMeetingChanges[key],
 				);
 				return true;
 			}
@@ -328,7 +322,7 @@ function webexMeetingUpdateNeeded(
 			console.log(
 				`Mismatch for ${key}: `,
 				webexMeeting[key],
-				webexMeetingChanges[key]
+				webexMeetingChanges[key],
 			);
 			return true;
 		}
@@ -351,7 +345,7 @@ const formatMeetingNumber = (n: string) =>
  */
 export async function webexMeetingImatLocation(
 	webexAccountId: number,
-	webexMeeting: WebexMeeting
+	webexMeeting: WebexMeeting,
 ) {
 	let location = "";
 	const [oauthAccount] = await getOAuthAccounts({ id: webexAccountId });
@@ -447,11 +441,11 @@ export async function webexMeetingImatLocation(
 function meetingToCalendarDescriptionText(
 	meeting: MeetingCreate,
 	webexMeeting: WebexMeeting | undefined,
-	breakout: Breakout | undefined
+	breakout: Breakout | undefined,
 ): string;
 function meetingToCalendarDescriptionText(
 	meeting: MeetingCreate,
-	webexMeeting: WebexMeeting | undefined
+	webexMeeting: WebexMeeting | undefined,
 ) {
 	let description = "";
 
@@ -499,7 +493,7 @@ function meetingToCalendarEvent(
 	session: Session | undefined,
 	workingGroup: Group | undefined,
 	webexMeeting: WebexMeeting | undefined,
-	breakout: Breakout | undefined
+	breakout: Breakout | undefined,
 ) {
 	let location = meeting.location || "";
 
@@ -513,7 +507,7 @@ function meetingToCalendarEvent(
 	const description = meetingToCalendarDescriptionText(
 		meeting,
 		webexMeeting,
-		breakout
+		breakout,
 	);
 
 	let summary = meeting.summary.replace(/^802.11/, "").trim();
@@ -617,7 +611,7 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 				user,
 				session,
 				meeting,
-				webexMeeting
+				webexMeeting,
 			);
 			meeting.imatBreakoutId = breakout.id!;
 		} else {
@@ -625,7 +619,7 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 				user,
 				session,
 				meeting,
-				webexMeeting
+				webexMeeting,
 			);
 		}
 
@@ -637,14 +631,14 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 				mWebexMeeting = await getWebexMeeting(
 					m.webexAccountId,
 					m.webexMeetingId,
-					m.timezone
+					m.timezone,
 				);
 			}
 			await updateImatBreakoutFromMeeting(
 				user,
 				session,
 				m,
-				mWebexMeeting
+				mWebexMeeting,
 			);
 		}
 	}
@@ -657,13 +651,13 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 			session,
 			workingGroup,
 			webexMeeting,
-			breakout
+			breakout,
 		);
 		if (!meetingToAdd.calendarEventId) {
 			try {
 				calendarEvent = await addCalendarEvent(
 					meetingToAdd.calendarAccountId,
-					calendarEvent
+					calendarEvent,
 				);
 				meeting.calendarEventId = calendarEvent?.id || null;
 			} catch {
@@ -673,7 +667,7 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 			await updateCalendarEvent(
 				meetingToAdd.calendarAccountId,
 				meetingToAdd.calendarEventId,
-				calendarEvent
+				calendarEvent,
 			);
 		}
 	}
@@ -694,12 +688,12 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
  */
 export async function addMeetings(
 	user: UserContext,
-	meetingsIn: MeetingCreate[]
+	meetingsIn: MeetingCreate[],
 ) {
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
 
 	const entries = await Promise.all(
-		meetingsIn.map((m) => addMeeting(user, m))
+		meetingsIn.map((m) => addMeeting(user, m)),
 	);
 
 	const meetings: Meeting[] = [],
@@ -727,7 +721,7 @@ export async function addMeetings(
  */
 async function meetingMakeWebexUpdates(
 	meeting: Meeting,
-	changes: MeetingChange
+	changes: MeetingChange,
 ) {
 	let webexMeeting: WebexMeeting | undefined;
 
@@ -749,7 +743,7 @@ async function meetingMakeWebexUpdates(
 			webexMeeting = await getWebexMeeting(
 				meeting.webexAccountId,
 				meeting.webexMeetingId,
-				meeting.timezone
+				meeting.timezone,
 			);
 			webexMeetingParams = { ...webexMeeting, ...webexMeetingParams };
 		} catch (error) {
@@ -812,7 +806,7 @@ async function meetingMakeWebexUpdates(
 					webexMeeting = await getWebexMeeting(
 						webexAccountId,
 						changes.webexMeetingId,
-						meeting.timezone
+						meeting.timezone,
 					);
 					webexMeetingParams = {
 						...webexMeeting,
@@ -823,7 +817,7 @@ async function meetingMakeWebexUpdates(
 					if (
 						webexMeetingUpdateNeeded(
 							webexMeeting,
-							webexMeetingParams
+							webexMeetingParams,
 						)
 					) {
 						webexMeeting =
@@ -862,7 +856,7 @@ async function meetingMakeImatBreakoutUpdates(
 	meeting: Meeting,
 	changes: MeetingChange,
 	session: Session | undefined,
-	webexMeeting: WebexMeeting | undefined
+	webexMeeting: WebexMeeting | undefined,
 ) {
 	let breakout: Breakout | undefined;
 
@@ -891,7 +885,7 @@ async function meetingMakeImatBreakoutUpdates(
 					user,
 					session,
 					updatedMeeting,
-					webexMeeting
+					webexMeeting,
 				);
 				//changes.imatBreakoutId = breakout.id;
 			} else if (changes.imatBreakoutId) {
@@ -901,7 +895,7 @@ async function meetingMakeImatBreakoutUpdates(
 					user,
 					session,
 					updatedMeeting,
-					webexMeeting
+					webexMeeting,
 				);
 			}
 		} else {
@@ -912,7 +906,7 @@ async function meetingMakeImatBreakoutUpdates(
 					user,
 					session,
 					updatedMeeting,
-					webexMeeting
+					webexMeeting,
 				);
 			} catch (error) {
 				if (!(error instanceof NotFoundError)) throw error;
@@ -927,7 +921,7 @@ async function meetingMakeImatBreakoutUpdates(
 				user,
 				session,
 				updatedMeeting,
-				webexMeeting
+				webexMeeting,
 			);
 			//changes.imatBreakoutId = breakout.id;
 		} else if (changes.imatBreakoutId) {
@@ -936,7 +930,7 @@ async function meetingMakeImatBreakoutUpdates(
 				user,
 				session,
 				updatedMeeting,
-				webexMeeting
+				webexMeeting,
 			);
 		}
 	}
@@ -951,14 +945,14 @@ async function meetingMakeImatBreakoutUpdates(
 				mWebexMeeting = await getWebexMeeting(
 					m.webexAccountId,
 					m.webexMeetingId,
-					m.timezone
+					m.timezone,
 				);
 			}
 			const b = await updateImatBreakoutFromMeeting(
 				user,
 				session,
 				m,
-				mWebexMeeting
+				mWebexMeeting,
 			);
 			affectedBreakouts.push(b);
 		}
@@ -973,7 +967,7 @@ async function meetingMakeCalendarUpdates(
 	session: Session | undefined,
 	workingGroup: Group | undefined,
 	webexMeeting: WebexMeeting | undefined,
-	breakout: Breakout | undefined
+	breakout: Breakout | undefined,
 ) {
 	let calendarEvent: CalendarEvent | void = undefined;
 
@@ -984,7 +978,7 @@ async function meetingMakeCalendarUpdates(
 		session,
 		workingGroup,
 		webexMeeting,
-		breakout
+		breakout,
 	);
 
 	if (meeting.calendarAccountId && meeting.calendarEventId) {
@@ -996,7 +990,7 @@ async function meetingMakeCalendarUpdates(
 			try {
 				await deleteCalendarEvent(
 					meeting.calendarAccountId,
-					meeting.calendarEventId
+					meeting.calendarEventId,
 				);
 			} catch (error) {
 				console.warn("Unable to delete calendar event", error);
@@ -1006,7 +1000,7 @@ async function meetingMakeCalendarUpdates(
 				try {
 					calendarEvent = await addCalendarEvent(
 						changes.calendarAccountId,
-						calendarEventParams
+						calendarEventParams,
 					);
 					//changes.calendarEventId = calendarEvent?.id || null;
 				} catch (error) {
@@ -1020,7 +1014,7 @@ async function meetingMakeCalendarUpdates(
 				await updateCalendarEvent(
 					meeting.calendarAccountId,
 					meeting.calendarEventId,
-					calendarEventParams
+					calendarEventParams,
 				);
 			} catch (error) {
 				console.warn("Unable to update calendar event", error);
@@ -1032,7 +1026,7 @@ async function meetingMakeCalendarUpdates(
 			try {
 				calendarEvent = await addCalendarEvent(
 					updatedMeeting.calendarAccountId,
-					calendarEventParams
+					calendarEventParams,
 				);
 				//changes.calendarEventId = calendarEvent?.id || null;
 			} catch (error) {
@@ -1066,7 +1060,7 @@ async function meetingMakeCalendarUpdates(
 export async function updateMeeting(
 	user: UserContext,
 	id: number,
-	changesIn: MeetingChange
+	changesIn: MeetingChange,
 ) {
 	const changes: MeetingChange = {
 		...changesIn,
@@ -1101,7 +1095,7 @@ export async function updateMeeting(
 			meeting,
 			changesIn,
 			session,
-			webexMeeting
+			webexMeeting,
 		);
 	if (breakout && meeting.imatBreakoutId !== breakout.id)
 		changes.imatBreakoutId = breakout.id;
@@ -1116,7 +1110,7 @@ export async function updateMeeting(
 		session,
 		workingGroup,
 		webexMeeting,
-		breakout
+		breakout,
 	);
 	if (calendarEvent && meeting.calendarEventId !== calendarEvent.id)
 		changes.calendarEventId = calendarEvent.id;
@@ -1125,7 +1119,7 @@ export async function updateMeeting(
 	if (setSql) {
 		const sql = db.format(
 			"UPDATE meetings SET " + setSql + " WHERE id=?;",
-			[id]
+			[id],
 		);
 		await db.query(sql);
 		[meeting] = await selectMeetings({ id });
@@ -1143,12 +1137,12 @@ export async function updateMeeting(
  */
 export async function updateMeetings(
 	user: UserContext,
-	updates: MeetingUpdate[]
+	updates: MeetingUpdate[],
 ): Promise<MeetingsUpdateResponse> {
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
 
 	const entries = await Promise.all(
-		updates.map((u) => updateMeeting(user, u.id, u.changes))
+		updates.map((u) => updateMeeting(user, u.id, u.changes)),
 	);
 
 	const meetings: Meeting[] = [],
@@ -1178,7 +1172,7 @@ export async function updateMeetings(
  */
 export async function deleteMeetings(
 	user: UserContext,
-	ids: number[]
+	ids: number[],
 ): Promise<number> {
 	if (!user.ieeeClient) throw new AuthError("Not logged in");
 
@@ -1231,7 +1225,7 @@ export async function deleteMeetings(
 			try {
 				await deleteCalendarEvent(
 					entry.calendarAccountId,
-					entry.calendarEventId
+					entry.calendarEventId,
 				);
 			} catch (error) {
 				console.log(error);

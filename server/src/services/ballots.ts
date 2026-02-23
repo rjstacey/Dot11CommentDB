@@ -91,17 +91,6 @@ const createViewBallotsStage = `
 `;
 
 export async function init() {
-	let sql =
-		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="ballots" and column_name = "BallotID_";';
-	let rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
-	if (rows.length === 1)
-		db.query("ALTER table ballots DROP COLUMN BallotID_");
-	sql =
-		'select 1 from information_schema.COLUMNS where table_schema = DATABASE() and TABLE_NAME="ballots" and column_name = "VotingPoolID";';
-	rows = await db.query<(RowDataPacket & { "1": number })[]>(sql);
-	if (rows.length === 1)
-		db.query("ALTER table ballots DROP COLUMN VotingPoolID");
-
 	await db.query(createViewBallotsSeries);
 	await db.query(createViewBallotsStage);
 }
@@ -147,12 +136,12 @@ export async function getBallots(query?: BallotQuery): Promise<Ballot[]> {
 							Array.isArray(value)
 								? "BIN_TO_UUID(??) IN (?)"
 								: "BIN_TO_UUID(??)=?",
-							[key, value]
+							[key, value],
 						)
 					: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
 							key,
 							value,
-						])
+						]),
 			);
 		});
 		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
@@ -196,14 +185,14 @@ export function getBallotId(ballot: Ballot) {
 export async function getBallotWithNewResultsSummary(
 	user: UserContext,
 	workingGroupId: string | null,
-	ballot_id: number
+	ballot_id: number,
 ): Promise<Ballot> {
 	const ballot = await getBallot(ballot_id);
 	if (!workingGroupId) {
 		const workingGroup = await getWorkingGroup(user, ballot.groupId!);
 		if (!workingGroup)
 			throw new NotFoundError(
-				`Can't find working group for ballot id=${ballot_id}`
+				`Can't find working group for ballot id=${ballot_id}`,
 			);
 		workingGroupId = workingGroup.id;
 	}
@@ -309,7 +298,7 @@ function ballotSetSql(ballot: Partial<BallotDB>) {
 async function addBallot(
 	user: UserContext,
 	workingGroup: Group,
-	ballot: BallotCreate
+	ballot: BallotCreate,
 ) {
 	const entry = ballotEntry(ballot);
 
@@ -343,7 +332,7 @@ async function addBallot(
 export function addBallots(
 	user: UserContext,
 	workingGroup: Group,
-	ballots: BallotCreate[]
+	ballots: BallotCreate[],
 ) {
 	return Promise.all(ballots.map((b) => addBallot(user, workingGroup, b)));
 }
@@ -361,7 +350,7 @@ export function addBallots(
 async function updateBallot(
 	user: UserContext,
 	workingGroup: Group,
-	update: BallotUpdate
+	update: BallotUpdate,
 ) {
 	const { id, changes } = update;
 	const entry = ballotEntry(changes);
@@ -392,7 +381,7 @@ async function updateBallot(
 export function updateBallots(
 	user: UserContext,
 	workingGroup: Group,
-	updates: BallotUpdate[]
+	updates: BallotUpdate[],
 ) {
 	return Promise.all(updates.map((u) => updateBallot(user, workingGroup, u)));
 }
@@ -407,13 +396,13 @@ export function updateBallots(
 export async function deleteBallots(
 	user: UserContext,
 	workingGroup: Group,
-	ids: number[]
+	ids: number[],
 ) {
 	// Make sure the ids are owned by the working group
 	ids = (
 		await db.query<(RowDataPacket & { id: number })[]>(
 			"SELECT id FROM ballots WHERE id IN (?) AND workingGroupId=UUID_TO_BIN(?)",
-			[ids, workingGroup.id]
+			[ids, workingGroup.id],
 		)
 	).map((b) => b.id);
 
