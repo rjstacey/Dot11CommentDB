@@ -3,7 +3,7 @@ import { loginAndReturn } from "@common";
 import { resetStore, persistor, selectUser, setUser } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
-import pkg from "../../../package.json" with { type: "json" };
+import pkg from "@/../../package.json" with { type: "json" };
 
 export function AccountDropdown({ className }: { className?: string }) {
 	const dispatch = useAppDispatch();

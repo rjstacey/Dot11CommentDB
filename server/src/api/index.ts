@@ -13,7 +13,7 @@ import timezones from "./timezones.js";
 import groups from "./groups.js";
 import ieee802world from "./802world.js";
 
-import pkg from "../../package.json" with { type: "json" };
+import pkg from "@/../../package.json" with { type: "json" };
 
 const router = Router();
 
@@ -28,7 +28,7 @@ router.get("/", (req, res, next) =>
 		name: pkg.name,
 		version: pkg.version,
 		description: pkg.description,
-	})
+	}),
 );
 
 router.use("/timezones", timezones);

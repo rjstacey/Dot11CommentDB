@@ -3,9 +3,9 @@ import { loginAndReturn } from "@common";
 import { resetStore, persistor, selectUser, setUser } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
-import pkg from "@/../package.json" with { type: "json" };
+import pkg from "@/../../package.json" with { type: "json" };
 
-export function AccountDropdown() {
+export function AccountDropdown({ className }: { className?: string }) {
 	const dispatch = useAppDispatch();
 	const user = useAppSelector(selectUser);
 	const reload = async () => {
@@ -16,7 +16,7 @@ export function AccountDropdown() {
 	};
 
 	return (
-		<Dropdown id="account-dropdown">
+		<Dropdown id="account-dropdown" className={className}>
 			<Dropdown.Toggle
 				variant="outline-secondary"
 				id="account-dropdown-toggle"
