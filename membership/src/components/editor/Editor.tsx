@@ -1,8 +1,8 @@
 import * as React from "react";
 import cx from "clsx";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
-import { TreeView } from "@lexical/react/LexicalTreeView";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+//import { TreeView } from "@lexical/react/LexicalTreeView";
+//import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 import { Toolbar } from "./toolbar";
 import { LinkEditor } from "./LinkEditor";
@@ -20,13 +20,13 @@ const emailStyles = new CSSStyleSheet();
 emailStyles.replaceSync(emailStylesText);
 
 function TreeViewPlugin() {
-	const [editor] = useLexicalComposerContext();
-	//return null;
+	return null;
+	/*const [editor] = useLexicalComposerContext();
 	return (
 		<div className={css.treeView}>
 			<TreeView editor={editor} />
 		</div>
-	);
+	);*/
 }
 
 const PLACEHOLDER_TEXT = "Email body here...";
