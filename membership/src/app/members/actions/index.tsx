@@ -1,4 +1,3 @@
-import { useLocation } from "react-router";
 import { Row, Col, Button } from "react-bootstrap";
 import type { EntityId } from "@reduxjs/toolkit";
 import { SplitTableButtonGroup } from "@common";
@@ -10,12 +9,6 @@ import { MembersUpload } from "./MembersUpload";
 import { MembersSummary } from "./MembersSummary";
 import { MembersRoster } from "./MembersRoster";
 import { MembersExport } from "./MembersExport";
-import { MembersSubmenu } from "./submenu";
-import {
-	myProjectRosterSelectors,
-	myProjectRosterActions,
-	tableColumns as myProjectRosterColumns,
-} from "../roster/tableColumns";
 import {
 	membersSelectors,
 	membersActions,
@@ -67,41 +60,43 @@ function setClipboard(selected: EntityId[], members: MembersDictionary) {
 }
 
 export function MembersActions() {
-	const location = useLocation();
-	const rosterShown = /roster$/.test(location.pathname);
 	const { selected, entities: members } = useAppSelector(selectMembersState);
 
 	return (
 		<Row className="w-100 m-3">
 			<MembersSummary xs="auto" />
-			<MembersSubmenu />
-			<SplitTableButtonGroup
-				xs="auto"
-				selectors={
-					rosterShown ? myProjectRosterSelectors : membersSelectors
-				}
-				actions={rosterShown ? myProjectRosterActions : membersActions}
-				columns={rosterShown ? myProjectRosterColumns : membersColumns}
-			/>
-			<Col className="d-flex justify-content-end align-items-center justify-self-stretch ms-auto gap-2">
-				<MembersRoster />
-				<MembersExport />
-				<MembersUpload />
-				<Button
-					className="bi-copy"
-					variant="outline-primary"
-					name="copy"
-					title="Copy selected members to clipboard"
-					disabled={rosterShown || selected.length === 0}
-					onClick={() => setClipboard(selected, members)}
-				/>
-				<Button
-					className="bi-arrow-repeat"
-					variant="outline-primary"
-					name="refresh"
-					title="Refresh"
-					onClick={refresh}
-				/>
+			<Col className="d-flex align-items-center justify-content-end">
+				<Row>
+					<SplitTableButtonGroup
+						className="justify-content-end m-2"
+						selectors={membersSelectors}
+						actions={membersActions}
+						columns={membersColumns}
+					/>
+					<Col
+						xs="auto"
+						className="d-flex justify-content-end align-items-center gap-2"
+					>
+						<MembersRoster />
+						<MembersExport />
+						<MembersUpload />
+						<Button
+							className="bi-copy"
+							variant="outline-primary"
+							name="copy"
+							title="Copy selected members to clipboard"
+							disabled={selected.length === 0}
+							onClick={() => setClipboard(selected, members)}
+						/>
+						<Button
+							className="bi-arrow-repeat"
+							variant="outline-primary"
+							name="refresh"
+							title="Refresh"
+							onClick={refresh}
+						/>
+					</Col>
+				</Row>
 			</Col>
 		</Row>
 	);

@@ -1,11 +1,11 @@
-import { Outlet } from "react-router";
 import { MembersActions } from "./actions";
+import { MembersTable } from "./main";
 
 export function MembersLayout() {
 	return (
 		<>
 			<MembersActions />
-			<Outlet />
+			<MembersTable />
 		</>
 	);
 }

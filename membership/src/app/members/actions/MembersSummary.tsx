@@ -24,7 +24,7 @@ export function MembersSummary(props: React.ComponentProps<typeof Col>) {
 
 	return (
 		<Col {...props}>
-			<Table bordered responsive>
+			<Table bordered responsive className="mb-0">
 				<thead>
 					<tr>
 						{Object.keys(summary).map((key) => (
