@@ -69,10 +69,10 @@ export function useImportExport(
 			const newValue = $getRoot().getTextContent()
 				? $generateHtmlFromNodes(editor)
 				: "";
-			//if (newValue != value) {
-			onChange(newValue);
-			setOutput(newValue);
-			//}
+			if (newValue != value) {
+				onChange(newValue);
+				setOutput(newValue);
+			}
 		});
 	});
 
