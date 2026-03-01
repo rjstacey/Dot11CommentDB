@@ -1,4 +1,4 @@
-import React from "react";
+import { useRef, useMemo, useCallback } from "react";
 
 import type { ViewDate } from "./Calendar";
 import { getMonthGrid, MonthGridDay, weekdayLabels } from "./utils";
@@ -116,8 +116,8 @@ function Month({
 }) {
 	/* Use a callback ref instead of useEffect. The callback ref, by definition, is called
 	 * when the referenced node changes. useEffect doesn't necessarily trigger with ref changes. */
-	const ref = React.useRef<NodeRef | null>(null);
-	const setRef = React.useCallback((node: HTMLDivElement) => {
+	const ref = useRef<NodeRef | null>(null);
+	const setRef = useCallback((node: HTMLDivElement) => {
 		if (ref.current) {
 			// Already set; do some cleanup
 			const { node, listener } = ref.current;
@@ -126,7 +126,7 @@ function Month({
 
 		if (node) {
 			const nodes = Array.from<HTMLDivElement>(
-				node.querySelectorAll(".calendar_date:not(.calendar_disabled)")
+				node.querySelectorAll(".calendar_date:not(.calendar_disabled)"),
 			);
 			const listener = (e: KeyboardEvent) => onKeyPress(nodes, e);
 			node.addEventListener("keydown", listener);
@@ -136,9 +136,9 @@ function Month({
 		}
 	}, []);
 
-	const matrix = React.useMemo(
+	const matrix = useMemo(
 		() => getMonthGrid({ dates, viewDate, options }),
-		[dates, viewDate, options]
+		[dates, viewDate, options],
 	);
 
 	return (

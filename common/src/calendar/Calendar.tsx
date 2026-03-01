@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type CSSProperties } from "react";
 
 import Header from "./Header";
 import Month from "./Month";
@@ -24,7 +24,7 @@ export type CalendarOptions = {
 };
 
 export type CalendarProps = {
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	className?: string;
 	value: Array<string>;
 	onChange: (dates: Array<string>) => void;
@@ -46,8 +46,8 @@ function Calendar({
 	minDate,
 	maxDate,
 }: CalendarProps) {
-	const [viewDate, setViewDate] = React.useState<ViewDate>(() =>
-		toViewDate(new Date())
+	const [viewDate, setViewDate] = useState<ViewDate>(() =>
+		toViewDate(new Date()),
 	);
 
 	const onPrevClick = () =>
@@ -105,7 +105,7 @@ function Calendar({
 						dates={dates}
 						onDateClick={onDateClick}
 						viewDate={toViewDate(
-							new Date(viewDate.year, viewDate.month + 1, 1)
+							new Date(viewDate.year, viewDate.month + 1, 1),
 						)}
 						options={options}
 					/>
@@ -115,31 +115,4 @@ function Calendar({
 	);
 }
 
-/*
-function validateISODate(props, propName, componentName) {
-	const value = props[propName];
-	if (value && !/\d{4}-\d{2}-\d{2}/.test(value))
-		return new Error(
-			`Invalid ${propName} supplied to ${componentName}. Expect string in form 'YYYY-MM-DD' but got ${value}.`
-		);
-}
-
-Calendar.propTypes = {
-	style: PropTypes.object,
-	className: PropTypes.string,
-	value: PropTypes.arrayOf(PropTypes.string).isRequired,
-	onChange: PropTypes.func.isRequired,
-	disablePast: PropTypes.bool,
-	multi: PropTypes.bool,
-	dual: PropTypes.bool,
-	minDate: validateISODate,
-	maxDate: validateISODate,
-};
-
-Calendar.defaultProps = {
-	disablePast: false,
-	multi: false,
-	dual: false,
-};
-*/
 export default Calendar;

@@ -1,11 +1,11 @@
-import * as React from "react";
+import { useRef, useEffect, useState } from "react";
 
 export function useDimensions() {
-	const ref = React.useRef<HTMLDivElement>(null);
-	const [width, setWidth] = React.useState(1600);
-	const [height, setHeight] = React.useState(900);
+	const ref = useRef<HTMLDivElement>(null);
+	const [width, setWidth] = useState(1600);
+	const [height, setHeight] = useState(900);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const observer = new ResizeObserver((entries) => {
 			for (const entry of entries) {
 				let { width, height } = entry.contentRect;

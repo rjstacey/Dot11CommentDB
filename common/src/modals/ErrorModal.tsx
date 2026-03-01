@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, Fragment } from "react";
 import { Modal, Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -6,7 +6,7 @@ import { clearOne, clearAll, selectErrors, ErrorMsg } from "../store/error";
 
 function MultipleErrorForm({ errors }: { errors: ErrorMsg[] }) {
 	const dispatch = useDispatch();
-	const [index, setIndex] = React.useState<number>(0);
+	const [index, setIndex] = useState<number>(0);
 
 	if (errors.length === 0) return null;
 
@@ -53,10 +53,10 @@ function MultipleErrorForm({ errors }: { errors: ErrorMsg[] }) {
 		);
 
 	const detail = error.detail.split("\n").map((s, i) => (
-		<React.Fragment key={i}>
+		<Fragment key={i}>
 			<span>{s.replace(/ /g, "\u00A0")}</span>
 			<br />
-		</React.Fragment>
+		</Fragment>
 	));
 	return (
 		<>

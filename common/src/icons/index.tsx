@@ -1,4 +1,4 @@
-import React from "react";
+import type { ComponentProps, HTMLProps, SVGProps } from "react";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import styles from "./icons.module.css";
 
@@ -6,7 +6,7 @@ export const IconCollapse = ({
 	isCollapsed,
 	className,
 	...props
-}: { isCollapsed: boolean } & React.ComponentProps<"i">) => (
+}: { isCollapsed: boolean } & ComponentProps<"i">) => (
 	<i
 		className={
 			(isCollapsed ? "bi-plus-square" : "bi-dash-square") +
@@ -16,10 +16,7 @@ export const IconCollapse = ({
 	/>
 );
 
-const SvgCaretRight = ({
-	className,
-	...props
-}: React.SVGProps<SVGSVGElement>) => (
+const SvgCaretRight = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
 	<svg
 		className={styles["svg-icon"] + (className ? " " + className : "")}
 		role="img"
@@ -36,7 +33,7 @@ const SvgCaretRight = ({
 	</svg>
 );
 
-const SvgCaretDown = ({ style, ...props }: React.SVGProps<SVGSVGElement>) => (
+const SvgCaretDown = ({ style, ...props }: SVGProps<SVGSVGElement>) => (
 	<SvgCaretRight
 		style={{ ...style, transform: "rotate(90deg)" }}
 		{...props}
@@ -46,7 +43,7 @@ const SvgCaretDown = ({ style, ...props }: React.SVGProps<SVGSVGElement>) => (
 const SvgDoubleCaretRight = ({
 	className,
 	...props
-}: React.SVGProps<SVGSVGElement>) => (
+}: SVGProps<SVGSVGElement>) => (
 	<svg
 		className={styles["svg-icon"] + (className ? " " + className : "")}
 		role="img"
@@ -63,20 +60,14 @@ const SvgDoubleCaretRight = ({
 	</svg>
 );
 
-const SvgDoubleCaretDown = ({
-	style,
-	...props
-}: React.SVGProps<SVGSVGElement>) => (
+const SvgDoubleCaretDown = ({ style, ...props }: SVGProps<SVGSVGElement>) => (
 	<SvgDoubleCaretRight
 		style={{ ...style, transform: "rotate(90deg)" }}
 		{...props}
 	/>
 );
 
-const SvgObjectGroup = ({
-	className,
-	...props
-}: React.SVGProps<SVGSVGElement>) => (
+const SvgObjectGroup = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
 	<svg
 		className={styles["svg-icon"] + (className ? " " + className : "")}
 		role="img"
@@ -95,7 +86,7 @@ const SvgVoteYes = ({
 	style,
 	className,
 	...props
-}: React.SVGProps<SVGSVGElement>) => (
+}: SVGProps<SVGSVGElement>) => (
 	<svg
 		style={{ ...style, transform: "translate(0, 3px)" }}
 		className={styles["svg-icon"] + (className ? " " + className : "")}
@@ -111,11 +102,7 @@ const SvgVoteYes = ({
 	</svg>
 );
 
-const SvgVoteNo = ({
-	style,
-	className,
-	...props
-}: React.SVGProps<SVGSVGElement>) => (
+const SvgVoteNo = ({ style, className, ...props }: SVGProps<SVGSVGElement>) => (
 	<svg
 		style={{ ...style, transform: "translate(0, 3px)" }}
 		className={styles["svg-icon"] + (className ? " " + className : "")}
@@ -131,10 +118,7 @@ const SvgVoteNo = ({
 	</svg>
 );
 
-const SvgPeopleSlash = ({
-	className,
-	...props
-}: React.SVGProps<SVGSVGElement>) => (
+const SvgPeopleSlash = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
 	<svg
 		className={styles["svg-icon"] + (className ? " " + className : "")}
 		role="img"
@@ -258,7 +242,7 @@ export const Icon = ({
 	type,
 	name,
 	...rest
-}: IconNameProps & React.HTMLProps<HTMLElement>) => {
+}: IconNameProps & HTMLProps<HTMLElement>) => {
 	name = name || type;
 	if (!name) {
 		console.warn("Icon requires name or type to be specified");
@@ -285,26 +269,11 @@ export const ActionIcon = ({
 	disabled,
 	onClick,
 	...rest
-}: React.ComponentProps<typeof Icon>) => (
+}: ComponentProps<typeof Icon>) => (
 	<Icon
 		className={(className ? className + " " : "") + "action-icon"}
 		disabled={disabled}
 		onClick={disabled ? undefined : onClick}
 		{...rest}
 	/>
-);
-
-export const Spinner = ({
-	className,
-	...props
-}: React.HTMLProps<HTMLDivElement>) => (
-	<div
-		className={styles.spinner + (className ? " " + className : "")}
-		{...props}
-	>
-		<div></div>
-		<div></div>
-		<div></div>
-		<div></div>
-	</div>
 );
