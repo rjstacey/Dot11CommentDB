@@ -1,4 +1,11 @@
-import * as React from "react";
+import {
+	cloneElement,
+	useRef,
+	type CSSProperties,
+	type ReactElement,
+	type ReactNode,
+	type HTMLProps,
+} from "react";
 import { Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -36,21 +43,13 @@ export function SplitPanelButton({
 	);
 }
 
-interface PanelProps extends React.HTMLProps<HTMLDivElement> {
-	children?: React.ReactNode;
+interface PanelProps extends HTMLProps<HTMLDivElement> {
+	children?: ReactNode;
 }
 
 export const Panel = ({ children, ...otherProps }: PanelProps) => (
 	<div {...otherProps}>{children}</div>
 );
-
-interface SplitPanelProps {
-	style?: React.CSSProperties;
-	className?: string;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
-	children: [React.ReactElement<PanelProps>, React.ReactElement<PanelProps>];
-}
 
 export function SplitPanel({
 	style,
@@ -58,9 +57,15 @@ export function SplitPanel({
 	actions,
 	children,
 	...otherProps
-}: SplitPanelProps) {
+}: {
+	style?: CSSProperties;
+	className?: string;
+	selectors: AppTableDataSelectors;
+	actions: AppTableDataActions;
+	children: [ReactElement<PanelProps>, ReactElement<PanelProps>];
+}) {
 	const dispatch = useDispatch();
-	const ref = React.useRef<HTMLDivElement>(null);
+	const ref = useRef<HTMLDivElement>(null);
 	let { isSplit, width } = useSelector(selectors.selectCurrentPanelConfig);
 	const setPanelWidth = (width: number) =>
 		dispatch(actions.setPanelWidth({ width }));
@@ -72,10 +77,12 @@ export function SplitPanel({
 		const leftStyle = {
 			...children[0].props.style,
 			flex: `${width * 100}%`,
+			overflow: "hidden",
 		};
 		const rightStyle = {
 			...children[1].props.style,
 			flex: `${(1 - width) * 100}%`,
+			overflow: "hidden",
 		};
 		const onDrag: DraggableEventHandler = (event, { x, deltaX }) => {
 			const b = (ref.current as HTMLDivElement).getBoundingClientRect(); // only called after ref established
@@ -83,14 +90,18 @@ export function SplitPanel({
 		};
 		content = (
 			<>
-				{React.cloneElement(children[0], { style: leftStyle })}
+				{cloneElement(children[0], { style: leftStyle })}
 				<ColumnResizer onDrag={onDrag} />
-				{React.cloneElement(children[1], { style: rightStyle })}
+				{cloneElement(children[1], { style: rightStyle })}
 			</>
 		);
 	} else {
-		const leftStyle = { ...children[0].props.style, flex: "100%" };
-		content = React.cloneElement(children[0], { style: leftStyle });
+		const leftStyle = {
+			...children[0].props.style,
+			flex: "100%",
+			overflow: "hidden",
+		};
+		content = cloneElement(children[0], { style: leftStyle });
 	}
 
 	return (

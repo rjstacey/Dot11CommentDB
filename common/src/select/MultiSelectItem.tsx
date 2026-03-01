@@ -1,7 +1,7 @@
-import React from "react";
+import type { ComponentProps } from "react";
 import type { SelectItemRendererProps, ItemType } from ".";
 
-const Clear = (props: React.ComponentProps<"div">) => (
+const Clear = (props: ComponentProps<"div">) => (
 	<div className="multi-item-clear" {...props} />
 );
 

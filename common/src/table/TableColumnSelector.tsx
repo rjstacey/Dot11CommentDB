@@ -1,4 +1,4 @@
-import React from "react";
+import { type ReactNode } from "react";
 import { Dropdown, Form, Row, Col } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -30,15 +30,19 @@ function ColumnSelectorDropdown({
 		dispatch(actions.toggleTableFixed({ tableView: view }));
 	const setTableColumnShown = (colKey: string, shown: boolean) =>
 		dispatch(
-			actions.setTableColumnShown({ tableView: view, key: colKey, shown })
+			actions.setTableColumnShown({
+				tableView: view,
+				key: colKey,
+				shown,
+			}),
 		);
 
 	/* Build an array of 'selectable' column config that includes a column label */
 	const selectableColumns: Array<
-		ChangeableColumnProperties & { key: string; label: React.ReactNode }
+		ChangeableColumnProperties & { key: string; label: ReactNode }
 	> = [];
 	for (const [key, config] of Object.entries<ChangeableColumnProperties>(
-		tableConfig.columns
+		tableConfig.columns,
 	)) {
 		if (!config.unselectable) {
 			const column = columns.find((c) => c.key === key);

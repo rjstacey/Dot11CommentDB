@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { CSSProperties } from "react";
 import type {
 	ItemType,
 	SelectInternalProps,
@@ -15,7 +15,7 @@ function Item<T extends ItemType>({
 	state,
 	methods,
 }: {
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	className?: string;
 	index: number;
 	item: T;
@@ -38,15 +38,15 @@ function Item<T extends ItemType>({
 	const addItem = isDisabled
 		? undefined
 		: isNew
-		? () => methods.addSearchItem()
-		: () => methods.addItem(item);
+			? () => methods.addSearchItem()
+			: () => methods.addItem(item);
 
 	const label = item[props.labelField];
 
 	return (
 		<div
 			style={style}
-			className={className}
+			className={cn}
 			role="option"
 			aria-selected={isSelected}
 			aria-disabled={isDisabled}

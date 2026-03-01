@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useRef, useEffect } from "react";
 import { FormControl } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -20,7 +20,7 @@ function GlobalFilter({
 	actions,
 	...otherProps
 }: GlobalFilterProps) {
-	const inputRef = React.useRef<HTMLInputElement>(null);
+	const inputRef = useRef<HTMLInputElement>(null);
 	const dispatch = useDispatch();
 	const globalFilter = useSelector(selectors.selectGlobalFilter);
 	const value =
@@ -28,7 +28,7 @@ function GlobalFilter({
 			? globalFilter.comps[0].value
 			: "";
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (value === "//" && inputRef.current)
 			inputRef.current.setSelectionRange(1, 1);
 	}, [value]);
@@ -56,7 +56,7 @@ function GlobalFilter({
 		}
 		if (newValue) {
 			dispatch(
-				actions.setFilter({ dataKey: globalFilterKey, comps: [comp] })
+				actions.setFilter({ dataKey: globalFilterKey, comps: [comp] }),
 			);
 		} else {
 			dispatch(actions.clearFilter({ dataKey: globalFilterKey }));

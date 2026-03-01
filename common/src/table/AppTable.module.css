@@ -3,72 +3,81 @@
 	display: flex;
 	flex-direction: column-reverse;
 	align-items: center;
+	width: 100%;
+	height: 100%;
 
 	& * {
 		box-sizing: border-box;
 	}
-}
 
-.table :global .header-anchor {
-	position: relative;
-}
+	& :global .table-body {
+		width: 100%;
+		flex: 1;
+	}
 
-.table :global .header-container {
-	overflow: hidden;
-}
+	& :global .table-header {
+		position: relative;
+		width: 100%;
 
-.table :global .header-row,
-.table :global .data-row {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: nowrap;
-	align-items: stretch;
-	overflow: hidden;
-}
+		& :global .header-container {
+			overflow: hidden;
+			max-width: 100%;
 
-.table :global .header-row {
-	height: 100%;
-	background-color: #efefef;
-}
+			& :global .header-row {
+				height: 100%;
+				background-color: #efefef;
+			}
+		}
+	}
 
-.table :global .header-cell-content {
-	height: 100%;
-	width: calc(100% - 12px);
-}
+	& :global .header-row,
+	& :global .data-row {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: nowrap;
+		align-items: stretch;
+	}
 
-.table :global .data-row {
-	overflow: hidden;
-	box-sizing: border-box;
-}
+	& :global .header-cell-content {
+		height: 100%;
+		width: calc(100% - 12px);
+	}
 
-.table :global .data-row-even {
-	background-color: #fafafa;
-}
+	& :global .data-row {
+		overflow: hidden;
+	}
 
-.table :global .data-row-odd {
-	background-color: #f6f6f6;
-}
+	& :global .data-row-even {
+		background-color: #fafafa;
+	}
 
-.table :global .data-row-selected {
-	background-color: #b9b9f7;
-}
+	& :global .data-row-odd {
+		background-color: #f6f6f6;
+	}
 
-.table :global .data-row-inner {
-	display: flex;
-	position: relative;
-	box-sizing: unset;
-	width: 100%;
-	height: fit-content;
-}
+	& :global .data-row-selected {
+		background-color: #b9b9f7;
+	}
 
-.table :global .data-cell {
-	padding-right: 10px;
-}
+	& :global .data-row-inner {
+		display: flex;
+		position: relative;
+		box-sizing: unset;
+		width: 100%;
+		height: fit-content;
+	}
 
-.table .placeholder {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1em;
-	color: #bdbdbd;
+	& :global .data-cell {
+		padding-right: 10px;
+	}
+
+	& .placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1rem;
+		color: #bdbdbd;
+		height: 300px;
+		max-height: 100%;
+	}
 }

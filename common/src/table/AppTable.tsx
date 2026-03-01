@@ -1,14 +1,25 @@
-import React from "react";
+import {
+	useRef,
+	useCallback,
+	useEffect,
+	useState,
+	useMemo,
+	type ReactNode,
+	type HTMLAttributes,
+	type UIEvent,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { Action, EntityId } from "@reduxjs/toolkit";
-import { VariableSizeGrid as Grid, GridOnScrollProps } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
+import {
+	List,
+	ListImperativeAPI,
+	useListRef,
+	getScrollbarSize,
+} from "react-window";
 
-import AppTableRow, { AppTableRowData } from "./AppTableRow";
-import TableHeader from "./AppTableHeader";
+import { AppTableRow, AppTableRowData } from "./AppTableRow";
+import { TableHeader } from "./AppTableHeader";
 import AppTableHeaderCell from "./HeaderCell";
-
-import { debounce, getScrollbarSize } from "../lib";
 
 import type {
 	GetEntityField,
@@ -24,7 +35,7 @@ import styles from "./AppTable.module.css";
 export type { GetEntityField, AppTableDataSelectors, AppTableDataActions };
 
 export type HeaderCellRendererProps = {
-	label?: React.ReactNode; // Column label
+	label?: ReactNode; // Column label
 	dataKey: string; // Identifies the data element in the row object
 	column: ColumnProperties & ChangeableColumnProperties;
 	anchorEl: HTMLElement | null;
@@ -42,14 +53,14 @@ export type CellRendererProps<T = any> = {
 
 export type ColumnProperties = {
 	key: string;
-	label?: React.ReactNode;
+	label?: ReactNode;
 	width?: number;
 	flexGrow?: number;
 	flexShrink?: number;
 	dropdownWidth?: number;
 	dataRenderer?: (value: any) => any;
-	headerRenderer?: (p: HeaderCellRendererProps) => React.ReactNode;
-	cellRenderer?: (p: CellRendererProps) => React.ReactNode;
+	headerRenderer?: (p: HeaderCellRendererProps) => ReactNode;
+	cellRenderer?: (p: CellRendererProps) => ReactNode;
 };
 
 export type { ChangeableColumnProperties, TablesConfig, TableConfig };
@@ -79,10 +90,7 @@ export type AppTableProps = {
 
 const scrollbarSize = getScrollbarSize();
 
-const Table = ({
-	className,
-	...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+const Table = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
 	<div
 		className={styles["table"] + (className ? " " + className : "")}
 		{...props}
@@ -90,13 +98,12 @@ const Table = ({
 );
 
 const Placeholder = ({
-	className,
+	children,
 	...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
-	<div
-		className={styles["placeholder"] + (className ? " " + className : "")}
-		{...props}
-	/>
+}: HTMLAttributes<HTMLDivElement>) => (
+	<div {...props}>
+		<div className={styles["placeholder"]}>{children}</div>
+	</div>
 );
 
 /*
@@ -106,15 +113,13 @@ const useKeyDown = (
 	selected: EntityId[],
 	ids: EntityId[],
 	setSelected: (ids: EntityId[]) => void,
-	//scrollToItem: ((arg: {rowIndex: number}) => void) | undefined
-	gridRef: React.RefObject<Grid | null>
+	listRef: React.RefObject<ListImperativeAPI>,
 ) =>
-	React.useCallback(
+	useCallback(
 		(event: React.KeyboardEvent) => {
 			const selectAndScroll = (i: number) => {
 				setSelected([ids[i]]);
-				if (gridRef.current)
-					gridRef.current.scrollToItem({ rowIndex: i });
+				if (listRef.current) listRef.current.scrollToRow({ index: i });
 			};
 
 			// Ctrl-A selects all
@@ -150,15 +155,15 @@ const useKeyDown = (
 				selectAndScroll(i);
 			}
 		},
-		[selected, ids, setSelected, gridRef]
+		[selected, ids, setSelected, listRef],
 	);
 
 const useRowClick = (
 	selected: EntityId[],
 	ids: EntityId[],
-	setSelected: (ids: EntityId[]) => void
+	setSelected: (ids: EntityId[]) => void,
 ) =>
-	React.useCallback(
+	useCallback(
 		({
 			event,
 			rowIndex,
@@ -198,7 +203,7 @@ const useRowClick = (
 			}
 			setSelected(newSelected);
 		},
-		[selected, ids, setSelected]
+		[selected, ids, setSelected],
 	);
 
 const useSetDefaultTablesConfig = (
@@ -209,9 +214,9 @@ const useSetDefaultTablesConfig = (
 	setDefaultTablesConfig: (payload: {
 		tableView: string;
 		tablesConfig: TablesConfig;
-	}) => Action
+	}) => Action,
 ) => {
-	const defaultTablesConfig = React.useMemo(() => {
+	const defaultTablesConfig = useMemo(() => {
 		let defaultTablesConfig: TablesConfig;
 		if (!defaultTablesConfigIn) {
 			const config: TableConfig = {
@@ -233,14 +238,14 @@ const useSetDefaultTablesConfig = (
 				}
 				if (typeof config.columns !== "object") {
 					console.warn(
-						`defaultTablesConfig['${view}'] does not include columns object`
+						`defaultTablesConfig['${view}'] does not include columns object`,
 					);
 					config.columns = {};
 				}
 				for (const col of columns) {
 					if (!config.columns.hasOwnProperty(col.key)) {
 						console.warn(
-							`defaultTablesConfig['${view}'] does not include column with key '${col.key}'`
+							`defaultTablesConfig['${view}'] does not include column with key '${col.key}'`,
 						);
 						config.columns[col.key] = {
 							unselectable: true,
@@ -256,12 +261,12 @@ const useSetDefaultTablesConfig = (
 
 	const defaultTableView = Object.keys(defaultTablesConfig)[0];
 
-	React.useEffect(() => {
+	useEffect(() => {
 		dispatch(
 			setDefaultTablesConfig({
 				tableView: defaultTableView,
 				tablesConfig: defaultTablesConfig,
-			})
+			}),
 		);
 	}, [
 		defaultTableView,
@@ -273,70 +278,45 @@ const useSetDefaultTablesConfig = (
 	return defaultTablesConfig[defaultTableView];
 };
 
-type GridSizing = {
-	resetIndex: number;
-	rowHeights: number[];
-};
-
-interface AppTableSizedProps extends AppTableProps {
-	height: number;
-	width: number;
-}
-
-function AppTableSized({
-	width,
-	height,
+export function AppTable({
 	gutterSize = 5,
 	estimatedRowHeight,
 	measureRowHeight = false,
 	selectors,
 	actions,
 	...props
-}: AppTableSizedProps) {
-	const gridRef = React.useRef<Grid>(null);
-	const headerRef = React.useRef<HTMLDivElement>(null);
+}: AppTableProps) {
+	const headerRef = useRef<HTMLDivElement>(null);
+	const bodyRef = useListRef(null);
+
+	const [rowHeights, setRowHeights] = useState<number[]>([]);
+
+	const onRowHeightChange = useCallback(
+		(index: number, height: number) => {
+			setRowHeights((heights) => {
+				if (heights[index] === height) return heights;
+				const newHeights = heights.slice();
+				newHeights[index] = height;
+				return newHeights;
+			});
+		},
+		[setRowHeights],
+	);
+
+	const getRowHeight = useCallback(
+		(index: number) =>
+			(rowHeights[index] || estimatedRowHeight) + gutterSize,
+		[estimatedRowHeight, gutterSize, rowHeights],
+	);
 
 	const dispatch = useDispatch();
-
-	const gridSizing = React.useRef<GridSizing>({
-		resetIndex: 0,
-		rowHeights: [],
-	});
-
-	const onRowUpdate = React.useMemo(
-		() =>
-			debounce(() => {
-				const gs = gridSizing.current;
-				if (gridRef.current)
-					gridRef.current.resetAfterRowIndex(gs.resetIndex, true);
-				gs.resetIndex = gs.rowHeights.length;
-			}, 0),
-		[]
-	);
-
-	const onRowHeightChange = React.useCallback(
-		(rowIndex: number, height: number) => {
-			const gs = gridSizing.current;
-			if (gs.resetIndex > rowIndex) gs.resetIndex = rowIndex;
-			gs.rowHeights[rowIndex] = height;
-			onRowUpdate();
-		},
-		[onRowUpdate]
-	);
-
-	const getRowHeight = React.useCallback(
-		(rowIndex: number) =>
-			(gridSizing.current.rowHeights[rowIndex] || estimatedRowHeight) +
-			gutterSize,
-		[estimatedRowHeight, gutterSize]
-	);
 
 	const defaultTableConfig = useSetDefaultTablesConfig(
 		props.defaultTablesConfig,
 		props.fixed,
 		props.columns,
 		dispatch,
-		actions.setDefaultTablesConfig
+		actions.setDefaultTablesConfig,
 	);
 
 	const { getField } = selectors;
@@ -346,49 +326,41 @@ function AppTableSized({
 	const tableConfig =
 		useSelector(selectors.selectCurrentTableConfig) || defaultTableConfig;
 
-	const adjustColumnWidth = React.useCallback(
+	const adjustColumnWidth = useCallback(
 		(key: string, delta: number) => {
 			dispatch(actions.adjustTableColumnWidth({ key, delta }));
-			if (gridRef.current) gridRef.current.resetAfterColumnIndex(0, true);
 		},
-		[dispatch, actions]
+		[dispatch, actions],
 	);
 
 	// Sync the table header scroll position with that of the table body
-	const onScroll = ({ scrollLeft, scrollTop }: GridOnScrollProps) => {
-		if (headerRef.current) headerRef.current.scrollLeft = scrollLeft;
-	};
+	const onScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
+		if (headerRef.current)
+			headerRef.current.scrollLeft = e.currentTarget.scrollLeft;
+	}, []);
 
-	const setSelected = React.useCallback(
+	const setSelected = useCallback(
 		(ids: EntityId[]) => dispatch(actions.setSelected(ids)),
-		[dispatch, actions]
+		[dispatch, actions],
 	);
-	const onKeyDown = useKeyDown(selected, ids, setSelected, gridRef);
+	const onKeyDown = useKeyDown(selected, ids, setSelected, bodyRef);
 	const onRowClick = useRowClick(selected, ids, setSelected);
 
 	const fixed = tableConfig.fixed;
-	const { columns, totalWidth } = React.useMemo(() => {
+	const { columns, totalWidth } = useMemo(() => {
 		const columns: Array<ColumnProperties & ChangeableColumnProperties> =
 			props.columns
 				.map((col) => ({ ...col, ...tableConfig.columns[col.key] }))
 				.filter((col) => col.shown);
 		const totalWidth = columns.reduce(
 			(totalWidth, col) => (totalWidth = totalWidth + col.width),
-			0
+			0,
 		);
 		return { columns, totalWidth };
 	}, [props.columns, tableConfig.columns]);
 
-	// If width is not given, then size to content
-	if (!width) width = totalWidth + scrollbarSize;
-
-	// If the container size changes, then re-render rows
-	React.useEffect(() => {
-		if (gridRef.current) gridRef.current.resetAfterColumnIndex(0, true);
-	}, [width, height, fixed]);
-
 	// Package the context data
-	const tableData: AppTableRowData = React.useMemo(
+	const tableData: AppTableRowData = useMemo(
 		() => ({
 			gutterSize,
 			entities,
@@ -418,51 +390,30 @@ function AppTableSized({
 			measureRowHeight,
 			onRowHeightChange,
 			onRowClick,
-		]
+		],
 	);
 
 	// Put header after body and reverse the display order via css to prevent header's shadow being covered by body
 	return (
-		<Table
-			role="table"
-			style={{ height, width }}
-			onKeyDown={onKeyDown}
-			tabIndex={0}
-		>
+		<Table role="table" onKeyDown={onKeyDown} tabIndex={0}>
 			{ids.length ? (
-				<Grid
-					ref={gridRef}
-					height={height - props.headerHeight}
-					width={width}
-					columnCount={1}
-					columnWidth={() =>
-						fixed ? totalWidth : width - scrollbarSize
-					}
+				<List<AppTableRowData>
+					listRef={bodyRef}
+					className="table-body"
+					rowComponent={AppTableRow}
+					rowProps={tableData}
 					rowCount={ids.length}
-					estimatedRowHeight={estimatedRowHeight}
 					rowHeight={getRowHeight}
 					onScroll={onScroll}
-					itemData={tableData}
-				>
-					{AppTableRow}
-				</Grid>
+				/>
 			) : (
-				<Placeholder
-					style={{ height: height - props.headerHeight, width }}
-				>
+				<Placeholder className="table-body">
 					{loading ? "Loading..." : "Empty"}
 				</Placeholder>
 			)}
 			<TableHeader
-				ref={headerRef}
-				outerStyle={{
-					width,
-					height: props.headerHeight,
-					paddingRight: scrollbarSize,
-				}}
-				innerStyle={{
-					width: fixed ? totalWidth + scrollbarSize : "100%",
-				}}
+				headerRef={headerRef}
+				scrollbarSize={scrollbarSize}
 				fixed={fixed}
 				columns={columns}
 				selectors={selectors}
@@ -473,19 +424,3 @@ function AppTableSized({
 		</Table>
 	);
 }
-
-/*
- * AppTable
- */
-export function AppTable(props: AppTableProps) {
-	return (
-		<AutoSizer>
-			{({ height, width }) => (
-				<AppTableSized height={height} width={width} {...props} />
-			)}
-		</AutoSizer>
-	);
-}
-
-//export default React.memo(AppTable);
-export default AppTable;

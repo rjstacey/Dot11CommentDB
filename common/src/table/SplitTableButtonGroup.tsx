@@ -1,4 +1,4 @@
-import React from "react";
+import type { ComponentProps } from "react";
 import { Col } from "react-bootstrap";
 import TableViewSelector from "./TableViewSelector";
 import TableColumnSelector from "./TableColumnSelector";
@@ -19,7 +19,7 @@ export function SplitTableButtonGroup({
 	columns: ColumnProperties[];
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
-} & React.ComponentProps<typeof Col>) {
+} & ComponentProps<typeof Col>) {
 	className = className ? className + " " : "";
 	return (
 		<Col

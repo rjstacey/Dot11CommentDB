@@ -1,5 +1,5 @@
-import * as React from "react";
-import * as ReactDOM from "react-dom";
+import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Dropdown, FormCheck, Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -30,23 +30,23 @@ function ControlHeaderCell({
 	const selected = useSelector(selectors.selectSelected);
 	const expanded = useSelector(selectors.selectExpanded);
 	const shownIds = useSelector(selectors.selectSortedFilteredIds);
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 
-	const allSelected = React.useMemo(
+	const allSelected = useMemo(
 		() =>
 			shownIds.length > 0 && // not if list is empty
 			shownIds.filter((id) => !selected.includes(id)).length === 0,
-		[shownIds, selected]
+		[shownIds, selected],
 	);
 
 	const isIndeterminate = !allSelected && selected.length > 0;
 
-	const allExpanded = React.useMemo(
+	const allExpanded = useMemo(
 		() =>
 			expanded &&
 			shownIds.length > 0 && // not if list is empty
 			shownIds.filter((id) => !expanded.includes(id)).length === 0,
-		[shownIds, expanded]
+		[shownIds, expanded],
 	);
 
 	const toggleSelect = () =>
@@ -81,11 +81,11 @@ function ControlHeaderCell({
 							className="m-1 p-1 lh-1"
 						/>
 						{show &&
-							ReactDOM.createPortal(
+							createPortal(
 								<Dropdown.Menu className="p-2">
 									{customSelectorElement}
 								</Dropdown.Menu>,
-								anchorEl
+								anchorEl,
 							)}
 					</Dropdown>
 				)}
@@ -105,7 +105,7 @@ function ControlHeaderCell({
 }
 
 const SelectExpandHeaderCell = (
-	props: Omit<ControlHeaderCellProps, "showExpanded">
+	props: Omit<ControlHeaderCellProps, "showExpanded">,
 ) => <ControlHeaderCell showExpanded {...props} />;
 const SelectHeaderCell = (props: ControlHeaderCellProps) => (
 	<ControlHeaderCell {...props} />

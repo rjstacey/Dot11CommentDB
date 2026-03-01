@@ -1,4 +1,11 @@
-import * as React from "react";
+import {
+	useRef,
+	useEffect,
+	useLayoutEffect,
+	useState,
+	useCallback,
+	type CSSProperties,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
 
@@ -23,7 +30,7 @@ function IdList({
 	onChange,
 	focusOnMount,
 }: {
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	className?: string;
 	ids: EntityId[];
 	isValid: (id: EntityId) => boolean;
@@ -31,11 +38,11 @@ function IdList({
 	onChange: (ids: EntityId[]) => void;
 	focusOnMount?: boolean;
 }) {
-	const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
-	const mirrorRef = React.useRef<HTMLDivElement>(null);
-	const [value, setValue] = React.useState(() => ids.join(", "));
+	const textAreaRef = useRef<HTMLTextAreaElement>(null);
+	const mirrorRef = useRef<HTMLDivElement>(null);
+	const [value, setValue] = useState(() => ids.join(", "));
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const textAreaEl = textAreaRef.current!;
 		const mirrorEl = mirrorRef.current!;
 
@@ -62,7 +69,7 @@ function IdList({
 			mirrorEl.style.setProperty(
 				property,
 				inputStyles.getPropertyValue(property),
-				inputStyles.getPropertyPriority(property)
+				inputStyles.getPropertyPriority(property),
 			);
 		});
 		mirrorEl.style.borderColor = "transparent";
@@ -73,7 +80,7 @@ function IdList({
 		});
 	}, []);
 
-	React.useLayoutEffect(() => {
+	useLayoutEffect(() => {
 		const textAreaEl = textAreaRef.current!;
 		const mirrorEl = mirrorRef.current!;
 
@@ -82,7 +89,7 @@ function IdList({
 		mirrorEl.style.height = `${c.height}px`;
 	}, [value]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (focusOnMount) {
 			const textAreaEl = textAreaRef.current!;
 			textAreaEl.focus();
@@ -90,7 +97,7 @@ function IdList({
 		}
 	}, [focusOnMount]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		// Update value only if not receiving key input
 		if (textAreaRef.current === document.activeElement) return;
 		setValue(ids.join(", "));
@@ -145,7 +152,7 @@ export function IdFilter({
 	...props
 }: {
 	dataKey?: string;
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	className?: string;
 	focusOnMount?: boolean;
 	selectors: AppTableDataSelectors;
@@ -159,21 +166,21 @@ export function IdFilter({
 		ids.length > 0 &&
 		typeof getField(entities[ids[0]], dataKey) === "number";
 
-	const selectFilter = React.useCallback(
+	const selectFilter = useCallback(
 		(state: any) => selectors.selectFilter(state, dataKey),
-		[selectors, dataKey]
+		[selectors, dataKey],
 	);
 	const filter = useSelector(selectFilter);
 	const values = filter.comps.map((v) => v.value);
 
-	const isValid = React.useCallback(
+	const isValid = useCallback(
 		(value: EntityId) =>
 			ids.findIndex((id) => getField(entities[id], dataKey) === value) !==
 			-1,
-		[ids, entities, dataKey, getField]
+		[ids, entities, dataKey, getField],
 	);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(values: EntityId[]) => {
 			const comps: FilterComp[] = values.map((value: EntityId) => ({
 				value,
@@ -181,7 +188,7 @@ export function IdFilter({
 			}));
 			dispatch(actions.setFilter({ dataKey, comps }));
 		},
-		[dispatch, actions, dataKey]
+		[dispatch, actions, dataKey],
 	);
 
 	return (
@@ -204,7 +211,7 @@ export function IdSelector({
 	dataKey?: string;
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	className?: string;
 	focusOnMount?: boolean;
 }) {
@@ -218,28 +225,28 @@ export function IdSelector({
 		ids.length > 0 &&
 		typeof getField(entities[ids[0]], dataKey) === "number";
 
-	const isValid = React.useCallback(
+	const isValid = useCallback(
 		(value: EntityId) =>
 			ids.findIndex((id) => getField(entities[id], dataKey) === value) !==
 			-1,
-		[ids, entities, dataKey, getField]
+		[ids, entities, dataKey, getField],
 	);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(values: EntityId[]) => {
 			const selected = values.reduce(
 				(selected: EntityId[], value: EntityId) => {
 					const i = ids.findIndex(
-						(id) => getField(entities[id]!, dataKey) === value
+						(id) => getField(entities[id]!, dataKey) === value,
 					);
 					if (i !== -1) selected.push(ids[i]);
 					return selected;
 				},
-				[]
+				[],
 			);
 			dispatch(actions.setSelected(selected));
 		},
-		[dispatch, actions, dataKey, ids, entities, getField]
+		[dispatch, actions, dataKey, ids, entities, getField],
 	);
 
 	return (

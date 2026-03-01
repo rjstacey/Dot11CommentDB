@@ -1,8 +1,17 @@
-import * as React from "react";
-import ReactDOM from "react-dom";
+import {
+	useCallback,
+	useRef,
+	useState,
+	useMemo,
+	useEffect,
+	type CSSProperties,
+	type HTMLAttributes,
+	type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { Form, Row, Col, Button, Dropdown } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
-import { FixedSizeList as List } from "react-window";
+import { List, type RowComponentProps } from "react-window";
 
 import { DateFilter } from "./DateFilter";
 
@@ -32,7 +41,7 @@ const Item = ({
 }: {
 	isSelected: boolean;
 	disabled?: boolean;
-} & React.HTMLAttributes<HTMLDivElement>) => (
+} & HTMLAttributes<HTMLDivElement>) => (
 	<div
 		className={
 			"item" +
@@ -48,7 +57,7 @@ function IconSort({
 	type,
 	direction,
 }: {
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	type: FieldTypeValue;
 	direction: SortDirectionValue;
 }) {
@@ -72,13 +81,13 @@ function SortComponent({
 	actions: AppTableDataActions;
 }) {
 	const { direction, type } = useSelector((state) =>
-		selectors.selectSort(state, dataKey)
+		selectors.selectSort(state, dataKey),
 	);
 	const dispatch = useDispatch();
-	const setSort = React.useCallback(
+	const setSort = useCallback(
 		(direction: SortDirectionValue) =>
 			dispatch(actions.setSortDirection({ dataKey, direction })),
-		[dispatch, actions, dataKey]
+		[dispatch, actions, dataKey],
 	);
 
 	return (
@@ -93,7 +102,7 @@ function SortComponent({
 						setSort(
 							direction === SortDirection.ASC
 								? SortDirection.NONE
-								: SortDirection.ASC
+								: SortDirection.ASC,
 						)
 					}
 					active={direction === SortDirection.ASC}
@@ -106,7 +115,7 @@ function SortComponent({
 						setSort(
 							direction === SortDirection.DESC
 								? SortDirection.NONE
-								: SortDirection.DESC
+								: SortDirection.DESC,
 						)
 					}
 					active={direction === SortDirection.DESC}
@@ -131,20 +140,20 @@ function FilterComponent({
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
 	dataRenderer?: (value: any) => string;
-	customFilterElement?: React.ReactNode;
+	customFilterElement?: ReactNode;
 }) {
-	const [search, setSearch] = React.useState("");
-	const inputRef = React.useRef<HTMLInputElement>(null);
+	const [search, setSearch] = useState("");
+	const inputRef = useRef<HTMLInputElement>(null);
 
 	const dispatch = useDispatch();
 
-	const selectSort = React.useCallback(
+	const selectSort = useCallback(
 		(state: any) => selectors.selectSort(state, dataKey),
-		[selectors, dataKey]
+		[selectors, dataKey],
 	);
-	const selectFilter = React.useCallback(
+	const selectFilter = useCallback(
 		(state: any) => selectors.selectFilter(state, dataKey),
-		[selectors, dataKey]
+		[selectors, dataKey],
 	);
 	const sort = useSelector(selectSort);
 	const filter = useSelector(selectFilter);
@@ -153,12 +162,12 @@ function FilterComponent({
 	const ids = useSelector(selectors.selectIds);
 	const getField = selectors.getField;
 
-	const values = React.useMemo(
+	const values = useMemo(
 		() => [...new Set(ids.map((id) => getField(entities[id]!, dataKey)))],
-		[dataKey, ids, entities, getField]
+		[dataKey, ids, entities, getField],
 	);
 
-	const options: Option[] = React.useMemo(() => {
+	const options: Option[] = useMemo(() => {
 		if (!filter) return [];
 
 		if (filter.options) return filter.options;
@@ -169,7 +178,7 @@ function FilterComponent({
 		}));
 	}, [values, dataRenderer, filter]);
 
-	const filterSelected = React.useCallback(() => {
+	const filterSelected = useCallback(() => {
 		const comps: FilterComp[] = selected
 			.filter((id) => entities[id])
 			.map((id) => ({
@@ -179,7 +188,7 @@ function FilterComponent({
 		dispatch(actions.setFilter({ dataKey, comps }));
 	}, [dispatch, actions, dataKey, selected, entities, getField]);
 
-	const isFilterSelected = React.useMemo(() => {
+	const isFilterSelected = useMemo(() => {
 		if (!filter) return false;
 		const list = selected
 			.filter((id) => entities[id])
@@ -187,7 +196,7 @@ function FilterComponent({
 		return filter.comps.map((comp) => comp.value).join() === list.join();
 	}, [filter, dataKey, selected, entities, getField]);
 
-	const items = React.useMemo(() => {
+	const items = useMemo(() => {
 		let searchItems: FilterItem[] = [];
 		if (filter) {
 			searchItems = filter.comps
@@ -195,7 +204,7 @@ function FilterComponent({
 					(comp) =>
 						comp.operation !== CompOp.EQ &&
 						comp.operation !== CompOp.BLANK &&
-						comp.operation !== CompOp.NOTBLANK
+						comp.operation !== CompOp.NOTBLANK,
 				)
 				.map((comp) => {
 					let label = "Contains: ";
@@ -304,24 +313,24 @@ function FilterComponent({
 		return searchItems.concat(exactItems);
 	}, [options, search, filter, sort]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (search === "//" && inputRef.current)
 			inputRef.current.setSelectionRange(1, 1);
 	}, [search]);
 
-	const isItemSelected = React.useCallback(
+	const isItemSelected = useCallback(
 		(item: FilterItem) =>
 			Boolean(
 				filter?.comps.find(
 					(comp) =>
 						comp.value === item.value &&
-						comp.operation === item.operation
-				)
+						comp.operation === item.operation,
+				),
 			),
-		[filter]
+		[filter],
 	);
 
-	const toggleItemSelected = React.useCallback(
+	const toggleItemSelected = useCallback(
 		(item: FilterItem) => {
 			setSearch("");
 			if (isItemSelected(item))
@@ -330,7 +339,7 @@ function FilterComponent({
 						dataKey,
 						value: item.value,
 						operation: item.operation,
-					})
+					}),
 				);
 			else
 				dispatch(
@@ -338,13 +347,13 @@ function FilterComponent({
 						dataKey,
 						value: item.value,
 						operation: item.operation,
-					})
+					}),
 				);
 		},
-		[setSearch, isItemSelected, dispatch, actions, dataKey]
+		[setSearch, isItemSelected, dispatch, actions, dataKey],
 	);
 
-	const onInputKey = React.useCallback(
+	const onInputKey = useCallback(
 		(e: React.KeyboardEvent<HTMLInputElement>) => {
 			const target = e.target as HTMLInputElement;
 			if (e.key === "Enter" && target.value) toggleItemSelected(items[0]);
@@ -355,11 +364,38 @@ function FilterComponent({
 				setSearch("//");
 			}
 		},
-		[setSearch, toggleItemSelected, items]
+		[setSearch, toggleItemSelected, items],
 	);
 
 	const itemHeight = 35;
 	const listHeight = Math.min(items.length * itemHeight, 200);
+
+	const RowComponent = useCallback(
+		({
+			index,
+			style,
+			items,
+		}: RowComponentProps<{ items: FilterItem[] }>) => {
+			const item = items[index];
+			const isSelected = isItemSelected(item);
+			return (
+				<Item
+					key={item.value}
+					style={style}
+					isSelected={isSelected}
+					onClick={() => toggleItemSelected(item)}
+				>
+					<Form.Check
+						id={"select-item-" + index}
+						checked={isSelected}
+						readOnly
+						label={item.label}
+					/>
+				</Item>
+			);
+		},
+		[isItemSelected, toggleItemSelected],
+	);
 
 	return (
 		<>
@@ -411,39 +447,17 @@ function FilterComponent({
 
 			<List
 				className="filter-list"
-				height={listHeight}
-				itemCount={items.length}
-				itemSize={itemHeight}
-				width="auto"
-			>
-				{({ index, style }) => {
-					const item = items[index];
-					const isSelected = isItemSelected(item);
-					return (
-						<Item
-							key={item.value}
-							style={style}
-							isSelected={isSelected}
-							onClick={() => toggleItemSelected(item)}
-						>
-							<Form.Check
-								id={"select-item-" + index}
-								checked={isSelected}
-								readOnly
-								label={item.label}
-							/>
-						</Item>
-					);
-				}}
-			</List>
+				style={{ height: listHeight }}
+				rowComponent={RowComponent}
+				rowProps={{ items }}
+				rowCount={items.length}
+				rowHeight={itemHeight}
+			/>
 		</>
 	);
 }
 
-const Header = ({
-	className,
-	...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+const Header = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
 	<div
 		className={styles["header"] + (className ? " " + className : "")}
 		{...props}
@@ -452,8 +466,8 @@ const Header = ({
 
 type AppTableHeaderCellProps = HeaderCellRendererProps & {
 	className?: string;
-	style?: React.CSSProperties;
-	customFilterElement?: React.ReactNode;
+	style?: CSSProperties;
+	customFilterElement?: ReactNode;
 };
 
 function AppTableHeaderCell({
@@ -467,14 +481,14 @@ function AppTableHeaderCell({
 	actions,
 	customFilterElement, // Custom filter element for dropdown
 }: AppTableHeaderCellProps) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	const sorts = useSelector(selectors.selectSorts);
 	const sort = sorts.settings[dataKey];
 	const isSorted = sorts.by.includes(dataKey);
 
-	const selectFilter = React.useCallback(
+	const selectFilter = useCallback(
 		(state: any) => selectors.selectFilter(state, dataKey),
-		[selectors, dataKey]
+		[selectors, dataKey],
 	);
 	const filter = useSelector(selectFilter);
 	const isFiltered = filter && filter.comps.length > 0;
@@ -543,7 +557,7 @@ function AppTableHeaderCell({
 			onToggle={setShow}
 		>
 			{dropdownToggle}
-			{show && ReactDOM.createPortal(dropdownMenu, anchorEl)}
+			{show && createPortal(dropdownMenu, anchorEl)}
 		</Dropdown>
 	);
 }

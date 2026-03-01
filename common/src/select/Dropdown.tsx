@@ -1,30 +1,32 @@
-import * as React from "react";
-import { VariableSizeList as List } from "react-window";
+import { useRef, useState, useEffect, useCallback } from "react";
+import { List, useListRef, type RowComponentProps } from "react-window";
 import type { SelectRendererProps, ItemType } from ".";
 
 /* ItemWrapper measures and sets the height of the item */
 function ItemWrapper<T extends ItemType>({
-	style,
-	item,
 	index,
-	setHeight,
+	style,
+	options,
+	setRowHeight,
 	props,
 	state,
 	methods,
-}: {
-	style: React.CSSProperties;
-	item: any;
-	index: number;
-	setHeight: (height: number) => void;
-} & SelectRendererProps<T>) {
-	const ref = React.useRef<HTMLDivElement>(null);
-	React.useEffect(() => {
+}: RowComponentProps<
+	{
+		options: T[];
+		setRowHeight: (index: number, height: number) => void;
+	} & SelectRendererProps<T>
+>) {
+	const ref = useRef<HTMLDivElement>(null);
+	useEffect(() => {
 		if (ref.current) {
 			const bounds = ref.current.getBoundingClientRect();
-			if (style.height !== bounds.height) setHeight(bounds.height);
+			if (style.height !== bounds.height)
+				setRowHeight(index, bounds.height);
 		}
-	});
+	}, []);
 
+	const item = options[index];
 	const isSelected = methods.isSelected(item);
 	const isDisabled = methods.isDisabled(item);
 	const isActive = state.cursor === index;
@@ -57,13 +59,13 @@ function ItemWrapper<T extends ItemType>({
 							props,
 							state,
 							methods,
-					  })
+						})
 					: props.itemRenderer({
 							item,
 							props,
 							state,
 							methods,
-					  })}
+						})}
 			</div>
 		</div>
 	);
@@ -74,93 +76,61 @@ function Dropdown<T extends ItemType>({
 	state,
 	methods,
 }: SelectRendererProps<T>) {
-	const listRef = React.useRef<List>(null);
-	const listInnerRef = React.useRef<HTMLDivElement>(null);
-	const heightsRef = React.useRef<number[]>([]);
+	const listRef = useListRef(null);
+	const [heights, setHeights] = useState<number[]>([]);
 
-	const setItemHeight = (index: number, height: number) => {
-		const heights = heightsRef.current;
-		heights[index] = height;
-		listRef.current?.resetAfterIndex(index, true);
-	};
+	const setRowHeight = useCallback(
+		(index: number, height: number) =>
+			setHeights((heights) => {
+				if (heights[index] !== height) {
+					const newHeights = heights.slice();
+					newHeights[index] = height;
+					return newHeights;
+				}
+				return heights;
+			}),
+		[setHeights],
+	);
 
-	const getItemHeight = (index: number) =>
-		heightsRef.current[index] || props.estimatedItemHeight;
+	const getRowHeight = useCallback(
+		(index: number) => heights[index] || props.estimatedItemHeight,
+		[props.estimatedItemHeight, heights],
+	);
 
 	const options = methods.searchResults();
 
-	React.useEffect(() => {
-		if (state.cursor) {
-			listRef.current?.scrollToItem(state.cursor);
+	useEffect(() => {
+		if (state.cursor !== null) {
+			listRef.current?.scrollToRow({ index: state.cursor });
 		}
 	}, [state.cursor]);
 
-	const [maxHeight, setMaxHeight] = React.useState(props.dropdownHeight);
-
-	React.useLayoutEffect(() => {
-		if (!listInnerRef.current) return;
-		const bounds = listInnerRef.current.getBoundingClientRect();
-		const height =
-			bounds.height < props.dropdownHeight
-				? bounds.height
-				: props.dropdownHeight;
-		if (height !== maxHeight) {
-			setMaxHeight(height);
-		}
-	}, [props.dropdownHeight, maxHeight, options]);
-
-	const itemKey = (index: number) => {
-		if (props.create && state.search && index === 0) return "{new-item}";
-		return (
-			"" +
-			options[index][props.valueField] +
-			options[index][props.labelField]
-		);
-	};
-
-	// To prevent input element losing focus, block mousedown event
-	const innerEl = (props: React.HTMLAttributes<HTMLDivElement>) => (
-		<div
-			ref={listInnerRef}
-			onMouseDown={(e) => e.preventDefault()}
-			{...props}
-		/>
-	);
-
-	const list =
-		options.length === 0 ? (
-			props.noDataRenderer({ props, state, methods })
-		) : (
-			<List
-				ref={listRef}
-				height={maxHeight}
-				width="auto"
-				itemCount={options.length}
-				itemSize={getItemHeight}
-				estimatedItemSize={props.estimatedItemHeight}
-				itemKey={itemKey}
-				innerElementType={innerEl}
-			>
-				{({ index, style }) => (
-					<ItemWrapper
-						index={index}
-						style={style}
-						item={options[index]}
-						setHeight={(height: number) =>
-							setItemHeight(index, height)
-						}
-						props={props}
-						methods={methods}
-						state={state}
-					/>
-				)}
-			</List>
-		);
+	const style = props.dropdownHeight
+		? { maxHeight: props.dropdownHeight }
+		: undefined;
 
 	return (
 		<>
 			{props.extraRenderer({ props, state, methods })}
-			{list}
+			{options.length === 0 ? (
+				props.noDataRenderer({ props, state, methods })
+			) : (
+				<List
+					listRef={listRef}
+					rowComponent={ItemWrapper}
+					rowProps={{
+						options,
+						setRowHeight,
+						props,
+						state,
+						methods,
+					}}
+					rowCount={options.length}
+					rowHeight={getRowHeight}
+					onMouseDown={(e) => e.preventDefault()} // prevent input element losing focus
+					style={style}
+				/>
+			)}
 		</>
 	);
 }

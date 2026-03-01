@@ -6,12 +6,13 @@ import type {
 	AppTableDataActions,
 } from "../store/appTableData";
 
-type TableViewSelectorProps = {
+function TableViewSelector({
+	selectors,
+	actions,
+}: {
 	selectors: AppTableDataSelectors<any>;
 	actions: AppTableDataActions;
-};
-
-function TableViewSelector({ selectors, actions }: TableViewSelectorProps) {
+}) {
 	const dispatch = useDispatch();
 
 	const currentView = useSelector(selectors.selectCurrentView);

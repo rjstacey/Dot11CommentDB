@@ -1,6 +1,14 @@
-import * as React from "react";
-import { FormSelect } from "react-bootstrap";
-import ReactDOM from "react-dom";
+import { Component, createRef } from "react";
+import type {
+	CSSProperties,
+	FocusEventHandler,
+	KeyboardEventHandler,
+	MouseEventHandler,
+	RefObject,
+	ComponentProps,
+	ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 
 import Dropdown from "./Dropdown";
 import MultiSelectItem from "./MultiSelectItem";
@@ -11,19 +19,19 @@ import debounce from "lodash.debounce";
 
 import styles from "./select.module.css";
 
-const Content = (props: React.ComponentProps<"button">) => (
+const Content = (props: ComponentProps<"button">) => (
 	<button className="content" type="button" {...props} />
 );
-const Loading = (props: React.ComponentProps<"div">) => (
+const Loading = (props: ComponentProps<"div">) => (
 	<div className="loading" {...props} />
 );
-const Clear = (props: React.ComponentProps<"div">) => (
+const Clear = (props: ComponentProps<"div">) => (
 	<div className="clear" {...props} />
 );
-const Separator = (props: React.ComponentProps<"div">) => (
+const Separator = (props: ComponentProps<"div">) => (
 	<div className="separator" {...props} />
 );
-const Placeholder = (props: React.ComponentProps<"div">) => (
+const Placeholder = (props: ComponentProps<"div">) => (
 	<div className={styles.placeholder} {...props} />
 );
 const NoData = ({ label }: { label: string }) => (
@@ -34,7 +42,7 @@ function defaultContentRenderer({
 	props,
 	state,
 	methods,
-}: SelectRendererProps<ItemType>): React.ReactNode {
+}: SelectRendererProps<ItemType>): ReactNode {
 	const values = props.values;
 	if (props.multi) {
 		return values.map((item) =>
@@ -43,7 +51,7 @@ function defaultContentRenderer({
 				props,
 				state,
 				methods,
-			})
+			}),
 		);
 	} else if (values.length > 0) {
 		return props.selectItemRenderer({
@@ -61,7 +69,7 @@ const defaultAddItemRenderer = ({
 	props,
 }: {
 	item: ItemType;
-} & SelectRendererProps<ItemType>): React.ReactNode => (
+} & SelectRendererProps<ItemType>): ReactNode => (
 	<span>{`Add "${item[props.labelField]}"`}</span>
 );
 
@@ -70,7 +78,7 @@ const defaultItemRenderer = ({
 	props,
 }: {
 	item: ItemType;
-} & SelectRendererProps<ItemType>): React.ReactNode => (
+} & SelectRendererProps<ItemType>): ReactNode => (
 	<span>{item[props.labelField]}</span>
 );
 
@@ -172,7 +180,7 @@ type SelectDefaultProps<T> = {
 	/* Content children */
 	selectItemRenderer: (props: SelectItemRendererProps<T>) => React.ReactNode;
 	multiSelectItemRenderer: (
-		props: SelectItemRendererProps<T>
+		props: SelectItemRendererProps<T>,
 	) => React.ReactNode;
 	inputRenderer: (props: SelectInputRendererProps<T>) => React.ReactNode;
 
@@ -209,7 +217,7 @@ export type SelectMethods<T> = {
 	searchResults: () => T[];
 };
 
-class SelectInternal<T extends ItemType> extends React.Component<
+class SelectInternal<T extends ItemType> extends Component<
 	SelectInternalProps<T>,
 	SelectState<T>
 > {
@@ -239,9 +247,9 @@ class SelectInternal<T extends ItemType> extends React.Component<
 			searchResults: this.searchResults,
 		};
 
-		this.selectRef = React.createRef();
-		this.inputRef = React.createRef();
-		this.dropdownRef = React.createRef();
+		this.selectRef = createRef();
+		this.inputRef = createRef();
+		this.dropdownRef = createRef();
 
 		this.debouncedUpdateSelectBounds = debounce(this.updateSelectBounds);
 		this.debouncedOnScroll = debounce(this.onScroll);
@@ -249,9 +257,9 @@ class SelectInternal<T extends ItemType> extends React.Component<
 
 	state: SelectState<T>;
 	private methods: SelectMethods<T>;
-	private selectRef: React.RefObject<HTMLDivElement>;
-	private inputRef: React.RefObject<HTMLInputElement>;
-	private dropdownRef: React.RefObject<HTMLDivElement>;
+	private selectRef: RefObject<HTMLDivElement>;
+	private inputRef: RefObject<HTMLInputElement>;
+	private dropdownRef: RefObject<HTMLDivElement>;
 
 	private debouncedUpdateSelectBounds: () => void;
 	private debouncedOnScroll: () => void;
@@ -262,7 +270,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 
 	componentDidUpdate(
 		prevProps: SelectInternalProps<T>,
-		prevState: SelectState<T>
+		prevState: SelectState<T>,
 	) {
 		const { props, state } = this;
 
@@ -343,7 +351,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 			// Position cursor on selected value
 			const item = props.values[0];
 			cursor = state.searchResults.findIndex((o) =>
-				props.valuesEqual(item, o)
+				props.valuesEqual(item, o),
 			);
 			if (cursor < 0) cursor = null;
 		}
@@ -384,7 +392,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 
 		if (props.clearOnSelect) {
 			this.setState({ search: "" }, () =>
-				this.setState({ searchResults: this.searchResults() })
+				this.setState({ searchResults: this.searchResults() }),
 			);
 		}
 	};
@@ -398,12 +406,12 @@ class SelectInternal<T extends ItemType> extends React.Component<
 	removeItem = (item: T) => {
 		const { props } = this;
 		const newValues = props.values.filter(
-			(valueItem) => !props.valuesEqual(valueItem, item)
+			(valueItem) => !props.valuesEqual(valueItem, item),
 		);
 		props.onChange(newValues);
 	};
 
-	clearAll: React.MouseEventHandler = (e) => {
+	clearAll: MouseEventHandler = (e) => {
 		e.stopPropagation();
 		this.props.onChange([]);
 	};
@@ -414,7 +422,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 			this.setState({
 				cursor: 0,
 				searchResults: this.searchResults(),
-			})
+			}),
 		);
 	};
 
@@ -428,7 +436,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 	isSelected = (item: ItemType) => {
 		const { props } = this;
 		return !!props.values.find((selectedItem) =>
-			props.valuesEqual(selectedItem, item)
+			props.valuesEqual(selectedItem, item),
 		);
 	};
 
@@ -457,9 +465,9 @@ class SelectInternal<T extends ItemType> extends React.Component<
 				? searchBy.reduce(
 						(result, searchBy) =>
 							result || regexp.test(item[searchBy]),
-						false
-				  )
-				: regexp.test(item[searchBy])
+						false,
+					)
+				: regexp.test(item[searchBy]),
 		);
 	};
 
@@ -495,7 +503,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 		props.onClick?.(event);
 	};
 
-	onFocus: React.FocusEventHandler = (event) => {
+	onFocus: FocusEventHandler = (event) => {
 		if (
 			this.inputRef.current &&
 			document.activeElement !== this.inputRef.current
@@ -505,14 +513,14 @@ class SelectInternal<T extends ItemType> extends React.Component<
 		this.props.onFocus?.(event);
 	};
 
-	onBlur: React.FocusEventHandler = (event) => {
+	onBlur: FocusEventHandler = (event) => {
 		if (this.props.closeOnBlur) {
 			this.close();
 		}
 		this.props.onBlur?.(event);
 	};
 
-	onKeyDown: React.KeyboardEventHandler = (event) => {
+	onKeyDown: KeyboardEventHandler = (event) => {
 		const { props, state } = this;
 
 		const escape = event.key === "Escape";
@@ -583,7 +591,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 	renderDropdown = () => {
 		const { props, state, methods } = this;
 		const selectBounds = state.selectBounds!;
-		const style: Partial<React.CSSProperties> = {
+		const style: Partial<CSSProperties> = {
 			width: props.dropdownWidth || selectBounds.width,
 		};
 
@@ -625,7 +633,7 @@ class SelectInternal<T extends ItemType> extends React.Component<
 			if (position === "bottom") style.top = selectBounds.bottom + gap;
 			else style.bottom = window.innerHeight - selectBounds.top + gap;
 
-			return ReactDOM.createPortal(dropdownEl, props.portal);
+			return createPortal(dropdownEl, props.portal);
 		} else {
 			style.position = "absolute";
 			if (align === "left") style.left = -1;

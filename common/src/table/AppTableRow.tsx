@@ -1,13 +1,18 @@
-import * as React from "react";
+import {
+	CSSProperties,
+	useEffect,
+	useMemo,
+	useRef,
+	type MouseEvent,
+} from "react";
 import type { EntityId } from "@reduxjs/toolkit";
-import { areEqual } from "react-window";
 
 import type { GetEntityField, ColumnProperties, RowGetter } from "./AppTable";
 
 /**
  * TableRow component for AppTable
  */
-function PureTableRow({
+function TableRow({
 	style,
 	gutterSize,
 	rowIndex,
@@ -40,11 +45,11 @@ function PureTableRow({
 	getField: GetEntityField;
 	estimatedRowHeight: number;
 	onRowHeightChange: (rowIndex: number, height: number) => void;
-	onClick?: (event: React.MouseEvent) => void;
+	onClick?: (event: MouseEvent) => void;
 }) {
-	const rowRef = React.useRef<HTMLDivElement>(null);
+	const rowRef = useRef<HTMLDivElement>(null);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const height = isExpanded
 			? rowRef.current!.getBoundingClientRect().height
 			: estimatedRowHeight;
@@ -107,6 +112,8 @@ function PureTableRow({
 			height: style.height - gutterSize,
 		}; // Adjust style for gutter
 
+	if (fixed && "width" in style) delete style.width; // Remove width for fixed rows to allow them to stretch
+
 	return (
 		<div style={style} className={classNames.join(" ")} onClick={onClick}>
 			<div ref={rowRef} className="data-row-inner">
@@ -115,9 +122,6 @@ function PureTableRow({
 		</div>
 	);
 }
-
-// Memoize so that a row is only re-rendered if the row specific data changes
-const TableRow = React.memo(PureTableRow, areEqual);
 
 export type AppTableRowData = {
 	gutterSize: number;
@@ -131,42 +135,32 @@ export type AppTableRowData = {
 	getField: GetEntityField;
 	estimatedRowHeight: number;
 	measureRowHeight: boolean;
-	onRowHeightChange: (rowIndex: number, height: number) => void;
+	onRowHeightChange: (index: number, height: number) => void;
 	onRowClick: ({
 		event,
 		rowIndex,
 	}: {
-		event: React.MouseEvent;
+		event: MouseEvent;
 		rowIndex: number;
 	}) => void;
 };
 
-function AppTableRow({
-	rowIndex,
+export function AppTableRow({
+	index: rowIndex,
 	style,
-	data,
+	entities,
+	ids,
+	selected,
+	expanded,
+	measureRowHeight,
+	getRowData,
+	onRowClick,
+	...otherProps
 }: {
-	rowIndex: number;
-	style: {
-		top?: number | string;
-		width?: number | string;
-		height?: number | string;
-	};
-	data: AppTableRowData;
-}) {
-	// Extract context from data prop and isolate the row specific data
-	const {
-		entities,
-		ids,
-		selected,
-		expanded,
-		measureRowHeight,
-		getRowData,
-		onRowClick,
-		...otherProps
-	} = data;
-
-	const { rowId, rowData, prevRowId } = React.useMemo(() => {
+	index: number;
+	style: CSSProperties;
+} & AppTableRowData) {
+	const { rowId, rowData, prevRowId } = useMemo(() => {
 		const rowId = ids[rowIndex];
 		const prevRowId = rowIndex > 0 ? ids[rowIndex - 1] : undefined;
 		const rowData = getRowData
@@ -179,10 +173,10 @@ function AppTableRow({
 	const isExpanded =
 		measureRowHeight || (expanded && expanded.includes(rowId));
 
-	const onClick = React.useMemo(
+	const onClick = useMemo(
 		() =>
 			onRowClick
-				? (event: React.MouseEvent) => onRowClick({ event, rowIndex })
+				? (event: MouseEvent) => onRowClick({ event, rowIndex })
 				: undefined,
 		[onRowClick, rowIndex],
 	);
@@ -202,5 +196,3 @@ function AppTableRow({
 		/>
 	);
 }
-
-export default AppTableRow;

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo, type CSSProperties, type MouseEventHandler } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -18,7 +18,7 @@ const ActiveFilter = ({
 	remove,
 	children,
 }: {
-	remove: React.MouseEventHandler;
+	remove: MouseEventHandler;
 	children?: React.ReactNode;
 }) => (
 	<div className={styles["filter-container"]} role="listitem">
@@ -72,7 +72,7 @@ function renderActiveFilters({
 			elements.push(
 				<span key={dataKey} className={styles["filter-label"]}>
 					{label + ":"}
-				</span>
+				</span>,
 			);
 			comps.forEach((comp, i) => {
 				const o = options?.find((o) => o.value === comp.value);
@@ -87,7 +87,7 @@ function renderActiveFilters({
 						}
 					>
 						{label}
-					</ActiveFilter>
+					</ActiveFilter>,
 				);
 			});
 		}
@@ -96,10 +96,10 @@ function renderActiveFilters({
 		elements.push(
 			<span key="clear_all_label" className={styles["filter-label"]}>
 				Clear All:
-			</span>
+			</span>,
 		);
 		elements.push(
-			<ActiveFilter key="clear_all" remove={clearAllFilters} />
+			<ActiveFilter key="clear_all" remove={clearAllFilters} />,
 		);
 	}
 	return elements;
@@ -113,7 +113,7 @@ function ShowFilters({
 	actions,
 }: {
 	className?: string;
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	fields: Fields;
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
@@ -124,11 +124,11 @@ function ShowFilters({
 	const shownRows = useSelector(selectors.selectSortedFilteredIds).length;
 	const filters = useSelector(selectors.selectFilters);
 
-	const activeFilterElements = React.useMemo(() => {
+	const activeFilterElements = useMemo(() => {
 		const removeFilter = (
 			dataKey: string,
 			value: any,
-			operation: CompOpValue
+			operation: CompOpValue,
 		) => dispatch(actions.removeFilter({ dataKey, value, operation }));
 		const clearAllFilters = () => dispatch(actions.clearAllFilters());
 
