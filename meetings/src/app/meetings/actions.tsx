@@ -43,7 +43,7 @@ function MeetingsActions() {
 
 			{sessionNumber !== null && (
 				<Col
-					xs="auto"
+					//xs="auto"
 					className="d-flex justify-content-end align-items-center gap-2"
 				>
 					{showDays === 0 && (

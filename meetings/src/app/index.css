@@ -13,7 +13,7 @@ div#root {
 }
 
 .details-panel {
-	overflow: auto;
+	overflow: auto !important;
 	display: flex;
 	flex-direction: column;
 }
@@ -71,6 +71,7 @@ div#root {
 	flex: 1; /* remaining height */
 	width: 100%;
 	align-items: center;
+	overflow: hidden;
 }
 
 .table-container.centered-rows .AppTable__dataRow,

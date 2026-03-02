@@ -1,3 +1,4 @@
+import { Row } from "react-bootstrap";
 import {
 	AppTable,
 	SplitPanel,
@@ -54,26 +55,28 @@ export function MeetingsMain() {
 	const showDays: number = useAppSelector(selectUiProperties).showDays | 0;
 
 	return (
-		<SplitPanel selectors={meetingsSelectors} actions={meetingsActions}>
-			{showDays > 0 ? (
-				<Panel style={{ display: "flex", flexDirection: "column" }}>
-					<ShowSlots />
-					<MeetingsCalendar nDays={showDays} />
-				</Panel>
-			) : (
-				<Panel
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						margin: "10px 0 10px 10px",
-					}}
-				>
-					<ShowFilters
-						selectors={meetingsSelectors}
-						actions={meetingsActions}
-						fields={fields}
-					/>
-					<div style={{ display: "flex", flex: 1 }}>
+		<>
+			<Row className="w-100">
+				<ShowFilters
+					selectors={meetingsSelectors}
+					actions={meetingsActions}
+					fields={fields}
+				/>
+			</Row>
+			<SplitPanel selectors={meetingsSelectors} actions={meetingsActions}>
+				{showDays > 0 ? (
+					<Panel style={{ display: "flex", flexDirection: "column" }}>
+						<ShowSlots />
+						<MeetingsCalendar nDays={showDays} />
+					</Panel>
+				) : (
+					<Panel
+						style={{
+							display: "flex",
+							flexDirection: "column",
+							margin: "10px 0 10px 10px",
+						}}
+					>
 						<AppTable
 							defaultTablesConfig={defaultTablesConfig}
 							columns={tableColumns}
@@ -84,12 +87,12 @@ export function MeetingsMain() {
 							actions={meetingsActions}
 							rowGetter={rowGetter}
 						/>
-					</div>
+					</Panel>
+				)}
+				<Panel className="details-panel">
+					<MeetingsDetails />
 				</Panel>
-			)}
-			<Panel className="details-panel">
-				<MeetingsDetails />
-			</Panel>
-		</SplitPanel>
+			</SplitPanel>
+		</>
 	);
 }

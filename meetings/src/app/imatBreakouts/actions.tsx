@@ -31,6 +31,7 @@ function ImatBreakoutsActions() {
 
 			{imatBreakoutMeetingId ? (
 				<SplitTableButtonGroup
+					className="d-flex justify-content-end"
 					selectors={imatBreakoutsSelectors}
 					actions={imatBreakoutsActions}
 					columns={tableColumns}
