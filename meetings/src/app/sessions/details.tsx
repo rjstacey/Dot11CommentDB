@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ReactNode } from "react";
 import { Button } from "react-bootstrap";
 
 import { selectUserSessionsAccess, AccessLevel } from "@/store/sessions";
@@ -26,7 +26,7 @@ export function SessionsDetails() {
 		disableDelete,
 	} = useSessionsEdit(readOnly);
 
-	let actions: React.ReactNode = null;
+	let actions: ReactNode = null;
 	if (!readOnly) {
 		actions = (
 			<>

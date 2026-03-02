@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useState, useEffect } from "react";
 import isEqual from "lodash.isequal";
 import {
 	deepMergeTagMultiple,
@@ -102,7 +102,7 @@ function useMeetingsEditState() {
 	const groupId = useAppSelector(selectTopLevelGroupId)!;
 	const groupEntities = useAppSelector(selectGroupEntities);
 
-	const initState = React.useCallback(() => {
+	const initState = useCallback(() => {
 		const meetings = selectedMeetings
 			.map((id) => entities[id])
 			.filter(Boolean);
@@ -218,14 +218,11 @@ function useMeetingsEditState() {
 		groupEntities,
 	]);
 
-	const [state, setState] = React.useState<MeetingsEditState>(initState);
+	const [state, setState] = useState<MeetingsEditState>(initState);
 
-	const resetState = React.useCallback(
-		() => setState(initState),
-		[initState],
-	);
+	const resetState = useCallback(() => setState(initState), [initState]);
 
-	const setAddState = React.useCallback(() => {
+	const setAddState = useCallback(() => {
 		let edited: MeetingEntryMultiple;
 		if (state.action === "update") {
 			const entry = state.edited;
@@ -278,7 +275,7 @@ function useMeetingsEditState() {
 		groupId,
 	]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (state.action === "add-by-date" || state.action === "add-by-slot") {
 			if (selectedMeetings.length > 0) {
 				ConfirmModal.show(
@@ -315,7 +312,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 
 	const [state, setState, resetState, setAddState] = useMeetingsEditState();
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() =>
 			state.action === "add-by-date" ||
 			state.action === "add-by-slot" ||
@@ -323,7 +320,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 		[state],
 	);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: MeetingEntryPartial) => {
 			setState((state) => {
 				if (readOnly) {
@@ -356,7 +353,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 		[readOnly, setState],
 	);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (state.action === "add-by-date" || state.action === "add-by-slot") {
 			const { action, session } = state;
 			let entry = state.edited;
@@ -458,7 +455,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 		}
 	}, []);
 
-	const onAdd = React.useCallback(async () => {
+	const onAdd = useCallback(async () => {
 		if (readOnly) {
 			console.warn("onAdd: state is readOnly");
 			return;
@@ -473,7 +470,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 		dispatch(setSelectedMeetings([]));
 	}, [readOnly, dispatch, setAddState]);
 
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		if (readOnly) {
 			console.warn("onDelete: state is readOnly");
 			return;
@@ -492,7 +489,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 		await dispatch(deleteMeetings(ids));
 	}, [readOnly, dispatch, state]);
 
-	const onSync = React.useCallback(async () => {
+	const onSync = useCallback(async () => {
 		if (readOnly) {
 			console.warn("onSync: state is readOnly");
 			return;

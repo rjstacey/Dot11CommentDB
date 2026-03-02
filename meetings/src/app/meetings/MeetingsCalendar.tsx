@@ -1,4 +1,9 @@
-import * as React from "react";
+import {
+	useMemo,
+	useState,
+	type CSSProperties,
+	type ComponentProps,
+} from "react";
 import { DateTime } from "luxon";
 import { Button, FormCheck } from "react-bootstrap";
 
@@ -24,7 +29,7 @@ import { selectGroupEntities } from "@/store/groups";
 
 import styles from "./meetings.module.css";
 
-function SelectAllMeetings({ style }: { style?: React.CSSProperties }) {
+function SelectAllMeetings({ style }: { style?: CSSProperties }) {
 	const dispatch = useAppDispatch();
 
 	const selectedMeetings = useAppSelector(selectSelectedMeetings);
@@ -34,11 +39,11 @@ function SelectAllMeetings({ style }: { style?: React.CSSProperties }) {
 	const isDisabled =
 		selectedMeetings.length === 0 && selectedSlots.length > 0;
 
-	const allSelected = React.useMemo(
+	const allSelected = useMemo(
 		() =>
 			ids.length > 0 && // not if list is empty
 			ids.every((id) => selectedMeetings.includes(id)),
-		[ids, selectedMeetings]
+		[ids, selectedMeetings],
 	);
 
 	const isIndeterminate = !allSelected && selectedMeetings.length > 0;
@@ -105,7 +110,7 @@ const time = [
 	"11 PM",
 ];
 
-function TimeColumn({ style }: { style?: React.CSSProperties }) {
+function TimeColumn({ style }: { style?: CSSProperties }) {
 	function timeEntry(s: string, i: number) {
 		const display = i === 0 ? "none" : undefined;
 		return (
@@ -255,12 +260,12 @@ function RoomColumn({ date, room }: { date: string; room: Room }) {
 	const meetingEntities = useAppSelector(selectMeetingEntities);
 
 	// Meetings for this date with roomId added
-	const meetings = React.useMemo(() => {
+	const meetings = useMemo(() => {
 		return (Object.values(meetingEntities) as Meeting[])
 			.filter(
 				(m) =>
 					date ===
-					DateTime.fromISO(m.start, { zone: timezone }).toISODate()
+					DateTime.fromISO(m.start, { zone: timezone }).toISODate(),
 			)
 			.map((m) => {
 				if (m.roomId !== undefined && m.roomId !== null) return m;
@@ -297,7 +302,7 @@ const SessionDayContainer = ({
 	style,
 	n,
 	...props
-}: { n: number } & React.ComponentProps<"div">) => (
+}: { n: number } & ComponentProps<"div">) => (
 	<div
 		style={{
 			...style,
@@ -316,14 +321,14 @@ function SessionDayHead({
 	sessionDate,
 	rooms,
 }: {
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	date: string;
 	sessionDate: string;
 	rooms: Room[];
 }) {
 	const day = DateTime.fromISO(date).diff(
 		DateTime.fromISO(sessionDate),
-		"days"
+		"days",
 	).days;
 	const background = day % 2 === 0 ? "#eeeeee" : "white";
 
@@ -358,7 +363,7 @@ function SessionDayHead({
 	);
 }
 
-const LeftMarginAndRowLines = ({ style }: { style?: React.CSSProperties }) => (
+const LeftMarginAndRowLines = ({ style }: { style?: CSSProperties }) => (
 	<div style={style}>
 		{time.map((t) => (
 			<div key={t} className="border-cell" style={{ height: 48 }} />
@@ -374,14 +379,14 @@ function SessionDayBody({
 	sessionDate,
 	rooms,
 }: {
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	date: string;
 	sessionDate: string;
 	rooms: Room[];
 }) {
 	const day = DateTime.fromISO(date).diff(
 		DateTime.fromISO(sessionDate),
-		"days"
+		"days",
 	).days;
 	const background = day % 2 === 0 ? "#eeeeee" : "white";
 
@@ -401,7 +406,7 @@ function SessionDayBody({
 function MeetingsCalendar({ nDays }: { nDays: number }) {
 	const session = useAppSelector(selectCurrentSession);
 	const dates = session ? getSessionDates(session) : [];
-	const [day, setDay] = React.useState(0);
+	const [day, setDay] = useState(0);
 
 	let rooms = session?.rooms || [];
 	if (rooms.length === 0) rooms = defaultRooms;

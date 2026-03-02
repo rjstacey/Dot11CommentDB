@@ -1,4 +1,9 @@
-import * as React from "react";
+import {
+	useLayoutEffect,
+	useState,
+	type ComponentProps,
+	type ChangeEvent,
+} from "react";
 import { Row, Col, Form } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -96,14 +101,14 @@ function SelectEntryAndExitTone({
 	value: WebexEntryExitTone | null;
 	onChange: (value: WebexEntryExitTone) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "placeholder" | "id" | "className" | "style"
 >) {
 	const values = entryToneOptions.filter((e) => e.value === value);
 	if (values.length === 0) onChange(entryToneOptions[0].value);
 	const handleChange = (values: typeof entryToneOptions) =>
 		onChange(
-			values.length > 0 ? values[0].value : entryToneOptions[0].value
+			values.length > 0 ? values[0].value : entryToneOptions[0].value,
 		);
 	return (
 		<Select
@@ -125,7 +130,7 @@ function SelectJoinBeforeHostMinutes({
 	value: number | null | undefined;
 	onChange: (value: number) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "placeholder" | "id" | "className" | "style"
 >) {
 	const options = joinMinutes.map((value) => ({
@@ -325,7 +330,7 @@ function WebexMeetingAudioOptionsEdit({
 						ref={(ref) => {
 							if (ref)
 								ref.indeterminate = isMultiple(
-									entry.allowAttendeeToUnmuteSelf
+									entry.allowAttendeeToUnmuteSelf,
 								);
 						}}
 						onChange={(e) =>
@@ -354,7 +359,7 @@ function WebexMeetingAudioOptionsEdit({
 						ref={(ref) => {
 							if (ref)
 								ref.indeterminate = isMultiple(
-									entry.muteAttendeeUponEntry
+									entry.muteAttendeeUponEntry,
 								);
 						}}
 						onChange={(e) =>
@@ -480,7 +485,7 @@ function WebexMeetingOptionsEdit({
 					ref={(ref) => {
 						if (ref)
 							ref.indeterminate = isMultiple(
-								entry.enabledClosedCaptions
+								entry.enabledClosedCaptions,
 							);
 					}}
 					onChange={(e) =>
@@ -502,7 +507,7 @@ function WebexMeetingOptionsEdit({
 					ref={(ref) => {
 						if (ref)
 							ref.indeterminate = isMultiple(
-								entry.enabledFileTransfer
+								entry.enabledFileTransfer,
 							);
 					}}
 					onChange={(e) =>
@@ -574,7 +579,7 @@ export function WebexMeetingParamsEdit({
 						ref={(ref) => {
 							if (ref)
 								ref.indeterminate = isMultiple(
-									entry.enabledJoinBeforeHost
+									entry.enabledJoinBeforeHost,
 								);
 						}}
 						onChange={(e) =>
@@ -620,7 +625,7 @@ export function WebexMeetingParamsEdit({
 						ref={(ref) => {
 							if (ref)
 								ref.indeterminate = isMultiple(
-									entry.enableConnectAudioBeforeHost
+									entry.enableConnectAudioBeforeHost,
 								);
 						}}
 						onChange={(e) =>
@@ -700,20 +705,20 @@ export function WebexMeetingEditForm({
 	hasChanges: () => boolean;
 	readOnly?: boolean;
 }) {
-	const [busy, setBusy] = React.useState(false);
-	const [formInvalid, setFormInvalid] = React.useState(false);
+	const [busy, setBusy] = useState(false);
+	const [formInvalid, setFormInvalid] = useState(false);
 
-	React.useLayoutEffect(() => {
+	useLayoutEffect(() => {
 		setFormInvalid(
 			!entry.date ||
 				!entry.startTime ||
 				!entry.endTime ||
 				!entry.timezone ||
-				!entry.accountId
+				!entry.accountId,
 		);
 	}, [entry]);
 
-	async function onSubmit(e: React.ChangeEvent<HTMLFormElement>) {
+	async function onSubmit(e: ChangeEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await submit();

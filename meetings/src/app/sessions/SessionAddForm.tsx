@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Form, Tabs, Tab } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -26,11 +26,11 @@ export function SessionAddForm({
 	onChange: (changes: Partial<SessionCreate>) => void;
 }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const [formValid, setFormValid] = React.useState(false);
+	const [busy, setBusy] = useState(false);
+	const [formValid, setFormValid] = useState(false);
 	const uiProperties = useAppSelector(selectSessionsState).ui;
 
-	React.useEffect(() => {
+	useEffect(() => {
 		let valid = true;
 		if (!session.number) valid = false;
 		if (!session.name) valid = false;
@@ -41,7 +41,7 @@ export function SessionAddForm({
 		setFormValid(valid);
 	}, [session]);
 
-	async function handleSubmit(e: React.FormEvent) {
+	async function handleSubmit(e: FormEvent) {
 		e.preventDefault();
 		setBusy(true);
 		await submit();

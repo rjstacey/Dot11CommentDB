@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ComponentProps } from "react";
 import { Form, Row, Col } from "react-bootstrap";
 import { Select, isMultiple } from "@common";
 
@@ -19,7 +19,7 @@ function RoomSelector({
 	onChange: (value: number | null) => void;
 	session: Session;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "placeholder" | "id" | "style" | "className"
 >) {
 	const rooms = session.rooms || [];

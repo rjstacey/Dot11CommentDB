@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import { Button, FormControl } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -45,7 +45,7 @@ function RoomDetails({
 		setRooms(updatedRooms);
 	};
 
-	const columns = React.useMemo(() => {
+	const columns = useMemo(() => {
 		const updateRoom = (id: number, changes: Partial<Room>) => {
 			const updatedRooms = rooms.slice();
 			const i = rooms.findIndex((room) => room.id === id);

@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ComponentProps } from "react";
 import { Form, Row, Col } from "react-bootstrap";
 import { Select, isMultiple, Multiple, InputDates, InputTime } from "@common";
 
@@ -20,7 +20,7 @@ function SessionDateSelector({
 	onChange: (date: string | null) => void;
 	session: Session;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "placeholder" | "id" | "style" | "className"
 >) {
 	const options = getSessionDates(session).map((date) => ({
@@ -50,7 +50,7 @@ function TimeslotSelector({
 	onChange: (value: number | null) => void;
 	session: Session;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "placeholder" | "id" | "style" | "className"
 >) {
 	const timeslots = session.timeslots;
@@ -91,7 +91,7 @@ function SessionMeetingTime({
 		changes = { ...changes };
 		if ("startSlotId" in changes) {
 			const slot = session.timeslots.find(
-				(slot) => slot.id === changes.startSlotId
+				(slot) => slot.id === changes.startSlotId,
 			);
 			if (slot) {
 				changes.startTime = slot.startTime;

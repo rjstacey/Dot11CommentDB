@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type ChangeEvent } from "react";
 import { Duration } from "luxon";
 import { Form } from "react-bootstrap";
 import { useAppDispatch } from "@/store/hooks";
@@ -24,7 +24,7 @@ function validDuration(duration: string) {
 		const dt = Duration.fromObject(
 			m
 				? { hours: m[1] ? Number(m[1]) : 0, minutes: Number(m[2]) }
-				: { hours: Number(d) }
+				: { hours: Number(d) },
 		);
 		return dt.isValid;
 	} catch {
@@ -65,9 +65,9 @@ export function MeetingsEditForm({
 	readOnly?: boolean;
 }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
+	const [busy, setBusy] = useState(false);
 
-	async function onSubmit(e: React.ChangeEvent<HTMLFormElement>) {
+	async function onSubmit(e: ChangeEvent<HTMLFormElement>) {
 		e.preventDefault();
 		const errMsg = meetingEditErrorMessage(entry);
 		if (errMsg) {

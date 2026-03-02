@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ReactNode } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import {
 	selectUserWebexMeetingsAccess,
@@ -16,7 +16,7 @@ export function WebexMeetingDetails() {
 	const { state, onChange, hasChanges, submit, cancel, onAdd, onDelete } =
 		useWebexMeetingsEdit(readOnly);
 
-	let content: React.ReactNode;
+	let content: ReactNode;
 	let title = "Webex meeting";
 	if (state.action === "add" || state.action === "update") {
 		if (state.action === "add") title = "Add Webex meeting";

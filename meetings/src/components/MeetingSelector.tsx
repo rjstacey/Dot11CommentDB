@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo, type ComponentProps } from "react";
 import { DateTime } from "luxon";
 
 import { Select, SelectItemRendererProps } from "@common";
@@ -46,13 +46,13 @@ function MeetingSelector({
 	fromDate?: string;
 	toDate?: string;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const { loading, valid, ids } = useAppSelector(selectMeetingsState);
 	const entities = useAppSelector(selectSyncedMeetingEntities);
 
-	const options = React.useMemo(() => {
+	const options = useMemo(() => {
 		let options = ids.map((id) => entities[id]!);
 		if (fromDate) {
 			const date = DateTime.fromISO(fromDate);

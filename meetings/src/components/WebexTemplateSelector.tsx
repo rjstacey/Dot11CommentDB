@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect, useMemo, useCallback, type ComponentProps } from "react";
 import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectWebexAccountsState } from "@/store/webexAccounts";
@@ -13,31 +13,31 @@ function WebexTemplateSelector({
 	onChange: (value: string | null) => void;
 	accountId: number | null;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const { loading, entities } = useAppSelector(selectWebexAccountsState);
 
-	const options = React.useMemo(() => {
+	const options = useMemo(() => {
 		const account = accountId ? entities[accountId] : undefined;
 		return account?.templates || [];
 	}, [accountId, entities]);
 
 	const values = options.filter((o) => o.id === value);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (values.length === 0) {
 			const defaults = options.filter((o) => o.isDefault);
 			if (defaults.length > 0) onChange(defaults[0].id);
 		}
 	}, [options, onChange, values.length]);
 
-	const handleChange = React.useCallback(
+	const handleChange = useCallback(
 		(selected: typeof options) => {
 			const id = selected.length > 0 ? selected[0].id : null;
 			if (id !== value) onChange(id);
 		},
-		[value, onChange]
+		[value, onChange],
 	);
 
 	return (

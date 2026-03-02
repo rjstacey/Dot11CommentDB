@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import { Container, Button, FormControl, FormCheck } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -110,7 +110,7 @@ function Actions({ account }: CellProps) {
 	async function handleDelete(id: number) {
 		if (account.name) {
 			const ok = await ConfirmModal.show(
-				`Are you sure you want to delete the account "${account.name}"?`
+				`Are you sure you want to delete the account "${account.name}"?`,
 			);
 			if (!ok) return;
 		}
@@ -184,12 +184,12 @@ export function WebexAccounts() {
 	const { loading } = useAppSelector(selectWebexAccountsState);
 	const accounts = useAppSelector(selectWebexAccounts);
 
-	const colProps = React.useMemo(
+	const colProps = useMemo(
 		() => accounts.map((account) => ({ account, readOnly: false })),
-		[accounts]
+		[accounts],
 	);
 
-	const columns = React.useMemo(() => {
+	const columns = useMemo(() => {
 		const keys = Object.keys(tableColumns);
 		//if (readOnly) keys = keys.filter((key) => key !== "actions");
 

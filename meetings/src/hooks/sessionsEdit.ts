@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useState, useEffect } from "react";
 import isEqual from "lodash.isequal";
 import {
 	ConfirmModal,
@@ -58,7 +58,7 @@ function useSessionsEditState() {
 	const { loading, valid, selected, entities } =
 		useAppSelector(selectSessionsState);
 
-	const initState = React.useCallback(() => {
+	const initState = useCallback(() => {
 		const sessions = selected.map((id) => entities[id]!).filter(Boolean);
 		if (loading && !valid) {
 			return {
@@ -83,16 +83,13 @@ function useSessionsEditState() {
 		}
 	}, [loading, valid, selected, entities]);
 
-	const resetState = React.useCallback(
-		() => setState(initState),
-		[initState]
-	);
+	const resetState = useCallback(() => setState(initState), [initState]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (state.action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected([]));
@@ -106,7 +103,7 @@ function useSessionsEditState() {
 			const ids = state.sessions.map((s) => s.id);
 			if (!isEqual(selected, ids)) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected(ids));
@@ -117,7 +114,7 @@ function useSessionsEditState() {
 		}
 	}, [selected, resetState]);
 
-	const [state, setState] = React.useState<SessionsEditState>(initState);
+	const [state, setState] = useState<SessionsEditState>(initState);
 
 	return [state, setState, resetState] as const;
 }
@@ -127,14 +124,14 @@ export function useSessionsEdit(readOnly: boolean) {
 
 	const [state, setState, resetState] = useSessionsEditState();
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() =>
 			state.action === "add" ||
 			(state.action === "update" && state.edited !== state.saved),
-		[state]
+		[state],
 	);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: SessionChanges) => {
 			setState((state) => {
 				if (readOnly) {
@@ -155,10 +152,10 @@ export function useSessionsEdit(readOnly: boolean) {
 				return state;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (readOnly || state.action === null) {
 			console.warn("submit: bad state");
 			return;
@@ -187,20 +184,20 @@ export function useSessionsEdit(readOnly: boolean) {
 	}, [readOnly, setState]);
 
 	const disableAdd = readOnly || (state.action === "update" && hasChanges());
-	const onAdd = React.useCallback(() => {
+	const onAdd = useCallback(() => {
 		setState({ action: "add", edited: defaultSession, saved: undefined });
 		dispatch(setSelected([]));
 	}, [dispatch]);
 
 	const disableDelete = readOnly || state.action === "add";
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		if (state.action !== "update") {
 			console.warn("onDelete: bad state");
 			return;
 		}
 		const ids = state.sessions.map((s) => s.id);
 		const ok = await ConfirmModal.show(
-			`Are you sure you want to delete ${ids.length} sessions?`
+			`Are you sure you want to delete ${ids.length} sessions?`,
 		);
 		if (ok) await dispatch(deleteSessions(ids));
 	}, [dispatch, state]);

@@ -1,4 +1,3 @@
-import React from "react";
 import { useParams, Link } from "react-router";
 import { Button, Spinner, Row, Col } from "react-bootstrap";
 
@@ -14,7 +13,7 @@ export function ImatAttendanceActions() {
 	const meetingNumber = Number(params.meetingNumber);
 	const breakoutNumber = Number(params.breakoutNumber);
 	const { loading: loadingMeetings } = useAppSelector(
-		selectImatMeetingsState
+		selectImatMeetingsState,
 	);
 	const { loading: loadingBreakouts } = useAppSelector(selectBreakoutsState);
 

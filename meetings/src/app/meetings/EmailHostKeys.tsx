@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useState, type ChangeEvent } from "react";
 import {
 	Form,
 	Tab,
@@ -16,23 +16,20 @@ import styles from "./meetings.module.css";
 
 /** Helper functions to maintain a list of IDs */
 function useSelectIds() {
-	const [ids, setIds] = React.useState<string[]>([]);
+	const [ids, setIds] = useState<string[]>([]);
 
-	const addId = React.useCallback(
+	const addId = useCallback(
 		(value: string) =>
 			setIds((ids) => (ids.includes(value) ? ids : [...ids, value])),
-		[setIds]
+		[setIds],
 	);
 
-	const removeId = React.useCallback(
+	const removeId = useCallback(
 		(value: string) => setIds((ids) => ids.filter((id) => id !== value)),
-		[setIds]
+		[setIds],
 	);
 
-	const hasId = React.useCallback(
-		(value: string) => ids.includes(value),
-		[ids]
-	);
+	const hasId = useCallback((value: string) => ids.includes(value), [ids]);
 
 	return [ids, addId, removeId, hasId] as const;
 }
@@ -42,15 +39,15 @@ function EmailHostKeysForm({ close }: { close: () => void }) {
 		useSelectIds();
 	const { groupIds, getGroupEmailBody, getGroupLabel, sendGroupEmails } =
 		useEmailHostKey();
-	const [busy, setBusy] = React.useState(false);
+	const [busy, setBusy] = useState(false);
 	console.log(groupIds);
 
-	function onChangeGroupId(e: React.ChangeEvent<HTMLInputElement>) {
+	function onChangeGroupId(e: ChangeEvent<HTMLInputElement>) {
 		if (e.target.checked) addGroupId(e.target.value);
 		else removeGroupId(e.target.value);
 	}
 
-	async function onSubmit(e: React.ChangeEvent<HTMLFormElement>) {
+	async function onSubmit(e: ChangeEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await sendGroupEmails(selectedGroupIds);
@@ -114,7 +111,7 @@ function EmailHostKeysForm({ close }: { close: () => void }) {
 }
 
 export function EmailHostKeys({ disabled }: { disabled?: boolean }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 
 	return (
 		<DropdownButton

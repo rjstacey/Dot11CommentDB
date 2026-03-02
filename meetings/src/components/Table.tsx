@@ -1,7 +1,7 @@
-import * as React from "react";
+import type { ReactNode, CSSProperties, ComponentProps } from "react";
 import styles from "./Table.module.css";
 
-const Table = ({ className, ...props }: React.ComponentProps<"table">) => (
+const Table = ({ className, ...props }: ComponentProps<"table">) => (
 	<table className={styles.table} {...props} />
 );
 
@@ -12,7 +12,7 @@ const tableEmpty = (
 );
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RenderCell = (entry: any) => React.ReactNode;
+type RenderCell = (entry: any) => ReactNode;
 
 export type TableColumn = {
 	/** Column key */
@@ -23,7 +23,7 @@ export type TableColumn = {
 	/** A function to render cell element for entry */
 	renderCell?: RenderCell;
 	/** style for the <th> and <td> column cell */
-	styleCell?: React.CSSProperties;
+	styleCell?: CSSProperties;
 };
 
 /*
@@ -68,7 +68,7 @@ export function EditTable({
 				rowId
 					? (entry[
 							rowId
-					  ] as any) /*eslint-disable-line @typescript-eslint/no-explicit-any*/
+						] as any) /*eslint-disable-line @typescript-eslint/no-explicit-any*/
 					: i
 			}
 		>
@@ -76,7 +76,7 @@ export function EditTable({
 				<td key={col.key} style={col.styleCell}>
 					{col.renderCell
 						? col.renderCell(entry)
-						: (entry[col.key] as React.ReactNode)}
+						: (entry[col.key] as ReactNode)}
 				</td>
 			))}
 		</tr>

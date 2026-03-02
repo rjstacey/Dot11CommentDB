@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useMemo } from "react";
 import { DateTime } from "luxon";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -35,7 +35,7 @@ function genTable(meetings: SyncedMeeting[]) {
 	const row = (
 		webexAccountName: string,
 		webexMeeting: WebexMeeting,
-		timezone: string
+		timezone: string,
 	) => `
 		<tr>
 			${td(displayDateTime(webexMeeting, timezone))}
@@ -43,7 +43,7 @@ function genTable(meetings: SyncedMeeting[]) {
 			${td(
 				`${webexAccountName}: <a href="${
 					webexMeeting.webLink
-				}">${displayMeetingNumber(webexMeeting.meetingNumber)}</a>`
+				}">${displayMeetingNumber(webexMeeting.meetingNumber)}</a>`,
 			)}
 			${td(webexMeeting.hostKey)}
 		</tr>`;
@@ -54,7 +54,7 @@ function genTable(meetings: SyncedMeeting[]) {
 				.map((m) =>
 					m.webexMeeting
 						? row(m.webexAccountName, m.webexMeeting, m.timezone)
-						: "<tr><td colspan='4'>Error</td></tr>"
+						: "<tr><td colspan='4'>Error</td></tr>",
 				)
 				.join("")}
 		</table>`;
@@ -65,7 +65,7 @@ function genTable(meetings: SyncedMeeting[]) {
 function genEmailBody(
 	user: User,
 	officers: UserMember[],
-	meetings: SyncedMeeting[]
+	meetings: SyncedMeeting[],
 ) {
 	const sender = user.Name;
 	const names = officers.map((o) => o.Name).join(", ");
@@ -99,14 +99,14 @@ function useGetGroupOfficers() {
 		return n1 - n2;
 	}
 
-	const getGroupOfficers = React.useCallback(
+	const getGroupOfficers = useCallback(
 		(groupId: string) => {
 			const officers = ids
 				.map((id) => entities[id]!)
 				.filter(
 					(o) =>
 						o.group_id === groupId &&
-						validPositions.indexOf(o.position) >= 0
+						validPositions.indexOf(o.position) >= 0,
 				)
 				.sort(officerCompare)
 				.map((o) => memberEntities[o.sapin])
@@ -114,7 +114,7 @@ function useGetGroupOfficers() {
 
 			return officers;
 		},
-		[ids, entities, memberEntities]
+		[ids, entities, memberEntities],
 	);
 
 	return getGroupOfficers;
@@ -129,7 +129,7 @@ export function useEmailHostKey() {
 	const user = useAppSelector(selectUser);
 	const getGroupOfficers = useGetGroupOfficers();
 
-	const groupIds = React.useMemo(() => {
+	const groupIds = useMemo(() => {
 		const groupIds = new Set<string>();
 		for (const id of meetingIds) {
 			const m = meetingEntities[id]!;
@@ -144,7 +144,7 @@ export function useEmailHostKey() {
 		return Array.from(groupIds);
 	}, [meetingIds, meetingEntities]);
 
-	const getGroupMeetings = React.useCallback(
+	const getGroupMeetings = useCallback(
 		(groupId: string) => {
 			return meetingIds
 				.map((id) => meetingEntities[id]!)
@@ -152,22 +152,22 @@ export function useEmailHostKey() {
 					(m) =>
 						m.organizationId === groupId &&
 						DateTime.fromISO(m.start) >= DateTime.now() &&
-						m.webexMeetingId
+						m.webexMeetingId,
 				);
 		},
-		[meetingIds, meetingEntities]
+		[meetingIds, meetingEntities],
 	);
 
-	const getGroupLabel = React.useCallback(
+	const getGroupLabel = useCallback(
 		(groupId: string) => {
 			const group = groupEntities[groupId];
 			if (!group) throw new Error("No group for groupId=" + groupId);
 			return group.name;
 		},
-		[groupEntities]
+		[groupEntities],
 	);
 
-	const getGroupEmail = React.useCallback(
+	const getGroupEmail = useCallback(
 		(groupId: string) => {
 			const officers = getGroupOfficers(groupId);
 			const meetings = getGroupMeetings(groupId);
@@ -198,24 +198,24 @@ export function useEmailHostKey() {
 
 			return email;
 		},
-		[user, getGroupOfficers, getGroupMeetings, getGroupLabel]
+		[user, getGroupOfficers, getGroupMeetings, getGroupLabel],
 	);
 
-	const getGroupEmailBody = React.useCallback(
+	const getGroupEmailBody = useCallback(
 		(groupId: string) => {
 			const email = getGroupEmail(groupId);
 			if (!email) throw new Error("No email for groupId=" + groupId);
 			return email.Message.Body.Html!.Data;
 		},
-		[getGroupEmail]
+		[getGroupEmail],
 	);
 
-	const sendGroupEmails = React.useCallback(
+	const sendGroupEmails = useCallback(
 		async (groupIds: string[]) => {
 			const emails = groupIds.map(getGroupEmail);
 			await dispatch(sendEmails(groupName, emails));
 		},
-		[groupName, dispatch, getGroupEmail]
+		[groupName, dispatch, getGroupEmail],
 	);
 
 	return {

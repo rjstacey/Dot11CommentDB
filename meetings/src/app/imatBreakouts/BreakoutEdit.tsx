@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo, useCallback, type ComponentProps } from "react";
 import { DateTime } from "luxon";
 import { Form, Row, Col } from "react-bootstrap";
 
@@ -30,7 +30,7 @@ function SlotSelector({
 	onChange: (value: number) => void;
 	isStart?: boolean;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	| "readOnly"
 	| "disabled"
 	| "id"
@@ -46,13 +46,13 @@ function SlotSelector({
 	}));
 	const widthCh = options.reduce(
 		(maxCh, o) => Math.max(maxCh, o.label.length),
-		12
+		12,
 	);
 	const values = options.filter((o) => o.value === value);
-	const handleChange = React.useCallback(
+	const handleChange = useCallback(
 		(values: typeof options) =>
 			onChange(values.length ? values[0].value : 0),
-		[onChange]
+		[onChange],
 	);
 
 	return (
@@ -66,7 +66,7 @@ function SlotSelector({
 	);
 }
 
-const StartSlotSelector = (props: React.ComponentProps<typeof SlotSelector>) =>
+const StartSlotSelector = (props: ComponentProps<typeof SlotSelector>) =>
 	SlotSelector({ ...props, isStart: true });
 const EndSlotSelector = SlotSelector;
 
@@ -78,17 +78,17 @@ function SessionDaySelector({
 	value: number | null;
 	onChange: (value: number) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "className" | "style" | "placeholder"
 >) {
 	const imatMeeting = useAppSelector(selectBreakoutMeeting)!;
 
-	const options = React.useMemo(() => {
+	const options = useMemo(() => {
 		const sessionStart = DateTime.fromISO(imatMeeting.start);
 		const days =
 			Math.floor(
 				DateTime.fromISO(imatMeeting.end).diff(sessionStart, "days")
-					.days
+					.days,
 			) + 1;
 		const options = Array.from({ length: days }, (_, i) => ({
 			value: i,
@@ -99,15 +99,15 @@ function SessionDaySelector({
 
 	const widthCh = options.reduce(
 		(maxCh, o) => Math.max(maxCh, o.label.length),
-		12
+		12,
 	);
 
 	const values = options.filter((o) => o.value === value);
 
-	const handleChange = React.useCallback(
+	const handleChange = useCallback(
 		(values: typeof options) =>
 			onChange(values.length ? values[0].value : 0),
-		[onChange]
+		[onChange],
 	);
 
 	return (
@@ -129,7 +129,7 @@ function GroupIdSelector({
 	value: number | null;
 	onChange: (value: number) => void;
 } & Pick<
-	React.ComponentProps<typeof ImatCommitteeSelector>,
+	ComponentProps<typeof ImatCommitteeSelector>,
 	| "id"
 	| "readOnly"
 	| "disabled"
@@ -160,7 +160,7 @@ function AssociatedMeetingSelector({
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
-} & Omit<React.ComponentProps<typeof MeetingSelector>, "value" | "onChange">) {
+} & Omit<ComponentProps<typeof MeetingSelector>, "value" | "onChange">) {
 	const imatMeeting = useAppSelector(selectBreakoutMeeting);
 
 	function handleChange(v: number | null) {
@@ -293,7 +293,7 @@ export function BreakoutCredit({
 						onChange={(e) =>
 							changeEntry({
 								creditOverrideDenominator: Number(
-									e.target.value
+									e.target.value,
 								),
 							})
 						}
@@ -325,7 +325,7 @@ export function BreakoutEdit({
 		changes = { ...changes };
 		if ("startSlotId" in changes) {
 			const slot = timeslots.find(
-				(slot) => slot.id === changes.startSlotId
+				(slot) => slot.id === changes.startSlotId,
 			);
 			if (slot) {
 				changes.startTime = "";
@@ -335,7 +335,7 @@ export function BreakoutEdit({
 		}
 		if ("endSlotId" in changes) {
 			const slot = timeslots.find(
-				(slot) => slot.id === changes.endSlotId
+				(slot) => slot.id === changes.endSlotId,
 			);
 			if (slot) changes.endTime = "";
 		}

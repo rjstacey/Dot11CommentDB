@@ -1,4 +1,9 @@
-import * as React from "react";
+import {
+	useMemo,
+	type CSSProperties,
+	type MouseEventHandler,
+	type ReactNode,
+} from "react";
 import { DateTime } from "luxon";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -11,8 +16,8 @@ const Slot = ({
 	children,
 	remove,
 }: {
-	remove?: React.MouseEventHandler;
-	children?: React.ReactNode;
+	remove?: MouseEventHandler;
+	children?: ReactNode;
 }) => (
 	<div className={styles.slot} role="listitem">
 		{children && <span className={styles["slot-item"]}>{children}</span>}
@@ -24,13 +29,13 @@ function ShowSelectedSlots({
 	style,
 	className,
 }: {
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	className?: string;
 }) {
 	const dispatch = useAppDispatch();
 	const slots = useAppSelector(selectSelectedSlots);
 	const session = useAppSelector(selectCurrentSession);
-	const elements = React.useMemo(() => {
+	const elements = useMemo(() => {
 		const elements: JSX.Element[] = [];
 		slots.forEach((s) => {
 			const [date, slotId, roomId] = fromSlotId(s || "");
@@ -43,7 +48,7 @@ function ShowSelectedSlots({
 			elements.push(
 				<Slot key={s} remove={() => dispatch(toggleSelectedSlots([s]))}>
 					{`${weekday} ${slotName} ${roomName}`}
-				</Slot>
+				</Slot>,
 			);
 		});
 		return elements;

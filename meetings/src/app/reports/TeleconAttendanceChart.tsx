@@ -1,4 +1,4 @@
-import React from "react";
+import { useRef, useMemo } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 import * as d3 from "d3";
 
@@ -15,10 +15,13 @@ import type { ReportChartProps } from "./chart";
 const selectAttendanceSeriesInfo = createSelector(
 	selectBreakoutAttendanceEntries,
 	(entries) => {
-		const seriesEntities = entries.reduce((seriesEntities, entry, i) => {
-			seriesEntities[i] = entry;
-			return seriesEntities;
-		}, {} as Record<string, BreakoutAttendanceEntry>);
+		const seriesEntities = entries.reduce(
+			(seriesEntities, entry, i) => {
+				seriesEntities[i] = entry;
+				return seriesEntities;
+			},
+			{} as Record<string, BreakoutAttendanceEntry>,
+		);
 
 		// Sort by date and time
 		const seriesIds = Object.keys(seriesEntities).sort((id1, id2) => {
@@ -32,17 +35,17 @@ const selectAttendanceSeriesInfo = createSelector(
 			d3.max(seriesIds, (id) => seriesEntities[id].attendanceCount) || 0;
 
 		return { seriesIds, seriesEntities, maxValue };
-	}
+	},
 );
 
 function TeleconAttendanceChart({ width, height, ...props }: ReportChartProps) {
-	const svgRef = React.useRef<SVGSVGElement>(null);
-	//const [xAxisHeight, setXAxisHeight] = React.useState(120);
-	const gx = React.useRef<SVGSVGElement>(null);
+	const svgRef = useRef<SVGSVGElement>(null);
+	//const [xAxisHeight, setXAxisHeight] = useState(120);
+	const gx = useRef<SVGSVGElement>(null);
 	const xAxisHeight = 120; //useDimensions(gx).height;
 
-	//const [yAxisWidth, setYAxisWidth] = React.useState(50);
-	const gy = React.useRef<SVGSVGElement>(null);
+	//const [yAxisWidth, setYAxisWidth] = useState(50);
+	const gy = useRef<SVGSVGElement>(null);
 	const yAxisWidth = 50; //useDimensions(gy).width;
 
 	const margin = 10;
@@ -50,10 +53,10 @@ function TeleconAttendanceChart({ width, height, ...props }: ReportChartProps) {
 	const plotHeight = height - 2 * margin - xAxisHeight;
 
 	const { seriesIds, seriesEntities, maxValue } = useAppSelector(
-		selectAttendanceSeriesInfo
+		selectAttendanceSeriesInfo,
 	);
 
-	const xScale = React.useMemo(() => {
+	const xScale = useMemo(() => {
 		return d3
 			.scaleBand()
 			.domain(seriesIds)
@@ -61,7 +64,7 @@ function TeleconAttendanceChart({ width, height, ...props }: ReportChartProps) {
 			.padding(0.2);
 	}, [seriesIds, plotWidth]);
 
-	/*React.useEffect(() => {
+	/*useEffect(() => {
 		if (!gx.current) return;
 		const b = gx.current.getBoundingClientRect();
 		setXAxisHeight(b.height);
@@ -83,11 +86,11 @@ function TeleconAttendanceChart({ width, height, ...props }: ReportChartProps) {
 		</text>
 	));
 
-	const yScale = React.useMemo(() => {
+	const yScale = useMemo(() => {
 		return d3.scaleLinear().domain([0, maxValue]).range([plotHeight, 0]);
 	}, [maxValue, plotHeight]);
 
-	/*React.useEffect(() => {
+	/*useEffect(() => {
 		if (!gy.current) return;
 		//d3.select(gy.current).call(d3.axisLeft(yScale));
 		const b = gy.current.getBoundingClientRect();

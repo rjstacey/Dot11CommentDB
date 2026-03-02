@@ -1,4 +1,4 @@
-import React from "react";
+import { useRef, useMemo, useState, useEffect } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 import * as d3 from "d3";
@@ -35,35 +35,6 @@ const getTextWidth: F = function (element, text) {
 	return metrics.width;
 };
 
-/*
-function getDimensions(element: HTMLElement | SVGElement | null) {
-	return element ? element.getBoundingClientRect() : { width: 0, height: 0 };
-}
-
-function useDimensions(
-	targetRef: React.RefObject<HTMLElement | SVGElement>
-) {
-	const [dimensions, setDimensions] = React.useState(() =>
-		getDimensions(targetRef.current)
-	);
-
-	React.useEffect(() => {
-		const handleResize = () => {
-			setDimensions(getDimensions(targetRef.current));
-		};
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, [targetRef]);
-
-	React.useLayoutEffect(
-		() => setDimensions(getDimensions(targetRef.current)),
-		[targetRef]
-	);
-
-	return dimensions;
-}
-*/
-
 type DataItem = BreakoutAttendanceEntry & {
 	high: number;
 	low: number;
@@ -81,7 +52,7 @@ const selectAttendanceSeriesInfo = createSelector(
 				).concat(entry);
 				return seriesEntities;
 			},
-			{} as Record<string, BreakoutAttendanceEntry[]>
+			{} as Record<string, BreakoutAttendanceEntry[]>,
 		);
 
 		// Create a sorted list of series identifiers
@@ -92,7 +63,7 @@ const selectAttendanceSeriesInfo = createSelector(
 				if (entry_a.date === entry_b.date)
 					return entry_a.startTime.localeCompare(entry_b.startTime);
 				return entry_a.date.localeCompare(entry_b.date);
-			}
+			},
 		);
 
 		const seriesData = seriesIds.map((seriesId, currentIndex) => {
@@ -113,7 +84,7 @@ const selectAttendanceSeriesInfo = createSelector(
 				seriesIds.find(
 					(seriesId, i) =>
 						i < currentIndex &&
-						seriesEntities[seriesId][0].date === items[0].date
+						seriesEntities[seriesId][0].date === items[0].date,
 				)
 			)
 				label = items[0].slotName;
@@ -128,30 +99,30 @@ const selectAttendanceSeriesInfo = createSelector(
 		const maxCount =
 			d3.max(
 				seriesData,
-				(entry) => entry.items[entry.items.length - 1].high
+				(entry) => entry.items[entry.items.length - 1].high,
 			) || 0;
 
 		return { seriesIds, seriesData, maxCount };
-	}
+	},
 );
 
 function SessionAttendanceChart({ width, height, ...props }: ReportChartProps) {
-	const svgRef = React.useRef<SVGSVGElement>(null);
-	const [xAxisHeight, setXAxisHeight] = React.useState(40);
-	const [yAxisWidth, setYAxisWidth] = React.useState(120);
+	const svgRef = useRef<SVGSVGElement>(null);
+	const [xAxisHeight, setXAxisHeight] = useState(40);
+	const [yAxisWidth, setYAxisWidth] = useState(120);
 	const margin = 10;
 	const plotWidth = width - 2 * margin - yAxisWidth;
 	const plotHeight = height - 2 * margin - xAxisHeight;
 
 	const { seriesIds, seriesData, maxCount } = useAppSelector(
-		selectAttendanceSeriesInfo
+		selectAttendanceSeriesInfo,
 	);
 
-	const xScale = React.useMemo(() => {
+	const xScale = useMemo(() => {
 		return d3.scaleLinear().domain([0, maxCount]).range([0, plotWidth]);
 	}, [maxCount, plotWidth]);
-	const gx = React.useRef<SVGSVGElement>(null);
-	React.useEffect(() => {
+	const gx = useRef<SVGSVGElement>(null);
+	useEffect(() => {
 		if (!gx.current) return;
 		d3.select(gx.current)
 			.call(d3.axisBottom(xScale))
@@ -163,12 +134,12 @@ function SessionAttendanceChart({ width, height, ...props }: ReportChartProps) {
 		setXAxisHeight(b.height);
 	}, [gx, xScale]);
 
-	const yScale = React.useMemo(() => {
+	const yScale = useMemo(() => {
 		return d3.scaleBand(seriesIds, [0, plotHeight]).padding(0.5);
 	}, [seriesIds, plotHeight]);
 
-	const gy = React.useRef<SVGSVGElement>(null);
-	React.useEffect(() => {
+	const gy = useRef<SVGSVGElement>(null);
+	useEffect(() => {
 		if (!gy.current) return;
 		//d3.select(gy.current!).call(d3.axisLeft(yScale));
 		const b = gy.current.getBoundingClientRect();

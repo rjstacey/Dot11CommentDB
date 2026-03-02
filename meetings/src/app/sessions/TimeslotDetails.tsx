@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import { EntityId } from "@reduxjs/toolkit";
 import { Button, FormControl } from "react-bootstrap";
 import { EditTable as Table, TableColumn } from "@/components/Table";
@@ -46,7 +46,7 @@ function TimeslotDetails({
 		setTimeslots(updateTimeslots);
 	};
 
-	const columns = React.useMemo(() => {
+	const columns = useMemo(() => {
 		const updateTimeslot = (id: number, changes: Partial<Timeslot>) => {
 			const updateTimeslots = timeslots.slice();
 			const i = timeslots.findIndex((slot) => slot.id === id);

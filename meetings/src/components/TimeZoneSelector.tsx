@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo, type ComponentProps } from "react";
 import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectTimeZonesState } from "@/store/timeZones";
@@ -11,7 +11,7 @@ function TimeZoneSelector({
 	value: string;
 	onChange: (value: string) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	| "readOnly"
 	| "disabled"
 	| "id"
@@ -22,9 +22,9 @@ function TimeZoneSelector({
 >) {
 	const { timeZones } = useAppSelector(selectTimeZonesState);
 
-	const options = React.useMemo(
+	const options = useMemo(
 		() => timeZones.map((tz: string) => ({ value: tz, label: tz })),
-		[timeZones]
+		[timeZones],
 	);
 
 	const handleChange = onChange

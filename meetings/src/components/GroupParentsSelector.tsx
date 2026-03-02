@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ComponentProps } from "react";
 
 import { Select } from "@common";
 
@@ -13,7 +13,7 @@ export function GroupParentsSelector({
 	value: string | null;
 	onChange: (value: string | null) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	| "readOnly"
 	| "disabled"
 	| "id"

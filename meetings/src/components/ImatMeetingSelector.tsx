@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo, type ComponentProps } from "react";
 
 import { Select, displayDateRange } from "@common";
 
@@ -24,15 +24,15 @@ function ImatMeetingSelector({
 	value: number | null;
 	onChange: (value: number | null) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "placeholder" | "id" | "className" | "style"
 >) {
 	const { loading, valid, ids, entities } = useAppSelector(
-		selectImatMeetingsState
+		selectImatMeetingsState,
 	);
-	const options = React.useMemo(
+	const options = useMemo(
 		() => ids.map((id) => entities[id]!),
-		[entities, ids]
+		[entities, ids],
 	);
 	const values = options.filter((o) => o.id === value);
 	const handleChange = (values: typeof options) =>

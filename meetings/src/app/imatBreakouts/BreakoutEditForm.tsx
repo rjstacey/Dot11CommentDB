@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useRef, useState, useEffect, type ChangeEvent } from "react";
 import { Form } from "react-bootstrap";
 
 import type { SyncedBreakout } from "@/store/imatBreakouts";
@@ -27,11 +27,11 @@ export function BreakoutEditForm({
 	cancel: () => void;
 	readOnly?: boolean;
 }) {
-	const formRef = React.useRef<HTMLFormElement>(null);
-	const [busy, setBusy] = React.useState(false);
-	const [formValid, setFormValid] = React.useState(false);
+	const formRef = useRef<HTMLFormElement>(null);
+	const [busy, setBusy] = useState(false);
+	const [formValid, setFormValid] = useState(false);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		let valid = true;
 		if (
 			!entry.name ||
@@ -43,7 +43,7 @@ export function BreakoutEditForm({
 		if (formValid !== valid) setFormValid(valid);
 	}, [entry]);
 
-	async function onSubmit(e: React.ChangeEvent<HTMLFormElement>) {
+	async function onSubmit(e: ChangeEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await submit();

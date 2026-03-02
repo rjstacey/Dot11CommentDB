@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo, type ReactNode } from "react";
 import { NavLink, useParams, useLocation, useMatch } from "react-router";
 import { Navbar, Nav } from "react-bootstrap";
 
@@ -15,13 +15,13 @@ type MenuItem = {
 function useMenuLinks() {
 	const groupName = useParams().groupName || "*";
 	const group = useAppSelector((state) =>
-		selectTopLevelGroupByName(state, groupName!)
+		selectTopLevelGroupByName(state, groupName!),
 	);
 	const access = group?.permissions.meetings || AccessLevel.none;
 	const session = useAppSelector(selectCurrentSession);
 	const imatBreakoutMeetingId = useAppSelector(selectBreakoutMeetingId);
 
-	return React.useMemo(() => {
+	return useMemo(() => {
 		const menu: MenuItem[] = [];
 
 		// No menu items if there is no group
@@ -87,7 +87,7 @@ function AppNavLink({
 }: {
 	to: string;
 	eventKey?: string;
-	children?: React.ReactNode;
+	children?: ReactNode;
 }) {
 	const active = useMatch(to);
 	return (
@@ -107,7 +107,7 @@ function AppNavLinkActive({
 	children,
 }: {
 	to: string;
-	children?: React.ReactNode;
+	children?: ReactNode;
 }) {
 	const active = useMatch(to);
 	if (!active) return null;

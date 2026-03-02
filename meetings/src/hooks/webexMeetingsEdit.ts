@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useState, useEffect } from "react";
 import isEqual from "lodash.isequal";
 import { DateTime } from "luxon";
 import {
@@ -77,11 +77,11 @@ type WebexMeetingEditState =
 function useWebexMeetingsEditState() {
 	const dispatch = useAppDispatch();
 	const { loading, valid, selected } = useAppSelector(
-		selectWebexMeetingsState
+		selectWebexMeetingsState,
 	);
 	const entities = useAppSelector(selectSyncedWebexMeetingEntities);
 
-	const initState = React.useCallback(() => {
+	const initState = useCallback(() => {
 		const webexMeetings: SyncedWebexMeeting[] = selected
 			.filter((id) => entities[id])
 			.map((id) => {
@@ -115,9 +115,9 @@ function useWebexMeetingsEditState() {
 				(entry, webexMeeting) =>
 					deepMergeTagMultiple(
 						entry,
-						convertWebexMeetingToEntry(webexMeeting)
+						convertWebexMeetingToEntry(webexMeeting),
 					),
-				{}
+				{},
 			);
 			const meetingOptions: WebexMeetingOptions =
 				!entryMerge.meetingOptions ||
@@ -127,7 +127,7 @@ function useWebexMeetingsEditState() {
 			const audioConnectionOptions: WebexAudioConnectionOptions =
 				!entryMerge.audioConnectionOptions ||
 				Object.values(entryMerge.audioConnectionOptions).includes(
-					MULTIPLE
+					MULTIPLE,
 				)
 					? defaultWebexMeeting.audioConnectionOptions
 					: entryMerge.audioConnectionOptions;
@@ -145,16 +145,13 @@ function useWebexMeetingsEditState() {
 		}
 	}, [loading, valid, selected, entities]);
 
-	const resetState = React.useCallback(
-		() => setState(initState),
-		[initState]
-	);
+	const resetState = useCallback(() => setState(initState), [initState]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (state.action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected([]));
@@ -168,7 +165,7 @@ function useWebexMeetingsEditState() {
 			const ids = state.webexMeetings.map((m) => m.id);
 			if (!isEqual(selected, ids)) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected(ids));
@@ -179,7 +176,7 @@ function useWebexMeetingsEditState() {
 		}
 	}, [selected, resetState]);
 
-	const [state, setState] = React.useState<WebexMeetingEditState>(initState);
+	const [state, setState] = useState<WebexMeetingEditState>(initState);
 
 	return [state, setState, resetState] as const;
 }
@@ -190,14 +187,14 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 
 	const [state, setState, resetState] = useWebexMeetingsEditState();
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() =>
 			state.action === "add" ||
 			(state.action === "update" && state.edited !== state.saved),
-		[state]
+		[state],
 	);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: WebexMeetingEntryPartial) => {
 			setState((state) => {
 				if (readOnly) {
@@ -207,13 +204,13 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 				if (state.action === "add") {
 					const edited: WebexMeetingEntryCreate = deepMerge(
 						state.edited,
-						changes
+						changes,
 					);
 					return { ...state, edited } satisfies WebexMeetingEditState;
 				} else if (state.action === "update") {
 					let edited: WebexMeetingEntryMultiple = deepMerge(
 						state.edited,
-						changes
+						changes,
 					);
 					// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
 					changes = deepDiff(state.saved, edited) || {};
@@ -224,15 +221,15 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 				return state;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (state.action === "add") {
 			const entry = state.edited;
 			const webexMeeting = convertEntryToWebexMeeting(entry);
 			const id = await dispatch(
-				addWebexMeeting(entry.accountId!, webexMeeting)
+				addWebexMeeting(entry.accountId!, webexMeeting),
 			);
 			if (entry.meetingId)
 				await dispatch(
@@ -244,7 +241,7 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 								webexMeetingId: id,
 							},
 						},
-					])
+					]),
 				);
 			setState({
 				action: null,
@@ -266,7 +263,7 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 			for (const webexMeeting of webexMeetings) {
 				const local: WebexMeetingEntry = deepMerge(
 					convertWebexMeetingToEntry(webexMeeting),
-					diff
+					diff,
 				);
 				const updated = convertEntryToWebexMeeting(local);
 				const changes: Partial<SyncedWebexMeeting> =
@@ -299,14 +296,14 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 		}
 	}, []);
 
-	const onAdd = React.useCallback(async () => {
+	const onAdd = useCallback(async () => {
 		if (readOnly) {
 			console.warn("onAdd: state is readOnly");
 			return;
 		}
 		if (state.action === "update" && hasChanges()) {
 			const ok = await ConfirmModal.show(
-				`Changes not applied! Do you want to discard changes?`
+				`Changes not applied! Do you want to discard changes?`,
 			);
 			if (!ok) return;
 		}
@@ -324,7 +321,7 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 		dispatch(setSelected([]));
 	}, [readOnly, dispatch]);
 
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		if (readOnly) {
 			console.warn("onDelete: state is readOnly");
 			return;
@@ -339,7 +336,7 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 			"Are you sure you want to delete the selected " +
 				(webexMeetings.length > 1
 					? webexMeetings.length + "entries?"
-					: "entry?")
+					: "entry?"),
 		);
 		if (!ok) return;
 		await dispatch(deleteWebexMeetings(webexMeetings));

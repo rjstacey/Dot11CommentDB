@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useCallback, type ComponentProps } from "react";
 import { Form, Row, Col } from "react-bootstrap";
 import { Select, isMultiple } from "@common";
 import type {
@@ -22,7 +22,7 @@ function GracePeriodSelector({
 	value: number | null;
 	onChange: (value: number) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	| "readOnly"
 	| "disabled"
 	| "id"
@@ -39,10 +39,10 @@ function GracePeriodSelector({
 		values = [option];
 	}
 
-	const handleChange = React.useCallback(
+	const handleChange = useCallback(
 		(values: typeof gracePeriodOptions) =>
 			onChange(values.length ? values[0].value : 0),
-		[onChange]
+		[onChange],
 	);
 
 	return (

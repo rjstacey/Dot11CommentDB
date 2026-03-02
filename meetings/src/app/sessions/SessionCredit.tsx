@@ -1,4 +1,11 @@
-import * as React from "react";
+import { useEffect } from "react";
+import type {
+	FC,
+	HTMLAttributes,
+	CSSProperties,
+	MouseEvent,
+	ReactNode,
+} from "react";
 import { DateTime } from "luxon";
 import { EntityId } from "@reduxjs/toolkit";
 
@@ -17,7 +24,7 @@ const CreditGrid = ({
 	nCol,
 	nRow,
 	...props
-}: { nCol: number; nRow: number } & React.ComponentProps<"div">) => (
+}: { nCol: number; nRow: number } & HTMLAttributes<HTMLDivElement>) => (
 	<div
 		style={{
 			display: "grid",
@@ -32,7 +39,7 @@ function GridColumnLabel({
 	style,
 	date,
 }: {
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	colIndex: number;
 	date: string;
 }) {
@@ -60,7 +67,7 @@ const GridRowLabel = ({
 	label,
 	...otherProps
 }: {
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	rowIndex: number;
 	label: string;
 }) => (
@@ -72,11 +79,11 @@ const GridRowLabel = ({
 	</div>
 );
 
-const GridCell: React.FC<{
-	style?: React.CSSProperties;
+const GridCell: FC<{
+	style?: CSSProperties;
 	rowIndex: number;
 	colIndex: number;
-	children: React.ReactNode;
+	children: ReactNode;
 }> = ({ style, rowIndex, colIndex, ...otherProps }) => (
 	<div
 		style={{
@@ -140,10 +147,10 @@ const gridCellBackground: { [K: string]: string } = {
 	"Other 2/1": "#ddddff",
 };
 
-const CreditButton: React.FC<{
+const CreditButton: FC<{
 	credit: string;
-	style?: React.CSSProperties;
-	onClick: (e: React.MouseEvent) => void;
+	style?: CSSProperties;
+	onClick: (e: MouseEvent) => void;
 	disabled?: boolean;
 }> = function ({ credit, style, ...otherProps }) {
 	return (
@@ -177,7 +184,7 @@ function SessionCredit({
 	const { timeslots, defaultCredits } = session;
 
 	/* Make sure we have a valid defaultCredits array. One that matches dates and timeslots. */
-	React.useEffect(() => {
+	useEffect(() => {
 		let s = defaultCredits;
 		// Get the length right
 		if (!Array.isArray(defaultCredits))
@@ -185,8 +192,8 @@ function SessionCredit({
 		else if (defaultCredits.length < dates.length)
 			s = s.concat(
 				Array(dates.length - defaultCredits.length).fill(
-					defaultDayCredits(timeslots)
-				)
+					defaultDayCredits(timeslots),
+				),
 			);
 		else if (defaultCredits.length > dates.length) {
 			s = s.slice();
@@ -197,7 +204,7 @@ function SessionCredit({
 			s = s.map((dayCredits) =>
 				validDayCredits(dayCredits, timeslots)
 					? dayCredits
-					: defaultDayCredits(timeslots)
+					: defaultDayCredits(timeslots),
 			);
 		if (s !== defaultCredits) updateSession({ defaultCredits: s });
 	}, [defaultCredits, dates, timeslots, updateSession]);
@@ -207,7 +214,7 @@ function SessionCredit({
 		!Array.isArray(defaultCredits) ||
 		defaultCredits.length !== dates.length ||
 		!defaultCredits.every((dayCredits) =>
-			validDayCredits(dayCredits, timeslots)
+			validDayCredits(dayCredits, timeslots),
 		)
 	)
 		return null;
@@ -283,7 +290,7 @@ function SessionCredit({
 								disabled={readOnly}
 							/>
 						</GridCell>
-					))
+					)),
 				)}
 			</CreditGrid>
 		</>

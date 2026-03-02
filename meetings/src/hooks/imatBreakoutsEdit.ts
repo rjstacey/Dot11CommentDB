@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useState, useEffect } from "react";
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
 import type { Dictionary } from "@reduxjs/toolkit";
@@ -60,12 +60,12 @@ function convertBreakoutToMeetingEntry(
 	imatMeeting: ImatMeeting,
 	session: Session,
 	groupId: string,
-	groupEntities: Dictionary<Group>
+	groupEntities: Dictionary<Group>,
 ) {
 	const start = DateTime.fromFormat(
 		`${imatMeeting.start} ${breakout.startTime}`,
 		"yyyy-MM-dd HH:mm",
-		{ zone: imatMeeting.timezone }
+		{ zone: imatMeeting.timezone },
 	).plus({ days: breakout.day });
 	//const end = DateTime.fromFormat(`${imatMeeting.start} ${breakout.endTime}`, 'yyyy-MM-dd HH:mm', {zone: imatMeeting.timezone}).plus({days: breakout.day});
 
@@ -73,7 +73,7 @@ function convertBreakoutToMeetingEntry(
 	const bNameRe = new RegExp(breakout.name, "i");
 	const group =
 		groups.find(
-			(g) => g.name.toLowerCase() === breakout.name.toLowerCase()
+			(g) => g.name.toLowerCase() === breakout.name.toLowerCase(),
 		) || // near exact match
 		groups.find((g) => breakout.name.match(new RegExp(g.name, "i"))) || // case invariant substring match
 		groups.find((g) => g.name.match(bNameRe)); // both ways
@@ -158,7 +158,7 @@ function useImatBreakoutsEditState() {
 	const entities = useAppSelector(selectSyncedBreakoutEntities);
 	const imatMeetingId = useAppSelector(selectBreakoutMeetingId);
 
-	const initState = React.useCallback(() => {
+	const initState = useCallback(() => {
 		const breakouts = selected.map((id) => entities[id]).filter(Boolean);
 
 		if (loading && !valid) {
@@ -178,7 +178,7 @@ function useImatBreakoutsEditState() {
 		} else {
 			const entry = breakouts.reduce(
 				(entry, breakout) => deepMergeTagMultiple(entry, breakout),
-				{}
+				{},
 			) as BreakoutEntryMultiple;
 			return {
 				action: "update",
@@ -190,16 +190,13 @@ function useImatBreakoutsEditState() {
 		}
 	}, [loading, valid, selected, entities, imatMeetingId]);
 
-	const resetState = React.useCallback(
-		() => setState(initState),
-		[initState]
-	);
+	const resetState = useCallback(() => setState(initState), [initState]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (state.action === "add" || state.action === "import") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected([]));
@@ -213,7 +210,7 @@ function useImatBreakoutsEditState() {
 			const ids = state.breakouts.map((m) => m.id);
 			if (!isEqual(selected, ids)) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected(ids));
@@ -224,7 +221,7 @@ function useImatBreakoutsEditState() {
 		}
 	}, [selected, resetState]);
 
-	const [state, setState] = React.useState<ImatBreakoutsEditState>(initState);
+	const [state, setState] = useState<ImatBreakoutsEditState>(initState);
 
 	return [state, setState, resetState] as const;
 }
@@ -238,23 +235,23 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 
 	const imatMeetingId = state.imatMeetingId;
 	const imatMeeting = useAppSelector((state) =>
-		imatMeetingId ? selectImatMeeting(state, imatMeetingId) : undefined
+		imatMeetingId ? selectImatMeeting(state, imatMeetingId) : undefined,
 	);
 	const session = useAppSelector((state) =>
 		imatMeetingId
 			? selectSessionByImatMeetingId(state, imatMeetingId)
-			: undefined
+			: undefined,
 	);
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() =>
 			state.action === "add" ||
 			state.action === "import" ||
 			(state.action === "update" && state.edited !== state.saved),
-		[state]
+		[state],
 	);
 
-	const onChangeMeeting = React.useCallback(
+	const onChangeMeeting = useCallback(
 		(changes: MeetingEntryPartial) => {
 			setState((state) => {
 				if (readOnly) {
@@ -267,15 +264,15 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				}
 				const edited: MeetingEntryMultiple = deepMerge(
 					state.edited,
-					changes
+					changes,
 				);
 				return { ...state, edited } satisfies ImatBreakoutsEditState;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
-	const onChangeBreakout = React.useCallback(
+	const onChangeBreakout = useCallback(
 		(changes: BreakoutEntryPartial) => {
 			setState((state) => {
 				if (readOnly) {
@@ -285,7 +282,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				if (state.action === "add") {
 					const edited: SyncedBreakout = deepMerge(
 						state.edited,
-						changes
+						changes,
 					);
 					return {
 						...state,
@@ -294,7 +291,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				} else if (state.action === "update") {
 					let edited: BreakoutEntryMultiple = deepMerge(
 						state.edited,
-						changes
+						changes,
 					);
 					// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
 					changes = deepDiff(state.saved, edited) || {};
@@ -308,10 +305,10 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				return state;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (state.action === "import") {
 			let entry = state.edited;
 
@@ -326,8 +323,8 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 			const meetings = dates.map((date) =>
 				convertEntryToMeeting(
 					{ ...rest, date } as MeetingEntry,
-					state.session
-				)
+					state.session,
+				),
 			);
 			await dispatch(addMeetings(meetings));
 			resetState();
@@ -335,7 +332,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 			const entry = state.edited;
 			const imatMeetingId = state.imatMeetingId;
 			const [id] = await dispatch(
-				addBreakouts(imatMeetingId!, [state.edited])
+				addBreakouts(imatMeetingId!, [state.edited]),
 			);
 			if (entry.meetingId) {
 				await dispatch(
@@ -344,7 +341,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 							id: entry.meetingId,
 							changes: { imatMeetingId, imatBreakoutId: id },
 						},
-					])
+					]),
 				);
 			}
 			dispatch(setSelected([id]));
@@ -380,7 +377,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 
 			if (breakoutUpdates.length > 0) {
 				await dispatch(
-					updateBreakouts(imatMeetingId!, breakoutUpdates)
+					updateBreakouts(imatMeetingId!, breakoutUpdates),
 				);
 			}
 			if (meetingUpdates.length > 0) {
@@ -389,14 +386,14 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 		}
 	}, [state, resetState]);
 
-	const onAdd = React.useCallback(async () => {
+	const onAdd = useCallback(async () => {
 		if (readOnly) {
 			console.warn("onAdd: state is readOnly");
 			return;
 		}
 		if (state.action === "update" && hasChanges()) {
 			const ok = await ConfirmModal.show(
-				`Changes not applied! Do you want to discard changes?`
+				`Changes not applied! Do you want to discard changes?`,
 			);
 			if (!ok) return;
 		}
@@ -414,7 +411,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 		dispatch(setSelected([]));
 	}, [readOnly, state, setState]);
 
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		if (readOnly) {
 			console.warn("onDelete: state is readOnly");
 			return;
@@ -427,13 +424,13 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 		const ids = state.breakouts.map((m) => m.id);
 		const ok = await ConfirmModal.show(
 			"Are you sure you want to delete the selected " +
-				(ids.length > 1 ? ids.length + "entries?" : "entry?")
+				(ids.length > 1 ? ids.length + "entries?" : "entry?"),
 		);
 		if (!ok) return;
 		await dispatch(deleteBreakouts(state.imatMeetingId!, ids));
 	}, [state, dispatch]);
 
-	const onImport = React.useCallback(async () => {
+	const onImport = useCallback(async () => {
 		setState((state) => {
 			if (readOnly) {
 				console.warn("onImport: state is readOnly");
@@ -457,7 +454,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				imatMeeting,
 				session,
 				groupId,
-				groupEntities
+				groupEntities,
 			);
 			return {
 				...state,

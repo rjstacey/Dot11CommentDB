@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useCallback, type ComponentProps } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
@@ -25,7 +25,7 @@ const selectSubgroupOptions = createSelector(
 			}${entity.name}`;
 			return { value: id as string, label };
 		});
-	}
+	},
 );
 
 export function SubgroupSelector({
@@ -36,7 +36,7 @@ export function SubgroupSelector({
 	value: string;
 	onChange: (value: string) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	| "readOnly"
 	| "disabled"
 	| "id"
@@ -47,11 +47,11 @@ export function SubgroupSelector({
 >) {
 	const options = useAppSelector(selectSubgroupOptions);
 
-	const handleChange = React.useCallback(
+	const handleChange = useCallback(
 		(values: Option[]) => {
 			onChange(values.length > 0 ? values[0].value : "");
 		},
-		[onChange]
+		[onChange],
 	);
 
 	const values = options.filter((o) => o.value === value);
