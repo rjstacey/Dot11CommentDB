@@ -108,22 +108,22 @@ export function getField(entity: SyncedMeeting, key: string) {
 		}).toFormat("HH:mm");
 	if (key === "endTime")
 		return DateTime.fromISO(entity.end, { zone: entity.timezone }).toFormat(
-			"HH:mm"
+			"HH:mm",
 		);
 	if (key === "timeRange")
 		return (
 			DateTime.fromISO(entity.start, { zone: entity.timezone }).toFormat(
-				"HH:mm"
+				"HH:mm",
 			) +
 			"-" +
 			DateTime.fromISO(entity.end, { zone: entity.timezone }).toFormat(
-				"HH:mm"
+				"HH:mm",
 			)
 		);
 	if (key === "duration")
 		return DateTime.fromISO(entity.end).diff(
 			DateTime.fromISO(entity.start),
-			"hours"
+			"hours",
 		).hours;
 	if (key === "location") {
 		if (entity.roomId)
@@ -134,7 +134,7 @@ export function getField(entity: SyncedMeeting, key: string) {
 			"webexAccountName" in entity ? entity.webexAccountName : "Unknown";
 		return webexMeeting
 			? `${webexAccountName}: ${displayMeetingNumber(
-					webexMeeting.meetingNumber
+					webexMeeting.meetingNumber,
 				)}`
 			: "";
 	}
@@ -178,7 +178,7 @@ export const selectSyncedMeetingEntities = createSelector(
 		calendarAccountEntities,
 		imatMeetingEntities,
 		webexMeetingEntities,
-		sessionEntities
+		sessionEntities,
 	) => {
 		const entities: Record<EntityId, SyncedMeeting> = {};
 		for (const [id, meeting] of Object.entries(meetingEntities) as [
@@ -205,7 +205,7 @@ export const selectSyncedMeetingEntities = createSelector(
 					: undefined;
 			const room = meeting!.sessionId
 				? sessionEntities[meeting.sessionId]!.rooms?.find(
-						(room) => room.id === meeting.roomId
+						(room) => room.id === meeting.roomId,
 					)
 				: undefined;
 			const sessionName = meeting!.sessionId
@@ -225,7 +225,7 @@ export const selectSyncedMeetingEntities = createSelector(
 			};
 		}
 		return entities;
-	}
+	},
 );
 
 export const meetingsSelectors = getAppTableDataSelectors(selectMeetingsState, {

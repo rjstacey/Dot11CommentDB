@@ -97,7 +97,7 @@ function useMeetingsEditState() {
 	const session = useAppSelector(selectCurrentSession);
 	const defaultWebexAccountId = useAppSelector(selectWebexAccountDefaultId);
 	const defaultCalenderAccountId = useAppSelector(
-		selectCalendarAccountDefaultId
+		selectCalendarAccountDefaultId,
 	);
 	const groupId = useAppSelector(selectTopLevelGroupId)!;
 	const groupEntities = useAppSelector(selectGroupEntities);
@@ -141,7 +141,7 @@ function useMeetingsEditState() {
 				endTime = MULTIPLE;
 			} else {
 				const timeslot = session.timeslots.find(
-					(slot) => slot.id === slotId
+					(slot) => slot.id === slotId,
 				);
 				startTime = timeslot ? timeslot.startTime : "";
 				endTime = timeslot ? timeslot.endTime : "";
@@ -183,38 +183,20 @@ function useMeetingsEditState() {
 					const slot = toSlotId(
 						entry.date,
 						entry.startSlotId || 0,
-						entry.roomId || 0
+						entry.roomId || 0,
 					);
 					return {
 						...(deepMergeTagMultiple(
 							accumulatedEntry,
-							entry
+							entry,
 						) as MeetingEntryMultiple),
 						dates: accumulatedEntry.dates.concat([entry.date]),
 						slots: accumulatedEntry.slots.concat([slot]),
 					};
 				},
-				{ dates: [], slots: [] } as unknown as MeetingEntryMultiple
+				{ dates: [], slots: [] } as unknown as MeetingEntryMultiple,
 			);
 			entry.dates = [...new Set(entry.dates.sort())]; // array of unique dates
-			entry.sessionId = session.id;
-			entry.timezone = session.timezone;
-			entry.isCancelled = false;
-			const subgroup =
-				entry.organizationId && groupEntities[entry.organizationId];
-			entry.summary = subgroup ? subgroup.name : "";
-			entry.webexAccountId = defaultWebexAccountId;
-			entry.webexMeetingId = null;
-			entry.calendarAccountId = defaultCalenderAccountId;
-			entry.calendarEventId = null;
-			entry.imatMeetingId = session ? session.imatMeetingId : null;
-			entry.imatBreakoutId = null;
-			entry.imatGracePeriod = 10;
-			entry.webexMeeting = {
-				id: "",
-				...defaultWebexMeeting,
-				accountId: defaultWebexAccountId,
-			};
 			return {
 				action: "update",
 				edited: entry,
@@ -236,16 +218,71 @@ function useMeetingsEditState() {
 		groupEntities,
 	]);
 
+	const [state, setState] = React.useState<MeetingsEditState>(initState);
+
 	const resetState = React.useCallback(
 		() => setState(initState),
-		[initState]
+		[initState],
 	);
+
+	const setAddState = React.useCallback(() => {
+		let edited: MeetingEntryMultiple;
+		if (state.action === "update") {
+			const entry = state.edited;
+			edited = {
+				...entry,
+				startTime: isMultiple(entry.startTime) ? "" : entry.startTime,
+				endTime: isMultiple(entry.endTime) ? "" : entry.endTime,
+				organizationId: isMultiple(entry.organizationId)
+					? groupId
+					: entry.organizationId,
+				hasMotions: isMultiple(entry.hasMotions)
+					? false
+					: entry.hasMotions,
+			};
+		} else {
+			if (!session) throw new Error("No current session");
+
+			edited = {
+				...defaultMeetingEntry,
+				date: "",
+				dates: [],
+				slots: [],
+				startSlotId: 0,
+				roomId: 0,
+				startTime: "",
+				endTime: "",
+				duration: "",
+				organizationId: groupId,
+				webexAccountId: defaultWebexAccountId,
+				calendarAccountId: defaultCalenderAccountId,
+				imatMeetingId: session.imatMeetingId,
+				webexMeeting: {
+					id: "",
+					...defaultWebexMeeting,
+					accountId: defaultWebexAccountId,
+				},
+			};
+		}
+		setState({
+			...state,
+			action: "add-by-date",
+			edited,
+			saved: undefined,
+		} satisfies MeetingsEditState);
+	}, [
+		state,
+		defaultWebexAccountId,
+		defaultCalenderAccountId,
+		session,
+		groupId,
+	]);
 
 	React.useEffect(() => {
 		if (state.action === "add-by-date" || state.action === "add-by-slot") {
 			if (selectedMeetings.length > 0) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelectedMeetings([]));
@@ -259,7 +296,7 @@ function useMeetingsEditState() {
 			const ids = state.meetings.map((m) => m.id);
 			if (!isEqual(selectedMeetings, ids)) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelectedMeetings(ids));
@@ -270,23 +307,20 @@ function useMeetingsEditState() {
 		}
 	}, [selectedMeetings, resetState]);
 
-	const [state, setState] = React.useState<MeetingsEditState>(initState);
-
-	return [state, setState, resetState] as const;
+	return [state, setState, resetState, setAddState] as const;
 }
 
 export function useMeetingsEdit(readOnly: boolean) {
 	const dispatch = useAppDispatch();
-	const groupId = useAppSelector(selectTopLevelGroupId)!;
 
-	const [state, setState, resetState] = useMeetingsEditState();
+	const [state, setState, resetState, setAddState] = useMeetingsEditState();
 
 	const hasChanges = React.useCallback(
 		() =>
 			state.action === "add-by-date" ||
 			state.action === "add-by-slot" ||
 			(state.action === "update" && state.edited !== state.saved),
-		[state]
+		[state],
 	);
 
 	const onChange = React.useCallback(
@@ -302,13 +336,13 @@ export function useMeetingsEdit(readOnly: boolean) {
 				) {
 					const edited: MeetingEntryMultiple = deepMerge(
 						state.edited,
-						changes
+						changes,
 					);
 					return { ...state, edited } satisfies MeetingsEditState;
 				} else if (state.action === "update") {
 					let edited: MeetingEntryMultiple = deepMerge(
 						state.edited,
-						changes
+						changes,
 					);
 					// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
 					changes = deepDiff(state.saved, edited) || {};
@@ -319,7 +353,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 				return state;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
 	const submit = React.useCallback(async () => {
@@ -354,7 +388,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 					meetings = slots.map((id) => {
 						const [date, startSlotId, roomId] = fromSlotId(id);
 						const slot = session.timeslots.find(
-							(slot) => slot.id === startSlotId
+							(slot) => slot.id === startSlotId,
 						);
 						if (!slot) throw new Error("Bad timeslot identifier");
 						const startTime = slot.startTime;
@@ -368,7 +402,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 								endTime,
 								roomId,
 							} as MeetingEntry,
-							session
+							session,
 						);
 					});
 				} catch (error: unknown) {
@@ -382,8 +416,8 @@ export function useMeetingsEdit(readOnly: boolean) {
 				meetings = dates.map((date) =>
 					convertEntryToMeeting(
 						{ ...rest, date } as MeetingEntry,
-						session
-					)
+						session,
+					),
 				);
 			}
 
@@ -403,12 +437,12 @@ export function useMeetingsEdit(readOnly: boolean) {
 			for (const meeting of meetings) {
 				const local = deepMerge(
 					convertMeetingToEntry(meeting, session),
-					diff
+					diff,
 				) as MeetingEntry;
 				const updated = convertEntryToMeeting(local, session);
 				const changes = deepDiff(
 					meeting,
-					updated
+					updated,
 				) as MeetingUpdate["changes"];
 
 				// If a (new) webex account is given, add a webex meeting
@@ -431,51 +465,13 @@ export function useMeetingsEdit(readOnly: boolean) {
 		}
 		if (state.action === "update" && hasChanges()) {
 			const ok = await ConfirmModal.show(
-				`Changes not applied! Do you want to discard changes?`
+				`Changes not applied! Do you want to discard changes?`,
 			);
 			if (!ok) return;
 		}
-		let edited: MeetingEntryMultiple;
-		if (state.action === "update") {
-			const entry = state.edited;
-			edited = {
-				...entry,
-				startTime: isMultiple(entry.startTime) ? "" : entry.startTime,
-				endTime: isMultiple(entry.startTime) ? "" : entry.startTime,
-				organizationId: isMultiple(entry.organizationId)
-					? groupId
-					: entry.organizationId,
-				hasMotions: isMultiple(entry.hasMotions)
-					? false
-					: entry.hasMotions,
-			};
-		} else {
-			edited = {
-				...defaultMeetingEntry,
-				date: "",
-				dates: [],
-				slots: [],
-				startSlotId: 0,
-				roomId: 0,
-				startTime: "",
-				endTime: "",
-				duration: "",
-				organizationId: groupId,
-				webexMeeting: {
-					id: "",
-					...defaultWebexMeeting,
-					accountId: null,
-				},
-			};
-		}
-		setState((state) => ({
-			...state,
-			action: "add-by-date",
-			edited,
-			saved: undefined,
-		}));
+		setAddState();
 		dispatch(setSelectedMeetings([]));
-	}, [readOnly, dispatch]);
+	}, [readOnly, dispatch, setAddState]);
 
 	const onDelete = React.useCallback(async () => {
 		if (readOnly) {
@@ -490,11 +486,11 @@ export function useMeetingsEdit(readOnly: boolean) {
 		const ids = state.meetings.map((m) => m.id);
 		const ok = await ConfirmModal.show(
 			"Are you sure you want to delete the selected " +
-				(ids.length > 1 ? ids.length + "entries?" : "entry?")
+				(ids.length > 1 ? ids.length + "entries?" : "entry?"),
 		);
 		if (!ok) return;
 		await dispatch(deleteMeetings(ids));
-	}, [dispatch]);
+	}, [readOnly, dispatch, state]);
 
 	const onSync = React.useCallback(async () => {
 		if (readOnly) {
@@ -514,7 +510,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 		});
 
 		await dispatch(updateMeetings(updates));
-	}, [dispatch]);
+	}, [readOnly, dispatch, state]);
 
 	return {
 		state,

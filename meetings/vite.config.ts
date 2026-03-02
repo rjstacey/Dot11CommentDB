@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
+import https from "node:https";
 
 export default defineConfig(({ command, mode }) => {
 	const __dirname = process.cwd();
@@ -77,6 +78,18 @@ export default defineConfig(({ command, mode }) => {
 				"^(/api|/auth|/oauth2|/login|/logout)": {
 					target: env.SERVER,
 					changeOrigin: true,
+					agent: new https.Agent({
+						proxyEnv: {
+							HTTPS_PROXY:
+								process.env.HTTPS_PROXY ||
+								process.env.https_proxy,
+							HTTP_PROXY:
+								process.env.HTTP_PROXY ||
+								process.env.http_proxy,
+							NO_PROXY:
+								process.env.NO_PROXY || process.env.no_proxy,
+						},
+					}),
 				},
 				"/socket.io": {
 					target: env.SERVER,

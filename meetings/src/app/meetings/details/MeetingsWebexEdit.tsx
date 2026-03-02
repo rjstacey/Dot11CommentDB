@@ -18,7 +18,7 @@ export function MeetingsWebexEdit({
 	readOnly?: boolean;
 }) {
 	function handleWebexMeetingChange(
-		webexMeetingChanges: WebexMeetingEntryPartial
+		webexMeetingChanges: WebexMeetingEntryPartial,
 	) {
 		const changes: MeetingEntryPartial = {
 			webexMeeting: webexMeetingChanges,
@@ -27,6 +27,8 @@ export function MeetingsWebexEdit({
 			changes.webexAccountId = webexMeetingChanges.accountId;
 		changeEntry(changes);
 	}
+
+	console.log(entry);
 
 	return (
 		<>
