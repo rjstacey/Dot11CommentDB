@@ -147,10 +147,10 @@ function initExpressApp() {
 	if (process.env.NODE_ENV === "development") app.use(requestLog);
 
 	// Default is to expire immediately
-	app.use((req, res, next) => {
-		res.setHeader("Cache-Control", "max-age=0");
-		next();
-	});
+	//app.use((req, res, next) => {
+	//	res.setHeader("Cache-Control", "max-age=0");
+	//	next();
+	//});
 
 	app.get("/health-check", async (req, res) => {
 		res.status(200).send("I'm healthy!");
@@ -165,7 +165,15 @@ function initExpressApp() {
 	if (process.env.NODE_ENV === "development")
 		dir = path.join(dir, "../build");
 
-	app.use(express.static(dir, { maxAge: 31536000 }));
+	app.use(
+		express.static(dir, {
+			maxAge: "1d",
+			setHeaders: (res, file) => {
+				if (path.extname(file) === ".html")
+					res.setHeader("Cache-Control", "no-cache");
+			},
+		}),
+	);
 
 	/* If we can't find the static file, send the index page
 	 * (e.g., a request for old asset) */
