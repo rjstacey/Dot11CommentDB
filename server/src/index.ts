@@ -167,6 +167,7 @@ function initExpressApp() {
 
 	app.use(
 		express.static(dir, {
+			immutable: true,
 			maxAge: "1d",
 			setHeaders: (res, file) => {
 				if (path.extname(file) === ".html")
