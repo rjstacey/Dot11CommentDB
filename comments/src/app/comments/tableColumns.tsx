@@ -1,4 +1,4 @@
-import React from "react";
+import type { ComponentProps } from "react";
 import {
 	SelectExpandHeaderCell,
 	SelectExpandCell,
@@ -31,7 +31,7 @@ import {
 
 import styles from "./details/comments.module.css";
 
-const FlexRow = (props: React.ComponentProps<"div">) => (
+const FlexRow = (props: ComponentProps<"div">) => (
 	<div className={styles.row} {...props} />
 );
 
@@ -118,7 +118,7 @@ function renderDataCellResolution({ rowData }: { rowData: CommentResolution }) {
 const DataSubcomponent = ({
 	width,
 	...props
-}: { width: number | string } & React.ComponentProps<"div">) => (
+}: { width: number | string } & ComponentProps<"div">) => (
 	<div
 		className={styles.subcomponent}
 		style={{
@@ -133,9 +133,7 @@ const DataSubcomponent = ({
 const HeaderSubcomponent = ({
 	width,
 	...props
-}: { width?: number | string } & React.ComponentProps<
-	typeof TableColumnHeader
->) => (
+}: { width?: number | string } & ComponentProps<typeof TableColumnHeader>) => (
 	<TableColumnHeader
 		className={styles.subcomponent}
 		style={{

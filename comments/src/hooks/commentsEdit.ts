@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
 	ConfirmModal,
 	shallowDiff,
@@ -97,14 +97,14 @@ export function useCommentsEdit(readOnly: boolean) {
 	const dispatch = useAppDispatch();
 	const { selected, entities, loading, valid } =
 		useAppSelector(selectCommentsState);
-	const commentResolutions = React.useMemo(
+	const commentResolutions = useMemo(
 		() => selected.map((id) => entities[id]!).filter(Boolean),
-		[selected, entities]
+		[selected, entities],
 	);
 	const [commentsAccess, resolutionsAccess] =
 		useCommentsAccess(commentResolutions);
 
-	const initState = React.useCallback((): CommentsEditState => {
+	const initState = useCallback((): CommentsEditState => {
 		let message: string;
 		if (loading && !valid) {
 			message = "Loading...";
@@ -143,13 +143,13 @@ export function useCommentsEdit(readOnly: boolean) {
 		} satisfies CommentsEditState;
 	}, [commentResolutions, loading, valid]);
 
-	const [state, setState] = React.useState<CommentsEditState>(initState);
+	const [state, setState] = useState<CommentsEditState>(initState);
 
 	const triggerSave = useDebounce(() => {
 		if (state.action !== "update") return;
 		const c_changes = shallowDiff(
 			state.commentsSaved,
-			state.commentsEdited
+			state.commentsEdited,
 		) as CommentChange;
 		if (Object.keys(c_changes).length > 0) {
 			const updates = state.comments.map((c) => ({
@@ -160,7 +160,7 @@ export function useCommentsEdit(readOnly: boolean) {
 		}
 		const r_changes: ResolutionChange = shallowDiff(
 			state.resolutionsSaved,
-			state.resolutionsEdited
+			state.resolutionsEdited,
 		) as ResolutionChange;
 		if (Object.keys(r_changes).length > 0) {
 			const updates: ResolutionUpdate[] = [];
@@ -185,7 +185,7 @@ export function useCommentsEdit(readOnly: boolean) {
 		});
 	});
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (
 			state.action === "update" &&
 			(state.commentsEdited !== state.commentsSaved ||
@@ -196,7 +196,7 @@ export function useCommentsEdit(readOnly: boolean) {
 		setState(initState());
 	}, [initState]);
 
-	const onChangeComments = React.useCallback(
+	const onChangeComments = useCallback(
 		(changes: CommentChange) => {
 			setState((state) => {
 				if (readOnly) {
@@ -212,10 +212,10 @@ export function useCommentsEdit(readOnly: boolean) {
 				return { ...state, commentsEdited };
 			});
 		},
-		[readOnly, setState, triggerSave]
+		[readOnly, setState, triggerSave],
 	);
 
-	const onChangeResolutions = React.useCallback(
+	const onChangeResolutions = useCallback(
 		(changes: ResolutionChange) => {
 			setState((state) => {
 				if (readOnly) {
@@ -234,7 +234,7 @@ export function useCommentsEdit(readOnly: boolean) {
 				return { ...state, resolutionsEdited };
 			});
 		},
-		[readOnly, setState, triggerSave]
+		[readOnly, setState, triggerSave],
 	);
 
 	const onAddResolutions = async () => {
@@ -253,7 +253,7 @@ export function useCommentsEdit(readOnly: boolean) {
 					? "One of the comments has an approved resolution."
 					: "The comment has an approved resolution.";
 			const ok = await ConfirmModal.show(
-				msg + " Are you sure you want to add another resolution?"
+				msg + " Are you sure you want to add another resolution?",
 			);
 			if (!ok) return;
 		}

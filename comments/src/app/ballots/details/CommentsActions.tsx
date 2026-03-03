@@ -1,4 +1,10 @@
-import React from "react";
+import {
+	useState,
+	useRef,
+	useLayoutEffect,
+	type FormEvent,
+	type ChangeEvent,
+} from "react";
 import {
 	Row,
 	Col,
@@ -32,12 +38,12 @@ function ChangeStartCIDForm({
 	close?: () => void;
 }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const [startCID, setStartCID] = React.useState<string>(
-		"" + (ballot.Comments?.CommentIDMin || 1)
+	const [busy, setBusy] = useState(false);
+	const [startCID, setStartCID] = useState<string>(
+		"" + (ballot.Comments?.CommentIDMin || 1),
 	);
 
-	const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(setStartCommentId(ballot.id, Number(startCID)));
@@ -80,7 +86,7 @@ function ChangeStartCIDForm({
 }
 
 function ChangeStartCID({ ballot }: { ballot: Ballot }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<DropdownButton
 			variant="light"
@@ -101,13 +107,13 @@ function ChangeStartCID({ ballot }: { ballot: Ballot }) {
 
 function DeleteComments({ ballot }: { ballot: Ballot }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
+	const [busy, setBusy] = useState(false);
 
 	async function onDelete() {
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete comments for ${getBallotId(
-				ballot
-			)}?`
+				ballot,
+			)}?`,
 		);
 		if (!ok) return;
 		setBusy(true);
@@ -129,12 +135,12 @@ function DeleteComments({ ballot }: { ballot: Ballot }) {
 
 function ImportComments({ ballot }: { ballot: Ballot }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
+	const [busy, setBusy] = useState(false);
 
 	const onImport = async () => {
 		if (ballot.Comments.Count) {
 			const ok = await ConfirmModal.show(
-				"Are you sure you want to replace the existing comments?"
+				"Are you sure you want to replace the existing comments?",
 			);
 			if (!ok) return;
 		}
@@ -162,17 +168,17 @@ function ImportComments({ ballot }: { ballot: Ballot }) {
 
 function UploadComments({ ballot }: { ballot: Ballot }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const inputRef = React.useRef<HTMLInputElement>(null);
-	const [inputValue, setInputValue] = React.useState("");
+	const [busy, setBusy] = useState(false);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const [inputValue, setInputValue] = useState("");
 
-	const onChangeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	const onChangeFile = async (e: ChangeEvent<HTMLInputElement>) => {
 		setInputValue(e.target.value);
 		const file = e.target.files?.[0];
 		if (!file) return;
 		if (ballot.Comments.Count) {
 			const ok = await ConfirmModal.show(
-				"Are you sure you want to replace the existing comments?"
+				"Are you sure you want to replace the existing comments?",
 			);
 			if (!ok) return;
 		}
@@ -212,25 +218,23 @@ function AddMemberCommentsForm({
 	close?: () => void;
 }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const [commenterSAPIN, setCommenterSAPIN] = React.useState<number | null>(
-		null
-	);
-	const [file, setFile] = React.useState<File | undefined>();
-	const formRef = React.useRef<HTMLFormElement>(null);
-	const [formValid, setFormValid] = React.useState(false);
+	const [busy, setBusy] = useState(false);
+	const [commenterSAPIN, setCommenterSAPIN] = useState<number | null>(null);
+	const [file, setFile] = useState<File | undefined>();
+	const formRef = useRef<HTMLFormElement>(null);
+	const [formValid, setFormValid] = useState(false);
 
-	React.useLayoutEffect(() => {
+	useLayoutEffect(() => {
 		const formValid = formRef.current?.checkValidity() || false;
 		setFormValid(formValid);
 	});
 
-	const onChangeFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const onChangeFile = (e: ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		setFile(file);
 	};
 
-	const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(uploadUserComments(ballot.id, commenterSAPIN!, file!));
@@ -290,7 +294,7 @@ function AddMemberCommentsForm({
 }
 
 function AddMemberComments({ ballot }: { ballot: Ballot }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<DropdownButton
 			variant="light"
@@ -309,11 +313,11 @@ function AddMemberComments({ ballot }: { ballot: Ballot }) {
 
 function AddPublicReviewComments({ ballot }: { ballot: Ballot }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const inputRef = React.useRef<HTMLInputElement>(null);
-	const [inputValue, setInputValue] = React.useState("");
+	const [busy, setBusy] = useState(false);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const [inputValue, setInputValue] = useState("");
 
-	const onChangeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	const onChangeFile = async (e: ChangeEvent<HTMLInputElement>) => {
 		setInputValue(e.target.value);
 		const file = e.target.files?.[0];
 		if (!file) return;

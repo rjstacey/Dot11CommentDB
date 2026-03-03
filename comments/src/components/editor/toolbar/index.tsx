@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useEffect, useRef } from "react";
 import { UndoRedo } from "./UndoRedo";
 import { TextBlockGroup } from "./TextBlockGroup";
 import { TextFormatGroup } from "./TextFormatGroup";
@@ -10,10 +10,10 @@ const breakpointSmall = 525;
 const breakpointMedium = 625;
 
 export function Toolbar() {
-	const containerRef = React.useRef<HTMLDivElement>(null);
-	const [size, setSize] = React.useState<Size>("lg");
+	const containerRef = useRef<HTMLDivElement>(null);
+	const [size, setSize] = useState<Size>("lg");
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const el = containerRef.current?.parentElement;
 		if (!el) return;
 		const ro = new ResizeObserver((entries) => {

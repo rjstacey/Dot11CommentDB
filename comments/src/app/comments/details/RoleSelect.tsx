@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import { Dropdown, DropdownButton } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -17,9 +17,9 @@ export function RoleSelect() {
 	const user = useAppSelector(selectUser);
 	const ballot = useAppSelector(selectCommentsBallot);
 	const groups = useAppSelector((state) =>
-		ballot ? selectGroupHeirarchy(state, ballot.groupId) : []
+		ballot ? selectGroupHeirarchy(state, ballot.groupId) : [],
 	);
-	const options = React.useMemo(() => {
+	const options = useMemo(() => {
 		const options: Option[] = [{ label: "Member", value: null }];
 		groups.forEach((g) => {
 			if (g.officerSAPINs.includes(user.SAPIN))

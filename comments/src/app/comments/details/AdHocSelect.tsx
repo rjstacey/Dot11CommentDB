@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type ComponentProps } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { Select, SelectRendererProps } from "@common";
@@ -30,14 +30,14 @@ const selectAdHocOptions = createSelector(
 		groupIds,
 		groupEntities,
 		commentIds,
-		commentEntities
+		commentEntities,
 	) => {
 		const adhocs: AdHoc[] = [];
 		new Set(
 			commentIds
 				.map((id) => commentEntities[id]!)
 				.filter((c) => !c.AdHocGroupId && c.AdHoc)
-				.map((c) => c.AdHoc)
+				.map((c) => c.AdHoc),
 		).forEach((AdHoc) => adhocs.push({ GroupId: null, Name: AdHoc }));
 
 		const ballot = ballot_id ? ballotEntities[ballot_id] : undefined;
@@ -52,7 +52,7 @@ const selectAdHocOptions = createSelector(
 			}
 		}
 		return adhocs;
-	}
+	},
 );
 
 const itemRenderer = ({ item }: { item: AdHoc }) => {
@@ -74,11 +74,11 @@ export function AdHocSelect({
 	value: AdHoc;
 	onChange: (value: AdHoc) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const existingOptions = useAppSelector(selectAdHocOptions);
-	const [options, setOptions] = React.useState(existingOptions);
+	const [options, setOptions] = useState(existingOptions);
 
 	async function createOption({ state }: SelectRendererProps<AdHoc>) {
 		const option = {
@@ -94,7 +94,7 @@ export function AdHocSelect({
 		values = options.filter((o) => o.GroupId === value.GroupId);
 	} else if (value.Name) {
 		values = options.filter(
-			(o) => o.GroupId === null && o.Name === value.Name
+			(o) => o.GroupId === null && o.Name === value.Name,
 		);
 	} else {
 		values = [];

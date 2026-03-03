@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { CSSProperties } from "react";
 import { Container, Row, Col, DropdownButton, Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -25,7 +25,7 @@ function copyHtmlToClipboard(html: string) {
 const camelToKebab = (value: string) =>
 	value.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
 
-function styleObjToString(style: React.CSSProperties) {
+function styleObjToString(style: CSSProperties) {
 	return Object.entries(style)
 		.map(([key, value]) => `${camelToKebab(key)}: ${value}`)
 		.join("; ");
@@ -33,7 +33,7 @@ function styleObjToString(style: React.CSSProperties) {
 
 type Label = string | ((b: Ballot) => string);
 type Value = null | ((b: Ballot) => string | number);
-type Style = undefined | ((b: Ballot) => React.CSSProperties);
+type Style = undefined | ((b: Ballot) => CSSProperties);
 
 type ResultRender = {
 	label?: Label;
@@ -65,7 +65,7 @@ const ballotDuration = (b: Ballot) => {
 		const dEnd = new Date(b.End);
 		const _MS_PER_DAY = 1000 * 60 * 60 * 24;
 		const dur = Math.floor(
-			(dEnd.valueOf() - dStart.valueOf()) / _MS_PER_DAY
+			(dEnd.valueOf() - dStart.valueOf()) / _MS_PER_DAY,
 		);
 		if (!isNaN(dur)) return `${dur} days`;
 	}
@@ -362,7 +362,7 @@ function resultsSummary(ballot: Ballot) {
 	return (
 		<span style={overallPass(ballot) ? passStyle : failStyle}>
 			{`${r.Approve}/${r.Disapprove}/${r.Abstain} (${approvalRateStr(
-				ballot
+				ballot,
 			)})`}
 		</span>
 	);

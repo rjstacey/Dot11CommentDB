@@ -1,4 +1,4 @@
-import React from "react";
+import { useMemo, type ComponentProps } from "react";
 import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectGroups, Group, selectGroupEntities } from "@/store/groups";
@@ -32,22 +32,24 @@ function renderGroupName(
 function useGroupOptions() {
 	const entities = useAppSelector(selectGroupEntities);
 	const groups = useAppSelector(selectGroups);
-	return React.useMemo(() => {
-		return groups
-			.sort((g1, g2) => {
-				if (g1.status === g2.status) return 0;
-				if (g1.status && !g2.status) return -1;
-				return 1;
-			})
-			.map(
-				(group) =>
-					({
-						id: group.id,
-						label: renderGroupName(group, entities),
-						active: Boolean(group.status),
-					}) satisfies GroupOption,
-			);
-	}, [groups, entities]);
+	return useMemo(
+		() =>
+			groups
+				.sort((g1, g2) => {
+					if (g1.status === g2.status) return 0;
+					if (g1.status && !g2.status) return -1;
+					return 1;
+				})
+				.map(
+					(group) =>
+						({
+							id: group.id,
+							label: renderGroupName(group, entities),
+							active: Boolean(group.status),
+						}) satisfies GroupOption,
+				),
+		[groups, entities],
+	);
 }
 
 const renderOption = ({ item }: { item: GroupOption }) =>
@@ -65,7 +67,7 @@ function SelectGroup({
 	value: string | null;
 	onChange: (value: string | null) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	| "placeholder"
 	| "readOnly"
 	| "disabled"

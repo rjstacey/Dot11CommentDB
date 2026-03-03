@@ -1,4 +1,4 @@
-import React from "react";
+import type { CSSProperties } from "react";
 import { Link } from "react-router";
 
 import {
@@ -84,7 +84,7 @@ const renderHeaderStartEnd = (props: HeaderCellRendererProps) => (
 const renderCellStartEnd = ({ rowData }: { rowData: SyncedBallot }) =>
 	displayDateRange(rowData.Start || "", rowData.End || "");
 
-const lineTruncStyle: React.CSSProperties = {
+const lineTruncStyle: CSSProperties = {
 	overflow: "hidden",
 	whiteSpace: "nowrap",
 	textOverflow: "ellipses",

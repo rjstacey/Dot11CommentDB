@@ -1,4 +1,4 @@
-import React from "react";
+import { useMemo, type CSSProperties } from "react";
 import { FormCheck } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router";
 
@@ -51,16 +51,16 @@ function ProjectSelect({
 	onChange: (value: GroupProject) => void;
 	loading: boolean;
 	readOnly?: boolean;
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	id?: string;
 }) {
 	const options = useAppSelector(selectGroupProjectOptions);
 	const values = options.filter(
-		(o) => value.groupId === o.groupId && value.project === o.project
+		(o) => value.groupId === o.groupId && value.project === o.project,
 	);
 	const handleChange = (values: typeof options) =>
 		onChange(
-			values.length > 0 ? values[0] : { groupId: null, project: null }
+			values.length > 0 ? values[0] : { groupId: null, project: null },
 		);
 
 	return (
@@ -86,11 +86,11 @@ function BallotSelect({
 	onChange: (value: number | null) => void;
 	loading: boolean;
 	readOnly?: boolean;
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	id?: string;
 }) {
 	const ballots = useAppSelector(selectBallotOptions);
-	const options = React.useMemo(
+	const options = useMemo(
 		() =>
 			ballots.map((b) => ({
 				value: b.id,
@@ -101,7 +101,7 @@ function BallotSelect({
 					" on " +
 					b.Document,
 			})),
-		[ballots]
+		[ballots],
 	);
 	const values = options.filter((o) => o.value === value);
 	const handleChange = (values: typeof options) =>
@@ -129,7 +129,7 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 
 	const { ballotId } = useParams();
 	const ballot = useAppSelector((state) =>
-		ballotId ? selectBallotByBallotID(state, ballotId) : undefined
+		ballotId ? selectBallotByBallotID(state, ballotId) : undefined,
 	);
 	const ballot_id = ballot?.id || null;
 	let groupProject = useAppSelector(selectCurrentGroupProject);

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useEffect } from "react";
 import { selectUser } from "@/store";
 import { useAppSelector } from "@/store/hooks";
 import { selectCommentsRoleAccess, CommentResolution } from "@/store/comments";
@@ -9,14 +9,14 @@ export function useCommentsAccess(comments: CommentResolution[]) {
 	const access = useAppSelector(selectCommentsRoleAccess);
 	const groupEntities = useAppSelector(selectGroupEntities);
 
-	const [commentsAccess, setCommentsAccess] = React.useState<number>(
-		AccessLevel.none
+	const [commentsAccess, setCommentsAccess] = useState<number>(
+		AccessLevel.none,
 	);
-	const [resolutionsAccess, setResolutionsAccess] = React.useState<number>(
-		AccessLevel.none
+	const [resolutionsAccess, setResolutionsAccess] = useState<number>(
+		AccessLevel.none,
 	);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		/* User has read-write comments access if the user is an officer of the assigned ad-hoc */
 		let commentsAccess = access;
 		if (commentsAccess <= AccessLevel.ro) {
@@ -41,7 +41,7 @@ export function useCommentsAccess(comments: CommentResolution[]) {
 		if (
 			resolutionsAccess <= AccessLevel.ro &&
 			comments.every(
-				(c) => c.AssigneeSAPIN === user.SAPIN && !c.ApprovedByMotion
+				(c) => c.AssigneeSAPIN === user.SAPIN && !c.ApprovedByMotion,
 			)
 		) {
 			resolutionsAccess = AccessLevel.rw;

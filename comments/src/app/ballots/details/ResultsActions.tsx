@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useRef, type ChangeEvent } from "react";
 import { Button, Row, Col, Form, Spinner } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 
@@ -9,13 +9,13 @@ import { getBallotId, Ballot } from "@/store/ballots";
 
 function DeleteResults({ ballot }: { ballot: Ballot }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
+	const [busy, setBusy] = useState(false);
 
 	async function onClick() {
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete results for ${getBallotId(
-				ballot
-			)}?`
+				ballot,
+			)}?`,
 		);
 		if (!ok) return;
 		setBusy(true);
@@ -33,13 +33,13 @@ function DeleteResults({ ballot }: { ballot: Ballot }) {
 
 function ImportResults({ ballot }: { ballot: Ballot }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
+	const [busy, setBusy] = useState(false);
 	const isReimport = Boolean(ballot.Results?.TotalReturns);
 
 	async function onClick() {
 		if (isReimport) {
 			const ok = await ConfirmModal.show(
-				"Are you sure you want to replace the existing results?"
+				"Are you sure you want to replace the existing results?",
 			);
 			if (!ok) return;
 		}
@@ -60,18 +60,18 @@ function ImportResults({ ballot }: { ballot: Ballot }) {
 
 function UploadResults({ ballot }: { ballot: Ballot }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const inputRef = React.useRef<HTMLInputElement>(null);
-	const [inputValue, setInputValue] = React.useState("");
+	const [busy, setBusy] = useState(false);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const [inputValue, setInputValue] = useState("");
 	const isReimport = Boolean(ballot.Results?.TotalReturns);
 
-	const onChangeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	const onChangeFile = async (e: ChangeEvent<HTMLInputElement>) => {
 		setInputValue(e.target.value);
 		const file = e.target.files?.[0];
 		if (!file) return;
 		if (isReimport) {
 			const ok = await ConfirmModal.show(
-				"Are you sure you want to replace the existing results?"
+				"Are you sure you want to replace the existing results?",
 			);
 			if (!ok) return;
 		}

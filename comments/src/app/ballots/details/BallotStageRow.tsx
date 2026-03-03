@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple } from "@common";
 
@@ -17,7 +17,7 @@ function useGetPrevBallot() {
 	const ids = useAppSelector(selectBallotIds);
 	const entities = useAppSelector(selectBallotEntities);
 
-	return React.useCallback(
+	return useCallback(
 		({
 			id,
 			groupId,
@@ -40,17 +40,17 @@ function useGetPrevBallot() {
 						b.Project === Project &&
 						new Date(b.Start!).getTime() <
 							new Date(Start!).getTime() &&
-						b.id !== id
+						b.id !== id,
 				)
 				.sort(
 					(b1, b2) =>
 						new Date(b1.Start!).getTime() -
-						new Date(b2.Start!).getTime()
+						new Date(b2.Start!).getTime(),
 				);
 			if (prevBallots.length > 0)
 				return prevBallots[prevBallots.length - 1];
 		},
-		[ids, entities]
+		[ids, entities],
 	);
 }
 
@@ -101,7 +101,7 @@ export function BallotStageRow({
 													prev_id: prevBallot
 														? prevBallot.id
 														: null,
-												}
+												},
 									)
 					}
 					ref={(ref) =>
@@ -125,7 +125,7 @@ export function BallotStageRow({
 												}
 											: {
 													prev_id: null,
-												}
+												},
 									)
 					}
 					ref={(ref) =>

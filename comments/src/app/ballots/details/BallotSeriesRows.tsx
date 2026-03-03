@@ -1,4 +1,4 @@
-import React from "react";
+import type { CSSProperties, ChangeEvent } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple } from "@common";
 
@@ -28,11 +28,7 @@ export function BallotSeriesRows({
 	if (edited.Type !== BallotType.WG && edited.Type !== BallotType.SA)
 		return null;
 
-	function ballotSeriesNode(
-		b: Ballot,
-		i: number,
-		style?: React.CSSProperties,
-	) {
+	function ballotSeriesNode(b: Ballot, i: number, style?: CSSProperties) {
 		return (
 			<span
 				key={b.id}
@@ -123,7 +119,7 @@ export function BallotSeriesRows({
 		}
 	}
 
-	function onChangeIsComplete(e: React.ChangeEvent<HTMLInputElement>) {
+	function onChangeIsComplete(e: ChangeEvent<HTMLInputElement>) {
 		if (readOnly) return;
 		onChange({
 			IsComplete: e.target.checked,

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState } from "react";
 import {
 	DropdownButton,
 	Form,
@@ -119,12 +119,11 @@ function CommentsExportDropdown({
 }) {
 	const dispatch = useAppDispatch();
 
-	const [format, setFormat] = React.useState<CommentsExportFormat>("modern");
-	const [style, setStyle] =
-		React.useState<CommentsExportStyle>("AllComments");
-	const [file, setFile] = React.useState<File | null>(null);
-	const [appendSheets, setAppendSheets] = React.useState<boolean>(false);
-	const [busy, setBusy] = React.useState(false);
+	const [format, setFormat] = useState<CommentsExportFormat>("modern");
+	const [style, setStyle] = useState<CommentsExportStyle>("AllComments");
+	const [file, setFile] = useState<File | null>(null);
+	const [appendSheets, setAppendSheets] = useState<boolean>(false);
+	const [busy, setBusy] = useState(false);
 
 	let errorText: string | undefined;
 	if (format === "myproject" && !file)
@@ -141,8 +140,8 @@ function CommentsExportDropdown({
 				format,
 				style,
 				file || undefined,
-				appendSheets
-			)
+				appendSheets,
+			),
 		);
 		setBusy(false);
 		close();
@@ -228,10 +227,10 @@ function CommentsExportDropdown({
 }
 
 function CommentsExport({ disabled }: { disabled?: boolean }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	const ballot_id = useAppSelector(selectCommentsBallot_id);
 	const ballot = useAppSelector((state) =>
-		ballot_id ? selectBallot(state, ballot_id) : undefined
+		ballot_id ? selectBallot(state, ballot_id) : undefined,
 	);
 	return (
 		<DropdownButton

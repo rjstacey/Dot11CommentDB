@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import { NavLink, useParams, useMatch } from "react-router";
 import { Navbar, Nav } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
@@ -15,7 +15,7 @@ type MenuItem = {
 function useMenuLinks() {
 	const { groupName } = useParams();
 	const group = useAppSelector((state) =>
-		groupName ? selectTopLevelGroupByName(state, groupName) : undefined
+		groupName ? selectTopLevelGroupByName(state, groupName) : undefined,
 	);
 	let ballotId = useAppSelector(selectCurrentBallotID);
 	if (ballotId) ballotId = encodeURIComponent(ballotId);
@@ -23,7 +23,7 @@ function useMenuLinks() {
 
 	// Only display links for which the user has permissions
 	// Replace params with the current setting
-	return React.useMemo(() => {
+	return useMemo(() => {
 		const menu: MenuItem[] = [];
 
 		// No menu items if there is no group

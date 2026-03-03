@@ -1,4 +1,4 @@
-import React from "react";
+import type { ComponentProps } from "react";
 import { Container, Row, Col } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
@@ -10,7 +10,7 @@ import ShowAccess from "@/components/ShowAccess";
 import { BallotAddForm } from "../ballots/details/BallotAddForm";
 import { BallotEditForm } from "../ballots/details/BallotEditForm";
 
-const Placeholder = (props: React.ComponentProps<"span">) => (
+const Placeholder = (props: ComponentProps<"span">) => (
 	<div className="details-panel-placeholder">
 		<span {...props} />
 	</div>

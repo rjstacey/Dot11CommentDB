@@ -1,4 +1,10 @@
-import React from "react";
+import {
+	useState,
+	useRef,
+	useLayoutEffect,
+	type FormEvent,
+	type ChangeEvent,
+} from "react";
 import { Row, Col, Form, DropdownButton } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
@@ -18,27 +24,27 @@ export function VotersImportForm({
 	close: () => void;
 }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const [source, setSource] = React.useState<"members" | "upload">("members");
-	const [date, setDate] = React.useState<string>(
-		(ballot?.Start || new Date().toISOString()).slice(0, 10)
+	const [busy, setBusy] = useState(false);
+	const [source, setSource] = useState<"members" | "upload">("members");
+	const [date, setDate] = useState<string>(
+		(ballot?.Start || new Date().toISOString()).slice(0, 10),
 	);
-	const [file, setFile] = React.useState<File | null>(null);
-	const formRef = React.useRef<HTMLFormElement>(null);
-	const [formValid, setFormValid] = React.useState(false);
+	const [file, setFile] = useState<File | null>(null);
+	const formRef = useRef<HTMLFormElement>(null);
+	const [formValid, setFormValid] = useState(false);
 
-	React.useLayoutEffect(() => {
+	useLayoutEffect(() => {
 		const formValid = formRef.current?.checkValidity() || false;
 		setFormValid(formValid);
 	});
 
-	async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(
 			source === "members"
 				? votersFromMembersSnapshot(ballot.id, date)
-				: votersFromSpreadsheet(ballot.id, file!)
+				: votersFromSpreadsheet(ballot.id, file!),
 		);
 		setBusy(false);
 		close();
@@ -94,7 +100,7 @@ export function VotersImportForm({
 						id="voters-import-upload-file"
 						type="file"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						onChange={(e: ChangeEvent<HTMLInputElement>) =>
 							setFile(e.target.files ? e.target.files[0] : null)
 						}
 						required={source === "upload"}
@@ -116,7 +122,7 @@ export function VotersImportForm({
 }
 
 function VotersImportButton({ ballot }: { ballot: Ballot | undefined }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	const isWgBallot = ballot?.Type === BallotType.WG;
 
 	return (

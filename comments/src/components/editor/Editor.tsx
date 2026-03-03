@@ -1,4 +1,9 @@
-import * as React from "react";
+import {
+	useCallback,
+	type ComponentProps,
+	type CSSProperties,
+	type MouseEvent,
+} from "react";
 import cx from "clsx";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -15,7 +20,7 @@ import { usePaste } from "./usePaste";
 import styles from "./editor.module.css";
 import "./editor-style.css";
 
-const Placeholder = (props: React.ComponentProps<"i">) => (
+const Placeholder = (props: ComponentProps<"i">) => (
 	<div
 		className={cx(
 			styles.placeholder,
@@ -46,7 +51,7 @@ export function Editor({
 	submission?: string | null;
 	id?: string;
 	className?: string;
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	placeholder?: string;
 	readOnly?: boolean;
 }) {
@@ -55,8 +60,8 @@ export function Editor({
 	useImportExport(value, onChange, readOnly);
 	usePaste(onChangeResnStatus);
 
-	const onClear = React.useCallback(
-		(event: React.MouseEvent) => {
+	const onClear = useCallback(
+		(event: MouseEvent) => {
 			event.preventDefault();
 			editor.update(() => {
 				const node = $createParagraphNode();

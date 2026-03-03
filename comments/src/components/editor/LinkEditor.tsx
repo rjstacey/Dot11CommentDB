@@ -1,4 +1,11 @@
-import * as React from "react";
+import {
+	useState,
+	useEffect,
+	useRef,
+	useCallback,
+	type Dispatch,
+	type KeyboardEvent,
+} from "react";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
@@ -116,19 +123,20 @@ function FloatingLinkEditor({
 }: {
 	editor: LexicalEditor;
 	isLink: boolean;
-	setIsLink: React.Dispatch<boolean>;
+	setIsLink: Dispatch<boolean>;
 	anchorElem: HTMLElement;
 	isLinkEditMode: boolean;
-	setIsLinkEditMode: React.Dispatch<boolean>;
+	setIsLinkEditMode: Dispatch<boolean>;
 }): JSX.Element {
-	const editorRef = React.useRef<HTMLDivElement | null>(null);
-	const inputRef = React.useRef<HTMLInputElement>(null);
-	const [linkUrl, setLinkUrl] = React.useState("");
-	const [editedLinkUrl, setEditedLinkUrl] = React.useState("https://");
-	const [lastSelection, setLastSelection] =
-		React.useState<BaseSelection | null>(null);
+	const editorRef = useRef<HTMLDivElement | null>(null);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const [linkUrl, setLinkUrl] = useState("");
+	const [editedLinkUrl, setEditedLinkUrl] = useState("https://");
+	const [lastSelection, setLastSelection] = useState<BaseSelection | null>(
+		null,
+	);
 
-	const updateLinkEditor = React.useCallback(() => {
+	const updateLinkEditor = useCallback(() => {
 		const selection = $getSelection();
 		if ($isRangeSelection(selection)) {
 			const linkNode = $findMatchingParent(
@@ -176,7 +184,7 @@ function FloatingLinkEditor({
 		}
 	}, [anchorElem, editor, setIsLinkEditMode]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const scrollerElem = document.querySelector(".details-panel"); //anchorElem.parentElement;
 
 		const update = () => {
@@ -194,7 +202,7 @@ function FloatingLinkEditor({
 		};
 	}, [anchorElem.parentElement, editor, updateLinkEditor]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		return mergeRegister(
 			editor.registerUpdateListener(({ editorState }) => {
 				editorState.read(() => {
@@ -227,13 +235,13 @@ function FloatingLinkEditor({
 		);
 	}, [editor, updateLinkEditor, setIsLink, isLink]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		editor.getEditorState().read(() => {
 			updateLinkEditor();
 		});
 	}, [editor, updateLinkEditor]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (isLinkEditMode && inputRef.current) {
 			console.log("focus");
 			inputRef.current.focus();
@@ -241,7 +249,7 @@ function FloatingLinkEditor({
 	}, [isLinkEditMode, isLink]);
 
 	const monitorInputInteraction = (
-		event: React.KeyboardEvent<HTMLInputElement>,
+		event: KeyboardEvent<HTMLInputElement>,
 	) => {
 		if (event.key === "Enter") {
 			event.preventDefault();
@@ -332,12 +340,12 @@ function FloatingLinkEditor({
 
 export function LinkEditor() {
 	const [editor] = useLexicalComposerContext();
-	const [activeEditor, setActiveEditor] = React.useState(editor);
-	const [isLink, setIsLink] = React.useState(false);
-	const [isLinkEditMode, setIsLinkEditMode] = React.useState(false);
+	const [activeEditor, setActiveEditor] = useState(editor);
+	const [isLink, setIsLink] = useState(false);
+	const [isLinkEditMode, setIsLinkEditMode] = useState(false);
 	const anchorElem = document.body;
 
-	React.useEffect(() => {
+	useEffect(() => {
 		function updateToolbar() {
 			const selection = $getSelection();
 			if ($isRangeSelection(selection)) {

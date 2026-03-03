@@ -1,4 +1,4 @@
-import React from "react";
+import { useMemo, useState, useEffect, type ChangeEvent } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple } from "@common";
 
@@ -17,7 +17,7 @@ import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 function useNextBallotNumber(id: number, type: number) {
 	const ballots = useAppSelector(selectBallots);
 
-	return React.useMemo(() => {
+	return useMemo(() => {
 		if (type === BallotType.SA) return 0;
 		let maxNumber = 0;
 		for (const b of ballots) {
@@ -54,11 +54,9 @@ function BallotTypeNumberCol({
 	if (!isMultiple(edited.Type) && !isMultiple(edited.number)) {
 		defaultNumber = edited.Type === type ? edited.number : nextNumber;
 	}
-	const [ballotNumber, setBallotNumber] = React.useState(
-		defaultNumber.toString()
-	);
+	const [ballotNumber, setBallotNumber] = useState(defaultNumber.toString());
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (saved === edited) setBallotNumber(defaultNumber.toString());
 	}, [saved, edited]);
 
@@ -75,7 +73,7 @@ function BallotTypeNumberCol({
 		}
 	}
 
-	function onChangeNumber(e: React.ChangeEvent<HTMLInputElement>) {
+	function onChangeNumber(e: ChangeEvent<HTMLInputElement>) {
 		setBallotNumber(e.target.value);
 		const number = Number(e.target.value);
 		onChange({ number });

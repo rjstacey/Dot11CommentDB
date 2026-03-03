@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	FORMAT_ELEMENT_COMMAND,
@@ -19,8 +19,7 @@ export type AlignmentFormat = ElementFormatType | "outdent" | "indent";
 
 export function useAlignmentSelect() {
 	const [editor] = useLexicalComposerContext();
-	const [formatType, setFormatType] =
-		React.useState<ElementFormatType>("left");
+	const [formatType, setFormatType] = useState<ElementFormatType>("left");
 
 	function onChange(value: AlignmentFormat) {
 		if (value === "outdent")
@@ -30,7 +29,7 @@ export function useAlignmentSelect() {
 		else editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value);
 	}
 
-	React.useEffect(() => {
+	useEffect(() => {
 		function updateValues() {
 			const selection = $getSelection();
 			if (!$isRangeSelection(selection)) return false;

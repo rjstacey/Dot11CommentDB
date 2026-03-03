@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type ComponentProps } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { Select, SelectRendererProps, strComp } from "@common";
@@ -49,7 +49,7 @@ const selectAssigneeOptions = createSelector(
 			.sort((a, b) => strComp(a.Name, b.Name));
 
 		return presentOptions.concat(userOptions);
-	}
+	},
 );
 
 const itemRenderer = ({ item }: { item: Assignee }) => {
@@ -73,12 +73,12 @@ export function AssigneeSelect({
 	onChange: (value: Assignee) => void;
 	readOnly?: boolean;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const { loading } = useAppSelector(selectMembersState);
 	const existingOptions = useAppSelector(selectAssigneeOptions);
-	const [options, setOptions] = React.useState(existingOptions);
+	const [options, setOptions] = useState(existingOptions);
 
 	async function createOption({ state }: SelectRendererProps<Assignee>) {
 		const value = { SAPIN: 0, Name: state.search };
@@ -86,7 +86,7 @@ export function AssigneeSelect({
 			if (
 				options.find(
 					(o: Assignee) =>
-						o.SAPIN === value.SAPIN && o.Name === value.Name
+						o.SAPIN === value.SAPIN && o.Name === value.Name,
 				)
 			)
 				return options;

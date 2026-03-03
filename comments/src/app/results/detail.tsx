@@ -1,4 +1,4 @@
-import React from "react";
+import type { ReactNode, ComponentProps } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
@@ -8,7 +8,7 @@ import { useResultsEdit } from "@/hooks/resultsEdit";
 import ShowAccess from "@/components/ShowAccess";
 import { ResultEditForm } from "./ResultEditForm";
 
-const Placeholder = (props: React.ComponentProps<"span">) => (
+const Placeholder = (props: ComponentProps<"span">) => (
 	<div className="details-panel-placeholder">
 		<span {...props} />
 	</div>
@@ -24,7 +24,7 @@ export function ResultsDetail() {
 	const onAdd = () => {};
 
 	let title = "Result";
-	let content: React.ReactNode;
+	let content: ReactNode;
 	if (state.action === "add" || state.action === "update") {
 		if (state.action === "add") title = "Add result";
 		else if (hasChanges()) title = "Update result";

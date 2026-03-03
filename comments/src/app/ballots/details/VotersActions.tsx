@@ -1,4 +1,4 @@
-import React from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { Row, Col, Form, DropdownButton } from "react-bootstrap";
 import { VotersImportForm } from "../../voters/VotersImport";
@@ -11,7 +11,7 @@ import {
 } from "@/store/ballots";
 
 function VotersImportButton({ ballot }: { ballot: Ballot }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<DropdownButton
 			variant="light"
@@ -48,7 +48,7 @@ function VotersActions({
 				<Col xs="auto">
 					<Link
 						to={`/${workingGroup.name}/voters/${getEncodedBallotId(
-							ballot
+							ballot,
 						)}`}
 					>
 						{ballot.Voters}

@@ -1,4 +1,4 @@
-import React from "react";
+import { useMemo, useEffect } from "react";
 import { AppTable, ShowFilters, SplitPanel, Panel } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -40,15 +40,15 @@ export function ResultsMain() {
 	const access = useAppSelector(selectResultsAccess);
 	const resultsBallot_id = useAppSelector(selectResultsBallot_id);
 	const resultsBallot = useAppSelector((state) =>
-		resultsBallot_id ? selectBallot(state, resultsBallot_id) : undefined
+		resultsBallot_id ? selectBallot(state, resultsBallot_id) : undefined,
 	);
 
-	const defaultTablesConfig = React.useMemo(() => {
+	const defaultTablesConfig = useMemo(() => {
 		if (resultsBallot)
 			return getDefaultTablesConfig(access, resultsBallot.Type);
 	}, [access, resultsBallot]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (resultsBallot)
 			dispatch(updateTableConfigAction(access, resultsBallot.Type));
 	}, [dispatch, access, resultsBallot]);

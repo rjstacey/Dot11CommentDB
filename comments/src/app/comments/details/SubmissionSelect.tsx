@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type ComponentProps } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { Select, SelectRendererProps } from "@common";
@@ -18,7 +18,7 @@ import { selectBallotsState } from "@/store/ballots";
  */
 export const submissionHref = (
 	groupName: string | null,
-	submission: string | null
+	submission: string | null,
 ) => {
 	if (!submission) return null;
 	if (!groupName) return null;
@@ -32,7 +32,7 @@ export const submissionHref = (
 	if (m) gg = ("0" + m[0].slice(1)).slice(-2);
 	// gg-yy-nnnn-rr or gg-yy-nnnn"r"rr or yy-nnnn-rr or yy-nnnn"r"rr or yy-nnnn
 	m = submission.match(
-		/^((\d{1,2})-){0,1}(\d{2})[-/](\d{1,4})([r-](\d{1,2}))*$/
+		/^((\d{1,2})-){0,1}(\d{2})[-/](\d{1,4})([r-](\d{1,2}))*$/,
 	);
 	if (m) {
 		if (m[2]) gg = ("0" + m[2]).slice(-2);
@@ -53,7 +53,7 @@ export const submissionHref = (
  */
 export const renderSubmission = (
 	groupName: string | null,
-	submission: string | null
+	submission: string | null,
 ) => {
 	const href = submissionHref(groupName, submission);
 	if (href) {
@@ -75,12 +75,12 @@ const selectFieldValues = createSelector(
 	(ids, entities) => {
 		return [
 			...new Set(
-				ids.map((id) => getField(entities[id]!, field) as string)
+				ids.map((id) => getField(entities[id]!, field) as string),
 			),
 		]
 			.filter((v) => v !== "") // remove blank entry (we use 'clear' to set blank)
 			.map((v) => ({ label: v, value: v }));
-	}
+	},
 );
 
 export function SubmissionSelect({
@@ -91,13 +91,13 @@ export function SubmissionSelect({
 	value: string;
 	onChange: (value: string) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"placeholder" | "readOnly" | "disabled" | "id" | "style"
 >) {
 	const { loading } = useAppSelector(selectCommentsState);
 	const { groupName } = useAppSelector(selectBallotsState);
 	const existingOptions = useAppSelector(selectFieldValues);
-	const [options, setOptions] = React.useState(existingOptions);
+	const [options, setOptions] = useState(existingOptions);
 
 	async function createOption({ state }: SelectRendererProps<Option>) {
 		const option = { label: state.search, value: state.search };

@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useCallback, useEffect } from "react";
 import isEqual from "lodash.isequal";
 import { ConfirmModal, shallowDiff } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -33,7 +33,7 @@ function useResultsInitState() {
 		useAppSelector(selectResultsState);
 	const entities = useAppSelector(selectResultExtendedEntities);
 
-	const initState = React.useCallback((): ResultsEditState => {
+	const initState = useCallback((): ResultsEditState => {
 		const results = selected.map((id) => entities[id]!).filter(Boolean);
 		let message: string;
 		if (loading && !valid) {
@@ -60,14 +60,14 @@ function useResultsInitState() {
 		};
 	}, [selected, entities, loading, valid]);
 
-	const [state, setState] = React.useState<ResultsEditState>(initState);
+	const [state, setState] = useState<ResultsEditState>(initState);
 
-	const resetState = React.useCallback(
+	const resetState = useCallback(
 		() => setState(initState),
 		[setState, initState],
 	);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (state.action === "update") {
 			if (state.edited === state.saved) {
 				resetState();
@@ -99,12 +99,12 @@ export function useResultsEdit(readOnly: boolean) {
 
 	const { state, setState, resetState } = useResultsInitState();
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() => state.action === "update" && state.edited !== state.saved,
 		[state],
 	);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: ResultChange) => {
 			setState((state) => {
 				if (readOnly) {
@@ -123,7 +123,7 @@ export function useResultsEdit(readOnly: boolean) {
 		[readOnly, setState],
 	);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (readOnly) {
 			console.warn("submit: state is readOnly");
 		} else if (state.action === "update") {
@@ -143,7 +143,7 @@ export function useResultsEdit(readOnly: boolean) {
 		}
 	}, [state, dispatch, setState, readOnly]);
 
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		const list = state.results.map((v) => v.SAPIN).join(", ");
 		const ids = state.results.map((v) => v.id);
 		const ok = await ConfirmModal.show(

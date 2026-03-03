@@ -1,4 +1,4 @@
-import React from "react";
+import type { ReactNode, ComponentProps } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -12,7 +12,7 @@ import VotersActions from "./VotersActions";
 import ResultsActions from "./ResultsActions";
 import CommentsActions from "./CommentsActions";
 
-const Placeholder = (props: React.ComponentProps<"span">) => (
+const Placeholder = (props: ComponentProps<"span">) => (
 	<div className="details-panel-placeholder">
 		<span {...props} />
 	</div>
@@ -54,7 +54,7 @@ export function BallotsDetail({
 	);
 
 	let title = "Ballot";
-	let content: React.ReactNode;
+	let content: ReactNode;
 	if (state.action === null) {
 		content = <Placeholder>{state.message}</Placeholder>;
 	} else if (state.action === "add") {
@@ -69,7 +69,7 @@ export function BallotsDetail({
 		);
 	} else {
 		if (hasChanges()) title = "Update Ballot";
-		let ballotActions: React.ReactNode;
+		let ballotActions: ReactNode;
 		if (state.ballots.length === 1) {
 			const ballot = state.ballots[0];
 			ballotActions = (

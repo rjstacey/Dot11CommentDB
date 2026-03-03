@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type ChangeEventHandler, type FormEvent } from "react";
 import {
 	Row,
 	Col,
@@ -65,7 +65,7 @@ function ImportFieldsList({
 	setFields: (fields: FieldToUpdate[]) => void;
 	disableCID: boolean;
 }) {
-	const change: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+	const change: ChangeEventHandler<HTMLInputElement> = (e) => {
 		const newFields = fields.slice();
 		if (e.target.checked) {
 			newFields.push(e.target.name as FieldToUpdate);
@@ -211,16 +211,16 @@ function CommentsImportDropdown({
 	close: () => void;
 }) {
 	const dispatch = useAppDispatch();
-	const [fields, setFields] = React.useState<FieldToUpdate[]>([]);
-	const [algo, setAlgo] = React.useState<MatchAlgo>("cid");
-	const [matchUpdate, setMatchUpdate] = React.useState<MatchUpdate>("all");
-	const [file, setFile] = React.useState<File | null>(null);
-	const [sheetName, setSheetName] = React.useState("All Comments");
-	const [busy, setBusy] = React.useState(false);
+	const [fields, setFields] = useState<FieldToUpdate[]>([]);
+	const [algo, setAlgo] = useState<MatchAlgo>("cid");
+	const [matchUpdate, setMatchUpdate] = useState<MatchUpdate>("all");
+	const [file, setFile] = useState<File | null>(null);
+	const [sheetName, setSheetName] = useState("All Comments");
+	const [busy, setBusy] = useState(false);
 
 	const formValid = fields.length > 0 && file !== null;
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!file) return;
 		setBusy(true);
@@ -231,8 +231,8 @@ function CommentsImportDropdown({
 				algo,
 				matchUpdate,
 				sheetName,
-				file
-			)
+				file,
+			),
 		);
 		setBusy(false);
 		close();
@@ -360,10 +360,10 @@ function CommentsImportDropdown({
 }
 
 function CommentsImport({ disabled }: { disabled?: boolean }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	const ballot_id = useAppSelector(selectCommentsBallot_id);
 	const ballot = useAppSelector((state) =>
-		ballot_id ? selectBallot(state, ballot_id) : undefined
+		ballot_id ? selectBallot(state, ballot_id) : undefined,
 	);
 
 	return (

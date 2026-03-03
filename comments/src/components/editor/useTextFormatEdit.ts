@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	SELECTION_CHANGE_COMMAND,
@@ -38,11 +38,11 @@ function getSelectedNode(selection: RangeSelection) {
 
 export function useTextFormatEdit() {
 	const [editor] = useLexicalComposerContext();
-	const [isLink, setIsLink] = React.useState(false);
-	const [isAutoLink, setIsAutoLink] = React.useState(false);
-	const [formats, setFormats] = React.useState<TextFormatType[]>([]);
+	const [isLink, setIsLink] = useState(false);
+	const [isAutoLink, setIsAutoLink] = useState(false);
+	const [formats, setFormats] = useState<TextFormatType[]>([]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		function updateFormatState() {
 			const selection = $getSelection();
 			if ($isRangeSelection(selection)) {
@@ -75,7 +75,7 @@ export function useTextFormatEdit() {
 		);
 	}, [editor]);
 
-	const insertLink = React.useCallback(() => {
+	const insertLink = useCallback(() => {
 		if (isAutoLink) {
 			// Change to link node
 			editor.update(() => {
@@ -96,7 +96,7 @@ export function useTextFormatEdit() {
 		}
 	}, [editor, isLink, isAutoLink]);
 
-	const toggleFormat = React.useCallback(
+	const toggleFormat = useCallback(
 		(format: TextFormatType) => {
 			editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
 		},

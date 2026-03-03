@@ -1,4 +1,10 @@
-import React from "react";
+import {
+	useState,
+	useCallback,
+	useEffect,
+	type Dispatch,
+	type SetStateAction,
+} from "react";
 import isEqual from "lodash.isequal";
 import { Dictionary, EntityId } from "@reduxjs/toolkit";
 import {
@@ -30,7 +36,7 @@ export function useGetBallotSeries() {
 	const entities = useAppSelector(selectBallotEntities);
 
 	/** Get previous ballots starting with supplied prev_id */
-	const getPrevBallots = React.useCallback(
+	const getPrevBallots = useCallback(
 		(prev_id: number | null) => {
 			const ballotSeries: Ballot[] = [];
 			let ballot: Ballot | undefined;
@@ -47,7 +53,7 @@ export function useGetBallotSeries() {
 	);
 
 	/** Get ballot series that references the supplied ballot_id */
-	const getFutureBallots = React.useCallback(
+	const getFutureBallots = useCallback(
 		(ballot_id: number) => {
 			const ballotSeries: Ballot[] = [];
 			const ballots = ids.map((id) => entities[id]!);
@@ -65,7 +71,7 @@ export function useGetBallotSeries() {
 	);
 
 	/** Get ballot series that potentially precedes the supplied ballot */
-	const getPotentialPrevBallots = React.useCallback(
+	const getPotentialPrevBallots = useCallback(
 		({
 			id,
 			groupId,
@@ -207,7 +213,7 @@ function useBallotsInitState(readOnly: boolean) {
 	const { selected, ids, entities, loading, valid } =
 		useAppSelector(selectBallotsState);
 
-	const initState = React.useCallback((): BallotsEditState => {
+	const initState = useCallback((): BallotsEditState => {
 		const ballots = selected.map((id) => entities[id]!).filter(Boolean);
 		if (loading && !valid) {
 			return {
@@ -234,14 +240,14 @@ function useBallotsInitState(readOnly: boolean) {
 		}
 	}, [selected, entities, loading, valid]);
 
-	const [state, setState] = React.useState<BallotsEditState>(initState);
+	const [state, setState] = useState<BallotsEditState>(initState);
 
-	const resetState = React.useCallback(
+	const resetState = useCallback(
 		() => setState(initState),
 		[setState, initState],
 	);
 
-	const onAdd = React.useCallback(() => {
+	const onAdd = useCallback(() => {
 		if (readOnly) {
 			console.warn("onAdd: state is readOnly");
 			return;
@@ -255,7 +261,7 @@ function useBallotsInitState(readOnly: boolean) {
 		});
 	}, [ids, entities, state]);
 
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		if (readOnly) {
 			console.warn("onDelete: state is readOnly");
 			return;
@@ -273,7 +279,7 @@ function useBallotsInitState(readOnly: boolean) {
 		dispatch(setSelected([]));
 	}, [dispatch, readOnly, state]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (state.action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
@@ -314,19 +320,19 @@ function useBallotsInitState(readOnly: boolean) {
 export function useBallotsUpdate(
 	readOnly: boolean,
 	state: BallotsEditState,
-	setState: React.Dispatch<React.SetStateAction<BallotsEditState>>,
+	setState: Dispatch<SetStateAction<BallotsEditState>>,
 	resetState: () => void,
 ) {
 	const dispatch = useAppDispatch();
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() =>
 			state.action === "add" ||
 			(state.action === "update" && state.edited !== state.saved),
 		[state],
 	);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: BallotChange) => {
 			setState((state) => {
 				if (readOnly) {
@@ -348,7 +354,7 @@ export function useBallotsUpdate(
 		[readOnly, setState],
 	);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (readOnly) {
 			console.warn("submit: state is readOnly");
 			return;

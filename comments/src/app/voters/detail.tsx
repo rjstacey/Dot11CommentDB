@@ -1,4 +1,4 @@
-import React from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectBallotsAccess, AccessLevel } from "@/store/ballots";
@@ -8,7 +8,7 @@ import { VoterEditForm } from "./VoterEditForm";
 import ShowAccess from "@/components/ShowAccess";
 import { useVotersEdit } from "@/hooks/votersEdit";
 
-const Placeholder = (props: React.ComponentProps<"span">) => (
+const Placeholder = (props: ComponentProps<"span">) => (
 	<div className="details-panel-placeholder">
 		<span {...props} />
 	</div>
@@ -23,7 +23,7 @@ export function VotersDetail() {
 		useVotersEdit(readOnly);
 
 	let title = "Voter";
-	let content: React.ReactNode;
+	let content: ReactNode;
 	if (state.action === "add" || state.action === "update") {
 		if (state.action === "add") title = "Add voter";
 		else if (hasChanges()) title = "Update voter";

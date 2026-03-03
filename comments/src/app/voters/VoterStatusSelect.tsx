@@ -1,4 +1,4 @@
-import React from "react";
+import type { ComponentProps } from "react";
 import { Select } from "@common";
 
 const options = [
@@ -14,7 +14,7 @@ export function VoterStatusSelect({
 	value: string;
 	onChange: (value: string) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"readOnly" | "style" | "id" | "isInvalid"
 >) {
 	const values = options.filter((o) => o.value === value);

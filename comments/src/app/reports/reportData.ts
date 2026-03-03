@@ -1,4 +1,4 @@
-import React from "react";
+import { useMemo } from "react";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -31,12 +31,12 @@ function countsByCategory(comments: CommentResolution[]): Counts {
 
 function countsByStatus(
 	statusSet: string[],
-	comments: CommentResolution[]
+	comments: CommentResolution[],
 ): Counts {
 	const entry: Counts = { Total: comments.length };
 	for (const status of statusSet)
 		entry[status || "(Blank)"] = comments.filter(
-			(c) => getField(c, "Status") === status
+			(c) => getField(c, "Status") === status,
 		).length;
 	return entry;
 }
@@ -50,7 +50,7 @@ function commentsByCommenter(comments: CommentResolution[]) {
 		data.push({
 			Commenter: name || "(Blank)",
 			...countsByCategory(
-				comments.filter((c) => c.CommenterName === name)
+				comments.filter((c) => c.CommenterName === name),
 			),
 		});
 	}
@@ -67,7 +67,7 @@ function commentsByAssignee(comments: CommentResolution[]) {
 	const data: Counts[] = [];
 	for (const name of assigneeSet) {
 		const assigneeComments = comments.filter(
-			(c) => c.AssigneeName === name
+			(c) => c.AssigneeName === name,
 		);
 		const entry: Counts = {
 			Assignee: name || "(Blank)",
@@ -88,7 +88,7 @@ function commentsByAssigneeAndCommentGroup(comments: CommentResolution[]) {
 	const data: Counts[] = [];
 	for (const name of assigneeSet) {
 		const assigneeComments = comments.filter(
-			(c) => c.AssigneeName === name
+			(c) => c.AssigneeName === name,
 		);
 		const entry: Counts = {
 			Assignee: name || "(Blank)",
@@ -105,7 +105,7 @@ function commentsByAssigneeAndCommentGroup(comments: CommentResolution[]) {
 				"Comment Group": group || "(Blank)",
 				...countsByStatus(
 					statusSet,
-					assigneeComments.filter((c) => c.CommentGroup === group)
+					assigneeComments.filter((c) => c.CommentGroup === group),
 				),
 			};
 			data.push(entry);
@@ -137,7 +137,7 @@ function commentsByAdHocAndCommentGroup(comments: CommentResolution[]) {
 				"Comment Group": group || "(Blank)",
 				...countsByStatus(
 					statusSet,
-					adhocComments.filter((c) => c.CommentGroup === group)
+					adhocComments.filter((c) => c.CommentGroup === group),
 				),
 			};
 			data.push(entry);
@@ -169,7 +169,7 @@ export function useReportData(report: string | undefined) {
 	const ids = useAppSelector(selectCommentIds);
 	const entities = useAppSelector(selectSyncedCommentEntities);
 
-	return React.useMemo(() => {
+	return useMemo(() => {
 		if (!report) return [];
 		const comments = ids.map((id) => {
 			const c = entities[id]!;

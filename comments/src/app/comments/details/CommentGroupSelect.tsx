@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type ComponentProps } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { Select, SelectRendererProps } from "@common";
@@ -17,12 +17,12 @@ const selectFieldValues = createSelector(
 	(ids, entities) => {
 		return [
 			...new Set(
-				ids.map((id) => getField(entities[id]!, field) as string)
+				ids.map((id) => getField(entities[id]!, field) as string),
 			),
 		]
 			.filter((v) => v !== "") // remove blank entry (we use 'clear' to set blank)
 			.map((v) => ({ label: v, value: v }));
-	}
+	},
 );
 
 type Option = { label: string; value: string };
@@ -35,11 +35,11 @@ export function CommentGroupSelect({
 	value: string;
 	onChange: (value: string) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const existingOptions = useAppSelector(selectFieldValues);
-	const [options, setOptions] = React.useState(existingOptions);
+	const [options, setOptions] = useState(existingOptions);
 
 	async function createOption({ state }: SelectRendererProps<Option>) {
 		const option = { label: state.search, value: state.search };

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useCallback, type ChangeEventHandler } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import cx from "clsx";
 import { isMultiple, MULTIPLE, Multiple } from "@common";
@@ -22,7 +22,7 @@ function ResnStatus({
 	onChange: (value: ResnStatusType | null) => void;
 	readOnly?: boolean;
 }) {
-	const handleChange: React.ChangeEventHandler<HTMLInputElement> = (e) =>
+	const handleChange: ChangeEventHandler<HTMLInputElement> = (e) =>
 		onChange(e.target.checked ? (e.target.value as ResnStatusType) : null);
 
 	return (
@@ -86,13 +86,13 @@ export function ResolutionRow({
 	}
 	if (readOnly) className += " readonly";
 
-	const onChangeResnStatus = React.useCallback(
+	const onChangeResnStatus = useCallback(
 		(value: ResnStatusType | null) =>
 			updateResolution({ ResnStatus: value }),
 		[updateResolution],
 	);
 
-	const onChangeResolution = React.useCallback(
+	const onChangeResolution = useCallback(
 		(value: string | null) => updateResolution({ Resolution: value }),
 		[updateResolution],
 	);

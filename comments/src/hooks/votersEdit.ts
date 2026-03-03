@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useCallback, useEffect } from "react";
 import isEqual from "lodash.isequal";
 import { ConfirmModal, shallowDiff } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -44,7 +44,7 @@ function useVotersInitState() {
 	const { selected, entities, loading, valid, ballot_id } =
 		useAppSelector(selectVotersState);
 
-	const initState = React.useCallback((): VotersEditState => {
+	const initState = useCallback((): VotersEditState => {
 		const voters = selected.map((id) => entities[id]!).filter(Boolean);
 		let message: string;
 		if (loading && !valid) {
@@ -69,18 +69,18 @@ function useVotersInitState() {
 		};
 	}, [selected, entities, loading, valid]);
 
-	const [state, setState] = React.useState<VotersEditState>(initState);
+	const [state, setState] = useState<VotersEditState>(initState);
 
-	const resetState = React.useCallback(
+	const resetState = useCallback(
 		() => setState(initState),
-		[setState, initState]
+		[setState, initState],
 	);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (state.action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected([]));
@@ -94,7 +94,7 @@ function useVotersInitState() {
 			const ids = state.voters.map((v) => v.id);
 			if (!isEqual(selected, ids)) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) resetState();
 					else dispatch(setSelected(ids));
@@ -105,7 +105,7 @@ function useVotersInitState() {
 		}
 	}, [selected, resetState]);
 
-	const onAdd = React.useCallback(() => {
+	const onAdd = useCallback(() => {
 		setState((state) => {
 			if (!ballot_id) {
 				console.warn("onAdd: ballot_id not set");
@@ -133,14 +133,14 @@ export function useVotersEdit(readOnly: boolean) {
 
 	const { state, setState, resetState, onAdd } = useVotersInitState();
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() =>
 			state.action === "add" ||
 			(state.action === "update" && state.edited !== state.saved),
-		[state]
+		[state],
 	);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: VoterChange) => {
 			setState((state) => {
 				if (readOnly) {
@@ -161,10 +161,10 @@ export function useVotersEdit(readOnly: boolean) {
 				return state;
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (readOnly) {
 			console.warn("submit: state is readOnly");
 		} else if (state.action === "add") {
@@ -180,11 +180,11 @@ export function useVotersEdit(readOnly: boolean) {
 		}
 	}, [state, dispatch, setState, readOnly]);
 
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		const list = state.voters.map((v) => v.SAPIN).join(", ");
 		const ids = state.voters.map((v) => v.id);
 		const ok = await ConfirmModal.show(
-			`Are you sure you want to delete ${list}?`
+			`Are you sure you want to delete ${list}?`,
 		);
 		if (!ok) return;
 		await dispatch(deleteVoters(ids));

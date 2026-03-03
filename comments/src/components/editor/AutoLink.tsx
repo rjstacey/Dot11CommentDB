@@ -1,4 +1,4 @@
-import React from "react";
+import { useMemo } from "react";
 import { useParams } from "react-router";
 import { AutoLinkPlugin } from "@lexical/react/LexicalAutoLinkPlugin";
 
@@ -88,7 +88,7 @@ function submissionMatcher(
 
 export function AutoLink({ submission }: { submission?: string | null }) {
 	const groupName = useParams().groupName || "";
-	const matchers = React.useMemo(
+	const matchers = useMemo(
 		() => [
 			urlMatcher,
 			emailMatcher,

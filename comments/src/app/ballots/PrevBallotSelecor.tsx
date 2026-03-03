@@ -1,11 +1,11 @@
-import React from "react";
+import { useMemo, type ComponentProps } from "react";
 import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { getBallotId, selectBallotsState } from "@/store/ballots";
 
 function usePrevBallotOptions(ballot_id: number) {
 	const { ids, entities } = useAppSelector(selectBallotsState);
-	return React.useMemo(() => {
+	return useMemo(() => {
 		const ballot = entities[ballot_id];
 		if (!ballot) return [];
 		return ids
@@ -16,12 +16,12 @@ function usePrevBallotOptions(ballot_id: number) {
 					b.groupId === ballot.groupId &&
 					b.Project === ballot.Project &&
 					new Date(b.Start || "") < new Date(ballot.Start || "") &&
-					b.id !== ballot.id
+					b.id !== ballot.id,
 			)
 			.sort(
 				(b1, b2) =>
 					new Date(b1.Start || "").valueOf() -
-					new Date(b2.Start || "").valueOf()
+					new Date(b2.Start || "").valueOf(),
 			)
 			.map((b) => ({ id: b.id, label: getBallotId(b) }));
 	}, [ballot_id, ids, entities]);
@@ -37,7 +37,7 @@ function SelectPrevBallot({
 	onChange: (value: number | null) => void;
 	ballot_id: number;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const options = usePrevBallotOptions(ballot_id);

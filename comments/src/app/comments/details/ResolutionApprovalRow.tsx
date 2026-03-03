@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ChangeEventHandler } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple, Multiple } from "@common";
 
@@ -16,7 +16,7 @@ export function ResolutionApprovalRow({
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
-	const changeApproved: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+	const changeApproved: ChangeEventHandler<HTMLInputElement> = (e) => {
 		let value: string;
 		if (e.target.name === "Approved")
 			value = e.target.checked ? new Date().toDateString() : "";

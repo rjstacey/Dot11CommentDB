@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Dictionary } from "@reduxjs/toolkit";
 import { useAppSelector } from "@/store/hooks";
 import { selectTopLevelGroupId } from "@/store/groups";
@@ -22,7 +22,7 @@ import {
 function ePollToBallot(
 	epoll: SyncedEpoll,
 	groupId: string,
-	ballotEntities: Dictionary<Ballot>
+	ballotEntities: Dictionary<Ballot>,
 ): Partial<Ballot> {
 	const ballot: Partial<Ballot> = {
 		EpollNum: epoll.id,
@@ -61,7 +61,7 @@ function useEpollsInitState() {
 	const ballotIds = useAppSelector(selectBallotIds);
 	const ballotEntities = useAppSelector(selectBallotEntities);
 
-	const initState = React.useCallback((): BallotsEditState => {
+	const initState = useCallback((): BallotsEditState => {
 		const epolls = selected.map((id) => entities[id]!).filter(Boolean);
 		if (loading && !valid) {
 			return {
@@ -122,14 +122,14 @@ function useEpollsInitState() {
 		}
 	}, [selected, entities, loading, valid, ballotIds, ballotEntities]);
 
-	const [state, setState] = React.useState<BallotsEditState>(initState);
+	const [state, setState] = useState<BallotsEditState>(initState);
 
-	const resetState = React.useCallback(
+	const resetState = useCallback(
 		() => setState(initState),
-		[setState, initState]
+		[setState, initState],
 	);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		resetState();
 	}, [selected, resetState]);
 
@@ -147,7 +147,7 @@ export function useEpollsEdit(readOnly: boolean) {
 		readOnly,
 		state,
 		setState,
-		resetState
+		resetState,
 	);
 
 	return {

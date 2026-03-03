@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ChangeEventHandler } from "react";
 import { Row, Col, Form, Accordion } from "react-bootstrap";
 import { isMultiple, Multiple } from "@common";
 
@@ -32,9 +32,7 @@ function EditingStatus({
 	updateResolution: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
-	const changeEditStatus: React.ChangeEventHandler<HTMLInputElement> = (
-		e
-	) => {
+	const changeEditStatus: ChangeEventHandler<HTMLInputElement> = (e) => {
 		const fields: Partial<Resolution> = {};
 		if (e.target.name === "EditStatus") {
 			if (e.target.checked) {
@@ -77,7 +75,7 @@ function EditingStatus({
 						ref={(ref) =>
 							ref &&
 							(ref.indeterminate = isMultiple(
-								resolution.EditStatus
+								resolution.EditStatus,
 							))
 						}
 						checked={resolution.EditStatus === "I"}
@@ -113,7 +111,7 @@ function EditingStatus({
 						ref={(ref) =>
 							ref &&
 							(ref.indeterminate = isMultiple(
-								resolution.EditStatus
+								resolution.EditStatus,
 							))
 						}
 						checked={resolution.EditStatus === "N"}
@@ -194,7 +192,9 @@ export function EditingNotesRowCollapsable(props: {
 				activeKey={showEditingNotes ? key : undefined}
 				onSelect={(eventKey) =>
 					dispatch(
-						setUiProperties({ showEditingNotes: Boolean(eventKey) })
+						setUiProperties({
+							showEditingNotes: Boolean(eventKey),
+						}),
 					)
 				}
 			>

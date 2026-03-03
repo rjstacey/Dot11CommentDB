@@ -1,4 +1,4 @@
-import React from "react";
+import { useEffect } from "react";
 import { Row, Col } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -78,7 +78,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 		body.push(
 			<Row key="cid">
 				<span>CID: {changes.CommentID || BLANK_STR}</span>
-			</Row>
+			</Row>,
 		);
 
 	if ("Page" in changes || "Clause" in changes)
@@ -92,7 +92,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 						<span>Clause: {changes.Clause}</span>
 					)}
 				</Col>
-			</Row>
+			</Row>,
 		);
 
 	if ("AdHoc" in changes || "CommentGroup" in changes)
@@ -108,7 +108,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 						<CommentGroup comment={updatedComment} readOnly />
 					)}
 				</Col>
-			</Row>
+			</Row>,
 		);
 
 	if ("AdHocStatus" in changes || "Notes" in changes)
@@ -117,7 +117,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 				key="commentNotes"
 				comment={updatedComment}
 				readOnly
-			/>
+			/>,
 		);
 
 	return (
@@ -134,7 +134,7 @@ function ResolutionAdd(entry: CommentHistoryEntry) {
 		<div className="entry">
 			{renderEntryHeader(
 				`Blank resolution ${resolution.ResolutionID}`,
-				entry
+				entry,
 			)}
 			<div className="body" />
 		</div>
@@ -154,7 +154,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 				key="assignee"
 				resolution={updatedResolution}
 				readOnly
-			/>
+			/>,
 		);
 
 	if ("Submission" in changes)
@@ -163,7 +163,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 				key="submission"
 				resolution={updatedResolution}
 				readOnly
-			/>
+			/>,
 		);
 
 	if ("ResnStatus" in changes || "Resolution" in changes)
@@ -172,7 +172,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 				key="resolution"
 				resolution={updatedResolution}
 				readOnly
-			/>
+			/>,
 		);
 
 	if ("ReadyForMotion" in changes || "ApprovedByMotion" in changes)
@@ -181,7 +181,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 				key="approval"
 				resolution={updatedResolution}
 				readOnly
-			/>
+			/>,
 		);
 
 	if (
@@ -194,14 +194,14 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 				key="editing"
 				resolution={updatedResolution}
 				readOnly
-			/>
+			/>,
 		);
 
 	return (
 		<div className="entry">
 			{renderEntryHeader(
 				`Resolution ${comment.CommentID}.${resolution.ResolutionID}`,
-				entry
+				entry,
 			)}
 			<div className="body">{body}</div>
 		</div>
@@ -214,7 +214,7 @@ function ResolutionDelete(entry: CommentHistoryEntry) {
 		<div className="entry">
 			{renderEntryHeader(
 				`Resolution ${comment.CommentID}.${resolution!.ResolutionID}`,
-				entry
+				entry,
 			)}
 			<div className="body" />
 		</div>
@@ -249,13 +249,13 @@ function CommentHistoryDisplay() {
 	const dispatch = useAppDispatch();
 	const { selected, entities } = useAppSelector(selectCommentsState);
 	const { loading, commentsHistory } = useAppSelector(
-		selectCommentsHistoryState
+		selectCommentsHistoryState,
 	);
 
 	const id = selected[0];
 	const comment_id = entities[id]?.comment_id;
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!comment_id) return;
 		dispatch(loadCommentsHistory(comment_id));
 	}, [comment_id]);

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { forwardRef, useState, type MouseEventHandler } from "react";
 import { Dropdown } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -6,7 +6,7 @@ import { selectOfflineStatus, selectOfflineOutbox } from "@/store/offline";
 
 import styles from "./OnlineIndicator.module.css";
 
-const Selector = React.forwardRef<
+const Selector = forwardRef<
 	HTMLDivElement,
 	{
 		show: boolean;
@@ -20,7 +20,7 @@ const Selector = React.forwardRef<
 	if (status === "unreachable") color = "#ffb04e";
 	const background = `radial-gradient(circle at 5px 5px, ${color}, #000000b0)`;
 
-	let onClick: React.MouseEventHandler | undefined;
+	let onClick: MouseEventHandler | undefined;
 	if (status !== "online") onClick = () => setShow(!show);
 
 	return (
@@ -45,7 +45,7 @@ function Outbox() {
 }
 
 function SyncIndicator() {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<Dropdown show={show}>
 			<Dropdown.Toggle as={Selector} show={show} setShow={setShow} />

@@ -1,4 +1,4 @@
-import React from "react";
+import { useEffect } from "react";
 import { useNavigation, useSearchParams } from "react-router";
 import { Row, Col } from "react-bootstrap";
 import {
@@ -30,7 +30,7 @@ export function CommentsMain() {
 	const isNavigating = Boolean(navigation.location);
 	const commentsSearch = useAppSelector(selectCommentsSearch);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (isNavigating || search.toString() === commentsSearch.toString())
 			return;
 		setSearch(commentsSearch, { replace: true });

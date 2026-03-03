@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import {
 	Container,
 	Row,
@@ -60,7 +60,7 @@ function CidAndStatusRow({
 	);
 }
 
-const Placeholder = (props: React.ComponentProps<"span">) => (
+const Placeholder = (props: ComponentProps<"span">) => (
 	<div className="details-panel-placeholder">
 		<span {...props} />
 	</div>
@@ -70,7 +70,7 @@ export function CommentsDetail() {
 	const dispatch = useAppDispatch();
 	const isOnline = useAppSelector(selectIsOnline);
 
-	const [showHistory, setShowHistory] = React.useState(false);
+	const [showHistory, setShowHistory] = useState(false);
 
 	const editMode: boolean | undefined =
 		useAppSelector(selectCommentsState).ui.editMode;
@@ -139,7 +139,7 @@ export function CommentsDetail() {
 		</>
 	);
 
-	let content: React.ReactNode;
+	let content: ReactNode;
 	if (state.action === null) {
 		content = <Placeholder>{state.message}</Placeholder>;
 	} else if (showHistory) {

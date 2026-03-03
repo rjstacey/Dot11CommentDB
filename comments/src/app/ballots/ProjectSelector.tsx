@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useEffect, type ComponentProps } from "react";
 import { Select, SelectRendererProps } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectGroupProjectOptions, GroupProjectOption } from "@/store/ballots";
@@ -15,7 +15,7 @@ function SelectProject({
 	groupId: string | null;
 	readOnly?: boolean;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	| "placeholder"
 	| "readOnly"
 	| "disabled"
@@ -25,9 +25,9 @@ function SelectProject({
 	| "isInvalid"
 >) {
 	const existingOptions = useAppSelector(selectGroupProjectOptions);
-	const [options, setOptions] = React.useState<GroupProjectOption[]>([]);
+	const [options, setOptions] = useState<GroupProjectOption[]>([]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		setOptions(existingOptions.filter((o) => o.groupId === groupId));
 	}, [existingOptions, groupId]);
 

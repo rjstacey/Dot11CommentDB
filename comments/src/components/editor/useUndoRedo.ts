@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	CAN_REDO_COMMAND,
@@ -11,18 +11,18 @@ import { mergeRegister } from "@lexical/utils";
 
 export function useUndoRedo() {
 	const [editor] = useLexicalComposerContext();
-	const [canUndo, setCanUndo] = React.useState(false);
-	const [canRedo, setCanRedo] = React.useState(false);
+	const [canUndo, setCanUndo] = useState(false);
+	const [canRedo, setCanRedo] = useState(false);
 
-	const undo = React.useCallback(() => {
+	const undo = useCallback(() => {
 		editor.dispatchCommand(UNDO_COMMAND, undefined);
 	}, [editor]);
 
-	const redo = React.useCallback(() => {
+	const redo = useCallback(() => {
 		editor.dispatchCommand(REDO_COMMAND, undefined);
 	}, [editor]);
 
-	React.useEffect(
+	useEffect(
 		() =>
 			mergeRegister(
 				editor.registerCommand(

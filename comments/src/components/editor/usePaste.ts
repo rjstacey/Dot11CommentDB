@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	PASTE_COMMAND,
@@ -92,7 +92,7 @@ function insertClipboardData(
 
 export function usePaste(onChangeResnStatus?: (value: ResnStatusType) => void) {
 	const [editor] = useLexicalComposerContext();
-	React.useEffect(() => {
+	useEffect(() => {
 		return editor.registerCommand<ClipboardEvent>(
 			PASTE_COMMAND,
 			(event) => {

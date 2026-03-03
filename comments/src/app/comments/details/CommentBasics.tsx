@@ -1,4 +1,9 @@
-import * as React from "react";
+import {
+	useState,
+	useEffect,
+	type ComponentProps,
+	type ChangeEvent,
+} from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple, type Multiple, MULTIPLE } from "@common";
 
@@ -20,8 +25,7 @@ export function CommentMBS({
 	...props
 }: {
 	comment: { MustSatisfy: Multiple<Comment>["MustSatisfy"] };
-	style?: React.CSSProperties;
-} & React.ComponentProps<"span">) {
+} & ComponentProps<"span">) {
 	const { MustSatisfy: mbs } = comment;
 	if (isMultiple(mbs) || !mbs) return null;
 	return (
@@ -62,7 +66,7 @@ export function CommentCategory({
 	...props
 }: {
 	comment: { Category: Multiple<Comment>["Category"] };
-} & React.ComponentProps<"span">) {
+} & ComponentProps<"span">) {
 	const { Category: cat } = comment;
 	if (isMultiple(cat)) return <ShowMultiple />;
 	return <span {...props}>{categoryMap[cat]}</span>;
@@ -93,10 +97,10 @@ function CommentPage({
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
-	const [value, setValue] = React.useState(commentPageValue(comment.Page));
+	const [value, setValue] = useState(commentPageValue(comment.Page));
 	const pattern = "^\\d*\\.?\\d{0,2}$";
 
-	const onChange = function (e: React.ChangeEvent<HTMLInputElement>) {
+	const onChange = function (e: ChangeEvent<HTMLInputElement>) {
 		const { value } = e.target;
 		setValue(value);
 		if (value.search(pattern) !== -1) {
@@ -105,7 +109,7 @@ function CommentPage({
 		}
 	};
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const newValue = commentPageValue(comment.Page);
 		if (newValue !== value) setValue(newValue);
 	}, [comment.Page]);

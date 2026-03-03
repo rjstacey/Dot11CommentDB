@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type FormEvent } from "react";
 import {
 	DropdownButton,
 	Button,
@@ -19,13 +19,13 @@ function ResultsExportForm({
 	ballot: Ballot;
 	close: () => void;
 }) {
-	const [forProject, setForProject] = React.useState(false);
-	const [busy, setBusy] = React.useState(false);
+	const [forProject, setForProject] = useState(false);
+	const [busy, setBusy] = useState(false);
 	const ballotId = getBallotId(ballot);
 
 	const dispatch = useAppDispatch();
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(exportResults(ballot.id, forProject));
@@ -76,7 +76,7 @@ function ResultsExportForm({
 }
 
 export function ResultsExport({ ballot }: { ballot?: Ballot }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<DropdownButton
 			variant="light"
