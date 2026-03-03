@@ -24,7 +24,7 @@ main {
 
 .details-panel {
 	padding: 10px;
-	overflow: auto;
+	overflow: auto !important;
 	display: flex;
 	flex-direction: column;
 }
