@@ -172,6 +172,11 @@ function initExpressApp() {
 			setHeaders: (res, file) => {
 				if (path.extname(file) === ".html")
 					res.setHeader("Cache-Control", "no-cache");
+				else
+					res.setHeader(
+						"Cache-Control",
+						"public, max-age=86400, immutable",
+					);
 			},
 		}),
 	);
