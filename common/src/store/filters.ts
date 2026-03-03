@@ -2,7 +2,7 @@
 //
 // Began life here https://github.com/koalyptus/TableFilter
 //
-import type { PayloadAction, EntityId, Dictionary } from "@reduxjs/toolkit";
+import type { PayloadAction, EntityId } from "@reduxjs/toolkit";
 import {
 	Fields,
 	FieldProperties,
@@ -116,12 +116,12 @@ export function getCompFunc(comp: FilterComp): CmpFunc {
 export function filterData<T extends {}>(
 	filters: Filters,
 	getField: GetEntityField<T>,
-	entities: Dictionary<T>,
-	ids: EntityId[]
+	entities: Record<EntityId, T>,
+	ids: EntityId[],
 ): EntityId[] {
 	let filteredIds = ids.slice();
 	const dataKeys = Object.keys(filters).filter(
-		(dataKey) => dataKey !== globalFilterKey
+		(dataKey) => dataKey !== globalFilterKey,
 	);
 	// Apply the column filters
 	for (const dataKey of dataKeys) {
@@ -141,8 +141,8 @@ export function filterData<T extends {}>(
 			const cmpFunc = getCompFunc(comps[0]);
 			filteredIds = filteredIds.filter((id) =>
 				dataKeys.some((dataKey) =>
-					cmpFunc(getField(entities[id]!, dataKey))
-				)
+					cmpFunc(getField(entities[id]!, dataKey)),
+				),
 			);
 		}
 	}
@@ -187,7 +187,7 @@ export function createFiltersSubslice(dataSet: string, fields: Fields) {
 	const reducers = {
 		setFilter(
 			state: FiltersState,
-			action: PayloadAction<{ dataKey: string; comps: FilterComp[] }>
+			action: PayloadAction<{ dataKey: string; comps: FilterComp[] }>,
 		) {
 			const filters = state[name];
 			const { dataKey, comps } = action.payload;
@@ -197,7 +197,7 @@ export function createFiltersSubslice(dataSet: string, fields: Fields) {
 		},
 		addFilter(
 			state: FiltersState,
-			action: PayloadAction<{ dataKey: string } & FilterComp>
+			action: PayloadAction<{ dataKey: string } & FilterComp>,
 		) {
 			const filters = state[name];
 			const { dataKey, value, operation } = action.payload;
@@ -205,18 +205,18 @@ export function createFiltersSubslice(dataSet: string, fields: Fields) {
 		},
 		removeFilter(
 			state: FiltersState,
-			action: PayloadAction<{ dataKey: string } & FilterComp>
+			action: PayloadAction<{ dataKey: string } & FilterComp>,
 		) {
 			const filters = state[name];
 			const { dataKey, value, operation } = action.payload;
 			filters[dataKey].comps = filters[dataKey].comps.filter(
 				(comp: FilterComp) =>
-					comp.value !== value || comp.operation !== operation
+					comp.value !== value || comp.operation !== operation,
 			);
 		},
 		clearFilter(
 			state: FiltersState,
-			action: PayloadAction<{ dataKey: string }>
+			action: PayloadAction<{ dataKey: string }>,
 		) {
 			const filters = state[name];
 			const { dataKey } = action.payload;
@@ -235,7 +235,7 @@ export function createFiltersSubslice(dataSet: string, fields: Fields) {
 }
 
 export function getFiltersSelectors<S>(
-	selectState: (state: S) => FiltersState
+	selectState: (state: S) => FiltersState,
 ) {
 	return {
 		/** All filters */

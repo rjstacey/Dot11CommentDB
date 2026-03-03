@@ -6,7 +6,7 @@ import {
 	type SetStateAction,
 } from "react";
 import isEqual from "lodash.isequal";
-import { Dictionary, EntityId } from "@reduxjs/toolkit";
+import { EntityId } from "@reduxjs/toolkit";
 import {
 	deepMergeTagMultiple,
 	ConfirmModal,
@@ -128,7 +128,7 @@ function nextBallotNumber(ballots: Ballot[], type: number) {
 
 export function getDefaultBallot(
 	ids: EntityId[],
-	entities: Dictionary<Ballot>,
+	entities: Record<EntityId, Ballot>,
 	ballotTemplate?: Ballot,
 ): BallotCreate {
 	const allBallots = ids.map((id) => entities[id]!);

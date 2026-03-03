@@ -19,7 +19,7 @@ type ExtraState = {
 };
 
 const selectId = (user: UserMember) => user.SAPIN;
-const dataAdapter = createEntityAdapter<UserMember>({ selectId });
+const dataAdapter = createEntityAdapter({ selectId });
 const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,

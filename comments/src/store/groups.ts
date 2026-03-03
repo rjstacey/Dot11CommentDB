@@ -3,8 +3,6 @@ import {
 	createEntityAdapter,
 	createSelector,
 	PayloadAction,
-	EntityId,
-	Dictionary,
 } from "@reduxjs/toolkit";
 
 import { fetcher, setError } from "@common";
@@ -23,16 +21,16 @@ export type { GroupType, Group, GroupCreate, GroupUpdate };
 export { AccessLevel };
 
 function arrangeIdsHeirarchically(
-	ids: EntityId[],
-	entities: Dictionary<Group>
+	ids: string[],
+	entities: Record<string, Group>,
 ) {
 	interface Node {
-		id: EntityId;
+		id: string;
 		children: Node[];
 	}
 
 	// Order by group type and then alphabetically
-	function compare(id1: EntityId, id2: EntityId) {
+	function compare(id1: string, id2: string) {
 		const g1 = entities[id1]!;
 		const g2 = entities[id2]!;
 		const g1TypeIndex = g1.type
@@ -46,15 +44,15 @@ function arrangeIdsHeirarchically(
 		return n;
 	}
 
-	function buildTree(parent_id: EntityId | null): Node[] {
+	function buildTree(parent_id: string | null): Node[] {
 		return ids
 			.filter((id) => entities[id]!.parent_id === parent_id)
 			.sort(compare)
 			.map((id) => ({ id, children: buildTree(id) }));
 	}
 
-	function flattenTree(nodes: Node[]): EntityId[] {
-		let ids: EntityId[] = [];
+	function flattenTree(nodes: Node[]): string[] {
+		let ids: string[] = [];
 		for (const node of nodes)
 			ids = ids.concat(node.id, flattenTree(node.children));
 		return ids;
@@ -100,7 +98,7 @@ const slice = createSlice({
 		},
 		getSuccess(
 			state,
-			action: PayloadAction<{ groupName: string; groups: Group[] }>
+			action: PayloadAction<{ groupName: string; groups: Group[] }>,
 		) {
 			const { groupName, groups } = action.payload;
 			dataAdapter.setMany(state, groups); // add or replace
@@ -141,13 +139,13 @@ export const selectTopLevelGroups = (state: RootState) => {
 /** Select top level group by name. Only for root ("r"), committee (c) and working group (wg). Root is selected with groupName = "". */
 export const selectTopLevelGroupByName = (
 	state: RootState,
-	groupName: string
+	groupName: string,
 ) => {
 	const groups = selectTopLevelGroups(state);
 	return groups.find((g) =>
 		groupName
 			? (g.type === "c" || g.type === "wg") && g.name === groupName
-			: g.type === "r"
+			: g.type === "r",
 	);
 };
 
@@ -167,10 +165,10 @@ export const selectWorkingGroupIds = createSelector(
 			const parent = entities[topLevelGroupId];
 			if (parent && (parent.type === "r" || parent.type === "c")) {
 				ids = ids.filter((id) =>
-					["r", "c", "wg"].includes(entities[id]!.type!)
+					["r", "c", "wg"].includes(entities[id]!.type!),
 				);
 			}
-			function isWorkingGroupDescendent(id: EntityId) {
+			function isWorkingGroupDescendent(id: string) {
 				if (id === topLevelGroupId) return true;
 				let g: Group | undefined = entities[id]!;
 				do {
@@ -186,13 +184,13 @@ export const selectWorkingGroupIds = createSelector(
 				return g.type === "c" || g.type === "wg";
 			});
 		}
-	}
+	},
 );
 
 export const selectGroups = createSelector(
 	selectWorkingGroupIds,
 	selectGroupEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 export const selectGroupParents = createSelector(
@@ -210,7 +208,7 @@ export const selectGroupParents = createSelector(
 			}
 		}
 		return groups;
-	}
+	},
 );
 
 export const selectGroupHeirarchy = createSelector(
@@ -233,7 +231,7 @@ export const selectGroupHeirarchy = createSelector(
 			}
 		}
 		return hierarchy;
-	}
+	},
 );
 
 export const selectGroup = (state: RootState, groupId: string) =>
@@ -241,7 +239,7 @@ export const selectGroup = (state: RootState, groupId: string) =>
 
 export const selectGroupPermissions = (
 	state: RootState,
-	groupId: string
+	groupId: string,
 ): Record<string, number> => {
 	const group = selectGroup(state, groupId);
 	return group ? group.permissions : {};

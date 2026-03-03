@@ -44,7 +44,7 @@ export const BallotTypeOptions = Object.entries(BallotTypeLabels).map(
 	([key, value]) => ({
 		value: Number(key),
 		label: value,
-	})
+	}),
 );
 
 export const renderBallotType = (type: BallotType) =>
@@ -187,7 +187,7 @@ const slice = createAppTableDataSlice({
 						state.valid = false;
 						dataAdapter.removeAll(state);
 					}
-				}
+				},
 			)
 			.addMatcher(
 				(action: Action) => action.type === dataSet + "/getSuccess",
@@ -200,7 +200,7 @@ const slice = createAppTableDataSlice({
 					state.currentBallot_id = ballot ? ballot.id : null;
 					state.currentGroupProject.groupId = groupId;
 					state.currentGroupProject.project = project;
-				}
+				},
 			)
 			.addMatcher(
 				(action: Action) => action.type === clearBallots.toString(),
@@ -211,7 +211,7 @@ const slice = createAppTableDataSlice({
 					state.currentBallot_id = null;
 					state.currentGroupProject.groupId = null;
 					state.currentGroupProject.project = null;
-				}
+				},
 			);
 	},
 });
@@ -270,7 +270,7 @@ export const selectChooseFromActiveGroups = (state: RootState) =>
 export const selectBallots = createSelector(
 	selectBallotIds,
 	selectBallotEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
@@ -279,7 +279,7 @@ export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
 	if (m) {
 		const label = m[1];
 		const entry = Object.entries(BallotTypeLabels).find(
-			([, value]) => value === label
+			([, value]) => value === label,
 		);
 		if (!entry) return;
 		const type = Number(entry[0]);
@@ -295,7 +295,7 @@ export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
 			(b) =>
 				b.Type === BallotType.SA &&
 				b.Project === project &&
-				b.stage === stage
+				b.stage === stage,
 		);
 	}
 	m = ballotId.match(/\d+/);
@@ -327,7 +327,7 @@ const selectSyncedBallotEntities = createSelector(
 			syncedEntities[id] = entity;
 		});
 		return syncedEntities;
-	}
+	},
 );
 
 export const selectBallotsWorkingGroup = (state: RootState) => {
@@ -361,7 +361,7 @@ export const selectGroupProjectOptions = createSelector(
 					options.find(
 						(o) =>
 							o.groupId === ballot.groupId &&
-							o.project === ballot.Project
+							o.project === ballot.Project,
 					)
 				)
 					return;
@@ -375,7 +375,7 @@ export const selectGroupProjectOptions = createSelector(
 			}
 		});
 		return options.sort((o1, o2) => o1.label.localeCompare(o2.label));
-	}
+	},
 );
 
 /* Generate ballot list for current project or all ballots if current project not set */
@@ -395,7 +395,7 @@ export const selectBallotOptions = createSelector(
 			});
 		}
 		return ballotIds.map((id) => entities[id]!);
-	}
+	},
 );
 
 export const selectBallotSeries = createSelector(
@@ -414,7 +414,7 @@ export const selectBallotSeries = createSelector(
 		}
 		const ballot = entities[ballot_id];
 		return ballot ? getBallotSeries(ballot) : undefined;
-	}
+	},
 );
 
 export const selectBallotSeriesId = (state: RootState, ballot: Ballot) => {
@@ -446,7 +446,7 @@ export const selectCurrentBallotSeries = createSelector(
 			ballot = ballot.prev_id ? entities[ballot.prev_id] : undefined;
 		}
 		return ballots;
-	}
+	},
 );
 
 export const ballotsSelectors = getAppTableDataSelectors(selectBallotsState, {
@@ -482,18 +482,18 @@ export const setCurrentGroupProject =
 			.filter(
 				(b) =>
 					b.groupId === groupProject.groupId &&
-					b.Project === groupProject.project
+					b.Project === groupProject.project,
 			)
 			.sort(
 				(b1, b2) =>
 					new Date(b1.End || "").valueOf() -
-					new Date(b2.End || "").valueOf()
+					new Date(b2.End || "").valueOf(),
 			);
 		const ballot = ballots[ballots.length - 1];
 		dispatch(
 			ballot
 				? setCurrentBallotIdLocal(ballot.id)
-				: setCurrentGroupProjectLocal(groupProject)
+				: setCurrentGroupProjectLocal(groupProject),
 		);
 		return ballot;
 	};

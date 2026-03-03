@@ -1,4 +1,4 @@
-import type { EntityId, Dictionary } from "@reduxjs/toolkit";
+import type { EntityId } from "@reduxjs/toolkit";
 import { Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -34,7 +34,7 @@ const th = (d: string) => `<th>${d}</th>`;
 
 function setClipboard(
 	ids: EntityId[],
-	comments: Dictionary<CommentResolution>
+	comments: Record<EntityId, CommentResolution>,
 ) {
 	const header = `
 		<tr>

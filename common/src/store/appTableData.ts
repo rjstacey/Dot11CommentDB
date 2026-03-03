@@ -6,7 +6,6 @@ import type {
 	EntityAdapter,
 	IdSelector,
 	Comparer,
-	Dictionary,
 	Update,
 	PayloadAction,
 	SliceCaseReducers,
@@ -53,7 +52,7 @@ export * from "./ui";
 
 export type GetEntityField<T extends {} = Record<string, any>> = (
 	entity: T,
-	dataKey: string
+	dataKey: string,
 ) => any;
 
 export const FieldType = {
@@ -89,7 +88,7 @@ type LoadingState = {
 	valid: boolean;
 };
 
-export type AppTableDataState<T> = EntityState<T> &
+export type AppTableDataState<T> = EntityState<T, EntityId> &
 	LoadingState &
 	SelectedState &
 	ExpandedState &
@@ -99,7 +98,7 @@ export type AppTableDataState<T> = EntityState<T> &
 
 export type AppTableDataSelectorOptions<S, T1, T2 extends T1 = T1> = {
 	/** Optionally override the entities selector; allows for table join operations etc. */
-	selectEntities?: (state: S) => Dictionary<T2>;
+	selectEntities?: (state: S) => Record<EntityId, T2>;
 	/** Optionally override the ids selector; allows for pre-filtering of table entires */
 	selectIds?: (state: S) => EntityId[];
 	/** Optional function that will derive a field `dataKey` from other fields */
@@ -112,7 +111,7 @@ interface O1<S, T1 extends {}> {
 }
 interface O2<S, T1 extends {}, T2 extends T1>
 	extends Omit<O1<S, T1>, "getField"> {
-	selectEntities: (state: S) => Dictionary<T2>;
+	selectEntities: (state: S) => Record<EntityId, T2>;
 	getField?: GetEntityField<T2>;
 }
 
@@ -127,23 +126,23 @@ interface R1<S, T1 extends {}>
 	selectSortedIds: (state: S) => EntityId[];
 	selectFilteredIds: (state: S) => EntityId[];
 	selectSortedFilteredIds: (state: S) => EntityId[];
-	selectEntities: (state: S) => Dictionary<T1>;
+	selectEntities: (state: S) => Record<EntityId, T1>;
 	getField: GetEntityField<T1>;
 }
 
 interface R2<S, T1 extends {}, T2 extends T1>
 	extends Omit<R1<S, T1>, "selectEntities" | "getField"> {
-	selectEntities: (state: S) => Dictionary<T2>;
+	selectEntities: (state: S) => Record<EntityId, T2>;
 	getField: GetEntityField<T2>;
 }
 
 export function getAppTableDataSelectors<S, T1 extends {}, T2 extends T1>(
 	selectState: (state: S) => AppTableDataState<T1>,
-	options?: O1<S, T1>
+	options?: O1<S, T1>,
 ): R1<S, T1>;
 export function getAppTableDataSelectors<S, T1 extends {}, T2 extends T1>(
 	selectState: (state: S) => AppTableDataState<T1>,
-	options?: O2<S, T1, T2>
+	options?: O2<S, T1, T2>,
 ): R2<S, T1, T2>;
 export function getAppTableDataSelectors<
 	S,
@@ -153,7 +152,7 @@ export function getAppTableDataSelectors<
 >(
 	/** Selector for the slice state (required) */
 	selectState: (state: S) => AppTableDataState<T1>,
-	options?: O
+	options?: O,
 ): O extends O2<S, T1, T2> ? R2<S, T1, T2> : R1<S, T1> {
 	const selectFilters = (state: S) => selectState(state).filters;
 	const selectSorts = (state: S) => selectState(state).sorts;
@@ -183,19 +182,20 @@ export function getAppTableDataSelectors<
 		selectFilters,
 		selectEntities,
 		selectIds,
-		(filters, entities, ids) => filterData(filters, getField, entities, ids)
+		(filters, entities, ids) =>
+			filterData(filters, getField, entities, ids),
 	);
 
 	/** Select array of sorted ids */
 	const selectSortedIds: (state: S) => EntityId[] = createSelector(
 		[selectSorts, selectEntities, selectIds],
-		(sorts, entities, ids) => sortData(sorts, getField, entities, ids)
+		(sorts, entities, ids) => sortData(sorts, getField, entities, ids),
 	);
 
 	/** Select array of sorted and filtered ids */
 	const selectSortedFilteredIds: (state: S) => EntityId[] = createSelector(
 		[selectSorts, selectEntities, selectFilteredIds],
-		(sorts, entities, ids) => sortData(sorts, getField, entities, ids)
+		(sorts, entities, ids) => sortData(sorts, getField, entities, ids),
 	);
 
 	return {
@@ -249,7 +249,7 @@ export function createAppTableDataSlice<
 }: {
 	name: Name;
 	fields: Fields;
-	selectId?: IdSelector<T>;
+	selectId?: IdSelector<T, EntityId>;
 	sortComparer?: Comparer<T>;
 	initialState: ExtraState;
 	reducers: ValidateSliceCaseReducers<
@@ -258,11 +258,11 @@ export function createAppTableDataSlice<
 	>;
 	extraReducers?: (
 		builder: ActionReducerMapBuilder<ExtraState & AppTableDataState<T>>,
-		dataAdapter: EntityAdapter<T>
+		dataAdapter: EntityAdapter<T, EntityId>,
 	) => void;
 }) {
-	const dataAdapter = createEntityAdapter<T>(
-		Object.assign({ selectId }, sortComparer ? { sortComparer } : {})
+	const dataAdapter = createEntityAdapter(
+		Object.assign({ selectId }, sortComparer ? { sortComparer } : {}),
 	);
 
 	const selectedSubslice = createSelectedSubslice(name);
@@ -277,31 +277,49 @@ export function createAppTableDataSlice<
 		/** Load data set load and indicate successful (flag as `valid` and not `loading`) */
 		getSuccess(
 			state: AppTableDataState<T>,
-			action: PayloadAction<T[]>
+			action: PayloadAction<T[]>,
 		): void;
 		/** Data set load failed (flag as not `loading`) */
 		getFailure(state: AppTableDataState<T>): void;
-		setAll(state: EntityState<T>, action: PayloadAction<T[]>): void;
-		setOne(state: EntityState<T>, action: PayloadAction<T>): void;
-		setMany(state: EntityState<T>, action: PayloadAction<T[]>): void;
-		addOne(state: EntityState<T>, action: PayloadAction<T>): void;
-		addMany(state: EntityState<T>, action: PayloadAction<T[]>): void;
+		setAll(
+			state: EntityState<T, EntityId>,
+			action: PayloadAction<T[]>,
+		): void;
+		setOne(state: EntityState<T, EntityId>, action: PayloadAction<T>): void;
+		setMany(
+			state: EntityState<T, EntityId>,
+			action: PayloadAction<T[]>,
+		): void;
+		addOne(state: EntityState<T, EntityId>, action: PayloadAction<T>): void;
+		addMany(
+			state: EntityState<T, EntityId>,
+			action: PayloadAction<T[]>,
+		): void;
 		updateOne(
-			state: EntityState<T>,
-			action: PayloadAction<Update<T>>
+			state: EntityState<T, EntityId>,
+			action: PayloadAction<Update<T, EntityId>>,
 		): void;
 		updateMany(
-			state: EntityState<T>,
-			action: PayloadAction<Update<T>[]>
+			state: EntityState<T, EntityId>,
+			action: PayloadAction<Update<T, EntityId>[]>,
 		): void;
-		upsertOne(state: EntityState<T>, action: PayloadAction<T>): void;
-		upsertMany(state: EntityState<T>, action: PayloadAction<T[]>): void;
-		removeOne(state: EntityState<T>, action: PayloadAction<EntityId>): void;
+		upsertOne(
+			state: EntityState<T, EntityId>,
+			action: PayloadAction<T>,
+		): void;
+		upsertMany(
+			state: EntityState<T, EntityId>,
+			action: PayloadAction<T[]>,
+		): void;
+		removeOne(
+			state: EntityState<T, EntityId>,
+			action: PayloadAction<EntityId>,
+		): void;
 		removeMany(
-			state: EntityState<T>,
-			action: PayloadAction<EntityId[]>
+			state: EntityState<T, EntityId>,
+			action: PayloadAction<EntityId[]>,
 		): void;
-		removeAll(state: EntityState<T>): void;
+		removeAll(state: EntityState<T, EntityId>): void;
 	} = {
 		getPending(state) {
 			state.loading = true;
@@ -355,7 +373,7 @@ export function createAppTableDataSlice<
 			...uiSubslice.reducers,
 		},
 		extraReducers: (
-			builder: ActionReducerMapBuilder<ExtraState & AppTableDataState<T>>
+			builder: ActionReducerMapBuilder<ExtraState & AppTableDataState<T>>,
 		) => {
 			selectedSubslice.extraReducers(builder);
 			expandedSubslice.extraReducers(builder);

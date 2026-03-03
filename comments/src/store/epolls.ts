@@ -1,5 +1,5 @@
 import { createSelector, createAction } from "@reduxjs/toolkit";
-import type { Dictionary, Action } from "@reduxjs/toolkit";
+import type { Action, EntityId } from "@reduxjs/toolkit";
 import {
 	fetcher,
 	setError,
@@ -108,7 +108,7 @@ export const selectSyncedEntities = createSelector(
 	selectEpollIds,
 	selectEpollEntities,
 	(ballotIds, ballotEntities, epollIds, epollEntities) => {
-		const syncedEntities: Dictionary<SyncedEpoll> = {};
+		const syncedEntities: Record<EntityId, SyncedEpoll> = {};
 		for (const epollNum of epollIds) {
 			const ballot_id =
 				(ballotIds as number[]).find(

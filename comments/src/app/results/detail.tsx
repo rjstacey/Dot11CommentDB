@@ -25,9 +25,9 @@ export function ResultsDetail() {
 
 	let title = "Result";
 	let content: ReactNode;
-	if (state.action === "add" || state.action === "update") {
-		if (state.action === "add") title = "Add result";
-		else if (hasChanges()) title = "Update result";
+	if (/*state.action === "add" ||*/ state.action === "update") {
+		/*if (state.action === "add") title = "Add result";
+		else*/ if (hasChanges()) title = "Update result";
 		content = (
 			<ResultEditForm
 				action={state.action}
@@ -51,7 +51,7 @@ export function ResultsDetail() {
 				title="Add result"
 				//disabled={!isOnline}
 				disabled={true}
-				active={state.action === "add"}
+				active={/*state.action === "add"*/ false}
 				onClick={onAdd}
 			>
 				{" Add"}

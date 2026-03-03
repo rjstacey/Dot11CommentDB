@@ -25,7 +25,9 @@ import {
 import { useCommentsAccess } from "./useCommentsAccess";
 
 export type MultipleCommentResolution = Multiple<CommentResolution>;
-export type MultipleComment = Multiple<Comment>;
+export type MultipleComment = Multiple<
+	Omit<Comment, "id"> & { Vote?: CommentResolution["Vote"] }
+>;
 export type MultipleResolution = Multiple<Resolution>;
 
 type CommentsEditState =
@@ -119,10 +121,10 @@ export function useCommentsEdit(readOnly: boolean) {
 				if (cr.resolution_id)
 					resolutions.push(resolutionFromCommentResolution(cr));
 			}
-			let commentsEdited = {} as Multiple<Comment>;
+			let commentsEdited = {} as MultipleComment;
 			for (const c of comments)
 				commentsEdited = deepMergeTagMultiple(commentsEdited, c);
-			let resolutionsEdited = {} as Multiple<Resolution>;
+			let resolutionsEdited = {} as MultipleResolution;
 			for (const r of resolutions)
 				resolutionsEdited = deepMergeTagMultiple(resolutionsEdited, r);
 

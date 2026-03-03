@@ -1,6 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { createSelector, createAction } from "@reduxjs/toolkit";
-import type { Action, EntityId, Dictionary } from "@reduxjs/toolkit";
+import type { Action, EntityId } from "@reduxjs/toolkit";
 import {
 	fetcher,
 	setError,
@@ -187,7 +187,7 @@ type Update<T> = {
 
 function getResolutionCountUpdates(
 	ids: EntityId[],
-	entities: Dictionary<CommentResolution>,
+	entities: Record<EntityId, CommentResolution>,
 	comment_ids: number[],
 ) {
 	const updates: CommentResolutionUpdate[] = [];
@@ -222,6 +222,7 @@ const sortComparer = (c1: CommentResolution, c2: CommentResolution) =>
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	//selectId: (c: CommentResolution) => c.id,
 	sortComparer,
 	initialState,
 	reducers: {

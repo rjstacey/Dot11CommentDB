@@ -1,5 +1,5 @@
 import { Row, Col, Form, Accordion } from "react-bootstrap";
-import { isMultiple, type Multiple } from "@common";
+import { isMultiple } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -14,7 +14,7 @@ import { CommentGroupSelect } from "./CommentGroupSelect";
 import Editor from "@/components/editor";
 
 import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
-import type { CommentEditable } from "./CommentEdit";
+import type { MultipleComment } from "@/hooks/commentsEdit";
 
 import styles from "./comments.module.css";
 
@@ -23,7 +23,7 @@ export const CommentAdHoc = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<CommentEditable>;
+	comment: MultipleComment;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
@@ -64,7 +64,7 @@ export const CommentGroup = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<CommentEditable>;
+	comment: MultipleComment;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (
@@ -96,7 +96,7 @@ function CommentAdHocStatus({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<CommentEditable>;
+	comment: MultipleComment;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -124,7 +124,7 @@ function CommentAdHocStatus({
 							changeAdHocStatus(
 								e.target.checked
 									? AdHocStatus.MoreWorkRequired
-									: null
+									: null,
 							)
 						}
 						label="More work required"
@@ -151,7 +151,7 @@ function CommentAdHocStatus({
 							changeAdHocStatus(
 								e.target.checked
 									? AdHocStatus.SubmissionRequired
-									: null
+									: null,
 							)
 						}
 						label="Submission required"
@@ -176,7 +176,7 @@ function CommentNotesInternal({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<CommentEditable>;
+	comment: MultipleComment;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -201,7 +201,7 @@ function CommentNotesInternal({
 }
 
 export function CommentNotesRow(props: {
-	comment: Multiple<CommentEditable>;
+	comment: MultipleComment;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -216,7 +216,7 @@ export function CommentNotesRow(props: {
 }
 
 export function CommentNotesRowCollapsable(props: {
-	comment: Multiple<CommentEditable>;
+	comment: MultipleComment;
 	updateComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -250,7 +250,7 @@ export const CommentCategorization = ({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<CommentEditable>;
+	comment: MultipleComment;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) => (

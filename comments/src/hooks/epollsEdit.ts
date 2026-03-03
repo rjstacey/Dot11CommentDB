@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Dictionary } from "@reduxjs/toolkit";
+import { EntityId } from "@reduxjs/toolkit";
 import { useAppSelector } from "@/store/hooks";
 import { selectTopLevelGroupId } from "@/store/groups";
 import {
@@ -22,7 +22,7 @@ import {
 function ePollToBallot(
 	epoll: SyncedEpoll,
 	groupId: string,
-	ballotEntities: Dictionary<Ballot>,
+	ballotEntities: Record<EntityId, Ballot>,
 ): Partial<Ballot> {
 	const ballot: Partial<Ballot> = {
 		EpollNum: epoll.id,

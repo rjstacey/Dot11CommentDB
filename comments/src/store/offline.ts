@@ -66,7 +66,7 @@ const slice = createSlice({
 	extraReducers: (builder) => {
 		builder.addMatcher(
 			(action) => action.type === REHYDRATE,
-			(state, action) => {
+			(state, action: PayloadAction<Record<string, OfflineState>>) => {
 				if (action.payload && action.payload[dataSet]) {
 					const offline = action.payload[dataSet];
 					const outbox = offline.outbox || state.outbox;

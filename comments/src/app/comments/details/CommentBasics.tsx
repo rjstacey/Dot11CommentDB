@@ -9,7 +9,7 @@ import { isMultiple, type Multiple, MULTIPLE } from "@common";
 
 import { categoryMap, type Comment } from "@/store/comments";
 import { MULTIPLE_STR } from "@/components/constants";
-import type { CommentEditable } from "./CommentEdit";
+import type { MultipleComment } from "@/hooks/commentsEdit";
 
 import styles from "./comments.module.css";
 
@@ -24,7 +24,7 @@ export function CommentMBS({
 	style,
 	...props
 }: {
-	comment: { MustSatisfy: Multiple<Comment>["MustSatisfy"] };
+	comment: { MustSatisfy: MultipleComment["MustSatisfy"] };
 } & ComponentProps<"span">) {
 	const { MustSatisfy: mbs } = comment;
 	if (isMultiple(mbs) || !mbs) return null;
@@ -43,7 +43,7 @@ export function CommentMBS({
 	);
 }
 
-export function renderCommenter(comment: Multiple<CommentEditable>) {
+export function renderCommenter(comment: MultipleComment) {
 	const commenter = comment.CommenterName;
 	if (isMultiple(commenter)) return <ShowMultiple />;
 
@@ -93,7 +93,7 @@ function CommentPage({
 	setComment,
 	readOnly,
 }: {
-	comment: Multiple<CommentEditable>;
+	comment: MultipleComment;
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -165,7 +165,7 @@ function CommentClause({
 	setComment,
 	readOnly,
 }: {
-	comment: Multiple<CommentEditable>;
+	comment: MultipleComment;
 	setComment: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {
@@ -209,7 +209,7 @@ export function CommentBasics({
 	updateComment = () => {},
 	readOnly,
 }: {
-	comment: Multiple<CommentEditable>;
+	comment: MultipleComment;
 	updateComment?: (changes: Partial<Comment>) => void;
 	readOnly?: boolean;
 }) {

@@ -1,4 +1,4 @@
-import type { EntityId, PayloadAction, Dictionary } from "@reduxjs/toolkit";
+import type { EntityId, PayloadAction } from "@reduxjs/toolkit";
 import {
 	FieldType,
 	FieldTypeValue,
@@ -29,7 +29,7 @@ export type SortDirectionValue = (typeof SortDirection)[SortDirectionKey];
 
 export const cmpNumeric = (
 	a: string | number | null,
-	b: string | number | null
+	b: string | number | null,
 ) => {
 	if (a === null || b === null) {
 		if (a === null && b === null) return 0;
@@ -82,8 +82,8 @@ export const sortFunc = {
 export function sortData<EntityType extends {} = {}>(
 	sorts: Sorts,
 	getField: GetEntityField<EntityType>,
-	entities: Dictionary<EntityType>,
-	ids: EntityId[]
+	entities: Record<EntityId, EntityType>,
+	ids: EntityId[],
 ): EntityId[] {
 	let sortedIds = ids.slice();
 	for (const dataKey of sorts.by) {
@@ -94,8 +94,8 @@ export function sortData<EntityType extends {} = {}>(
 		sortedIds = sortedIds.sort((id_a, id_b) =>
 			cmpFunc(
 				getField(entities[id_a]!, dataKey),
-				getField(entities[id_b]!, dataKey)
-			)
+				getField(entities[id_b]!, dataKey),
+			),
 		);
 		if (direction === "DESC") sortedIds.reverse();
 	}
@@ -109,7 +109,7 @@ export function sortOptions<T extends Option>(sort: Sort, options: T[]): T[] {
 	if (direction === SortDirection.ASC || direction === SortDirection.DESC) {
 		const cmpFunc = sortFunc[type];
 		sortedOptions = sortedOptions.sort((itemA, itemB) =>
-			cmpFunc(itemA.value, itemB.value)
+			cmpFunc(itemA.value, itemB.value),
 		);
 		if (direction === SortDirection.DESC) sortedOptions.reverse();
 	}
@@ -120,7 +120,7 @@ export function sortOptions<T extends Option>(sort: Sort, options: T[]): T[] {
 function setSort(
 	sorts: Sorts,
 	dataKey: string,
-	direction: SortDirectionValue
+	direction: SortDirectionValue,
 ): Sorts {
 	let { by, settings } = sorts;
 	if (by.indexOf(dataKey) >= 0) {
@@ -170,7 +170,7 @@ export const createSortsSubslice = (dataSet: string, fields: Fields) => {
 			action: PayloadAction<{
 				dataKey: string;
 				direction: SortDirectionValue;
-			}>
+			}>,
 		) {
 			const { dataKey, direction } = action.payload;
 			state[name] = setSort(state[name], dataKey, direction);

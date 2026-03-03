@@ -3,6 +3,7 @@ import type {
 	PayloadAction,
 	Action,
 	ActionReducerMapBuilder,
+	EntityState,
 } from "@reduxjs/toolkit";
 
 const name = "expanded";
@@ -20,7 +21,7 @@ export function createExpandedSubslice(dataSet: string) {
 		/** For @param list, remove entries that are present and add entries that are not present */
 		toggleExpanded(
 			state: ExpandedState,
-			action: PayloadAction<EntityId[]>
+			action: PayloadAction<EntityId[]>,
 		) {
 			const list = state[name];
 			for (let id of action.payload) {
@@ -31,19 +32,23 @@ export function createExpandedSubslice(dataSet: string) {
 		},
 	};
 
-	const extraReducers = (
-		builder: ActionReducerMapBuilder<ExpandedState & { ids: EntityId[] }>
+	const extraReducers = <
+		S extends EntityState<unknown, EntityId> & ExpandedState,
+	>(
+		builder: ActionReducerMapBuilder<S>,
 	) => {
 		builder.addMatcher(
-			(action: Action) => Boolean(
-				action.type.startsWith(dataSet) &&
-				action.type.match(/(removeOne|removeMany|getSuccess)$/)),
+			(action: Action) =>
+				Boolean(
+					action.type.startsWith(dataSet) &&
+						action.type.match(/(removeOne|removeMany|getSuccess)$/),
+				),
 			(state) => {
 				const list = state[name];
 				const ids = state.ids;
 				const newList = list.filter((id) => ids.includes(id));
 				state[name] = newList.length === list.length ? list : newList;
-			}
+			},
 		);
 	};
 
@@ -56,7 +61,7 @@ export function createExpandedSubslice(dataSet: string) {
 }
 
 export function getExpandedSelectors<S>(
-	selectState: (state: S) => ExpandedState
+	selectState: (state: S) => ExpandedState,
 ) {
 	return {
 		/** The list of ids that represent expanded rows */

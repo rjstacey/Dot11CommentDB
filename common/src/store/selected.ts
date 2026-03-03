@@ -3,6 +3,7 @@ import type {
 	PayloadAction,
 	Action,
 	ActionReducerMapBuilder,
+	EntityState,
 } from "@reduxjs/toolkit";
 
 const name = "selected";
@@ -18,7 +19,7 @@ export function createSelectedSubslice(dataSet: string) {
 		},
 		toggleSelected(
 			state: SelectedState,
-			action: PayloadAction<EntityId[]>
+			action: PayloadAction<EntityId[]>,
 		) {
 			const list = state[name];
 			for (let id of action.payload) {
@@ -29,19 +30,23 @@ export function createSelectedSubslice(dataSet: string) {
 		},
 	};
 
-	const extraReducers = (
-		builder: ActionReducerMapBuilder<{ ids: EntityId[] } & SelectedState>
+	const extraReducers = <
+		S extends EntityState<unknown, EntityId> & SelectedState,
+	>(
+		builder: ActionReducerMapBuilder<S>,
 	) => {
 		builder.addMatcher(
-			(action: Action) => Boolean(
-				action.type.startsWith(dataSet) &&
-				action.type.match(/(removeOne|removeMany|getSuccess)$/)),
+			(action: Action) =>
+				Boolean(
+					action.type.startsWith(dataSet) &&
+						action.type.match(/(removeOne|removeMany|getSuccess)$/),
+				),
 			(state) => {
 				const list = state[name];
 				const ids = state.ids;
 				const newList = list.filter((id) => ids.includes(id));
 				state[name] = newList.length === list.length ? list : newList;
-			}
+			},
 		);
 	};
 
@@ -54,7 +59,7 @@ export function createSelectedSubslice(dataSet: string) {
 }
 
 export function getSelectedSelectors<S>(
-	selectState: (state: S) => SelectedState
+	selectState: (state: S) => SelectedState,
 ) {
 	return {
 		/** The list of ids that represent selected rows */
