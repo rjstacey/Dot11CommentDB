@@ -33,6 +33,4 @@ export const groupLoader: LoaderFunction = async (args) => {
 	dispatch(loadMembers(groupName));
 	dispatch(loadOfficers(groupName));
 	await Promise.all(critical);
-
-	return null;
 };

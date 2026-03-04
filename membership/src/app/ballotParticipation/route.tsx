@@ -1,8 +1,8 @@
 import { RouteObject } from "react-router";
-import { ballotParticipationLoader } from "./loader";
-import BallotParticipation from "./layout";
+import { loader } from "./loader";
+import { BallotParticipationLayout } from "./layout";
 
 export const ballotParticipationRoute: RouteObject = {
-	Component: BallotParticipation,
-	loader: ballotParticipationLoader,
+	Component: BallotParticipationLayout,
+	loader,
 };

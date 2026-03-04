@@ -17,9 +17,9 @@ import {
 } from "@/store/members";
 
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
-import { MemberDetail } from "./detail";
+import { MembersDetail } from "./detail";
 
-export function MembersTable() {
+export function MembersMain() {
 	const dispatch = useAppDispatch();
 	const selected = useAppSelector(selectMembersSelected);
 
@@ -53,7 +53,7 @@ export function MembersTable() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<MemberDetail
+					<MembersDetail
 						selected={selected}
 						setSelected={(ids) => dispatch(setSelected(ids))}
 					/>
@@ -62,5 +62,3 @@ export function MembersTable() {
 		</>
 	);
 }
-
-export default MembersTable;

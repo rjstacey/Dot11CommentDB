@@ -1,8 +1,8 @@
 import { RouteObject } from "react-router";
 import { loader } from "./loader";
-import SessionParticipation from "./layout";
+import { SessionParticipationLayout } from "./layout";
 
 export const sessionParticipationRoute: RouteObject = {
-	element: <SessionParticipation />,
+	Component: SessionParticipationLayout,
 	loader,
 };

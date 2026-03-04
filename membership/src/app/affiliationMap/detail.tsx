@@ -9,7 +9,7 @@ import { AffiliationMapEntryForm } from "./AffiliationMapEntryForm";
 import { AffiliationMapMatches } from "./AffiliationMapMatches";
 import { AffiliationMapUnmatched } from "./AffiliationMapUnmatched";
 
-function AffiliationMapDetail() {
+export function AffiliationMapDetail() {
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 
@@ -91,5 +91,3 @@ function AffiliationMapDetail() {
 		</>
 	);
 }
-
-export default AffiliationMapDetail;

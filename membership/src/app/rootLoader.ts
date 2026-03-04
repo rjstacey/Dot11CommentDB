@@ -8,6 +8,4 @@ export const rootLoader: LoaderFunction = async () => {
 	const { dispatch } = store;
 	dispatch(loadTimeZones());
 	dispatch(loadGroups());
-
-	return null;
 };

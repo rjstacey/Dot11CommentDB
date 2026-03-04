@@ -1,13 +1,11 @@
 import { BallotParticipationActions } from "./actions";
-import { BallotParticipationTable } from "./main";
+import { BallotParticipationMain } from "./main";
 
-export function BallotParticipation() {
+export function BallotParticipationLayout() {
 	return (
 		<>
 			<BallotParticipationActions />
-			<BallotParticipationTable />
+			<BallotParticipationMain />
 		</>
 	);
 }
-
-export default BallotParticipation;

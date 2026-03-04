@@ -1,8 +1,8 @@
 import { RouteObject } from "react-router";
-import { membersLoader } from "../members/loader";
-import AffiliationMap from "./main";
+import { loader } from "../members/loader";
+import { AffiliationMapMain } from "./main";
 
 export const affiliationMapRoute: RouteObject = {
-	Component: AffiliationMap,
-	loader: membersLoader,
+	Component: AffiliationMapMain,
+	loader,
 };

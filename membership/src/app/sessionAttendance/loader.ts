@@ -76,6 +76,4 @@ export const sessionAttendanceLoader: LoaderFunction = async ({
 	} else {
 		throw new Error("Can't find session " + sessionNumber);
 	}
-
-	return null;
 };

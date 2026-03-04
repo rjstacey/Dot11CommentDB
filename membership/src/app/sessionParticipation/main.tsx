@@ -16,7 +16,7 @@ import {
 	setSessionParticipationSelected,
 } from "@/store/sessionParticipation";
 
-import { MemberDetail } from "../members/detail";
+import { MembersDetail } from "../members/detail";
 import { useTableColumns, useDefaultTablesConfig } from "./tableColumns";
 
 export function SessionParticipationTable() {
@@ -60,7 +60,7 @@ export function SessionParticipationTable() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<MemberDetail
+					<MembersDetail
 						selected={selected}
 						setSelected={(ids) =>
 							dispatch(setSessionParticipationSelected(ids))

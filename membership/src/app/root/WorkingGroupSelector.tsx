@@ -6,7 +6,7 @@ import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectWorkingGroups, AccessLevel } from "@/store/groups";
 
-import styles from "./root.module.css";
+import css from "./root.module.css";
 
 const selectOptions = createSelector(selectWorkingGroups, (groups) =>
 	groups.map((g) => {
@@ -15,7 +15,7 @@ const selectOptions = createSelector(selectWorkingGroups, (groups) =>
 	}),
 );
 
-export function PathWorkingGroupSelector() {
+export function WorkingGroupSelector() {
 	const navigate = useNavigate();
 	const { groupName } = useParams();
 
@@ -29,8 +29,8 @@ export function PathWorkingGroupSelector() {
 
 	return (
 		<Select
-			className={styles["working-group-select"]}
-			dropdownClassName={styles["working-group-select-dropdown"]}
+			className={css["working-group-select"]}
+			dropdownClassName={css["working-group-select-dropdown"]}
 			values={values}
 			onChange={handleChange}
 			options={options}
@@ -41,4 +41,4 @@ export function PathWorkingGroupSelector() {
 	);
 }
 
-export default PathWorkingGroupSelector;
+export default WorkingGroupSelector;

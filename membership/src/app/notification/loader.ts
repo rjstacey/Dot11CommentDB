@@ -3,7 +3,10 @@ import type { LoaderFunction } from "react-router";
 import { store } from "@/store";
 import { loadEmailTemplates } from "@/store/emailTemplates";
 import { selectMembersState } from "@/store/members";
-import { refresh as membersRefresh, membersLoader } from "../members/loader";
+import {
+	refresh as membersRefresh,
+	loader as membersLoader,
+} from "../members/loader";
 
 export function refresh() {
 	const { getState, dispatch } = store;

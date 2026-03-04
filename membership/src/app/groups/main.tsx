@@ -4,10 +4,10 @@ import { AppTable, SplitPanel, Panel, SplitTableButtonGroup } from "@common";
 import { groupsSelectors, groupsActions } from "@/store/groups";
 
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
-import GroupsDetail from "./detail";
+import { GroupsDetail } from "./detail";
 import { refresh } from "./loader";
 
-function Groups() {
+export function GroupsMain() {
 	return (
 		<>
 			<Row className="w-100 d-flex justify-content-end align-items-center m-3">
@@ -45,5 +45,3 @@ function Groups() {
 		</>
 	);
 }
-
-export default Groups;

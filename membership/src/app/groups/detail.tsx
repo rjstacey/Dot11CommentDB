@@ -8,7 +8,7 @@ import { useGroupsEdit } from "@/hooks/groupsEdit";
 import ShowAccess from "@/components/ShowAccess";
 import { GroupsEditForm } from "./GroupsEditForm";
 
-function GroupsDetail() {
+export function GroupsDetail() {
 	const access = useAppSelector(selectUserGroupsAccess);
 	const readOnly = access <= AccessLevel.ro;
 
@@ -82,5 +82,3 @@ function GroupsDetail() {
 		</>
 	);
 }
-
-export default GroupsDetail;

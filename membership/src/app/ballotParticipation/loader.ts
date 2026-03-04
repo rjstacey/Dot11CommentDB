@@ -19,7 +19,7 @@ export function refresh() {
 	dispatch(loadBallotParticipation(groupName, true));
 }
 
-export const ballotParticipationLoader: LoaderFunction = async (args) => {
+export const loader: LoaderFunction = async (args) => {
 	const { dispatch, getState } = store;
 
 	const { groupName } = args.params;

@@ -16,10 +16,10 @@ import {
 	ballotParticipationActions,
 } from "@/store/ballotParticipation";
 
-import { MemberDetail } from "../members/detail";
+import { MembersDetail } from "../members/detail";
 import { useTableColumns } from "./tableColumns";
 
-export function BallotParticipationTable() {
+export function BallotParticipationMain() {
 	const dispatch = useAppDispatch();
 	const selected = useAppSelector(selectBallotParticipationSelected);
 
@@ -58,7 +58,7 @@ export function BallotParticipationTable() {
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<MemberDetail
+					<MembersDetail
 						selected={selected}
 						setSelected={(ids) =>
 							dispatch(setBallotParticipationSelected(ids))

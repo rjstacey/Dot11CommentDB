@@ -32,6 +32,4 @@ export const loader: LoaderFunction = async ({ params }) => {
 
 	await dispatch(loadSessions(groupName));
 	dispatch(loadRecentAttendanceSummaries(groupName));
-
-	return null;
 };

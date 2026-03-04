@@ -29,7 +29,7 @@ export function refresh() {
 	dispatch(loadBallotParticipation(groupName, true));
 }
 
-export const membersLoader: LoaderFunction = async (args) => {
+export const loader: LoaderFunction = async (args) => {
 	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 

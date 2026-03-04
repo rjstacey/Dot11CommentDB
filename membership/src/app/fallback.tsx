@@ -2,7 +2,7 @@ import { Navbar, Nav, Button, Container, Placeholder } from "react-bootstrap";
 import { useParams } from "react-router";
 
 const appName = "Membership";
-export default function AppFallback() {
+export function AppFallback() {
 	const { groupName } = useParams();
 	const title = (groupName ? groupName + " " : "") + appName;
 	if (document.title !== title) document.title = title;

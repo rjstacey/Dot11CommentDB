@@ -9,7 +9,7 @@ import { MemberAddForm } from "./MemberAddForm";
 import { MemberUpdateOneForm } from "./MemberUpdateOneForm";
 import { MemberUpdateManyForm } from "./MemberUpdateManyForm";
 
-export function MemberDetail({
+export function MembersDetail({
 	selected,
 	setSelected,
 }: {

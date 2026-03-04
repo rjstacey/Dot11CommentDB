@@ -1,13 +1,11 @@
 import { MembersActions } from "./actions";
-import { MembersTable } from "./main";
+import { MembersMain } from "./main";
 
 export function MembersLayout() {
 	return (
 		<>
 			<MembersActions />
-			<MembersTable />
+			<MembersMain />
 		</>
 	);
 }
-
-export default MembersLayout;

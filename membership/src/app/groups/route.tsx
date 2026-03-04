@@ -1,8 +1,8 @@
 import { RouteObject } from "react-router";
-import { groupsLoader } from "./loader";
-import Groups from "./main";
+import { loader } from "./loader";
+import { GroupsMain } from "./main";
 
 export const groupsRoute: RouteObject = {
-	Component: Groups,
-	loader: groupsLoader,
+	Component: GroupsMain,
+	loader,
 };

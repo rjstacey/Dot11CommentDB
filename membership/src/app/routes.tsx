@@ -2,8 +2,8 @@ import { RouteObject, Outlet } from "react-router";
 import { Placeholder } from "react-bootstrap";
 import { AppLayout } from "./layout";
 import { AppErrorPage } from "./errorPage";
-import Fallback from "./fallback";
-import RootMain from "./root";
+import { AppFallback } from "./fallback";
+import { RootMain } from "./root";
 import { installLoaderWrapper } from "./initialLoad";
 import { rootLoader } from "./rootLoader";
 import { groupLoader } from "./groupLoader";
@@ -22,7 +22,7 @@ export const routes: RouteObject[] = [
 		loader: rootLoader,
 		element: <AppLayout />,
 		errorElement: <AppErrorPage />,
-		hydrateFallbackElement: <Fallback />,
+		hydrateFallbackElement: <AppFallback />,
 		children: [
 			{ index: true, element: <RootMain /> },
 			{ path: "groups", ...groupsRoute },
