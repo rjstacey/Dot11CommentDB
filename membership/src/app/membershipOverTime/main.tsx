@@ -2,22 +2,22 @@ import { Row, Col, Button } from "react-bootstrap";
 import { AppTable, SplitPanel, Panel, SplitTableButtonGroup } from "@common";
 
 import {
-	affiliationMapSelectors,
-	affiliationMapActions,
-} from "@/store/affiliationMap";
-import { refresh } from "../members/loader";
+	membershipOverTimeSelectors,
+	membershipOverTimeActions,
+} from "@/store/membershipOverTime";
+import { refresh } from "./loader";
 
-import AffiliationMapDetail from "./detail";
+import { MembershipOverTimeDetail } from "./detail";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
-function AffiliationMapMain() {
+export function MembershipOverTimeMain() {
 	return (
 		<>
 			<Row className="w-100 d-flex justify-content-end align-items-center m-3">
 				<SplitTableButtonGroup
 					xs="auto"
-					selectors={affiliationMapSelectors}
-					actions={affiliationMapActions}
+					selectors={membershipOverTimeSelectors}
+					actions={membershipOverTimeActions}
 					columns={tableColumns}
 				/>
 				<Col xs="auto" className="d-flex justify-content-end gap-2">
@@ -30,8 +30,8 @@ function AffiliationMapMain() {
 				</Col>
 			</Row>
 			<SplitPanel
-				selectors={affiliationMapSelectors}
-				actions={affiliationMapActions}
+				selectors={membershipOverTimeSelectors}
+				actions={membershipOverTimeActions}
 			>
 				<Panel>
 					<AppTable
@@ -40,16 +40,14 @@ function AffiliationMapMain() {
 						headerHeight={32}
 						estimatedRowHeight={32}
 						measureRowHeight
-						selectors={affiliationMapSelectors}
-						actions={affiliationMapActions}
+						selectors={membershipOverTimeSelectors}
+						actions={membershipOverTimeActions}
 					/>
 				</Panel>
 				<Panel className="details-panel">
-					<AffiliationMapDetail />
+					<MembershipOverTimeDetail />
 				</Panel>
 			</SplitPanel>
 		</>
 	);
 }
-
-export default AffiliationMapMain;

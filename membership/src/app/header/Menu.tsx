@@ -76,6 +76,10 @@ function useMenuLinks() {
 				label: "Affiliation map",
 			});
 			menu.push({
+				link: `/${group.name}/membershipOverTime`,
+				label: "Membership over time",
+			});
+			menu.push({
 				link: `/${group.name}/reports`,
 				label: "Reports",
 			});

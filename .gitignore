@@ -1,12 +1,12 @@
-build/*
-!build/.platform/*
-!build/.elasticbeanstalk/*
 *.csv
 *.xlsx
 *.sublime-workspace
 *.sublime-project
 .vscode
 node_modules
+.env
+build
+!build/.platform
 
 *storybook.log
 storybook-static

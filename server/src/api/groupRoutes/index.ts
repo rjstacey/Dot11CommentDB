@@ -14,6 +14,7 @@ import officers from "./officers.js";
 import email from "./email.js";
 import attendances from "./attendances.js";
 import ballotParticipation from "./ballotParticipation.js";
+import membershipOverTime from "./membershipOverTime.js";
 
 import sessions from "./sessions.js";
 import meetings from "./meetings.js";
@@ -50,14 +51,19 @@ async function parseGroupName(req: Request, res: Response, next: NextFunction) {
  * APIs for managing the organization
  */
 router.use("/:groupName/members", parseGroupName, members); // Manage membership
-router.use("/:groupName/affiliationMap", parseGroupName, affiliationMap); // Map affiliation to short name
 router.use("/:groupName/officers", parseGroupName, officers); // Group and subgroup officers
 router.use("/:groupName/attendances", parseGroupName, attendances); // Attendances
 router.use(
 	"/:groupName/ballotParticipation",
 	parseGroupName,
-	ballotParticipation
+	ballotParticipation,
 ); // Ballot series participation
+router.use("/:groupName/affiliationMap", parseGroupName, affiliationMap); // Map affiliation to short name
+router.use(
+	"/:groupName/membershipOverTime",
+	parseGroupName,
+	membershipOverTime,
+); // Membership over time
 router.use("/:groupName/email", parseGroupName, email); // Email templates and sending email
 
 /*

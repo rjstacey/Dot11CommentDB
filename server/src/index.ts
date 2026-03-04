@@ -26,6 +26,7 @@ import { init as webexInit } from "./services/webex.js";
 import { init as calendarInit } from "./services/calendar.js";
 import { init as emailInit } from "./services/emailSend.js";
 import { init as meetingsInit } from "./services/meetings.js";
+import { init as membersOverTimeInit } from "./services/membershipOverTime.js";
 import { init as attendancesInit } from "./services/attendances.js";
 import { init as pollInit } from "./services/poll.js";
 
@@ -94,6 +95,10 @@ async function initServices() {
 
 		process.stdout.write("init polls... ");
 		await pollInit();
+		process.stdout.write("success\n");
+
+		process.stdout.write("init membership over time... ");
+		await membersOverTimeInit();
 		process.stdout.write("success\n");
 	} catch (error) {
 		process.stdout.write("FAIL\n");

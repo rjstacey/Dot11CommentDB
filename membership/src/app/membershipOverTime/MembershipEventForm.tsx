@@ -1,13 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Form } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 import type {
-	AffiliationMap,
-	AffiliationMapCreate,
-} from "@/store/affiliationMap";
+	MembershipEvent,
+	MembershipEventCreate,
+} from "@/store/membershipOverTime";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
-export function AffiliationMapEntryForm({
+export function MembershipEventForm({
 	action,
 	entry,
 	hasChanges,
@@ -17,16 +17,16 @@ export function AffiliationMapEntryForm({
 	readOnly,
 }: {
 	action: "add" | "update";
-	entry: AffiliationMap | AffiliationMapCreate;
+	entry: MembershipEvent | MembershipEventCreate;
 	hasChanges: () => boolean;
-	onChange: (changes: Partial<AffiliationMap>) => void;
+	onChange: (changes: Partial<MembershipEvent>) => void;
 	submit: () => Promise<void>;
 	cancel: () => void;
 	readOnly?: boolean;
 }) {
 	const [busy, setBusy] = useState(false);
 
-	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!e.currentTarget.checkValidity()) {
 			ConfirmModal.show("Fix errors", false);
@@ -39,35 +39,34 @@ export function AffiliationMapEntryForm({
 
 	return (
 		<Form noValidate validated onSubmit={handleSubmit}>
-			<Form.Group className="mb-3" controlId="affiliation-match">
-				<Form.Label>Match expression:</Form.Label>
+			<Form.Group className="mb-3" controlId="membership-event-date">
+				<Form.Label>Date:</Form.Label>
 				<Form.Control
-					type="search"
-					value={entry.match}
-					onChange={(e) => onChange({ match: e.target.value })}
+					type="date"
+					value={entry.date}
+					onChange={(e) => onChange({ date: e.target.value })}
 					placeholder="(Blank)"
 					readOnly={readOnly}
 					required
 				/>
 				<Form.Control.Feedback type="invalid">
-					Provide a match expression; regex or simple case insensitive
-					match string
+					Provide a date for the membership event
 				</Form.Control.Feedback>
 			</Form.Group>
-			<Form.Group className="mb-3" controlId="affiliation-short-name">
-				<Form.Label>Short affiliation name:</Form.Label>
+			<Form.Group className="mb-3" controlId="membership-event-count">
+				<Form.Label>Count:</Form.Label>
 				<Form.Control
-					type="text"
-					value={entry.shortAffiliation}
+					type="number"
+					value={entry.count}
 					onChange={(e) =>
-						onChange({ shortAffiliation: e.target.value })
+						onChange({ count: Number(e.target.value) })
 					}
 					placeholder="(Blank)"
 					readOnly={readOnly}
 					required
 				/>
 				<Form.Control.Feedback type="invalid">
-					Provide a short name for the affiliation
+					Provide a count for the membership event
 				</Form.Control.Feedback>
 			</Form.Group>
 			{hasChanges() && (

@@ -32,6 +32,7 @@ import imatCommitteesSlice from "./imatCommittees";
 import sessionsSlice from "./sessions";
 import emailTemlatesSlice from "./emailTemplates";
 import affliationMapSlice from "./affiliationMap";
+import membershipOverTimeSlice from "./membershipOverTime";
 import {
 	errorsSlice,
 	userSlice,
@@ -71,6 +72,7 @@ const appReducer = combineReducers({
 	[timeZonesSlice.name]: timeZonesSlice.reducer,
 	[emailTemlatesSlice.name]: emailTemlatesSlice.reducer,
 	[affliationMapSlice.name]: affliationMapSlice.reducer,
+	[membershipOverTimeSlice.name]: membershipOverTimeSlice.reducer,
 	[errorsSlice.name]: errorsSlice.reducer,
 });
 
@@ -102,6 +104,7 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 		timeZonesSlice.name,
 		emailTemlatesSlice.name,
 		affliationMapSlice.name,
+		membershipOverTimeSlice.name,
 	],
 	stateReconciler: autoMergeLevel2,
 	transforms: [transformState],

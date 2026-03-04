@@ -14,6 +14,7 @@ import { ballotParticipationRoute } from "./ballotParticipation/route";
 import { sessionAttendanceRoute } from "./sessionAttendance/route";
 import { notificationRoute } from "./notification/route";
 import { affiliationMapRoute } from "./affiliationMap/route";
+import { membershipOverTimeRoute } from "./membershipOverTime/route";
 import { reportsRoute } from "./reports/route";
 
 export const routes: RouteObject[] = [
@@ -47,6 +48,7 @@ export const routes: RouteObject[] = [
 					{ path: "sessionAttendance", ...sessionAttendanceRoute },
 					{ path: "notification", ...notificationRoute },
 					{ path: "affiliationMap", ...affiliationMapRoute },
+					{ path: "membershipOverTime", ...membershipOverTimeRoute },
 					{ path: "reports", ...reportsRoute },
 				],
 			},

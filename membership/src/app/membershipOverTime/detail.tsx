@@ -1,15 +1,12 @@
-import type { ReactNode } from "react";
 import { Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { AccessLevel, selectUserMembersAccess } from "@/store/members";
-import { useAffiliationMapEdit } from "@/hooks/affiliationMapEdit";
+import { useMembershipOverTimeEdit } from "@/hooks/membershipOverTimeEdit";
 import ShowAccess from "@/components/ShowAccess";
-import { AffiliationMapEntryForm } from "./AffiliationMapEntryForm";
-import { AffiliationMapMatches } from "./AffiliationMapMatches";
-import { AffiliationMapUnmatched } from "./AffiliationMapUnmatched";
+import { MembershipEventForm } from "./MembershipEventForm";
 
-function AffiliationMapDetail() {
+export function MembershipOverTimeDetail() {
 	const access = useAppSelector(selectUserMembersAccess);
 	const readOnly = access < AccessLevel.rw;
 
@@ -23,44 +20,39 @@ function AffiliationMapDetail() {
 		disableAdd,
 		onDelete,
 		disableDelete,
-	} = useAffiliationMapEdit(readOnly);
+	} = useMembershipOverTimeEdit(readOnly);
 
 	let title = "";
-	let content: ReactNode;
+	let content: React.ReactNode;
 	if (state.action === null) {
 		title = "";
-		content = (
-			<>
-				<div className="placeholder">{state.message}</div>
-				{state.ids.length === 0 && <AffiliationMapUnmatched />}
-			</>
-		);
+		content = <div className="placeholder">{state.message}</div>;
 	} else {
-		title = state.action === "add" ? "Add map" : "Update map";
+		title =
+			state.action === "add"
+				? "Add membership event"
+				: "Update membership event";
 		content = (
-			<>
-				<AffiliationMapEntryForm
-					action={state.action}
-					entry={state.edited}
-					hasChanges={hasChanges}
-					onChange={onChange}
-					submit={submit}
-					cancel={cancel}
-					readOnly={readOnly}
-				/>
-				<AffiliationMapMatches map={state.edited} />
-			</>
+			<MembershipEventForm
+				action={state.action}
+				entry={state.edited}
+				hasChanges={hasChanges}
+				onChange={onChange}
+				submit={submit}
+				cancel={cancel}
+				readOnly={readOnly}
+			/>
 		);
 	}
 
-	let actions: ReactNode = null;
+	let actions: React.ReactNode = null;
 	if (!readOnly) {
 		actions = (
 			<>
 				<Button
 					variant="outline-primary"
 					className="bi-plus-lg"
-					title="Add map"
+					title="Add membership event"
 					disabled={disableAdd}
 					active={state.action === "add"}
 					onClick={onAdd}
@@ -70,7 +62,7 @@ function AffiliationMapDetail() {
 				<Button
 					variant="outline-danger"
 					className="bi-trash"
-					title="Delete map"
+					title="Delete membership event"
 					disabled={disableDelete}
 					onClick={onDelete}
 				>
@@ -91,5 +83,3 @@ function AffiliationMapDetail() {
 		</>
 	);
 }
-
-export default AffiliationMapDetail;

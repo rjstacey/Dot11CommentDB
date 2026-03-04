@@ -8,9 +8,9 @@ import {
 
 import {
 	fields,
-	affiliationMapSelectors,
-	affiliationMapActions,
-} from "@/store/affiliationMap";
+	membershipOverTimeSelectors,
+	membershipOverTimeActions,
+} from "@/store/membershipOverTime";
 
 export const tableColumns: ColumnProperties[] = [
 	{
@@ -21,23 +21,30 @@ export const tableColumns: ColumnProperties[] = [
 		headerRenderer: (p) => <SelectHeaderCell {...p} />,
 		cellRenderer: (p) => (
 			<SelectCell
-				selectors={affiliationMapSelectors}
-				actions={affiliationMapActions}
+				selectors={membershipOverTimeSelectors}
+				actions={membershipOverTimeActions}
 				{...p}
 			/>
 		),
 	},
 	{
-		key: "match",
-		...fields.match,
+		key: "date",
+		...fields.date,
 		width: 80,
 		flexGrow: 1,
 		flexShrink: 0,
 	},
 	{
-		key: "shortAffiliation",
-		...fields.shortAffiliation,
+		key: "count",
+		...fields.count,
 		width: 100,
+		flexGrow: 1,
+		flexShrink: 0,
+	},
+	{
+		key: "note",
+		...fields.note,
+		width: 200,
 		flexGrow: 1,
 		flexShrink: 0,
 	},
