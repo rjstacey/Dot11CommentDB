@@ -4,7 +4,6 @@ import {
 	createEntityAdapter,
 	Action,
 	PayloadAction,
-	Dictionary,
 	EntityId,
 } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
@@ -131,7 +130,7 @@ const slice = createAppTableDataSlice({
 					}
 					state.lastLoad = new Date().toISOString();
 					state.groupName = groupName;
-				}
+				},
 			)
 			.addMatcher(
 				(action: Action) =>
@@ -141,7 +140,7 @@ const slice = createAppTableDataSlice({
 					state.valid = false;
 					state.lastLoad = null;
 					state.groupName = null;
-				}
+				},
 			);
 	},
 });
@@ -212,31 +211,31 @@ export const selectSyncedBallotSeriesEntities = createSelector(
 			syncedBallotSeriesEntities[entity!.id] = newEntity;
 		});
 		return syncedBallotSeriesEntities;
-	}
+	},
 );
 
 export const selectRecentBallotSeries = createSelector(
 	selectBallotSeriesIds,
 	selectSyncedBallotSeriesEntities,
-	(ids, entities) => ids.map((id) => entities[id as number]!)
+	(ids, entities) => ids.map((id) => entities[id as number]!),
 );
 
 export function memberBallotParticipationCount(
 	member: Member,
 	ballotSeriesParticipationSummaries: BallotSeriesParticipationSummary[],
-	ballotSeriesEntities: Dictionary<BallotSeries>
+	ballotSeriesEntities: Record<number, BallotSeries>,
 ) {
 	// Only care about ballots since becoming a Voter
 	// (a member may have lost voting status and we don't want participation from that time affecting the result)
 	const h = member.StatusChangeHistory.find(
-		(h) => h.NewStatus === "Voter" && h.OldStatus !== "Voter"
+		(h) => h.NewStatus === "Voter" && h.OldStatus !== "Voter",
 	);
 	if (h && h.Date) {
 		ballotSeriesParticipationSummaries =
 			ballotSeriesParticipationSummaries.filter(
 				(s) =>
 					DateTime.fromISO(ballotSeriesEntities[s.series_id]!.start) >
-					DateTime.fromISO(h.Date!)
+					DateTime.fromISO(h.Date!),
 			);
 	}
 
@@ -246,7 +245,7 @@ export function memberBallotParticipationCount(
 	const count = ballotSeriesParticipationSummaries.reduce(
 		(count, participation) =>
 			participation.vote || participation.excused ? count + 1 : count,
-		0
+		0,
 	);
 
 	return {
@@ -258,7 +257,7 @@ export function memberBallotParticipationCount(
 function memberExpectedStatusFromBallotParticipation(
 	member: Member,
 	count: number,
-	total: number
+	total: number,
 ) {
 	// A status change won't happen if a status override is in effect or if the member is not a voter
 	if (member.StatusChangeOverride || member.Status !== "Voter") return "";
@@ -284,12 +283,12 @@ export const selectBallotParticipationWithMembershipAndSummary = createSelector(
 				const { count, total } = memberBallotParticipationCount(
 					member,
 					entity.ballotSeriesParticipationSummaries,
-					ballotSeriesEntities
+					ballotSeriesEntities,
 				);
 				expectedStatus = memberExpectedStatusFromBallotParticipation(
 					member,
 					count,
-					total
+					total,
 				);
 				summary = `${count}/${total}`;
 			}
@@ -305,7 +304,7 @@ export const selectBallotParticipationWithMembershipAndSummary = createSelector(
 			};
 		});
 		return newEntities;
-	}
+	},
 );
 
 export const selectMemberBallotParticipationCount = createSelector(
@@ -317,7 +316,7 @@ export const selectMemberBallotParticipationCount = createSelector(
 		ballotParticipationEntities,
 		ballotSeriesEntities,
 		memberEntities,
-		SAPIN
+		SAPIN,
 	) => {
 		const summaries: BallotSeriesParticipationSummary[] =
 			ballotParticipationEntities[SAPIN]
@@ -327,10 +326,10 @@ export const selectMemberBallotParticipationCount = createSelector(
 			return memberBallotParticipationCount(
 				member,
 				summaries,
-				ballotSeriesEntities
+				ballotSeriesEntities,
 			);
 		return { count: 0, total: 0 };
-	}
+	},
 );
 
 function getField(entity: RecentBallotSeriesParticipation, dataKey: string) {
@@ -350,7 +349,7 @@ export const ballotParticipationSelectors = getAppTableDataSelectors(
 	{
 		selectEntities: selectBallotParticipationWithMembershipAndSummary,
 		getField,
-	}
+	},
 );
 
 /*
@@ -386,7 +385,10 @@ export const loadBallotParticipation =
 			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(
-					setError(`Unable to get ballot series participation`, error)
+					setError(
+						`Unable to get ballot series participation`,
+						error,
+					),
 				);
 			})
 			.finally(() => {
@@ -425,20 +427,20 @@ export const updateBallotParticipation =
 					else voterUpdates[summary.series_id] = [update];
 				}
 				return { ...summary, ...changes };
-			}
+			},
 		);
 		Object.entries(voterUpdates).forEach(([ballot_id, updates]) => {
 			const url = `/api/voters/${ballot_id}`;
 			fetcher
 				.patch(url, updates)
 				.catch((error) =>
-					dispatch(setError("Unable to update voters", error))
+					dispatch(setError("Unable to update voters", error)),
 				);
 		});
 		dispatch(
 			setOne({
 				SAPIN: sapin,
 				ballotSeriesParticipationSummaries: updatedSummaries,
-			})
+			}),
 		);
 	};

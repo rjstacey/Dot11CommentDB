@@ -1,9 +1,4 @@
-import {
-	createSelector,
-	createAction,
-	EntityId,
-	Action,
-} from "@reduxjs/toolkit";
+import { createSelector, createAction, Action } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -219,7 +214,7 @@ export const selectImatAttendanceSummarySyncedEntities = createSelector(
 		memberEntities,
 		session_id,
 	) => {
-		const syncedEntities: Record<EntityId, SyncedSessionAttendee> = {};
+		const syncedEntities: Record<number, SyncedSessionAttendee> = {};
 		ids.forEach((sapin) => {
 			const entity = entities[sapin]!;
 			const member = memberEntities[sapin];

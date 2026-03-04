@@ -2,7 +2,6 @@ import {
 	createSlice,
 	createEntityAdapter,
 	createSelector,
-	EntityId,
 	PayloadAction,
 } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
@@ -26,7 +25,7 @@ export const SessionTypeLabels: Record<SessionType, string> = {
 
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 	([value, label]) =>
-		({ value, label }) as { value: SessionType; label: string }
+		({ value, label }) as { value: SessionType; label: string },
 );
 
 export const displaySessionType = (type: SessionType | null) =>
@@ -113,7 +112,7 @@ export const selectSessionEntities = (state: RootState) =>
 export const selectSessions = createSelector(
 	selectSessionIds,
 	selectSessionEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 export const selectSessionByNumber = (state: RootState, number: number) => {
@@ -128,16 +127,16 @@ export const selectRecentSessions = createSelector(
 		today = new Date(
 			today.getFullYear(),
 			today.getMonth(),
-			today.getDate()
+			today.getDate(),
 		);
 		return sessions
 			.filter(
 				(s) =>
 					new Date(s.startDate) < today &&
-					(s.type === "p" || s.type == "i")
+					(s.type === "p" || s.type == "i"),
 			)
 			.slice(0, 8);
-	}
+	},
 );
 
 export const selectRecentPlusOneSessions = createSelector(
@@ -148,7 +147,7 @@ export const selectRecentPlusOneSessions = createSelector(
 		const i = sessions.findIndex((s) => s.id === session?.id) - 1;
 		if (i >= 0) recentSessions = [sessions[i], ...recentSessions];
 		return recentSessions;
-	}
+	},
 );
 
 export const selectMostRecentAttendedSession = (state: RootState) => {
@@ -156,7 +155,7 @@ export const selectMostRecentAttendedSession = (state: RootState) => {
 	return sessions[0];
 };
 
-export const selectSession = (state: RootState, id: EntityId) =>
+export const selectSession = (state: RootState, id: number) =>
 	selectSessionEntities(state)[id];
 
 /** Thunk actions */

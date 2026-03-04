@@ -1,5 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
-import type { PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { RootState, AppThunk } from ".";
 
 import { fetcher } from "@common";
@@ -34,7 +33,7 @@ const slice = createSlice({
 		},
 		getSuccess(
 			state: TimeZonesState,
-			action: PayloadAction<Array<string>>
+			action: PayloadAction<Array<string>>,
 		) {
 			state.loading = false;
 			state.valid = true;

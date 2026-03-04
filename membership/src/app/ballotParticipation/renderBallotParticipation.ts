@@ -6,13 +6,12 @@ import {
 	Ballot,
 	SyncedBallotSeries,
 } from "@/store/ballotParticipation";
-import { Dictionary } from "@reduxjs/toolkit";
 
 export function renderBallotParticipation(
 	series_ids: number[],
 	participation: Record<number, BallotSeriesParticipationSummary>,
-	ballotEntities: Dictionary<Ballot>,
-	ballotSeriesEntities: Record<number, SyncedBallotSeries>
+	ballotEntities: Record<number, Ballot>,
+	ballotSeriesEntities: Record<number, SyncedBallotSeries>,
 ) {
 	const headings = [
 		"Project",

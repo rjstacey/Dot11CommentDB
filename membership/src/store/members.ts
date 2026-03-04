@@ -1,5 +1,5 @@
 import { createSelector, createAction } from "@reduxjs/toolkit";
-import type { Dictionary, EntityId, Action } from "@reduxjs/toolkit";
+import type { Action } from "@reduxjs/toolkit";
 import {
 	fetcher,
 	displayDate,
@@ -52,7 +52,7 @@ export type ExpectedStatusType = StatusType | "";
 
 export function isActiveMember(member: Member) {
 	return (activeMemberStatusValues as readonly string[]).includes(
-		member.Status
+		member.Status,
 	);
 }
 
@@ -67,7 +67,7 @@ export type MemberWithParticipation = Member & {
 	BallotParticipationSummary: string;
 };
 
-export type MembersDictionary = Dictionary<Member>;
+export type MembersDictionary = Record<number, Member>;
 
 export const memberContactInfoEmpty: ContactInfo = {
 	StreetLine1: "",
@@ -148,7 +148,7 @@ const slice = createAppTableDataSlice({
 						state.valid = false;
 						dataAdapter.removeAll(state);
 					}
-				}
+				},
 			)
 			.addMatcher(
 				(action: Action) => action.type === clearMembers.toString(),
@@ -157,7 +157,7 @@ const slice = createAppTableDataSlice({
 					state.groupName = null;
 					state.valid = false;
 					dataAdapter.removeAll(state);
-				}
+				},
 			);
 	},
 });
@@ -209,7 +209,7 @@ export const selectActiveMembers = createSelector(
 		ids
 			.map((id) => entities[id]!)
 			.filter(isActiveMember)
-			.sort((m1, m2) => m1.Name.localeCompare(m2.Name))
+			.sort((m1, m2) => m1.Name.localeCompare(m2.Name)),
 );
 
 export const selectVotingMembers = createSelector(
@@ -219,20 +219,20 @@ export const selectVotingMembers = createSelector(
 		ids
 			.map((id) => entities[id]!)
 			.filter((m) => m.Status === "Voter")
-			.sort((m1, m2) => m1.Name.localeCompare(m2.Name))
+			.sort((m1, m2) => m1.Name.localeCompare(m2.Name)),
 );
 
 export const selectAllMembers = createSelector(
 	selectMemberIds,
 	selectMemberEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 export const selectSelectedMembers = createSelector(
 	(state: RootState) => selectMembersState(state).selected,
 	selectMemberEntities,
 	(ids, entities) =>
-		ids.map((id) => entities[id]).filter((m) => Boolean(m)) as Member[]
+		ids.map((id) => entities[id]).filter((m) => Boolean(m)) as Member[],
 );
 
 export const selectMemberWithParticipationSummary = createSelector(
@@ -241,7 +241,7 @@ export const selectMemberWithParticipationSummary = createSelector(
 	selectMemberIds,
 	selectMemberEntities,
 	(attendancesEntities, ballotParticipationEntities, ids, entities) => {
-		const newEntities: Record<EntityId, MemberWithParticipation> = {};
+		const newEntities: Record<number, MemberWithParticipation> = {};
 		ids.forEach((id) => {
 			const member = entities[id]!;
 			const attendancesEntity = attendancesEntities[id];
@@ -257,23 +257,23 @@ export const selectMemberWithParticipationSummary = createSelector(
 			};
 		});
 		return newEntities;
-	}
+	},
 );
 
 export const selectActiveMembersWithParticipationSummary = createSelector(
 	selectActiveMembers,
 	selectMemberWithParticipationSummary,
-	(members, entities) => members.map((m) => entities[m.SAPIN]!)
+	(members, entities) => members.map((m) => entities[m.SAPIN]!),
 );
 
 export function selectMembersStatusChangeSinceDate(
 	state: RootState,
-	dateStr: string
+	dateStr: string,
 ) {
 	const { ids, entities } = selectMembersState(state);
 	const date = new Date(dateStr);
 	return ids.filter(
-		(id) => new Date(entities[id]!.StatusChangeDate || "") > date
+		(id) => new Date(entities[id]!.StatusChangeDate || "") > date,
 	);
 }
 
@@ -440,7 +440,7 @@ export const uploadMembers =
 		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
 			dispatch(
-				setError("Unable to upload members", "Group not selected")
+				setError("Unable to upload members", "Group not selected"),
 			);
 			return;
 		}
@@ -487,7 +487,7 @@ export const exportMembersPublic =
 		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
 			dispatch(
-				setError("Unable to export member list", "Group not selected")
+				setError("Unable to export member list", "Group not selected"),
 			);
 			return;
 		}
@@ -504,7 +504,7 @@ export const exportMembersPrivate =
 		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
 			dispatch(
-				setError("Unable to export member list", "Group not selected")
+				setError("Unable to export member list", "Group not selected"),
 			);
 			return;
 		}
@@ -522,7 +522,7 @@ export const exportMembers =
 		const { groupName } = selectMembersState(getState());
 		if (!groupName) {
 			dispatch(
-				setError("Unable to export member list", "Group not selected")
+				setError("Unable to export member list", "Group not selected"),
 			);
 			return;
 		}

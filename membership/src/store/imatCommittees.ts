@@ -28,7 +28,7 @@ type ExtraState = {
 
 /* Create slice */
 const selectId = (d: Committee) => d.symbol;
-const dataAdapter = createEntityAdapter<Committee>({ selectId });
+const dataAdapter = createEntityAdapter({ selectId });
 const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
@@ -75,7 +75,7 @@ const selectImatCommitteesAge = (state: RootState) => {
 };
 export const selectImatCommittees = createSelector(
 	selectImatCommitteesState,
-	({ ids, entities }) => ids.map((id) => entities[id]!)
+	({ ids, entities }) => ids.map((id) => entities[id]!),
 );
 
 /* Thunk actions */

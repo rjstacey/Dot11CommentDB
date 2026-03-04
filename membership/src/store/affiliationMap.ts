@@ -1,9 +1,4 @@
-import {
-	createAction,
-	Action,
-	EntityId,
-	createSelector,
-} from "@reduxjs/toolkit";
+import { createAction, createSelector, type Action } from "@reduxjs/toolkit";
 
 import { fetcher } from "@common";
 import {
@@ -57,7 +52,7 @@ const slice = createAppTableDataSlice({
 					state.valid = false;
 				}
 				state.groupName = groupName;
-			}
+			},
 		);
 	},
 });
@@ -87,13 +82,13 @@ const selectAffiliationMapAge = (state: RootState) => {
 };
 
 export const affiliationMapSelectors = getAppTableDataSelectors(
-	selectAffiliationMapState
+	selectAffiliationMapState,
 );
 
 export const selectAffiliationMaps = createSelector(
 	selectAffiliationMapIds,
 	selectAffiliationMapEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 export function matchRegExp(match: string) {
@@ -120,7 +115,7 @@ export const selectAffiliationMapper = createSelector(
 			if (re && re.test(affiliation)) return map.shortAffiliation;
 		}
 		return affiliation;
-	}
+	},
 );
 
 /** Thunk actions */
@@ -194,7 +189,7 @@ export const updateAffiliationMaps =
 	};
 
 export const deleteAffiliationMaps =
-	(ids: EntityId[]): AppThunk<void> =>
+	(ids: number[]): AppThunk<void> =>
 	(dispatch, getState) => {
 		const { groupName } = selectAffiliationMapState(getState());
 		const url = `/api/${groupName}/affiliationMap`;

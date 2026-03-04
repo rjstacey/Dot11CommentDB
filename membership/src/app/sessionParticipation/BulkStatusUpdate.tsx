@@ -1,5 +1,4 @@
 import * as React from "react";
-import type { EntityId, Dictionary } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 import { Form, Row, Col, Button, Dropdown, Spinner } from "react-bootstrap";
 
@@ -39,9 +38,9 @@ function BulkStatusUpdateForm({
 }: {
 	defaultReason: string;
 	defaultDate: string;
-	ids: EntityId[];
-	selected: EntityId[];
-	entities: Dictionary<StatusFromParticipationType>;
+	ids: number[];
+	selected: number[];
+	entities: Record<number, StatusFromParticipationType>;
 	close: () => void;
 }) {
 	const dispatch = useAppDispatch();
@@ -153,7 +152,7 @@ function BulkStatusUpdateFormSession({ close }: { close: () => void }) {
 	const selected = useAppSelector(selectSessionParticipationSelected);
 	const ids = useAppSelector(selectSessionParticipationIds);
 	const entities = useAppSelector(
-		selectSessionParticipationWithMembershipAndSummary
+		selectSessionParticipationWithMembershipAndSummary,
 	);
 
 	return (
@@ -180,7 +179,7 @@ function BulkStatusUpdateFormBallotSeries({ close }: { close: () => void }) {
 	const defaultDate = recentBallotSeries.end.slice(0, 10);
 	const { ids, selected } = useAppSelector(selectBallotParticipationState);
 	const entities = useAppSelector(
-		selectBallotParticipationWithMembershipAndSummary
+		selectBallotParticipationWithMembershipAndSummary,
 	);
 
 	return (

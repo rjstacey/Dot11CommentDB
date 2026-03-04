@@ -1,5 +1,5 @@
 import { createSlice, createEntityAdapter } from "@reduxjs/toolkit";
-import type { Dictionary, EntityId, PayloadAction } from "@reduxjs/toolkit";
+import type { PayloadAction } from "@reduxjs/toolkit";
 import { v4 as uuid } from "uuid";
 import { fetcher } from "@common";
 
@@ -106,9 +106,9 @@ export { clearOfficers };
 
 /* Selectors */
 export function getGroupOfficers(
-	officerIds: EntityId[],
-	officerEntities: Dictionary<Officer>,
-	group_id: EntityId
+	officerIds: string[],
+	officerEntities: Record<string, Officer>,
+	group_id: string,
 ) {
 	return officerIds
 		.map((id) => officerEntities[id]!)
@@ -169,7 +169,7 @@ export const addOfficers =
 		const url = `/api/${groupName}/officers`;
 		const newOfficers = officers.map<Officer>(
 			(officer) =>
-				(officer.id ? officer : { ...officer, id: uuid() }) as Officer
+				(officer.id ? officer : { ...officer, id: uuid() }) as Officer,
 		);
 		dispatch(addMany(newOfficers));
 		return fetcher
@@ -207,7 +207,7 @@ export const updateOfficers =
 	};
 
 export const deleteOfficers =
-	(ids: EntityId[]): AppThunk =>
+	(ids: string[]): AppThunk =>
 	(dispatch, getState) => {
 		const { groupName } = selectOfficersState(getState());
 		const url = `/api/${groupName}/officers`;

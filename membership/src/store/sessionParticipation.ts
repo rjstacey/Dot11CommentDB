@@ -1,4 +1,4 @@
-import { createSelector, Dictionary, EntityId } from "@reduxjs/toolkit";
+import { createSelector, EntityId } from "@reduxjs/toolkit";
 
 import { DateTime } from "luxon";
 
@@ -116,7 +116,7 @@ export const selectSessionParticipationSelected = (state: RootState) =>
 export const selectSessionParticipationIds = createSelector(
 	selectMemberAttendances,
 	(attendanceSummaryEntities) =>
-		Object.keys(attendanceSummaryEntities).map(Number)
+		Object.keys(attendanceSummaryEntities).map(Number),
 );
 
 const selectSessionParticipationEntities = createSelector(
@@ -129,19 +129,19 @@ const selectSessionParticipationEntities = createSelector(
 			entities[SAPIN] = {
 				SAPIN,
 				sessionAttendanceSummaries: Object.values(
-					sessionAttendanceSummaryEntities
+					sessionAttendanceSummaryEntities,
 				),
 			};
 		}
 		return entities;
-	}
+	},
 );
 
 function recentAttendanceStats(
 	attendances: SessionAttendanceSummary[],
-	sessionIds: EntityId[],
-	sessionEntities: Dictionary<Session>,
-	startDate?: string
+	sessionIds: number[],
+	sessionEntities: Record<number, Session>,
+	startDate?: string,
 ) {
 	let plenaryCount = 0;
 	sessionIds = sessionIds
@@ -149,7 +149,7 @@ function recentAttendanceStats(
 		.sort(
 			(id1, id2) =>
 				DateTime.fromISO(sessionEntities[id2]!.startDate).toMillis() -
-				DateTime.fromISO(sessionEntities[id1]!.startDate).toMillis()
+				DateTime.fromISO(sessionEntities[id1]!.startDate).toMillis(),
 		) // Sort latest to oldest
 		.filter((id) => {
 			const s = sessionEntities[id]!;
@@ -175,11 +175,11 @@ function recentAttendanceStats(
 		.sort(
 			(a1, a2) =>
 				DateTime.fromISO(
-					sessionEntities[a2.session_id]!.startDate
+					sessionEntities[a2.session_id]!.startDate,
 				).toMillis() -
 				DateTime.fromISO(
-					sessionEntities[a1.session_id]!.startDate
-				).toMillis()
+					sessionEntities[a1.session_id]!.startDate,
+				).toMillis(),
 		); // Sort latest to oldest
 
 	// Check if last attendend was a plenary (partially or in full)
@@ -202,7 +202,7 @@ function recentAttendanceStats(
 	attendances = attendances.filter(
 		(a) =>
 			((a.AttendancePercentage || 0) >= 75 || a.DidAttend) &&
-			!a.DidNotAttend
+			!a.DidNotAttend,
 	);
 
 	// One interim may be substituted for a plenary; only keep latest properly attended interim
@@ -239,7 +239,7 @@ export const selectMemberAttendanceStats = createSelector(
 		sessionIds,
 		sessionEntities,
 		memberEntities,
-		SAPIN
+		SAPIN,
 	) => {
 		const attendanceEntities = memberAttendanceEntities[SAPIN];
 		const attendances = attendanceEntities
@@ -248,15 +248,16 @@ export const selectMemberAttendanceStats = createSelector(
 		const member = memberEntities[SAPIN];
 		const since =
 			member?.StatusChangeHistory.find(
-				(h) => h.NewStatus === "Non-Voter" || h.NewStatus === "Observer"
+				(h) =>
+					h.NewStatus === "Non-Voter" || h.NewStatus === "Observer",
 			)?.Date || undefined;
 		return recentAttendanceStats(
 			attendances,
 			sessionIds,
 			sessionEntities,
-			since
+			since,
 		);
-	}
+	},
 );
 
 function memberExpectedStatusFromAttendanceStats(
@@ -264,7 +265,7 @@ function memberExpectedStatusFromAttendanceStats(
 	count: number,
 	lastPpartial: boolean,
 	lastPfull: boolean,
-	hasPartial: boolean
+	hasPartial: boolean,
 ): ExpectedStatusType {
 	const status = member.Status;
 
@@ -339,13 +340,13 @@ export const selectSessionParticipationWithMembershipAndSummary =
 						member.StatusChangeHistory.find(
 							(h) =>
 								h.NewStatus === "Non-Voter" ||
-								h.NewStatus === "Observer"
+								h.NewStatus === "Observer",
 						)?.Date || undefined;
 					const stats = recentAttendanceStats(
 						entity.sessionAttendanceSummaries,
 						sessionIds,
 						sessionEntities,
-						nonVoterDate
+						nonVoterDate,
 					);
 					const {
 						total,
@@ -359,7 +360,7 @@ export const selectSessionParticipationWithMembershipAndSummary =
 						count,
 						lastPpartial,
 						lastPfull,
-						hasPartial
+						hasPartial,
 					);
 					summary = `${count}/${total}`;
 					lastSessionId = stats.lastSessionId;
@@ -378,7 +379,7 @@ export const selectSessionParticipationWithMembershipAndSummary =
 				};
 			});
 			return newEntities;
-		}
+		},
 	);
 
 export const sessionParticipationSelectors = getAppTableDataSelectors(
@@ -387,7 +388,7 @@ export const sessionParticipationSelectors = getAppTableDataSelectors(
 		selectEntities: selectSessionParticipationWithMembershipAndSummary,
 		selectIds: selectSessionParticipationIds,
 		getField,
-	}
+	},
 );
 
 export const loadRecentAttendanceSummaries =
@@ -399,7 +400,7 @@ export const loadRecentAttendanceSummaries =
 		dispatch(setSessionIds(sessionIds));
 		await Promise.all(
 			sessionIds.map((session_id) =>
-				dispatch(loadAttendanceSummary(groupName, session_id, force))
-			)
+				dispatch(loadAttendanceSummary(groupName, session_id, force)),
+			),
 		);
 	};

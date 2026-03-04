@@ -4,7 +4,6 @@ import {
 	Action,
 	PayloadAction,
 	EntityId,
-	Dictionary,
 } from "@reduxjs/toolkit";
 import { v4 as uuid } from "uuid";
 
@@ -64,7 +63,7 @@ export function getSubgroupTypes(parentType: GroupType): GroupType[] {
 
 export const GroupTypeOptions = Object.entries(GroupTypeLabels).map(
 	([value, label]) =>
-		({ value, label }) as { value: GroupType; label: string }
+		({ value, label }) as { value: GroupType; label: string },
 );
 
 export const GroupStatusOptions = [
@@ -89,16 +88,16 @@ export const fields = {
 };
 
 function arrangeIdsHeirarchically(
-	ids: EntityId[],
-	entities: Dictionary<Group>
+	ids: string[],
+	entities: Record<string, Group>,
 ) {
 	interface Node {
-		id: EntityId;
+		id: string;
 		children: Node[];
 	}
 
 	// Order by group type and then alphabetically
-	function compare(id1: EntityId, id2: EntityId) {
+	function compare(id1: string, id2: string) {
 		const g1 = entities[id1]!;
 		const g2 = entities[id2]!;
 		const g1TypeIndex = g1.type
@@ -112,15 +111,15 @@ function arrangeIdsHeirarchically(
 		return n;
 	}
 
-	function buildTree(parent_id: EntityId | null): Node[] {
+	function buildTree(parent_id: string | null): Node[] {
 		return ids
 			.filter((id) => entities[id]!.parent_id === parent_id)
 			.sort(compare)
 			.map((id) => ({ id, children: buildTree(id) }));
 	}
 
-	function flattenTree(nodes: Node[]): EntityId[] {
-		let ids: EntityId[] = [];
+	function flattenTree(nodes: Node[]): string[] {
+		let ids: string[] = [];
 		for (const node of nodes)
 			ids = ids.concat(node.id, flattenTree(node.children));
 		return ids;
@@ -162,7 +161,7 @@ const slice = createAppTableDataSlice({
 			(action: Action) => action.type === getSuccess2.toString(),
 			(
 				state,
-				action: PayloadAction<{ groupName: string; groups: Group[] }>
+				action: PayloadAction<{ groupName: string; groups: Group[] }>,
 			) => {
 				const { groupName, groups } = action.payload;
 				dataAdapter.setMany(state, groups); // add or replace
@@ -170,7 +169,7 @@ const slice = createAppTableDataSlice({
 				state.loading = false;
 				state.valid = true;
 				state.ids = arrangeIdsHeirarchically(state.ids, state.entities);
-			}
+			},
 		);
 	},
 });
@@ -196,7 +195,7 @@ const {
 } = slice.actions;
 
 const getSuccess2 = createAction<{ groupName: string; groups: Group[] }>(
-	dataSet + "/getSuccess2"
+	dataSet + "/getSuccess2",
 );
 
 export { setSelected, setFilter, clearFilter, setTopLevelGroupId };
@@ -212,7 +211,7 @@ const selectGroupsAge = (state: RootState, groupName: string) => {
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
-export const selectGroup = (state: RootState, id: EntityId) =>
+export const selectGroup = (state: RootState, id: string) =>
 	selectGroupEntities(state)[id];
 
 export const selectWorkingGroups = (state: RootState) => {
@@ -225,7 +224,7 @@ export const selectWorkingGroups = (state: RootState) => {
 /** Select top level group by name. Only for root ("r"), committee (c) and working group (wg). Root is selected with groupName = "". */
 export const selectTopLevelGroupByName = (
 	state: RootState,
-	groupName: string
+	groupName: string,
 ) => {
 	const groups = selectWorkingGroups(state);
 	return groups.find((g) => g.name === groupName);
@@ -248,10 +247,10 @@ export const selectWorkingGroupIds = createSelector(
 			const parent = entities[topLevelGroupId];
 			if (parent && (parent.type === "r" || parent.type === "c")) {
 				ids = ids.filter((id) =>
-					["r", "c", "wg"].includes(entities[id]!.type!)
+					["r", "c", "wg"].includes(entities[id]!.type!),
 				);
 			}
-			function isWorkingGroupDescendent(id: EntityId) {
+			function isWorkingGroupDescendent(id: string) {
 				if (id === topLevelGroupId) return true;
 				let g: Group | undefined = entities[id]!;
 				do {
@@ -267,13 +266,13 @@ export const selectWorkingGroupIds = createSelector(
 				return g.type === "c" || g.type === "wg";
 			});
 		}
-	}
+	},
 );
 
 export const selectGroups = createSelector(
 	selectWorkingGroupIds,
 	selectGroupEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 const selectGroupEntitiesWithOfficers = createSelector(
@@ -289,13 +288,13 @@ const selectGroupEntitiesWithOfficers = createSelector(
 				officers: getGroupOfficers(
 					officerIds,
 					officerEntities,
-					groupId
+					groupId,
 				),
 			};
 			entities[groupId] = group;
 		});
 		return entities;
-	}
+	},
 );
 
 export const groupsSelectors = getAppTableDataSelectors(selectGroupsState, {
@@ -353,7 +352,7 @@ export const addGroup =
 				const groups = groupsSchema.parse(response);
 				if (groups.length !== 1)
 					throw new TypeError(
-						`Unexpected response to POST ${baseUrl}`
+						`Unexpected response to POST ${baseUrl}`,
 					);
 				const group: Group = groups[0];
 				dispatch(updateOne({ id: group.id, changes: group }));
@@ -376,19 +375,21 @@ export const updateGroups =
 			.then((response) => {
 				const groups = groupsSchema.parse(response);
 				dispatch(
-					updateMany(groups.map((e) => ({ id: e.id, changes: e })))
+					updateMany(groups.map((e) => ({ id: e.id, changes: e }))),
 				);
 			})
 			.catch((error) => {
 				dispatch(setError("PATCH " + baseUrl, error));
 				dispatch(
-					updateMany(originals.map((e) => ({ id: e.id, changes: e })))
+					updateMany(
+						originals.map((e) => ({ id: e.id, changes: e })),
+					),
 				);
 			});
 	};
 
 export const deleteGroups =
-	(ids: EntityId[]): AppThunk =>
+	(ids: string[]): AppThunk =>
 	async (dispatch, getState) => {
 		const { entities } = selectGroupsState(getState());
 		const originals = ids.map((id) => entities[id]!);
@@ -400,7 +401,7 @@ export const deleteGroups =
 	};
 
 export const addGroupOfficer =
-	(id: EntityId, sapin: number): AppThunk =>
+	(id: string, sapin: number): AppThunk =>
 	async (dispatch, getState) => {
 		const group = selectGroupEntities(getState())[id];
 		if (!group) throw Error("Bad group identifier " + id);
@@ -409,7 +410,7 @@ export const addGroupOfficer =
 	};
 
 export const removeGroupOfficer =
-	(id: EntityId, sapin: number): AppThunk =>
+	(id: string, sapin: number): AppThunk =>
 	async (dispatch, getState) => {
 		const group = selectGroupEntities(getState())[id];
 		if (!group) throw Error("Bad group identifier " + id);

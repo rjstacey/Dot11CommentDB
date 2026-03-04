@@ -1,10 +1,9 @@
 import {
 	createEntityAdapter,
 	createSlice,
-	PayloadAction,
-	EntityId,
-	Dictionary,
 	createSelector,
+	type PayloadAction,
+	EntityId,
 } from "@reduxjs/toolkit";
 
 import { fetcher } from "@common";
@@ -73,7 +72,7 @@ type ExtraState = {
 
 /* Create slice */
 const selectId = (d: SessionAttendanceSummary) => d.id;
-const dataAdapter = createEntityAdapter<SessionAttendanceSummary>({ selectId });
+const dataAdapter = createEntityAdapter({ selectId });
 const initialState = dataAdapter.getInitialState<ExtraState>({
 	groupName: null,
 	sessionIds: [],
@@ -161,7 +160,7 @@ export const selectAttendanceSummaryEntitiesForSession = createSelector(
 	selectAttendanceSummariesEntities,
 	(state: RootState, session_id: number | null) => session_id,
 	(ids, entities, session_id) => {
-		const newEntities: Dictionary<SessionAttendanceSummary> = {};
+		const newEntities: Record<number, SessionAttendanceSummary> = {};
 		for (const id of ids) {
 			const entity = entities[id]!;
 			if (entity.session_id === session_id)
@@ -322,7 +321,7 @@ export const updateAttendanceSummaries =
 	};
 
 export const deleteAttendanceSummaries =
-	(ids: EntityId[]): AppThunk =>
+	(ids: number[]): AppThunk =>
 	async (dispatch, getState) => {
 		if (ids.length === 0) return;
 		dispatch(removeMany(ids));

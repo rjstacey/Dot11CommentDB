@@ -1,5 +1,4 @@
 import { Row, Col, Button } from "react-bootstrap";
-import type { EntityId } from "@reduxjs/toolkit";
 import { SplitTableButtonGroup } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -24,7 +23,7 @@ function copyHtmlToClipboard(html: string) {
 	navigator.clipboard.write(data);
 }
 
-function setClipboard(selected: EntityId[], members: MembersDictionary) {
+function setClipboard(selected: number[], members: MembersDictionary) {
 	const td = (d: string | number) => `<td>${d}</td>`;
 	const th = (d: string) => `<th>${d}</th>`;
 	const header = `

@@ -1,5 +1,4 @@
-import * as React from "react";
-import { Dictionary } from "@reduxjs/toolkit";
+import { useCallback } from "react";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -16,7 +15,7 @@ import { renderTable } from "@/components/renderTable";
 export function renderSessionParticipation(
 	SAPIN: number,
 	session_ids: number[],
-	sessionEntities: Dictionary<Session>,
+	sessionEntities: Record<number, Session>,
 	attendances: Record<number, SessionAttendanceSummary>,
 ) {
 	const headings = ["Session", "Attendance", "Notes"];
@@ -52,7 +51,7 @@ export function useRenderSessionParticipation() {
 	const sessionEntities = useAppSelector(selectSessionEntities);
 	const attendances = useAppSelector(selectMemberAttendances);
 
-	return React.useCallback(
+	return useCallback(
 		(SAPIN: number) =>
 			renderSessionParticipation(
 				SAPIN,

@@ -1,9 +1,4 @@
-import {
-	createAction,
-	Action,
-	createSelector,
-	EntityId,
-} from "@reduxjs/toolkit";
+import { createAction, createSelector, type Action } from "@reduxjs/toolkit";
 import { fetcher } from "@common";
 import {
 	createAppTableDataSlice,
@@ -185,7 +180,7 @@ export const selectSessionRegistrationSyncedEntities = createSelector(
 		memberEntities,
 		session_id,
 	) => {
-		const syncedEntities: Record<EntityId, SyncedSessionRegistration> = {};
+		const syncedEntities: Record<number, SyncedSessionRegistration> = {};
 		const users = Object.values(ieeeMemberEntities) as IeeeMember[];
 
 		ids.forEach((id) => {
