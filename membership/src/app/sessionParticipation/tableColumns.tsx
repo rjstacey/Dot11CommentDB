@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties, type ReactNode } from "react";
+import { useMemo } from "react";
 import { DateTime } from "luxon";
 import {
 	SelectHeaderCell,
@@ -110,7 +110,7 @@ const tableColumns: ColumnProperties[] = [
 	},
 ];
 
-const lineTruncStyle: CSSProperties = {
+const lineTruncStyle: React.CSSProperties = {
 	maxWidth: "100%",
 	overflow: "hidden",
 	whiteSpace: "nowrap",

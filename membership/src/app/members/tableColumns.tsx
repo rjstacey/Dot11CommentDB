@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import {
 	SelectHeaderCell,
 	SelectCell,
@@ -21,7 +20,7 @@ import {
 
 export { membersSelectors, membersActions };
 
-const lineTruncStyle: CSSProperties = {
+const lineTruncStyle: React.CSSProperties = {
 	overflow: "hidden",
 	whiteSpace: "nowrap",
 	textOverflow: "ellipsis",
