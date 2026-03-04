@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Button, FormCheck, FormControl, Row, Col } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -68,9 +68,7 @@ function MemberSessionParticipationTable({
 	const columns = useMemo(() => {
 		return attendancesColumns.map((col) => {
 			let renderCell:
-				| ((
-						entry: SessionAttendanceSummary,
-				  ) => JSX.Element | string | number)
+				| ((entry: SessionAttendanceSummary) => ReactNode)
 				| undefined;
 			if (col.key === "Session")
 				renderCell = (entry) =>

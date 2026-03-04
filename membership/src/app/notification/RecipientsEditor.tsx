@@ -1,4 +1,4 @@
-import { useState, useMemo, type ComponentProps } from "react";
+import { useState, useMemo } from "react";
 import { Select, SelectItemRendererProps, SelectRendererProps } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectActiveMembers } from "@/store/members";
@@ -42,7 +42,7 @@ function MemberEmailSelector({
 	value: string;
 	onChange: (value: string) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"id" | "style" | "placeholder" | "readOnly" | "disabled"
 >) {
 	const members = useAppSelector(selectActiveMembers);
@@ -119,7 +119,7 @@ function RecipientsEditor({
 	const [showCc, setShowCc] = useState(false);
 	const [showBcc, setShowBcc] = useState(false);
 
-	let ccLine: JSX.Element | undefined;
+	let ccLine: React.ReactElement | undefined;
 	if (showCc || email.cc) {
 		ccLine = (
 			<div className={css.recipientsContainer}>
@@ -134,7 +134,7 @@ function RecipientsEditor({
 		);
 	}
 
-	let bccLine: JSX.Element | undefined;
+	let bccLine: React.ReactElement | undefined;
 	if (showBcc || email.bcc) {
 		bccLine = (
 			<div className={css.recipientsContainer}>
@@ -179,8 +179,8 @@ function RecipientsEditor({
 		</div>
 	);
 
-	let ccButton: JSX.Element | undefined;
-	let bccButton: JSX.Element | undefined;
+	let ccButton: React.ReactElement | undefined;
+	let bccButton: React.ReactElement | undefined;
 	if (!readOnly && !ccLine) {
 		ccButton = (
 			<button onClick={() => setShowCc(true)} title="Add Cc recipients">

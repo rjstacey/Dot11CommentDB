@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, ReactNode } from "react";
 import { Button, FormCheck, Row, Col } from "react-bootstrap";
 import { displayDateRange } from "@common";
 
@@ -70,9 +70,7 @@ export function MemberBallotParticipationTable({
 
 		return ballotSeriesParticipationColumns.map((col) => {
 			let renderCell:
-				| ((
-						entry: BallotSeriesParticipationSummary,
-				  ) => JSX.Element | string | number)
+				| ((entry: BallotSeriesParticipationSummary) => ReactNode)
 				| undefined;
 			if (col.key === "project")
 				renderCell = (entry) =>

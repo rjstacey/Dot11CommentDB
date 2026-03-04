@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Table, Row, Col, Form } from "react-bootstrap";
 import { DateTime } from "luxon";
 
@@ -142,7 +142,7 @@ export function MemberBasicEdit({
 	}
 
 	const hasMany = sapins.length > 1;
-	let sapinEl: JSX.Element;
+	let sapinEl: ReactNode;
 	if (hasMany) {
 		sapinEl = (
 			<>

@@ -1,4 +1,4 @@
-import {
+import React, {
 	useState,
 	useMemo,
 	useRef,
@@ -133,7 +133,7 @@ function PlotArea({
 	ids: string[];
 	entities: Record<string, Record<string, number>>;
 }) {
-	const elements: JSX.Element[] = [];
+	const elements: React.ReactElement[] = [];
 	const barWidth = xScale.bandwidth();
 	ids.forEach((id) => {
 		const entry = entities[id];

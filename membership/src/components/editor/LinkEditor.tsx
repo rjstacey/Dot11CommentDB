@@ -1,11 +1,4 @@
-import {
-	useState,
-	useCallback,
-	useEffect,
-	useRef,
-	type Dispatch,
-	type KeyboardEvent,
-} from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
@@ -84,11 +77,11 @@ function FloatingLinkEditor({
 }: {
 	editor: LexicalEditor;
 	isLink: boolean;
-	setIsLink: Dispatch<boolean>;
+	setIsLink: React.Dispatch<boolean>;
 	anchorElem: HTMLElement;
 	isLinkEditMode: boolean;
-	setIsLinkEditMode: Dispatch<boolean>;
-}): JSX.Element {
+	setIsLinkEditMode: React.Dispatch<boolean>;
+}): React.ReactElement {
 	const editorRef = useRef<HTMLDivElement | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [linkUrl, setLinkUrl] = useState("");
@@ -210,7 +203,7 @@ function FloatingLinkEditor({
 	}, [isLinkEditMode, isLink]);
 
 	const monitorInputInteraction = (
-		event: KeyboardEvent<HTMLInputElement>,
+		event: React.KeyboardEvent<HTMLInputElement>,
 	) => {
 		if (event.key === "Enter") {
 			event.preventDefault();

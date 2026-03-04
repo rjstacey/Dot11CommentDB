@@ -19,6 +19,7 @@ import {
 	selectors as regTableSelectors,
 	actions as regTableActions,
 } from "../registration/tableColumns";
+import React from "react";
 
 function useRoute() {
 	const { pathname } = useLocation();
@@ -34,7 +35,7 @@ export function SessionAttendanceActions() {
 
 	const route = useRoute();
 	let refresh: (() => void) | undefined = undefined;
-	let actions: JSX.Element | undefined = undefined;
+	let actions: React.ReactElement | undefined = undefined;
 	if (route === "attendance") {
 		refresh = imatRefresh;
 		actions = (

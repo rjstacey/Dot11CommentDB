@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { Form, Row, Col } from "react-bootstrap";
 import { isMultiple } from "@common";
 
@@ -75,7 +75,7 @@ export function GroupsEditForm({
 		onChange(changes);
 	}
 
-	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const errorText = checkEntry(entry);
 		if (errorText) {

@@ -1,4 +1,4 @@
-import { Component, createRef } from "react";
+import { Component, createRef, JSX } from "react";
 import type {
 	CSSProperties,
 	FocusEventHandler,
@@ -105,7 +105,7 @@ export type SelectItemRendererProps<T> = {
 } & SelectRendererProps<T>;
 
 export type SelectInputRendererProps<T> = {
-	inputRef: React.RefObject<HTMLInputElement>;
+	inputRef: RefObject<HTMLInputElement | null>;
 } & SelectRendererProps<T>;
 
 export type SelectInternalProps<T> = SelectRequiredProps<T> &
@@ -116,7 +116,7 @@ type SelectRequiredProps<T> = {
 	options: T[];
 
 	id?: string;
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	className?: string;
 	dropdownClassName?: string;
 	"aria-label"?: string;
@@ -125,9 +125,9 @@ type SelectRequiredProps<T> = {
 
 	dropdownWidth?: number;
 
-	onClick?: React.MouseEventHandler;
-	onFocus?: React.FocusEventHandler;
-	onBlur?: React.FocusEventHandler;
+	onClick?: MouseEventHandler;
+	onFocus?: FocusEventHandler;
+	onBlur?: FocusEventHandler;
 
 	onChange: (values: T[]) => void;
 
@@ -175,23 +175,21 @@ type SelectDefaultProps<T> = {
 	createOption: (props: SelectRendererProps<T>) => Promise<T | undefined>;
 
 	/* Select children */
-	contentRenderer: (props: SelectRendererProps<T>) => React.ReactNode;
+	contentRenderer: (props: SelectRendererProps<T>) => ReactNode;
 
 	/* Content children */
-	selectItemRenderer: (props: SelectItemRendererProps<T>) => React.ReactNode;
-	multiSelectItemRenderer: (
-		props: SelectItemRendererProps<T>,
-	) => React.ReactNode;
-	inputRenderer: (props: SelectInputRendererProps<T>) => React.ReactNode;
+	selectItemRenderer: (props: SelectItemRendererProps<T>) => ReactNode;
+	multiSelectItemRenderer: (props: SelectItemRendererProps<T>) => ReactNode;
+	inputRenderer: (props: SelectInputRendererProps<T>) => ReactNode;
 
 	/* Dropdown */
-	dropdownRenderer: (props: SelectRendererProps<T>) => React.ReactNode;
+	dropdownRenderer: (props: SelectRendererProps<T>) => ReactNode;
 
 	/* Dropdown children */
-	extraRenderer: (props: SelectRendererProps<T>) => React.ReactNode;
-	addItemRenderer: (props: SelectItemRendererProps<T>) => React.ReactNode;
-	itemRenderer: (props: SelectItemRendererProps<T>) => React.ReactNode;
-	noDataRenderer: (props: SelectRendererProps<T>) => React.ReactNode;
+	extraRenderer: (props: SelectRendererProps<T>) => ReactNode;
+	addItemRenderer: (props: SelectItemRendererProps<T>) => ReactNode;
+	itemRenderer: (props: SelectItemRendererProps<T>) => ReactNode;
+	noDataRenderer: (props: SelectRendererProps<T>) => ReactNode;
 };
 
 export type SelectState<T> = {
@@ -257,9 +255,9 @@ class SelectInternal<T extends ItemType> extends Component<
 
 	state: SelectState<T>;
 	private methods: SelectMethods<T>;
-	private selectRef: RefObject<HTMLDivElement>;
-	private inputRef: RefObject<HTMLInputElement>;
-	private dropdownRef: RefObject<HTMLDivElement>;
+	private selectRef: RefObject<HTMLDivElement | null>;
+	private inputRef: RefObject<HTMLInputElement | null>;
+	private dropdownRef: RefObject<HTMLDivElement | null>;
 
 	private debouncedUpdateSelectBounds: () => void;
 	private debouncedOnScroll: () => void;
@@ -489,7 +487,7 @@ class SelectInternal<T extends ItemType> extends Component<
 		return options;
 	};
 
-	onClick: React.MouseEventHandler = (event) => {
+	onClick: MouseEventHandler = (event) => {
 		if (event.detail === 0) return; // Ignore click from keyboard
 		const { props, state } = this;
 		if (!props.disabled && !props.readOnly && !props.keepOpen) {

@@ -1,4 +1,6 @@
 build/*
+!build/.platform/*
+!build/.elasticbeanstalk/*
 *.csv
 *.xlsx
 *.sublime-workspace

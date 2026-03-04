@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, JSX } from "react";
 import { createPortal } from "react-dom";
 import { Dropdown, FormCheck, Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";

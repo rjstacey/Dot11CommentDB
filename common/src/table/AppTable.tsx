@@ -113,7 +113,7 @@ const useKeyDown = (
 	selected: EntityId[],
 	ids: EntityId[],
 	setSelected: (ids: EntityId[]) => void,
-	listRef: React.RefObject<ListImperativeAPI>,
+	listRef: React.RefObject<ListImperativeAPI | null>,
 ) =>
 	useCallback(
 		(event: React.KeyboardEvent) => {

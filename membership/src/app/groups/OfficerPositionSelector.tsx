@@ -7,12 +7,12 @@ function OfficerPositionSelector({
 	value,
 	onChange,
 	groupType,
-	...otherProps
+	...props
 }: {
 	value: string;
 	onChange: (value: string) => void;
 	groupType: GroupType;
-} & Pick<ComponentProps<typeof Select>, "id" | "style" | "readOnly">) {
+} & Partial<Pick<ComponentProps<typeof Select>, "id" | "style" | "readOnly">>) {
 	const options = officerPositionsForGroupType(groupType).map((v) => ({
 		value: v,
 		label: v,
@@ -33,7 +33,7 @@ function OfficerPositionSelector({
 			options={options}
 			clearable
 			portal={document.querySelector("#root")}
-			{...otherProps}
+			{...props}
 		/>
 	);
 }

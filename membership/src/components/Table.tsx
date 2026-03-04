@@ -1,7 +1,7 @@
-import type { ComponentProps, ReactNode, CSSProperties } from "react";
 import styles from "./Table.module.css";
+import React from "react";
 
-const Table = ({ className, ...props }: ComponentProps<"table">) => (
+const Table = ({ className, ...props }: React.ComponentProps<"table">) => (
 	<table className={styles.table} {...props} />
 );
 
@@ -12,18 +12,18 @@ const tableEmpty = (
 );
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RenderCell = (entry: any) => ReactNode;
+type RenderCell = (entry: any) => React.ReactNode;
 
 export type TableColumn = {
 	/** Column key */
 	key: string;
 	/** Column label (used in <th>{label}</th>) */
-	label: string | JSX.Element;
+	label: string | React.ReactElement;
 	gridTemplate?: string;
 	/** A function to render cell element for entry */
 	renderCell?: RenderCell;
 	/** style for the <th> and <td> column cell */
-	styleCell?: CSSProperties;
+	styleCell?: React.CSSProperties;
 };
 
 /*
@@ -48,7 +48,7 @@ export function EditTable({
 	columns: TableColumn[] /** Column definitions */;
 	values: { [X: string]: unknown }[];
 	rowId?: string;
-} & ComponentProps<"table">) {
+} & React.ComponentProps<"table">) {
 	const gridTemplateColumns = columns
 		.map((col) => col.gridTemplate || "auto")
 		.join(" ");

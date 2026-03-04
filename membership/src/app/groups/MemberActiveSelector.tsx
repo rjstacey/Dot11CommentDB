@@ -15,7 +15,7 @@ function MemberSelector({
 	onChange: (value: number) => void;
 } & Pick<
 	ComponentProps<typeof Select>,
-	"id" | "style" | "placeholder" | "readOnly" | "disabled"
+	"id" | "placeholder" | "readOnly" | "disabled"
 >) {
 	const workingGroup = useAppSelector(selectWorkingGroup);
 	const options = useAppSelector(
