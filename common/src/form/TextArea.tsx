@@ -1,9 +1,9 @@
-import * as React from "react";
+import { forwardRef, type ComponentProps } from "react";
 import ExpandingTextArea from "react-expanding-textarea";
 
-const TextArea = React.forwardRef<
+export const TextArea = forwardRef<
 	HTMLTextAreaElement,
-	React.ComponentProps<typeof ExpandingTextArea>
+	ComponentProps<typeof ExpandingTextArea>
 >(({ className, ...props }, ref) => (
 	<ExpandingTextArea
 		ref={ref}

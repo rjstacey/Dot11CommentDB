@@ -1,6 +1,6 @@
-import * as React from "react";
+import { useEffect, useMemo, useState } from "react";
 import Calendar from "../calendar";
-import TextArea from "./TextArea";
+import { TextArea } from "./TextArea";
 import { Dropdown } from "react-bootstrap";
 
 import styles from "./form.module.css";
@@ -75,28 +75,26 @@ function InputDates({
 	disablePast?: boolean;
 	placeholder?: string;
 }) {
-	const [uncontrolledValue, setUncontrolledValue] = React.useState<
-		Array<string>
-	>([]);
+	const [uncontrolledValue, setUncontrolledValue] = useState<string[]>([]);
 	const dates = value || uncontrolledValue;
 	const setDates = onChange || setUncontrolledValue;
-	const [datesStr, setDatesStr] = React.useState(toDatesStr(dates));
-	const [textareaHasFocus, setTextareaHasFocus] = React.useState(false);
+	const [datesStr, setDatesStr] = useState(toDatesStr(dates));
+	const [textareaHasFocus, setTextareaHasFocus] = useState(false);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!textareaHasFocus) {
 			const str = toDatesStr(dates);
 			if (str !== datesStr) setDatesStr(str);
 		}
 	}, [textareaHasFocus, dates, datesStr]);
 
-	const { minDate, maxDate } = React.useMemo(() => {
+	const { minDate, maxDate } = useMemo(() => {
 		const today = new Date();
 		const minDate = toISODate(
-			new Date(today.getFullYear(), today.getMonth(), 1)
+			new Date(today.getFullYear(), today.getMonth(), 1),
 		);
 		const maxDate = toISODate(
-			new Date(today.getFullYear() + 1, today.getMonth(), 0)
+			new Date(today.getFullYear() + 1, today.getMonth(), 0),
 		);
 		return { minDate, maxDate };
 	}, []);
@@ -122,14 +120,14 @@ function InputDates({
 					currentMonth = months.findIndex(
 						(m) =>
 							m.toLowerCase() ===
-							monthStr.substring(0, 3).toLowerCase()
+							monthStr.substring(0, 3).toLowerCase(),
 					);
 					if (currentMonth < now.getMonth())
 						currentYear = now.getFullYear() + 1;
 				}
 				if (currentMonth >= 0 && dayStr)
 					date = toISODate(
-						new Date(currentYear, currentMonth, parseInt(dayStr))
+						new Date(currentYear, currentMonth, parseInt(dayStr)),
 					);
 			}
 			if (date) dates.push(date);

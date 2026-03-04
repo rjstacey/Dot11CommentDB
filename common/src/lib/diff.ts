@@ -11,42 +11,7 @@ export const isMultiple = (item: unknown): item is typeof MULTIPLE =>
 const isObject = (o: any): o is object => o && typeof o === "object";
 const isDate = (d: any): d is Date => d instanceof Date;
 const isEmpty = (o: object): o is {} => Object.keys(o).length === 0;
-/*
-export function recursivelyDiffObjects(l: any, r: any) {
-	if (l === r) return l;
 
-	if (!isObject(l) || !isObject(r)) return MULTIPLE;
-
-	if (isDate(l) || isDate(r)) {
-		if (l.valueOf() === r.valueOf()) return l;
-		return MULTIPLE;
-	}
-
-	if (Array.isArray(l) && Array.isArray(r)) {
-		if (l.length === r.length)
-			return l.map((v, i) => recursivelyDiffObjects(l[i], r[i]));
-	} else {
-		const deletedValues = Object.keys(l).reduce((acc, key) => {
-			return r.hasOwnProperty(key) ? acc : { ...acc, [key]: MULTIPLE };
-		}, {});
-
-		return Object.keys(r).reduce((acc, key) => {
-			if (!l.hasOwnProperty(key)) return { ...acc, [key]: r[key] }; // return added r key
-
-			const difference = recursivelyDiffObjects(l[key], r[key]);
-
-			if (
-				isObject(difference) &&
-				isEmpty(difference) &&
-				!isDate(difference)
-			)
-				return acc; // return no diff
-
-			return { ...acc, [key]: difference }; // return updated key
-		}, deletedValues);
-	}
-}
-*/
 /**
  * Compare two objects and return an object that only has properties that differ
  *
@@ -56,7 +21,7 @@ export function recursivelyDiffObjects(l: any, r: any) {
  */
 export function shallowDiff<O1 extends O2, O2 extends object>(
 	original: O1,
-	modified: O2
+	modified: O2,
 ): Partial<O2> {
 	const changes: Partial<O2> = {};
 	for (let key in modified)
@@ -72,7 +37,7 @@ export function deepDiff(original: any, modified: any): any {
 	if (Array.isArray(original) && Array.isArray(modified)) {
 		if (original.length !== modified.length) return modified;
 		const result = modified.map((v, i) =>
-			deepDiff(original[i], modified[i])
+			deepDiff(original[i], modified[i]),
 		);
 		return result.find((v: any) => v !== undefined) ? result : undefined;
 	}
@@ -80,7 +45,7 @@ export function deepDiff(original: any, modified: any): any {
 	for (const key in modified) {
 		const change = deepDiff(
 			original[key as keyof typeof original],
-			modified[key as keyof typeof modified]
+			modified[key as keyof typeof modified],
 		);
 		if (
 			change !== undefined &&
@@ -103,15 +68,15 @@ export function deepDiff(original: any, modified: any): any {
  */
 export function deepMerge<O1 extends object, O2 extends object>(
 	obj1: O1,
-	obj2: O2
+	obj2: O2,
 ): O1 & O2;
 export function deepMerge<O1 extends Date, O2 extends Date>(
 	obj1: O1,
-	obj2: O2
+	obj2: O2,
 ): Date;
 export function deepMerge<
 	O1 extends number | string,
-	O2 extends number | string
+	O2 extends number | string,
 >(obj1: O1, obj2: O2): O2 extends number ? number : string;
 export function deepMerge(obj1: any, obj2: any): any {
 	if (obj1 === obj2) return obj2;
@@ -128,7 +93,7 @@ export function deepMerge(obj1: any, obj2: any): any {
 			key in obj2
 				? result
 				: { ...result, [key]: obj1[key as keyof typeof obj1] },
-		result
+		result,
 	);
 	// merge values in obj2
 	result = Object.keys(obj2).reduce(
@@ -138,11 +103,11 @@ export function deepMerge(obj1: any, obj2: any): any {
 				key in obj1
 					? deepMerge(
 							obj1[key as keyof typeof obj1],
-							obj2[key as keyof typeof obj2]
-					  )
+							obj2[key as keyof typeof obj2],
+						)
 					: obj2[key as keyof typeof obj2],
 		}),
-		result
+		result,
 	);
 	return result;
 }
@@ -160,7 +125,7 @@ export type Multiple<O extends object> = {
  */
 export function deepMergeTagMultiple<O1 = any, O2 = any>(
 	obj1: O1,
-	obj2: O2
+	obj2: O2,
 ): O1 extends object
 	? O2 extends object
 		? Multiple<O1 & O2>
@@ -174,7 +139,7 @@ export function deepMergeTagMultiple(obj1: any, obj2: any) {
 	if (Array.isArray(obj1) && Array.isArray(obj2)) {
 		if (obj1.length !== obj2.length) return MULTIPLE;
 		const result = obj1.map((v, i) =>
-			deepMergeTagMultiple(obj1[i], obj2[i])
+			deepMergeTagMultiple(obj1[i], obj2[i]),
 		);
 		return result.includes(MULTIPLE) ? MULTIPLE : result;
 	}
@@ -185,7 +150,7 @@ export function deepMergeTagMultiple(obj1: any, obj2: any) {
 			key in obj2
 				? result
 				: { ...result, [key]: obj1[key as keyof typeof obj1] },
-		result
+		result,
 	);
 	// merge values in obj2
 	result = Object.keys(obj2).reduce(
@@ -195,11 +160,11 @@ export function deepMergeTagMultiple(obj1: any, obj2: any) {
 				key in obj1
 					? deepMergeTagMultiple(
 							obj1[key as keyof typeof obj1],
-							obj2[key as keyof typeof obj2]
-					  )
+							obj2[key as keyof typeof obj2],
+						)
 					: obj2[key as keyof typeof obj2],
 		}),
-		result
+		result,
 	);
 	return result;
 }

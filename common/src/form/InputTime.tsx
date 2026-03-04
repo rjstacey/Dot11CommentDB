@@ -1,4 +1,9 @@
-import * as React from "react";
+import {
+	useState,
+	useEffect,
+	type ComponentProps,
+	type ChangeEvent,
+} from "react";
 import { FormControl as Input } from "react-bootstrap";
 
 const toTimeStr = (hour: number, min: number) =>
@@ -13,23 +18,23 @@ function InputTime({
 }: {
 	value: string;
 	onChange: (value: string) => void;
-} & Omit<React.ComponentProps<typeof Input>, "value" | "onChange">) {
-	const [rawValue, setRawValue] = React.useState(value);
-	const [valid, setValid] = React.useState(true);
-	const [hasFocus, setHasFocus] = React.useState(false);
+} & Omit<ComponentProps<typeof Input>, "value" | "onChange">) {
+	const [rawValue, setRawValue] = useState(value);
+	const [valid, setValid] = useState(true);
+	const [hasFocus, setHasFocus] = useState(false);
 
 	if (value && !isValidTime(value))
 		console.error(
-			"Invalid prop value supplied to InputTime. Expect empty string or string in form 'HH:MM'."
+			"Invalid prop value supplied to InputTime. Expect empty string or string in form 'HH:MM'.",
 		);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!hasFocus && value !== rawValue) setRawValue(value);
 	}, [hasFocus, value, rawValue]);
 
 	placeholder = placeholder || "HH:MM";
 
-	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
 		const rawValue = e.target.value;
 		let isValid = false;
 		let value = "";
