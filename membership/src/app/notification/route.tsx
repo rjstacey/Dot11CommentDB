@@ -1,8 +1,11 @@
+import { lazy } from "react";
 import { RouteObject } from "react-router";
 import { loader } from "./loader";
-import Notification from "./main";
+
+const NotificationMain = lazy(() => import("./main"));
 
 export const notificationRoute: RouteObject = {
-	Component: Notification,
+	hydrateFallbackElement: <div>Loading...</div>,
+	Component: NotificationMain,
 	loader,
 };

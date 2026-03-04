@@ -47,7 +47,7 @@ function genEmail(email: EmailTemplate, user: User, member: Member) {
 	return emailOut;
 }
 
-function NotificationEmail() {
+export function NotificationEmail() {
 	const { groupName } = useParams();
 	const dispatch = useAppDispatch();
 	const [preview, setPreview] = useState<EmailTemplate | null>(null);

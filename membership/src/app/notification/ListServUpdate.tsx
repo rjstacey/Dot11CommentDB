@@ -12,7 +12,7 @@ function createFile(members: Member[]) {
 	saveAs(blob, "bulk.txt");
 }
 
-export default function ListServUpdate() {
+export function ListServUpdate() {
 	const members = useAppSelector(selectSelectedMembers);
 
 	return (
