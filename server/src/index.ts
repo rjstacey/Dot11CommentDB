@@ -146,12 +146,6 @@ function initExpressApp() {
 	// Log requests to console
 	if (process.env.NODE_ENV === "development") app.use(requestLog);
 
-	// Default is to expire immediately
-	//app.use((req, res, next) => {
-	//	res.setHeader("Cache-Control", "max-age=0");
-	//	next();
-	//});
-
 	app.get("/health-check", async (req, res) => {
 		res.status(200).send("I'm healthy!");
 	});
@@ -172,11 +166,6 @@ function initExpressApp() {
 			setHeaders: (res, file) => {
 				if (path.extname(file) === ".html")
 					res.setHeader("Cache-Control", "no-cache");
-				else
-					res.setHeader(
-						"Cache-Control",
-						"public, max-age=86400, immutable",
-					);
 			},
 		}),
 	);
