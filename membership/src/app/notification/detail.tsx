@@ -1,10 +1,10 @@
-import * as React from "react";
+import { lazy, Suspense } from "react";
 import { Tabs, Tab } from "react-bootstrap";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setUiProperties, selectUiProperties } from "@/store/members";
 import ListServUpdate from "./ListServUpdate";
 
-const NotificationEmail = React.lazy(() => import("./NotificationEmail"));
+const NotificationEmail = lazy(() => import("./NotificationEmail"));
 //import NotificationEmail from "./NotificationEmail";
 
 export function NotificationDetail() {
@@ -34,9 +34,9 @@ export function NotificationDetail() {
 			`}</style>
 			<Tabs onSelect={setTabIndex} activeKey={tabIndex}>
 				<Tab eventKey="send-email" title="Send Email">
-					<React.Suspense fallback={<div>Loading...</div>}>
+					<Suspense fallback={<div>Loading...</div>}>
 						<NotificationEmail />
-					</React.Suspense>
+					</Suspense>
 				</Tab>
 				<Tab eventKey="listserv-update" title="ListServ Update">
 					<ListServUpdate />

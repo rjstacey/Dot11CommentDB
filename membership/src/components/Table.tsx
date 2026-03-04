@@ -1,7 +1,7 @@
-import * as React from "react";
+import type { ComponentProps, ReactNode, CSSProperties } from "react";
 import styles from "./Table.module.css";
 
-const Table = ({ className, ...props }: React.ComponentProps<"table">) => (
+const Table = ({ className, ...props }: ComponentProps<"table">) => (
 	<table className={styles.table} {...props} />
 );
 
@@ -12,7 +12,7 @@ const tableEmpty = (
 );
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RenderCell = (entry: any) => React.ReactNode;
+type RenderCell = (entry: any) => ReactNode;
 
 export type TableColumn = {
 	/** Column key */
@@ -23,7 +23,7 @@ export type TableColumn = {
 	/** A function to render cell element for entry */
 	renderCell?: RenderCell;
 	/** style for the <th> and <td> column cell */
-	styleCell?: React.CSSProperties;
+	styleCell?: CSSProperties;
 };
 
 /*
@@ -48,7 +48,7 @@ export function EditTable({
 	columns: TableColumn[] /** Column definitions */;
 	values: { [X: string]: unknown }[];
 	rowId?: string;
-} & React.ComponentProps<"table">) {
+} & ComponentProps<"table">) {
 	const gridTemplateColumns = columns
 		.map((col) => col.gridTemplate || "auto")
 		.join(" ");

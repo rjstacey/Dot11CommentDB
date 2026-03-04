@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ComponentProps } from "react";
 import { Table, Row, Col, Form } from "react-bootstrap";
 import { DateTime } from "luxon";
 
@@ -6,9 +6,9 @@ import { isMultiple } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
-	MemberCreate,
 	selectMemberEntities,
 	type Member,
+	type MemberCreate,
 	type MemberChange,
 } from "@/store/members";
 import type { MultipleMember } from "@/hooks/membersEdit";
@@ -73,7 +73,7 @@ function ExpandingInput({
 	saved?: MultipleMember;
 	onChange: (changes: MemberChange) => void;
 	invalidFeedback?: string;
-} & React.ComponentProps<typeof Form.Control>) {
+} & ComponentProps<typeof Form.Control>) {
 	const value = "" + edited[dataKey];
 	const savedValue: string | number | boolean | null | undefined =
 		saved?.[dataKey] || "";

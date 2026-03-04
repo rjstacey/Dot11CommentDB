@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type CSSProperties, type FormEvent } from "react";
 import { Tabs, Tab, Row, Form } from "react-bootstrap";
 
 import { ConfirmModal, shallowDiff } from "@common";
@@ -50,7 +50,7 @@ const hasStatusChanges = (changeKeys: string[]) =>
 	statusKeys.some((dataKey) => changeKeys.includes(dataKey));
 
 function titleWithChangeMark(title: string, hasChanges: boolean) {
-	const changesStyle: React.CSSProperties = { backgroundColor: "#ffff003d" };
+	const changesStyle: CSSProperties = { backgroundColor: "#ffff003d" };
 	return <span style={hasChanges ? changesStyle : undefined}>{title}</span>;
 }
 
@@ -79,7 +79,7 @@ export function MemberUpdateOneForm({
 		dispatch(setUiProperties({ tabKey }));
 	};
 
-	const [busy, setBusy] = React.useState(false);
+	const [busy, setBusy] = useState(false);
 
 	const {
 		state: sessionParticipationState,
@@ -97,7 +97,7 @@ export function MemberUpdateOneForm({
 		cancel: ballotParticipationCancel,
 	} = useBallotParticipationEdit(sapins[0]);
 
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		if (!e.currentTarget.checkValidity()) {
 			ConfirmModal.show("Fix errors", false);
@@ -131,7 +131,7 @@ export function MemberUpdateOneForm({
 						eventKey="basic"
 						title={titleWithChangeMark(
 							"Basic",
-							hasBasicChanges(changeKeys)
+							hasBasicChanges(changeKeys),
 						)}
 					>
 						<MemberBasicEdit
@@ -146,7 +146,7 @@ export function MemberUpdateOneForm({
 						eventKey="contact"
 						title={titleWithChangeMark(
 							"Contact",
-							hasContactChanges(changeKeys)
+							hasContactChanges(changeKeys),
 						)}
 					>
 						<MemberContactEdit
@@ -160,7 +160,7 @@ export function MemberUpdateOneForm({
 						eventKey="status"
 						title={titleWithChangeMark(
 							"Status",
-							hasStatusChanges(changeKeys)
+							hasStatusChanges(changeKeys),
 						)}
 					>
 						<MemberStatusEdit
@@ -174,7 +174,7 @@ export function MemberUpdateOneForm({
 						eventKey="sessions"
 						title={titleWithChangeMark(
 							"Sessions",
-							sessionParticipationHasChanges()
+							sessionParticipationHasChanges(),
 						)}
 					>
 						<MemberSessionParticipationEdit
@@ -189,7 +189,7 @@ export function MemberUpdateOneForm({
 						eventKey="ballots"
 						title={titleWithChangeMark(
 							"Ballots",
-							ballotParticipationHasChanges()
+							ballotParticipationHasChanges(),
 						)}
 					>
 						<MemberBallotParticipationEdit

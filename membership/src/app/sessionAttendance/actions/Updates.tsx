@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type FormEvent } from "react";
 import {
 	Form,
 	Row,
@@ -15,27 +15,27 @@ import {
 } from "@/store/imatAttendanceSummary";
 
 function UpdateForm({ close }: { close: () => void }) {
-	const [selectedOnly, setSelectedOnly] = React.useState(false);
-	const [importAttendance, setImportAttendance] = React.useState(true);
-	const [importNew, setImportNew] = React.useState(true);
-	const [importUpdates, setImportUpdates] = React.useState(true);
-	const [busy, setBusy] = React.useState(false);
+	const [selectedOnly, setSelectedOnly] = useState(false);
+	const [importAttendance, setImportAttendance] = useState(true);
+	const [importNew, setImportNew] = useState(true);
+	const [importUpdates, setImportUpdates] = useState(true);
+	const [busy, setBusy] = useState(false);
 	const selected = useAppSelector(
-		selectImatAttendanceSummarySelectedSyncedIds
+		selectImatAttendanceSummarySelectedSyncedIds,
 	) as number[];
 	const ids = useAppSelector(
-		selectImatAttendanceSummarySyncedIds
+		selectImatAttendanceSummarySyncedIds,
 	) as number[];
 
 	const { state, submit } = useSessionAttendanceEdit(
 		selectedOnly ? selected : ids,
-		false
+		false,
 	);
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
-		submit(importNew, importUpdates, importAttendance);
+		await submit(importNew, importUpdates, importAttendance);
 		setBusy(false);
 		close();
 	}
@@ -87,7 +87,7 @@ function UpdateForm({ close }: { close: () => void }) {
 			</Form.Group>
 			<Row>
 				<Col className="d-flex justify-content-end">
-					<Button type="submit">
+					<Button type="submit" disabled={busy}>
 						<Spinner size="sm" hidden={!busy} className="me-2" />
 						<span>Submit</span>
 					</Button>
@@ -98,7 +98,7 @@ function UpdateForm({ close }: { close: () => void }) {
 }
 
 export function Updates() {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<DropdownButton
 			variant="success-outline"

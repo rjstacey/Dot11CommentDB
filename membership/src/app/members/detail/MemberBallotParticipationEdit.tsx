@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import { Button, FormCheck, Row, Col } from "react-bootstrap";
 import { displayDateRange } from "@common";
 
@@ -40,7 +40,7 @@ export function MemberBallotParticipationTable({
 	edited: Record<number, BallotSeriesParticipationSummary>;
 	onChange: (
 		series_id: number,
-		changes: Partial<BallotSeriesParticipationSummary>
+		changes: Partial<BallotSeriesParticipationSummary>,
 	) => void;
 	ballotEntities: Record<
 		number,
@@ -52,7 +52,7 @@ export function MemberBallotParticipationTable({
 	>;
 	readOnly?: boolean;
 }) {
-	const columns = React.useMemo(() => {
+	const columns = useMemo(() => {
 		function renderDateRange(entity: BallotSeriesParticipationSummary) {
 			const ballotSeries = ballotSeriesEntities[entity.series_id]!;
 			return displayDateRange(ballotSeries.start, ballotSeries.end);
@@ -71,7 +71,7 @@ export function MemberBallotParticipationTable({
 		return ballotSeriesParticipationColumns.map((col) => {
 			let renderCell:
 				| ((
-						entry: BallotSeriesParticipationSummary
+						entry: BallotSeriesParticipationSummary,
 				  ) => JSX.Element | string | number)
 				| undefined;
 			if (col.key === "project")
@@ -80,7 +80,7 @@ export function MemberBallotParticipationTable({
 			if (col.key === "ballotIds")
 				renderCell = (entry) =>
 					ballotSeriesEntities[entry.series_id]?.ballotNames.join(
-						", "
+						", ",
 					) || "?";
 			if (col.key === "period") renderCell = renderDateRange;
 			if (col.key === "excused") {
@@ -132,16 +132,16 @@ export function MemberBallotParticipationEdit({
 	edited: Record<number, BallotSeriesParticipationSummary>;
 	onChange: (
 		series_id: number,
-		changes: Partial<BallotSeriesParticipationSummary>
+		changes: Partial<BallotSeriesParticipationSummary>,
 	) => void;
 	readOnly?: boolean;
 }) {
 	const ballotEntities = useAppSelector(selectBallotEntities);
 	const ballotSeriesEntities = useAppSelector(
-		selectSyncedBallotSeriesEntities
+		selectSyncedBallotSeriesEntities,
 	);
 	const { count, total } = useAppSelector((state) =>
-		selectMemberBallotParticipationCount(state, SAPIN)
+		selectMemberBallotParticipationCount(state, SAPIN),
 	);
 
 	function copyToClipboard() {
@@ -149,7 +149,7 @@ export function MemberBallotParticipationEdit({
 			series_ids,
 			edited,
 			ballotEntities,
-			ballotSeriesEntities
+			ballotSeriesEntities,
 		);
 		const type = "text/html";
 		const blob = new Blob([html], { type });

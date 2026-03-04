@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ReactNode } from "react";
 import { Button, Row, Col } from "react-bootstrap";
 import {
 	AppTable,
@@ -22,7 +22,7 @@ import { refresh } from "./loader";
 function MostRecentBallotSummary() {
 	const ballotSeries = useAppSelector(selectMostRecentBallotSeries);
 
-	let content: React.ReactNode;
+	let content: ReactNode;
 	if (ballotSeries) {
 		const ballotNamesStr = ballotSeries.ballotNames.join(", ");
 		content = (
@@ -49,7 +49,7 @@ function MostRecentBallotSummary() {
 function MostRecentSessionSummary() {
 	const session = useAppSelector(selectMostRecentAttendedSession);
 
-	let content: React.ReactNode;
+	let content: ReactNode;
 	if (session) {
 		content = (
 			<>

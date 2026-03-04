@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import { Button, FormCheck, FormControl, Row, Col } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -57,7 +57,7 @@ function MemberSessionParticipationTable({
 	edited: Record<number, SessionAttendanceSummary>;
 	onChange: (
 		session_id: number,
-		changes: Partial<SessionAttendanceSummary>
+		changes: Partial<SessionAttendanceSummary>,
 	) => void;
 	sessionEntities: Record<
 		number,
@@ -65,11 +65,11 @@ function MemberSessionParticipationTable({
 	>;
 	readOnly?: boolean;
 }) {
-	const columns = React.useMemo(() => {
+	const columns = useMemo(() => {
 		return attendancesColumns.map((col) => {
 			let renderCell:
 				| ((
-						entry: SessionAttendanceSummary
+						entry: SessionAttendanceSummary,
 				  ) => JSX.Element | string | number)
 				| undefined;
 			if (col.key === "Session")
@@ -181,14 +181,14 @@ export function MemberSessionParticipationEdit({
 	edited: Record<number, SessionAttendanceSummary>;
 	onChange: (
 		session_id: number,
-		changes: Partial<SessionAttendanceSummary>
+		changes: Partial<SessionAttendanceSummary>,
 	) => void;
 	readOnly?: boolean;
 }) {
 	const sessionEntities = useAppSelector(selectSessionEntities);
 
 	const { count, total } = useAppSelector((state) =>
-		selectMemberAttendanceStats(state, SAPIN)
+		selectMemberAttendanceStats(state, SAPIN),
 	);
 
 	function copyToClipboard() {
@@ -196,7 +196,7 @@ export function MemberSessionParticipationEdit({
 			SAPIN,
 			session_ids,
 			sessionEntities,
-			edited
+			edited,
 		);
 		const type = "text/html";
 		const blob = new Blob([html], { type });

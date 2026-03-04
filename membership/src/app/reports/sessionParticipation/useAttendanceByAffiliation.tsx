@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import { useOutletContext } from "react-router";
 import { useAppSelector } from "@/store/hooks";
 import { selectAffiliationMapper } from "@/store/affiliationMap";
@@ -25,12 +25,12 @@ export function useAttendanceByAffiliation() {
 	const { selected, statuses } =
 		useOutletContext<SessionParticipationReportContext>();
 	const participationEntities = useAppSelector(
-		selectSessionParticipationWithMembershipAndSummary
+		selectSessionParticipationWithMembershipAndSummary,
 	);
 	const members = useAppSelector(selectActiveMembers);
 	const affiliationMapper = useAppSelector(selectAffiliationMapper);
 
-	return React.useMemo(() => {
+	return useMemo(() => {
 		const entities: Record<string, AffiliationCounts> = {};
 		let shortAffiliations: string[] = [];
 		for (const m of members) {
@@ -44,7 +44,7 @@ export function useAttendanceByAffiliation() {
 				const attendances = s.sessionAttendanceSummaries.filter(
 					(a) =>
 						selected.includes(a.session_id) &&
-						(a.AttendancePercentage || 0) > 0
+						(a.AttendancePercentage || 0) > 0,
 				);
 				totalCount = attendances.length;
 				inPersonCount = attendances.filter((a) => a.InPerson).length;

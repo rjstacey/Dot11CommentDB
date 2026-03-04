@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ReactNode } from "react";
 import { Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -25,7 +25,7 @@ function GroupsDetail() {
 	} = useGroupsEdit(readOnly);
 
 	let title = "";
-	let content: React.ReactNode;
+	let content: ReactNode;
 	if (state.action === null) {
 		title = "Group detail";
 		content = <div className="placeholder">{state.message}</div>;
@@ -44,7 +44,7 @@ function GroupsDetail() {
 		);
 	}
 
-	let actions: React.ReactNode = null;
+	let actions: ReactNode = null;
 	if (!readOnly) {
 		actions = (
 			<>

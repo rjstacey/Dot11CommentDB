@@ -1,13 +1,11 @@
-import * as React from "react";
+import { lazy } from "react";
 import { RouteObject } from "react-router";
 import { loader } from "../../sessionParticipation/loader";
 import SessionParticipationReport from "./layout";
 
-const PerSessionChart = React.lazy(() => import("./AttendancePerSessionChart"));
-const CumulativeChart = React.lazy(() => import("./AttendanceCumulativeChart"));
-const ByAffiliationChart = React.lazy(
-	() => import("./AttendanceByAffiliationChart")
-);
+const PerSessionChart = lazy(() => import("./AttendancePerSessionChart"));
+const CumulativeChart = lazy(() => import("./AttendanceCumulativeChart"));
+const ByAffiliationChart = lazy(() => import("./AttendanceByAffiliationChart"));
 
 export const route: RouteObject = {
 	element: <SessionParticipationReport />,

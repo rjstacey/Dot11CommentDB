@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import { useOutletContext } from "react-router";
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -37,11 +37,11 @@ export function useAttendancePerSession() {
 		useOutletContext<SessionParticipationReportContext>();
 	const sapins = useAppSelector(selectSessionParticipationIds);
 	const entities = useAppSelector(
-		selectSessionParticipationWithMembershipAndSummary
+		selectSessionParticipationWithMembershipAndSummary,
 	);
 	const sessionEntities = useAppSelector(selectSessionEntities);
 
-	return React.useMemo(() => {
+	return useMemo(() => {
 		const dataEntities: Record<number, AttendancePerSession> = {};
 		const data: AttendancePerSession[] = [];
 

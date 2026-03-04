@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import { useOutletContext } from "react-router";
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -21,10 +21,10 @@ export function useAttendanceCumulative() {
 		useOutletContext<SessionParticipationReportContext>();
 	const sapins = useAppSelector(selectSessionParticipationIds);
 	const entities = useAppSelector(
-		selectSessionParticipationWithMembershipAndSummary
+		selectSessionParticipationWithMembershipAndSummary,
 	);
 
-	return React.useMemo(() => {
+	return useMemo(() => {
 		const nSessions = selected.length;
 		const data: AttendanceCumulative[][] = [];
 		for (
@@ -55,7 +55,7 @@ export function useAttendanceCumulative() {
 			const attendances = m.sessionAttendanceSummaries.filter(
 				(a) =>
 					selected.includes(a.session_id) &&
-					(a.AttendancePercentage || 0) > 0
+					(a.AttendancePercentage || 0) > 0,
 			);
 			if (attendances.length > 0) {
 				// For this individual...
@@ -63,7 +63,7 @@ export function useAttendanceCumulative() {
 				const entry = data[attendances.length - 1];
 				// inPersonCount is the number of sessions attend in-person sessions
 				const inPersonCount = attendances.filter(
-					(a) => a.InPerson
+					(a) => a.InPerson,
 				).length;
 				// update the appropriate record
 				entry[inPersonCount].count++;

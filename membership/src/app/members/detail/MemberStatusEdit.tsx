@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useMemo } from "react";
 import {
 	Row,
 	Col,
@@ -107,7 +107,7 @@ export function MemberStatusChangeDropdown({
 	onChange: (entry: StatusChangeEntry) => void;
 	readOnly?: boolean;
 }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<Dropdown align="end" show={show} onToggle={setShow}>
 			<Dropdown.Toggle
@@ -164,10 +164,10 @@ export function MemberStatusEdit({
 		statusChangeDate =
 			DateTime.fromISO(edited.StatusChangeDate).toISODate() || "";
 
-	const columns = React.useMemo(() => {
+	const columns = useMemo(() => {
 		function update(id: number, changes: Partial<StatusChangeEntry>) {
 			const StatusChangeHistory = statusChangeHistory.map((h) =>
-				h.id === id ? { ...h, ...changes } : h
+				h.id === id ? { ...h, ...changes } : h,
 			);
 			onChange({ StatusChangeHistory });
 		}
@@ -188,7 +188,7 @@ export function MemberStatusEdit({
 
 		function remove(id: number) {
 			const StatusChangeHistory = statusChangeHistory.filter(
-				(h) => h.id !== id
+				(h) => h.id !== id,
 			);
 			onChange({ StatusChangeHistory });
 		}
@@ -249,11 +249,11 @@ export function MemberStatusEdit({
 						style={hasChangesStyle(
 							edited,
 							saved,
-							"StatusChangeOverride"
+							"StatusChangeOverride",
 						)}
 						checked={Boolean(edited.StatusChangeOverride)}
 						//indeterminate={isMultiple(edited.StatusChangeOverride)}
-						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						onChange={(e) =>
 							onChange({
 								StatusChangeOverride: e.target.checked,
 							})
@@ -268,7 +268,7 @@ export function MemberStatusEdit({
 						style={hasChangesStyle(
 							edited,
 							saved,
-							"StatusChangeDate"
+							"StatusChangeDate",
 						)}
 						value={statusChangeDate}
 						onChange={(e) =>
@@ -289,7 +289,7 @@ export function MemberStatusEdit({
 					style={hasChangesStyle(
 						edited,
 						saved,
-						"StatusChangeHistory"
+						"StatusChangeHistory",
 					)}
 					columns={columns}
 					values={statusChangeHistory}

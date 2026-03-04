@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useCallback, type ComponentProps } from "react";
 
 import { Select } from "@common";
 
@@ -14,18 +14,21 @@ function MemberSelector({
 	value: number;
 	onChange: (value: number) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"id" | "style" | "placeholder" | "readOnly" | "disabled"
 >) {
 	const workingGroup = useAppSelector(selectWorkingGroup);
 	const options = useAppSelector(
 		workingGroup && workingGroup.type === "r"
 			? selectAllMembers
-			: selectActiveMembers
+			: selectActiveMembers,
 	);
 	const values = options.filter((o) => o.SAPIN === value);
-	const handleChange = (values: typeof options) =>
-		onChange(values.length > 0 ? values[0].SAPIN : 0);
+	const handleChange = useCallback(
+		(values: typeof options) =>
+			onChange(values.length > 0 ? values[0].SAPIN : 0),
+		[onChange],
+	);
 
 	return (
 		<Select

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	$getSelection,
@@ -14,9 +14,9 @@ import { mergeRegister } from "@lexical/utils";
 
 export function useFontSizeEdit() {
 	const [editor] = useLexicalComposerContext();
-	const [fontSize, setFontSize] = React.useState<string | null>(null);
+	const [fontSize, setFontSize] = useState<string | null>(null);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(value: string | null) => {
 			editor.update(() => {
 				const selection = $getSelection();
@@ -27,7 +27,7 @@ export function useFontSizeEdit() {
 		[editor],
 	);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		function updateValues() {
 			const selection = $getSelection();
 			if (!$isRangeSelection(selection)) return false;

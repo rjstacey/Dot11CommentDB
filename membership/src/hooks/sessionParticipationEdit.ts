@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect, useCallback, useMemo, useState } from "react";
 import { shallowDiff } from "@common";
 import isEqual from "lodash.isequal";
 
@@ -21,7 +21,7 @@ function useSessionAttendances(SAPIN: number) {
 	const sessionIds = useAppSelector(selectSessionParticipationSessionIds);
 	const membersAttendances = useAppSelector(selectMemberAttendances);
 
-	return React.useMemo(() => {
+	return useMemo(() => {
 		const session_ids = sessionIds as number[];
 		const attendances = { ...membersAttendances[SAPIN] };
 
@@ -29,7 +29,7 @@ function useSessionAttendances(SAPIN: number) {
 			if (!attendances[session_id]) {
 				attendances[session_id] = getNullAttendanceSummary(
 					session_id,
-					SAPIN
+					SAPIN,
 				);
 			}
 		}
@@ -51,13 +51,13 @@ export function useSessionParticipationEdit(SAPIN: number) {
 	const dispatch = useAppDispatch();
 	const { session_ids, attendances } = useSessionAttendances(SAPIN);
 
-	const [state, setState] = React.useState<SessionParticipationEditState>({
+	const [state, setState] = useState<SessionParticipationEditState>({
 		session_ids,
 		edited: attendances,
 		saved: attendances,
 	});
 
-	React.useEffect(() => {
+	useEffect(() => {
 		setState({
 			session_ids,
 			edited: attendances,
@@ -65,7 +65,7 @@ export function useSessionParticipationEdit(SAPIN: number) {
 		});
 	}, [session_ids, attendances]);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(session_id: number, changes: SessionAttendanceSummaryChange) => {
 			setState((state) => {
 				let edited = {
@@ -79,22 +79,19 @@ export function useSessionParticipationEdit(SAPIN: number) {
 				};
 			});
 		},
-		[setState]
+		[setState],
 	);
 
-	const hasChanges = React.useCallback(
-		() => state.edited !== state.saved,
-		[state]
-	);
+	const hasChanges = useCallback(() => state.edited !== state.saved, [state]);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		const updates: SessionAttendanceSummaryUpdate[] = [];
 		const adds: SessionAttendanceSummaryCreate[] = [];
 		const deletes: number[] = [];
 		for (const session_id of state.session_ids) {
 			const changes = shallowDiff(
 				state.saved[session_id],
-				state.edited[session_id]
+				state.edited[session_id],
 			);
 			if (Object.keys(changes).length > 0) {
 				const updated = {
@@ -121,7 +118,7 @@ export function useSessionParticipationEdit(SAPIN: number) {
 			await dispatch(deleteAttendanceSummaries(deletes));
 	}, [dispatch, state, setState]);
 
-	const cancel = React.useCallback(() => {
+	const cancel = useCallback(() => {
 		setState((state) => ({
 			...state,
 			edited: state.saved,

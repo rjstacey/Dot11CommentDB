@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 import { DateTime } from "luxon";
 import {
 	SelectHeaderCell,
@@ -24,7 +24,7 @@ import {
 
 function renderSessionAttendance(
 	notRelevant: boolean,
-	attendance: SessionAttendanceSummary
+	attendance: SessionAttendanceSummary,
 ) {
 	const attendancePct = attendance.AttendancePercentage || 0;
 	const pct = attendancePct.toFixed(1) + "%";
@@ -110,24 +110,24 @@ const tableColumns: ColumnProperties[] = [
 	},
 ];
 
-const lineTruncStyle: React.CSSProperties = {
+const lineTruncStyle: CSSProperties = {
 	maxWidth: "100%",
 	overflow: "hidden",
 	whiteSpace: "nowrap",
-	textOverflow: "ellipses",
+	textOverflow: "ellipsis",
 };
 
 export function useTableColumns() {
 	const sessions = useAppSelector(selectRecentSessions);
 
-	const columns = React.useMemo(() => {
+	const columns = useMemo(() => {
 		return tableColumns.concat(
 			sessions.map((session, i) => {
 				const cellRenderer = ({
 					rowData,
 				}: CellRendererProps<MemberAttendances>) => {
 					const attendance = rowData.sessionAttendanceSummaries.find(
-						(a) => a.session_id === session.id
+						(a) => a.session_id === session.id,
 					);
 					const notRelevant =
 						!!rowData.NonVoterDate &&
@@ -138,13 +138,13 @@ export function useTableColumns() {
 						: null;
 				};
 				const yearMonth = DateTime.fromISO(session.startDate).toFormat(
-					"yyyy MMM"
+					"yyyy MMM",
 				);
 				const identifier =
 					session.type.toLocaleUpperCase() + ": " + yearMonth;
 				const parts = session.name.split(",");
 				const place = (parts.length > 1 ? parts[1] : parts[0]).trim();
-				const label: React.ReactNode = (
+				const label: ReactNode = (
 					<>
 						<span style={lineTruncStyle}>{identifier}</span>
 						<br />
@@ -160,7 +160,7 @@ export function useTableColumns() {
 					cellRenderer,
 				};
 				return column;
-			})
+			}),
 		);
 	}, [sessions]);
 
@@ -170,7 +170,7 @@ export function useTableColumns() {
 export function useDefaultTablesConfig() {
 	const columns = useTableColumns();
 
-	const defaultTablesConfig = React.useMemo(() => {
+	const defaultTablesConfig = useMemo(() => {
 		const defaultTablesConfig: TablesConfig = {};
 		const tableView = "default";
 		const tableConfig: TableConfig = {

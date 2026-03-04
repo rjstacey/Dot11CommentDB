@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type FormEvent } from "react";
 import { Row, Form } from "react-bootstrap";
 
 import { ConfirmModal } from "@common";
@@ -28,9 +28,9 @@ export function MemberUpdateManyForm({
 	cancel: () => void;
 	readOnly?: boolean;
 }) {
-	const [busy, setBusy] = React.useState(false);
+	const [busy, setBusy] = useState(false);
 
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		if (!e.currentTarget.checkValidity()) {
 			ConfirmModal.show("Fix errors", false);

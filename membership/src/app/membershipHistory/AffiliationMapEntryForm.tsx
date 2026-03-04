@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type FormEvent } from "react";
 import { Form } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 import type {
@@ -24,9 +24,9 @@ export function AffiliationMapEntryForm({
 	cancel: () => void;
 	readOnly?: boolean;
 }) {
-	const [busy, setBusy] = React.useState(false);
+	const [busy, setBusy] = useState(false);
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!e.currentTarget.checkValidity()) {
 			ConfirmModal.show("Fix errors", false);

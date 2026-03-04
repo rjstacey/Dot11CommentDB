@@ -1,8 +1,8 @@
-import * as React from "react";
+import { lazy } from "react";
 import { RouteObject } from "react-router";
 import { membersLoader } from "../../members/loader";
 
-const MembersReport = React.lazy(() => import("."));
+const MembersReport = lazy(() => import("."));
 
 export const route: RouteObject = {
 	loader: membersLoader,

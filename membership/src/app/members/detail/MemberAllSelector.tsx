@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo, type ComponentProps } from "react";
 
 import { Select } from "@common";
 
@@ -13,11 +13,11 @@ export function MemberAllSelector({
 	value: number | null;
 	onChange: (value: number | null) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"id" | "style" | "placeholder" | "readOnly"
 >) {
 	const members = useAppSelector(selectAllMembers);
-	const options = React.useMemo(
+	const options = useMemo(
 		() =>
 			members.map((member) => ({
 				value: member.SAPIN,
@@ -25,7 +25,7 @@ export function MemberAllSelector({
 					member.Status
 				})`,
 			})),
-		[members]
+		[members],
 	);
 	const values = options.filter((o) => o.value === value);
 	const handleChange = (values: typeof options) =>

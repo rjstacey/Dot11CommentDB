@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useCallback, useEffect } from "react";
 import isEqual from "lodash.isequal";
 
 import { ConfirmModal, shallowDiff } from "@common";
@@ -40,10 +40,10 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 	const dispatch = useAppDispatch();
 
 	const { entities, selected, loading, valid } = useAppSelector(
-		selectAffiliationMapState
+		selectAffiliationMapState,
 	);
 
-	const initState = React.useCallback((): AffiliationMapEditState => {
+	const initState = useCallback((): AffiliationMapEditState => {
 		let message: string;
 		if (loading && !valid) {
 			message = "Loading...";
@@ -73,13 +73,13 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 		};
 	}, [loading, valid, selected, entities]);
 
-	const [state, setState] = React.useState(initState);
+	const [state, setState] = useState(initState);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (state.action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) setState(initState);
 					else dispatch(setSelected([]));
@@ -92,7 +92,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 					return;
 				}
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) setState(initState);
 					else dispatch(setSelected(state.ids));
@@ -103,7 +103,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 		}
 	}, [selected]);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: Partial<AffiliationMap>) => {
 			setState((state) => {
 				if (readOnly || state.action === null) {
@@ -125,10 +125,10 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 				}
 			});
 		},
-		[readOnly]
+		[readOnly],
 	);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (readOnly || state.action === null) {
 			console.warn("submit: bad state");
 			return;
@@ -151,26 +151,26 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 		}
 	}, [readOnly, state]);
 
-	const cancel = React.useCallback(() => {
+	const cancel = useCallback(() => {
 		setState(initState);
 	}, [initState]);
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() =>
 			state.action === "add" ||
 			(state.action === "update" && state.edited !== state.saved),
-		[state]
+		[state],
 	);
 
 	const disableAdd = readOnly;
-	const onAdd = React.useCallback(async () => {
+	const onAdd = useCallback(async () => {
 		if (disableAdd) {
 			console.warn("onAdd: bad state");
 			return;
 		}
 		if (hasChanges()) {
 			const ok = await ConfirmModal.show(
-				`Changes not applied! Do you want to discard changes?`
+				`Changes not applied! Do you want to discard changes?`,
 			);
 			if (!ok) return;
 		}
@@ -181,10 +181,10 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 			saved: undefined,
 			ids: [],
 		});
-	}, [disableAdd, hasChanges]);
+	}, [disableAdd, hasChanges, dispatch]);
 
 	const disableDelete = readOnly || state.ids.length === 0;
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		if (disableDelete) {
 			console.warn("onDelete: bad state");
 			return;
@@ -197,7 +197,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 			await dispatch(deleteAffiliationMaps(state.ids));
 			dispatch(setSelected([]));
 		}
-	}, [disableDelete, state.ids]);
+	}, [disableDelete, state.ids, dispatch]);
 
 	return {
 		state,

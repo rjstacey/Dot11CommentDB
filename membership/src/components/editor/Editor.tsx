@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect } from "react";
 import cx from "clsx";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 //import { TreeView } from "@lexical/react/LexicalTreeView";
@@ -60,7 +60,7 @@ export function Editor({
 	tags: string[];
 	readOnly: boolean;
 }) {
-	React.useEffect(() => {
+	useEffect(() => {
 		// Add theme stylesheet on mount and remove on unmount
 		document.adoptedStyleSheets.push(emailStyles);
 		return () => {

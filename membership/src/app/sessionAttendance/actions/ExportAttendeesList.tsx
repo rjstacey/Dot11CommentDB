@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type ComponentProps, type FormEvent } from "react";
 import { Form, Button, Row, Col, DropdownButton } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
@@ -12,9 +12,9 @@ function ExportAttendeesListForm({
 	sessionNumber: number;
 }) {
 	const dispatch = useAppDispatch();
-	const [format, setFormat] = React.useState<"dvl" | "minutes">("minutes");
+	const [format, setFormat] = useState<"dvl" | "minutes">("minutes");
 
-	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		dispatch(exportAttendees(groupName, sessionNumber, format));
 	}
@@ -64,7 +64,7 @@ function ExportAttendeesListForm({
 }
 
 export function ExportAttendeesList(
-	props: React.ComponentProps<typeof ExportAttendeesListForm>,
+	props: ComponentProps<typeof ExportAttendeesListForm>,
 ) {
 	return (
 		<DropdownButton

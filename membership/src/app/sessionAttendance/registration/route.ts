@@ -1,8 +1,8 @@
-import * as React from "react";
+import { lazy } from "react";
 import { RouteObject } from "react-router";
 
 const route: RouteObject = {
-	Component: React.lazy(() => import(".")),
+	Component: lazy(() => import(".")),
 };
 
 export default route;

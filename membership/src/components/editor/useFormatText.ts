@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	SELECTION_CHANGE_COMMAND,
@@ -36,15 +36,15 @@ function getSelectedNode(selection: RangeSelection) {
 
 export function useFormatText() {
 	const [editor] = useLexicalComposerContext();
-	const [isBold, setIsBold] = React.useState(false);
-	const [isItalic, setIsItalic] = React.useState(false);
-	const [isUnderline, setIsUnderline] = React.useState(false);
-	const [isStrikethrough, setIsStrikethrough] = React.useState(false);
-	const [isCode, setIsCode] = React.useState(false);
-	const [isLink, setIsLink] = React.useState(false);
-	const [isAutoLink, setIsAutoLink] = React.useState(false);
+	const [isBold, setIsBold] = useState(false);
+	const [isItalic, setIsItalic] = useState(false);
+	const [isUnderline, setIsUnderline] = useState(false);
+	const [isStrikethrough, setIsStrikethrough] = useState(false);
+	const [isCode, setIsCode] = useState(false);
+	const [isLink, setIsLink] = useState(false);
+	const [isAutoLink, setIsAutoLink] = useState(false);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		function updateFormatState() {
 			const selection = $getSelection();
 			if ($isRangeSelection(selection)) {
@@ -74,7 +74,7 @@ export function useFormatText() {
 		);
 	}, [editor]);
 
-	const insertLink = React.useCallback(() => {
+	const insertLink = useCallback(() => {
 		if (isAutoLink) {
 			// Change to link node
 			editor.update(() => {
@@ -95,7 +95,7 @@ export function useFormatText() {
 		}
 	}, [editor, isLink, isAutoLink]);
 
-	const setFormat = React.useCallback(
+	const setFormat = useCallback(
 		(format: TextFormatType) => {
 			editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
 		},

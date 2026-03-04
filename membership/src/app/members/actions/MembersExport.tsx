@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type FormEvent } from "react";
 import { Dropdown, Form, Button, CloseButton, Row, Col } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
@@ -11,12 +11,12 @@ import {
 
 function MembersExportForm() {
 	const dispatch = useAppDispatch();
-	const [statuses, setStatuses] = React.useState<MemberStatus[]>([
+	const [statuses, setStatuses] = useState<MemberStatus[]>([
 		...activeMemberStatusValues,
 	]);
 	const [format, setFormat] =
-		React.useState<MembersExportQuery["format"]>("public");
-	const [date, setDate] = React.useState<string | undefined>(undefined);
+		useState<MembersExportQuery["format"]>("public");
+	const [date, setDate] = useState<string | undefined>(undefined);
 
 	function changeFormat(format: MembersExportQuery["format"]) {
 		let s: MemberStatus[];
@@ -33,7 +33,7 @@ function MembersExportForm() {
 		setStatuses([...statuses]);
 	}
 
-	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		e.stopPropagation();
 		dispatch(exportMembers({ format, status: statuses, date }));

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	$getSelection,
@@ -36,10 +36,9 @@ export type TextBlockType =
 
 export function useTextBlockSelect() {
 	const [editor] = useLexicalComposerContext();
-	const [blockType, setBlockType] =
-		React.useState<TextBlockType>("paragraph");
+	const [blockType, setBlockType] = useState<TextBlockType>("paragraph");
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(value: TextBlockType) => {
 			if (value === "ul") {
 				editor.dispatchCommand(
@@ -75,7 +74,7 @@ export function useTextBlockSelect() {
 		[editor, blockType],
 	);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		function updateValues() {
 			const selection = $getSelection();
 			if (!$isRangeSelection(selection)) return false;

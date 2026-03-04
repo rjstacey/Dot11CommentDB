@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useCallback, useEffect } from "react";
 import isEqual from "lodash.isequal";
 
 import { ConfirmModal, deepMergeTagMultiple } from "@common";
@@ -61,7 +61,7 @@ function useInitState(selected: string[]) {
 	const officerEntities = useAppSelector(selectOfficerEntities);
 	const officerIds = useAppSelector(selectOfficerIds);
 
-	return React.useCallback((): GroupsEditState => {
+	return useCallback((): GroupsEditState => {
 		const groups = selected.map((id) => entities[id]!).filter(Boolean);
 		if (loading && !valid) {
 			return {
@@ -78,7 +78,7 @@ function useInitState(selected: string[]) {
 			for (const group of groups) {
 				edited = deepMergeTagMultiple(
 					edited,
-					group
+					group,
 				) as MultipleGroupEntry;
 			}
 
@@ -88,7 +88,7 @@ function useInitState(selected: string[]) {
 					? getGroupOfficers(
 							officerIds,
 							officerEntities,
-							groups[0].id
+							groups[0].id,
 						)
 					: [];
 
@@ -113,13 +113,13 @@ export function useGroupsEdit(readOnly: boolean) {
 
 	const initState = useInitState(selected);
 
-	const [state, setState] = React.useState(initState);
+	const [state, setState] = useState(initState);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (state.action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) setState(initState);
 					else dispatch(setSelected([]));
@@ -133,7 +133,7 @@ export function useGroupsEdit(readOnly: boolean) {
 			const ids = state.groups.map((g) => g.id);
 			if (!isEqual(selected, ids)) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) setState(initState);
 					else dispatch(setSelected(ids));
@@ -144,14 +144,14 @@ export function useGroupsEdit(readOnly: boolean) {
 		}
 	}, [selected, initState]);
 
-	const hasChanges = React.useCallback(() => {
+	const hasChanges = useCallback(() => {
 		return (
 			state.action === "add" ||
 			(state.action === "update" && state.edited !== state.saved)
 		);
 	}, [state]);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: Partial<GroupEntry>) => {
 			setState((state) => {
 				if (readOnly || state.action === null) {
@@ -168,13 +168,13 @@ export function useGroupsEdit(readOnly: boolean) {
 				}
 			});
 		},
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
 	const groupAdd = useGroupAdd();
 	const groupsUpdate = useGroupsUpdate();
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (readOnly || state.action === null) {
 			console.warn("submit: bad state");
 			return;
@@ -191,8 +191,8 @@ export function useGroupsEdit(readOnly: boolean) {
 						setError(
 							"Unable to add group",
 							"Entry already exists for " +
-								(group.name || BLANK_STR)
-						)
+								(group.name || BLANK_STR),
+						),
 					);
 					return;
 				}
@@ -213,15 +213,15 @@ export function useGroupsEdit(readOnly: boolean) {
 		}
 	}, [readOnly, state]);
 
-	const cancel = React.useCallback(async () => {
+	const cancel = useCallback(async () => {
 		setState(initState);
 	}, [initState]);
 
 	const disableAdd = readOnly || loading;
-	const onAdd = React.useCallback(async () => {
+	const onAdd = useCallback(async () => {
 		if (state.action === "update" && state.edited !== state.saved) {
 			const ok = await ConfirmModal.show(
-				`Changes not applied! Do you want to discard changes?`
+				`Changes not applied! Do you want to discard changes?`,
 			);
 			if (!ok) return;
 		}
@@ -243,7 +243,7 @@ export function useGroupsEdit(readOnly: boolean) {
 	const groupsDelete = useGroupsDelete();
 
 	const disableDelete = readOnly || state.action !== "update";
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		if (disableDelete) {
 			console.warn("onDelete: bad state");
 			return;
@@ -255,8 +255,8 @@ export function useGroupsEdit(readOnly: boolean) {
 				dispatch(
 					setError(
 						`Can't delete ${rootGroup.name}!`,
-						"Our whole world would collapse"
-					)
+						"Our whole world would collapse",
+					),
 				);
 				return;
 			}

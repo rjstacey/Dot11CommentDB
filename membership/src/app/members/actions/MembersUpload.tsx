@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type FormEvent, type ChangeEvent } from "react";
 import { Dropdown, Form, Button, Row, Col, Spinner } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
@@ -6,11 +6,11 @@ import { uploadMembers, UploadFormat } from "@/store/members";
 
 function MembersUploadForm({ close }: { close: () => void }) {
 	const dispatch = useAppDispatch();
-	const [file, setFile] = React.useState<File | null>(null);
-	const [format, setFormat] = React.useState(UploadFormat.Roster);
-	const [busy, setBusy] = React.useState(false);
+	const [file, setFile] = useState<File | null>(null);
+	const [format, setFormat] = useState(UploadFormat.Roster);
+	const [busy, setBusy] = useState(false);
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!file) return;
 		setBusy(true);
@@ -19,7 +19,7 @@ function MembersUploadForm({ close }: { close: () => void }) {
 		close();
 	}
 
-	const changeFormat: React.ChangeEventHandler<HTMLInputElement> = (e) =>
+	const changeFormat = (e: ChangeEvent<HTMLInputElement>) =>
 		setFormat(e.target.value);
 
 	return (
@@ -77,7 +77,7 @@ function MembersUploadForm({ close }: { close: () => void }) {
 					<Form.Control
 						type="file"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						onChange={(e: ChangeEvent<HTMLInputElement>) =>
 							setFile(e.target.files ? e.target.files[0] : null)
 						}
 						required
@@ -101,7 +101,7 @@ function MembersUploadForm({ close }: { close: () => void }) {
 }
 
 export function MembersUpload() {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<Dropdown align="end" show={show} onToggle={() => setShow(!show)}>
 			<Dropdown.Toggle variant="success-outline">

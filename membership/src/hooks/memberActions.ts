@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useCallback } from "react";
 import { shallowDiff, MULTIPLE, type Multiple } from "@common";
 import type { AppThunk } from "@/store";
 import { useAppDispatch } from "@/store/hooks";
@@ -44,7 +44,7 @@ function normalize<T>(arr: T[], options?: NormalizeOptions<T>) {
 
 function arrayDiff<T extends { id: number }>(
 	originalArr1: T[],
-	updatedArr2: T[]
+	updatedArr2: T[],
 ): {
 	updates: { id: number; changes: Partial<T> }[];
 	adds: T[];
@@ -52,7 +52,7 @@ function arrayDiff<T extends { id: number }>(
 };
 function arrayDiff<T extends { id: string }>(
 	originalArr1: T[],
-	updatedArr2: T[]
+	updatedArr2: T[],
 ): {
 	updates: { id: string; changes: Partial<T> }[];
 	adds: T[];
@@ -60,7 +60,7 @@ function arrayDiff<T extends { id: string }>(
 };
 function arrayDiff<T extends { id: number | string }>(
 	originalArr1: T[],
-	updatedArr2: T[]
+	updatedArr2: T[],
 ): {
 	updates: { id: number | string; changes: Partial<T> }[];
 	adds: T[];
@@ -87,27 +87,27 @@ function arrayDiff<T extends { id: number | string }>(
 
 export function useMembersUpdate() {
 	const dispatch = useAppDispatch();
-	return React.useCallback(
+	return useCallback(
 		async (
 			edited: MultipleMember,
 			saved: MultipleMember,
-			members: MemberCreate[]
+			members: MemberCreate[],
 		) => {
 			const changes = shallowDiff(saved, edited) as Partial<Member>;
 			const p: AppThunk[] = [];
 			if ("StatusChangeHistory" in changes) {
 				const { updates, adds, deletes } = arrayDiff(
 					saved.StatusChangeHistory,
-					edited.StatusChangeHistory
+					edited.StatusChangeHistory,
 				);
 				members.forEach((m) => {
 					if (updates.length > 0)
 						p.push(
-							updateMemberStatusChangeEntries(m.SAPIN, updates)
+							updateMemberStatusChangeEntries(m.SAPIN, updates),
 						);
 					if (deletes.length > 0)
 						p.push(
-							deleteMemberStatusChangeEntries(m.SAPIN, deletes)
+							deleteMemberStatusChangeEntries(m.SAPIN, deletes),
 						);
 					if (adds.length > 0)
 						p.push(addMemberStatusChangeEntries(m.SAPIN, adds));
@@ -120,28 +120,28 @@ export function useMembersUpdate() {
 			}
 			await Promise.all(p.map(dispatch));
 		},
-		[dispatch]
+		[dispatch],
 	);
 }
 
 export function useMembersAdd() {
 	const dispatch = useAppDispatch();
-	return React.useCallback(
+	return useCallback(
 		async (member: MemberCreate) => {
 			const ids = await dispatch(addMembers([member]));
 			return ids;
 		},
-		[dispatch]
+		[dispatch],
 	);
 }
 
 export function useMembersDelete() {
 	const dispatch = useAppDispatch();
-	return React.useCallback(
+	return useCallback(
 		async (members: MemberCreate[]) => {
 			const sapins = members.map((m) => m.SAPIN);
 			await dispatch(deleteMembers(sapins));
 		},
-		[dispatch]
+		[dispatch],
 	);
 }

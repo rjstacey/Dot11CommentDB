@@ -1,4 +1,11 @@
-import * as React from "react";
+import {
+	useState,
+	useMemo,
+	useRef,
+	useEffect,
+	type RefObject,
+	type StyleHTMLAttributes,
+} from "react";
 import * as d3 from "d3";
 
 const colors = ["#0000ff", "#ffa500", "#008000", "red"];
@@ -7,7 +14,7 @@ const opacity = 0.5;
 function deriveTotals(
 	keys: readonly string[],
 	ids: string[],
-	entities: Record<string, Record<string, number>>
+	entities: Record<string, Record<string, number>>,
 ) {
 	const totals: Record<string, number> = {};
 	for (const key of keys) totals[key] = 0;
@@ -24,7 +31,7 @@ function deriveTotals(
 function deriveMaxSum(
 	keys: readonly string[],
 	ids: string[],
-	entities: Record<string, Record<string, number>>
+	entities: Record<string, Record<string, number>>,
 ) {
 	const maxSum = ids.reduce((max, id) => {
 		const entity = entities[id];
@@ -163,7 +170,7 @@ function PlotArea({
 							{value}
 						</text>
 					)}
-				</svg>
+				</svg>,
 			);
 		});
 	});
@@ -190,7 +197,7 @@ function StackedBarChart({
 	className,
 	style,
 }: {
-	svgRef?: React.RefObject<SVGSVGElement>;
+	svgRef?: RefObject<SVGSVGElement>;
 	height: number;
 	width: number;
 	series: Record<string, string>;
@@ -198,38 +205,38 @@ function StackedBarChart({
 	entities: Record<string, Record<string, number>>;
 	yLabel: string;
 	className?: string;
-	style?: React.StyleHTMLAttributes<HTMLOrSVGElement>;
+	style?: StyleHTMLAttributes<HTMLOrSVGElement>;
 }) {
 	const viewWidth = 1600;
 	const viewHeight = 900;
 
-	const [xAxisHeight, setXAxisHeight] = React.useState(200);
-	const [yAxisWidth, setYAxisWidth] = React.useState(40);
+	const [xAxisHeight, setXAxisHeight] = useState(200);
+	const [yAxisWidth, setYAxisWidth] = useState(40);
 	const plotWidth = viewWidth - yAxisWidth;
 	const plotHeight = viewHeight - xAxisHeight;
 
 	const keys = Object.keys(series);
 
-	const maxCount = React.useMemo(
+	const maxCount = useMemo(
 		() => deriveMaxSum(keys, ids, entities),
-		[series, ids, entities]
+		[series, ids, entities],
 	);
 
-	const totals = React.useMemo(
+	const totals = useMemo(
 		() => deriveTotals(keys, ids, entities),
-		[series, ids, entities]
+		[series, ids, entities],
 	);
 
-	const yScale = React.useMemo(() => {
+	const yScale = useMemo(() => {
 		return d3.scaleLinear([0, maxCount], [plotHeight, 0]);
 	}, [maxCount, plotHeight]);
 
-	const xScale = React.useMemo(() => {
+	const xScale = useMemo(() => {
 		return d3.scaleBand().domain(ids).range([0, plotWidth]).padding(0.25);
 	}, [ids, plotWidth]);
 
-	const gxRef = React.useRef<SVGSVGElement>(null);
-	React.useEffect(() => {
+	const gxRef = useRef<SVGSVGElement>(null);
+	useEffect(() => {
 		const gRef = gxRef.current!;
 		xAxis({ gRef, xScale });
 		const b = gRef.getBoundingClientRect();
@@ -240,8 +247,8 @@ function StackedBarChart({
 		setXAxisHeight(scaledHeight);
 	}, [xScale]);
 
-	const gyRef = React.useRef<SVGSVGElement>(null);
-	React.useEffect(() => {
+	const gyRef = useRef<SVGSVGElement>(null);
+	useEffect(() => {
 		const gRef = gyRef.current!;
 		yAxis({ gRef, yScale, plotHeight, label: yLabel });
 		const b = gRef.getBoundingClientRect();
@@ -251,15 +258,15 @@ function StackedBarChart({
 		setYAxisWidth(scaledWidth);
 	}, [yScale, plotHeight, yLabel]);
 
-	const gLegendRef = React.useRef<SVGSVGElement>(null);
-	React.useEffect(
+	const gLegendRef = useRef<SVGSVGElement>(null);
+	useEffect(
 		() =>
 			legend({
 				gRef: gLegendRef.current!,
 				series,
 				totals,
 			}),
-		[series, totals]
+		[series, totals],
 	);
 
 	return (

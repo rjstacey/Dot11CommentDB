@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { Ratio } from "react-bootstrap";
 import * as d3 from "d3";
 import { useOutletContext } from "react-router";
@@ -29,11 +29,11 @@ const viewWidth = 1600,
 	marginTop = 20;
 
 function Legend({ x, y, keys }: { x: number; y: number; keys: string[] }) {
-	const ref = React.useRef<SVGGElement>(null);
+	const ref = useRef<SVGGElement>(null);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		keys = keys.sort(
-			(a, b) => statusOrder.indexOf(a) - statusOrder.indexOf(b)
+			(a, b) => statusOrder.indexOf(a) - statusOrder.indexOf(b),
 		);
 		const itemHeight = 22;
 		const yScale = d3
@@ -85,8 +85,8 @@ function Plot({
 	yScale: d3.ScaleLinear<number, number>;
 	data: AttendancePerSession[];
 }) {
-	const ref = React.useRef<SVGGElement>(null);
-	React.useEffect(() => {
+	const ref = useRef<SVGGElement>(null);
+	useEffect(() => {
 		const colorScale = d3.scaleOrdinal(statusOrder, colors);
 
 		const x2Scale = d3
@@ -109,7 +109,7 @@ function Plot({
 				SVGGElement,
 				unknown
 			>,
-			col: "remoteOnly" | "inPerson"
+			col: "remoteOnly" | "inPerson",
 		) {
 			const col_g = selection
 				.append("g")
@@ -165,7 +165,7 @@ function Plot({
 			.append("g")
 			.attr(
 				"transform",
-				(d) => `translate(${xScale(d.sessionLabel)}, 0)`
+				(d) => `translate(${xScale(d.sessionLabel)}, 0)`,
 			);
 		stackedBar(sessionGroups, "remoteOnly");
 		stackedBar(sessionGroups, "inPerson");
@@ -200,9 +200,9 @@ function Plot({
 }
 
 function Chart({ width, height }: { width: number; height: number }) {
-	const svgRef = React.useRef<SVGSVGElement>(null);
-	const [yAxisActualWidth, setYAxisActualWidth] = React.useState(40);
-	const [xAxisActualHeight, setXAxisActualHeight] = React.useState(40);
+	const svgRef = useRef<SVGSVGElement>(null);
+	const [yAxisActualWidth, setYAxisActualWidth] = useState(40);
+	const [xAxisActualHeight, setXAxisActualHeight] = useState(40);
 
 	const yAxisWidth = (yAxisActualWidth / width) * viewWidth;
 	const xAxisHeight = (xAxisActualHeight / height) * viewHeight;
@@ -213,7 +213,7 @@ function Chart({ width, height }: { width: number; height: number }) {
 	const data = useAttendancePerSession();
 	const groups = data.map((d, i) => String(i + 1));
 
-	const xScale = React.useMemo(
+	const xScale = useMemo(
 		() =>
 			d3
 				.scaleBand()
@@ -221,11 +221,11 @@ function Chart({ width, height }: { width: number; height: number }) {
 				.range([0, plotWidth])
 				.padding(0.1),
 
-		[groups, plotWidth]
+		[groups, plotWidth],
 	);
-	const yScale = React.useMemo(
+	const yScale = useMemo(
 		() => d3.scaleLinear().domain([0, 100]).range([plotHeight, 0]),
-		[plotHeight]
+		[plotHeight],
 	);
 
 	return (

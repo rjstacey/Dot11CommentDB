@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { CSSProperties } from "react";
 import {
 	SelectHeaderCell,
 	SelectCell,
@@ -21,10 +21,10 @@ import {
 
 export { membersSelectors, membersActions };
 
-const lineTruncStyle: React.CSSProperties = {
+const lineTruncStyle: CSSProperties = {
 	overflow: "hidden",
 	whiteSpace: "nowrap",
-	textOverflow: "ellipses",
+	textOverflow: "ellipsis",
 };
 
 export const renderHeaderNameAndEmail = (props: HeaderCellRendererProps) => (
@@ -48,7 +48,7 @@ export const renderNameAndEmail = ({ rowData }: CellRendererProps<Member>) => (
 );
 
 export const renderHeaderEmployerAndAffiliation = (
-	props: HeaderCellRendererProps
+	props: HeaderCellRendererProps,
 ) => (
 	<>
 		<TableColumnHeader {...props} dataKey="Employer" label="Employer" />

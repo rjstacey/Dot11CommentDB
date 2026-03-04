@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useCallback, useEffect } from "react";
 import { shallowDiff } from "@common";
 import isEqual from "lodash.isequal";
 
@@ -20,7 +20,7 @@ export function useBallotParticipationEdit(SAPIN: number) {
 	const dispatch = useAppDispatch();
 	const entities = useAppSelector(selectBallotParticipationEntities);
 
-	const initState = React.useCallback(() => {
+	const initState = useCallback(() => {
 		const series_ids: number[] = [];
 		const edited: Record<number, BallotSeriesParticipationSummary> = {};
 		entities[SAPIN]?.ballotSeriesParticipationSummaries
@@ -38,17 +38,16 @@ export function useBallotParticipationEdit(SAPIN: number) {
 		} satisfies BallotParticipationEditState;
 	}, [SAPIN, entities]);
 
-	const [state, setState] =
-		React.useState<BallotParticipationEditState>(initState);
+	const [state, setState] = useState<BallotParticipationEditState>(initState);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		setState(initState);
 	}, [initState]);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(
 			series_id: number,
-			changes: Partial<BallotSeriesParticipationSummary>
+			changes: Partial<BallotSeriesParticipationSummary>,
 		) => {
 			setState((state) => {
 				let edited = {
@@ -62,21 +61,18 @@ export function useBallotParticipationEdit(SAPIN: number) {
 				};
 			});
 		},
-		[setState]
+		[setState],
 	);
 
-	const hasChanges = React.useCallback(
-		() => state.edited !== state.saved,
-		[state]
-	);
+	const hasChanges = useCallback(() => state.edited !== state.saved, [state]);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		const updates: BallotParticipationUpdate[] = [];
 
 		for (const series_id of state.series_ids) {
 			const changes = shallowDiff(
 				state.saved[series_id],
-				state.edited[series_id]
+				state.edited[series_id],
 			);
 			if (Object.keys(changes).length > 0)
 				updates.push({ id: series_id, changes });
@@ -89,7 +85,7 @@ export function useBallotParticipationEdit(SAPIN: number) {
 			await dispatch(updateBallotParticipation(SAPIN, updates));
 	}, [dispatch, SAPIN, state, setState]);
 
-	const cancel = React.useCallback(() => {
+	const cancel = useCallback(() => {
 		setState((state) => ({
 			...state,
 			edited: state.saved,

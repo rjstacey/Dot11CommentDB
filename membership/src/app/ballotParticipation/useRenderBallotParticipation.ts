@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useCallback } from "react";
 import { useAppSelector } from "@/store/hooks";
 import {
 	selectSyncedBallotSeriesEntities,
@@ -11,10 +11,10 @@ import { renderBallotParticipation } from "./renderBallotParticipation";
 export function useRenderBallotParticipation() {
 	const ballotEntities = useAppSelector(selectBallotEntities);
 	const ballotSeriesEntities = useAppSelector(
-		selectSyncedBallotSeriesEntities
+		selectSyncedBallotSeriesEntities,
 	);
 	const entities = useAppSelector(selectBallotParticipationEntities);
-	return React.useCallback(
+	return useCallback(
 		(SAPIN: number) => {
 			const series_ids: number[] = [];
 			const participation: Record<
@@ -33,9 +33,9 @@ export function useRenderBallotParticipation() {
 				series_ids,
 				participation,
 				ballotEntities,
-				ballotSeriesEntities
+				ballotSeriesEntities,
 			);
 		},
-		[entities, ballotEntities, ballotSeriesEntities]
+		[entities, ballotEntities, ballotSeriesEntities],
 	);
 }

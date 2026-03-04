@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
 	$getSelection,
@@ -12,9 +12,9 @@ import { INSERT_SUBSTITUTION_TAG_COMMAND } from "./SubstitutionTagExtension";
 
 export function useSubstitutionTagEdit() {
 	const [editor] = useLexicalComposerContext();
-	const [value, setValue] = React.useState<string | null>(null);
+	const [value, setValue] = useState<string | null>(null);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		function updateValues() {
 			const selection = $getSelection();
 			if (!$isRangeSelection(selection)) return false;
@@ -38,7 +38,7 @@ export function useSubstitutionTagEdit() {
 		);
 	}, [editor]);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(newValue: string | null) => {
 			if (newValue !== value) {
 				editor.dispatchCommand(

@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ComponentProps } from "react";
 import { LexicalExtensionComposer } from "@lexical/react/LexicalExtensionComposer";
 import { HistoryExtension } from "@lexical/history";
 import { ListExtension } from "@lexical/list";
@@ -58,9 +58,7 @@ const editorExtension = defineExtension({
 	theme,
 });
 
-function EditorComposer(
-	props: Omit<React.ComponentProps<typeof Editor>, "tags">,
-) {
+function EditorComposer(props: Omit<ComponentProps<typeof Editor>, "tags">) {
 	return (
 		<LexicalExtensionComposer
 			extension={editorExtension}

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type FormEvent } from "react";
 import { DateTime } from "luxon";
 import { Form, Row, Col, Button, Dropdown, Spinner } from "react-bootstrap";
 
@@ -44,10 +44,10 @@ function BulkStatusUpdateForm({
 	close: () => void;
 }) {
 	const dispatch = useAppDispatch();
-	const [selectedOnly, setSelectedOnly] = React.useState(true);
-	const [reason, setReason] = React.useState(defaultReason);
-	const [date, setDate] = React.useState(defaultDate);
-	const [busy, setBusy] = React.useState(false);
+	const [selectedOnly, setSelectedOnly] = useState(true);
+	const [reason, setReason] = useState(defaultReason);
+	const [date, setDate] = useState(defaultDate);
+	const [busy, setBusy] = useState(false);
 
 	const updates: MemberUpdate[] = (selectedOnly ? selected : ids)
 		.map((id) => entities[id])
@@ -71,7 +71,7 @@ function BulkStatusUpdateForm({
 		updates.length !== 1 ? "s" : ""
 	}`;
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(updateMembers(updates));
@@ -130,7 +130,7 @@ function BulkStatusUpdateForm({
 			</Row>
 			<Row>
 				<Col className="d-flex justify-content-end">
-					<Button type="submit">
+					<Button type="submit" disabled={busy}>
 						{busy && <Spinner animation="border" size="sm" />}
 						<span>Update</span>
 					</Button>
@@ -201,7 +201,7 @@ export function BulkStatusUpdate({
 	disabled?: boolean;
 	isSession: boolean;
 }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<Dropdown align="end" show={show} onToggle={() => setShow(!show)}>
 			<Dropdown.Toggle variant="success-outline" disabled={disabled}>

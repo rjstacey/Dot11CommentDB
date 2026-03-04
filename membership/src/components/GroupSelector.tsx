@@ -1,4 +1,4 @@
-import * as React from "react";
+import type { ComponentProps } from "react";
 
 import { Select } from "@common";
 
@@ -20,7 +20,7 @@ export function GroupSelector({
 	onChange: (value: string | null) => void;
 	types?: string[];
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"id" | "style" | "placeholder" | "readOnly"
 >) {
 	const groupEntities = useAppSelector(selectGroupEntities);

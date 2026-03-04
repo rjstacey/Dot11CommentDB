@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState } from "react";
 import { Row, Col } from "react-bootstrap";
 import { Outlet } from "react-router";
 import { SessionsSelector } from "./SessionsSelector";
@@ -11,8 +11,8 @@ export type SessionParticipationReportContext = {
 };
 
 export function SessionParticipationReport() {
-	const [selected, setSelected] = React.useState<number[]>([]);
-	const [statuses, setStatuses] = React.useState<string[]>([
+	const [selected, setSelected] = useState<number[]>([]);
+	const [statuses, setStatuses] = useState<string[]>([
 		"Aspirant",
 		"Potential Voter",
 		"Voter",

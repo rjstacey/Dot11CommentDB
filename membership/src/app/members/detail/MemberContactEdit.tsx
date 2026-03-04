@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import {
 	Container,
 	Row,
@@ -64,7 +64,7 @@ function MemberContactEmails({
 }) {
 	const contactEmails = edited.ContactEmails ?? [];
 
-	const columns = React.useMemo(() => {
+	const columns = useMemo(() => {
 		const disableAdd =
 			contactEmails.length > 0 && contactEmails[0].Email === "";
 

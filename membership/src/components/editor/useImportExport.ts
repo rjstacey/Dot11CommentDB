@@ -1,11 +1,11 @@
-import * as React from "react";
+import { useState, useEffect } from "react";
 import {
 	$getRoot,
 	$isElementNode,
 	$addUpdateTag,
 	SKIP_DOM_SELECTION_TAG,
-	type LexicalNode,
 	HISTORY_MERGE_TAG,
+	type LexicalNode,
 } from "lexical";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $isLinkNode, $createAutoLinkNode } from "@lexical/link";
@@ -31,9 +31,9 @@ export function useImportExport(
 	readOnly?: boolean,
 ) {
 	const [editor] = useLexicalComposerContext();
-	const [output, setOutput] = React.useState<string | null>(null);
+	const [output, setOutput] = useState<string | null>(null);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		// If the value in is different from what was sent out, then update the editor state
 		//if (output === value) return;
 		editor.update(() => {
@@ -73,7 +73,7 @@ export function useImportExport(
 		});
 	});
 
-	React.useEffect(() => {
+	useEffect(() => {
 		return editor.registerUpdateListener(
 			({ dirtyElements, dirtyLeaves, prevEditorState, tags }) => {
 				if (readOnly) return;
@@ -90,7 +90,7 @@ export function useImportExport(
 		);
 	}, [editor, onChange, readOnly]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		editor.setEditable(!readOnly);
 	}, [editor, readOnly]);
 }

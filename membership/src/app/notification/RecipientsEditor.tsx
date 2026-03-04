@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, useMemo, type ComponentProps } from "react";
 import { Select, SelectItemRendererProps, SelectRendererProps } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectActiveMembers } from "@/store/members";
@@ -42,20 +42,20 @@ function MemberEmailSelector({
 	value: string;
 	onChange: (value: string) => void;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"id" | "style" | "placeholder" | "readOnly" | "disabled"
 >) {
 	const members = useAppSelector(selectActiveMembers);
-	const options: EntryOption[] = React.useMemo(
+	const options: EntryOption[] = useMemo(
 		() =>
 			members.map(
 				(m) =>
 					({
 						Name: m.Name,
 						Email: m.Email.toLowerCase(),
-					} satisfies EntryOption)
+					}) satisfies EntryOption,
 			),
-		[members]
+		[members],
 	);
 
 	const values = value
@@ -68,7 +68,7 @@ function MemberEmailSelector({
 		})
 		.map((e) => {
 			const entry = options.find(
-				(o) => o.Email.toLowerCase() === e!.Email
+				(o) => o.Email.toLowerCase() === e!.Email,
 			);
 			return entry ? entry : e;
 		});
@@ -116,8 +116,8 @@ function RecipientsEditor({
 	onChange: (changes: Partial<EmailTemplate>) => void;
 	readOnly?: boolean;
 }) {
-	const [showCc, setShowCc] = React.useState(false);
-	const [showBcc, setShowBcc] = React.useState(false);
+	const [showCc, setShowCc] = useState(false);
+	const [showBcc, setShowBcc] = useState(false);
 
 	let ccLine: JSX.Element | undefined;
 	if (showCc || email.cc) {

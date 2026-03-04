@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useMemo } from "react";
 import {
 	SelectHeaderCell,
 	SelectCell,
@@ -23,7 +23,7 @@ import {
 } from "../members/tableColumns";
 
 const renderBallotSeriesParticipationSummary = (
-	summary?: BallotSeriesParticipationSummary
+	summary?: BallotSeriesParticipationSummary,
 ) => {
 	let voteSummary = "Not in pool";
 	const excused = "";
@@ -103,10 +103,10 @@ const tableColumns: ColumnProperties[] = [
 export function useTableColumns() {
 	const ballotSeriesIds = useAppSelector(selectBallotSeriesIds);
 	const ballotSeriesEntities = useAppSelector(
-		selectSyncedBallotSeriesEntities
+		selectSyncedBallotSeriesEntities,
 	);
 
-	const columns = React.useMemo(() => {
+	const columns = useMemo(() => {
 		return tableColumns.concat(
 			ballotSeriesIds.map((id, i) => {
 				const ballotSeries = ballotSeriesEntities[id as number]!;
@@ -115,7 +115,7 @@ export function useTableColumns() {
 				}: CellRendererProps<RecentBallotSeriesParticipation>) => {
 					const summary =
 						rowData.ballotSeriesParticipationSummaries.find(
-							(s) => s.series_id === ballotSeries.id
+							(s) => s.series_id === ballotSeries.id,
 						);
 					return renderBallotSeriesParticipationSummary(summary);
 				};
@@ -128,11 +128,11 @@ export function useTableColumns() {
 					cellRenderer,
 				};
 				return column;
-			})
+			}),
 		);
 	}, [ballotSeriesIds, ballotSeriesEntities]);
 
-	const defaultTablesConfig = React.useMemo(() => {
+	const defaultTablesConfig = useMemo(() => {
 		const defaultTablesConfig: TablesConfig = {};
 		const tableView = "default";
 		const tableConfig: TableConfig = {

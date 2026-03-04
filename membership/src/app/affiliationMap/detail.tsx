@@ -1,4 +1,4 @@
-import * as React from "react";
+import { type ReactNode } from "react";
 import { Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -26,7 +26,7 @@ function AffiliationMapDetail() {
 	} = useAffiliationMapEdit(readOnly);
 
 	let title = "";
-	let content: React.ReactNode;
+	let content: ReactNode;
 	if (state.action === null) {
 		title = "";
 		content = (

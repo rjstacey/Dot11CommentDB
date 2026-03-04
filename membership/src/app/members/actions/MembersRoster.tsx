@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type FormEvent, type ChangeEvent } from "react";
 import { Dropdown, Form, Button, Row, Col, Spinner } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
@@ -6,17 +6,17 @@ import { updateMyProjectRoster } from "@/store/myProjectRoster";
 
 function RosterUpdateForm({ close }: { close: () => void }) {
 	const dispatch = useAppDispatch();
-	const [removeUnchanged, setRemoveUnchanged] = React.useState(true);
-	const [appendNew, setAppendNew] = React.useState(false);
-	const [file, setFile] = React.useState<File | null>(null);
-	const [busy, setBusy] = React.useState(false);
+	const [removeUnchanged, setRemoveUnchanged] = useState(true);
+	const [appendNew, setAppendNew] = useState(false);
+	const [file, setFile] = useState<File | null>(null);
+	const [busy, setBusy] = useState(false);
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!file) return;
 		setBusy(true);
 		await dispatch(
-			updateMyProjectRoster(file!, { removeUnchanged, appendNew })
+			updateMyProjectRoster(file!, { removeUnchanged, appendNew }),
 		);
 		setBusy(false);
 		close();
@@ -61,7 +61,7 @@ function RosterUpdateForm({ close }: { close: () => void }) {
 					<Form.Control
 						type="file"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						onChange={(e: ChangeEvent<HTMLInputElement>) =>
 							setFile(e.target.files ? e.target.files[0] : null)
 						}
 						required
@@ -85,7 +85,7 @@ function RosterUpdateForm({ close }: { close: () => void }) {
 }
 
 export function MembersRoster() {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<Dropdown align="end" show={show} onToggle={() => setShow(!show)}>
 			<Dropdown.Toggle variant="success-outline">

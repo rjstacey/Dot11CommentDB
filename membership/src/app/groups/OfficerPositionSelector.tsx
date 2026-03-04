@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useCallback, type ComponentProps } from "react";
 import { Select } from "@common";
 import { officerPositionsForGroupType } from "@/store/officers";
 import { GroupType } from "@/store/groups";
@@ -12,7 +12,7 @@ function OfficerPositionSelector({
 	value: string;
 	onChange: (value: string) => void;
 	groupType: GroupType;
-} & Pick<React.ComponentProps<typeof Select>, "id" | "style" | "readOnly">) {
+} & Pick<ComponentProps<typeof Select>, "id" | "style" | "readOnly">) {
 	const options = officerPositionsForGroupType(groupType).map((v) => ({
 		value: v,
 		label: v,
@@ -20,8 +20,11 @@ function OfficerPositionSelector({
 	if (value && !options.find((o) => o.value === value))
 		options.push({ value, label: value });
 	const values = options.filter((o) => o.value === value);
-	const handleChange = (values: typeof options) =>
-		onChange(values.length > 0 ? values[0].value : "");
+	const handleChange = useCallback(
+		(values: typeof options) =>
+			onChange(values.length > 0 ? values[0].value : ""),
+		[onChange],
+	);
 
 	return (
 		<Select

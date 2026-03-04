@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useNavigate, useParams } from "react-router";
 import { createSelector } from "@reduxjs/toolkit";
 
@@ -13,7 +12,7 @@ const selectOptions = createSelector(selectWorkingGroups, (groups) =>
 	groups.map((g) => {
 		const access = g.permissions.members || AccessLevel.none;
 		return { ...g, disabled: access < AccessLevel.ro };
-	})
+	}),
 );
 
 export function PathWorkingGroupSelector() {

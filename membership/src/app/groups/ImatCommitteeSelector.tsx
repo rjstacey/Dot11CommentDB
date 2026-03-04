@@ -1,4 +1,5 @@
-import * as React from "react";
+import { useCallback, type ComponentProps } from "react";
+
 import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -18,7 +19,7 @@ function ImatCommitteeSelector({
 	onChange: (value: string | null) => void;
 	type?: ImatCommitteeType;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"id" | "style" | "placeholder" | "readOnly" | "disabled"
 >) {
 	let options = useAppSelector(selectImatCommittees);
@@ -26,10 +27,10 @@ function ImatCommitteeSelector({
 
 	const values = options.filter((o) => o.symbol === value);
 
-	const handleChange = React.useCallback(
+	const handleChange = useCallback(
 		(values: typeof options) =>
 			onChange(values.length ? values[0].symbol : null),
-		[onChange]
+		[onChange],
 	);
 
 	return (

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState, type FormEvent, type ChangeEvent } from "react";
 import {
 	Form,
 	Row,
@@ -20,14 +20,14 @@ function ImportRegistrationForm({
 	close: () => void;
 }) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const [file, setFile] = React.useState<File | null>(null);
+	const [busy, setBusy] = useState(false);
+	const [file, setFile] = useState<File | null>(null);
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(
-			loadSessionRegistration(groupName, sessionNumber, file!)
+			loadSessionRegistration(groupName, sessionNumber, file!),
 		);
 		setBusy(false);
 		close();
@@ -44,7 +44,7 @@ function ImportRegistrationForm({
 				<Form.Control
 					type="file"
 					accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+					onChange={(e: ChangeEvent<HTMLInputElement>) =>
 						setFile(e.target.files?.[0] || null)
 					}
 					isInvalid={!file}
@@ -72,7 +72,7 @@ export function ImportRegistration({
 	groupName: string;
 	sessionNumber: number;
 }) {
-	const [show, setShow] = React.useState(false);
+	const [show, setShow] = useState(false);
 	return (
 		<DropdownButton
 			variant="success-outline"

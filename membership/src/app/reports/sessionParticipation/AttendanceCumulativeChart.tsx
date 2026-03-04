@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { Ratio } from "react-bootstrap";
 import * as d3 from "d3";
 
@@ -46,8 +46,8 @@ function Plot({
 	yScale: d3.ScaleLinear<number, number>;
 	data: AttendanceCumulative[][];
 }) {
-	const ref = React.useRef<SVGGElement>(null);
-	React.useEffect(() => {
+	const ref = useRef<SVGGElement>(null);
+	useEffect(() => {
 		const colorScale = d3
 			.scaleOrdinal<number, string>()
 			.domain([0, data.length + 1])
@@ -80,7 +80,7 @@ function Plot({
 			.attr("id", "group")
 			.attr(
 				"transform",
-				(d) => `translate(${xScale(String(d[0].sessionsAttended))}, 0)`
+				(d) => `translate(${xScale(String(d[0].sessionsAttended))}, 0)`,
 			)
 			.call((g) => {
 				g.append("text")
@@ -97,7 +97,7 @@ function Plot({
 					.append("g")
 					.attr(
 						"transform",
-						`translate(${x2Scale("remoteOnly")}, 0)`
+						`translate(${x2Scale("remoteOnly")}, 0)`,
 					);
 				gr.selectAll("rect")
 					.data((d) => d.slice(0, 1))
@@ -173,9 +173,9 @@ function Plot({
 }
 
 function Chart({ width, height }: { width: number; height: number }) {
-	const svgRef = React.useRef<SVGSVGElement>(null);
-	const [yAxisActualWidth, setYAxisActualWidth] = React.useState(40);
-	const [xAxisActualHeight, setXAxisActualHeight] = React.useState(40);
+	const svgRef = useRef<SVGSVGElement>(null);
+	const [yAxisActualWidth, setYAxisActualWidth] = useState(40);
+	const [xAxisActualHeight, setXAxisActualHeight] = useState(40);
 
 	const yAxisWidth = (yAxisActualWidth / width) * viewWidth;
 	const xAxisHeight = (xAxisActualHeight / height) * viewHeight;
@@ -185,13 +185,13 @@ function Chart({ width, height }: { width: number; height: number }) {
 	const data = useAttendanceCumulative();
 	const groups = data.map((d, i) => String(i + 1));
 
-	const xScale = React.useMemo(
+	const xScale = useMemo(
 		() => d3.scaleBand().domain(groups).range([0, plotWidth]).padding(0.1),
-		[groups, plotWidth]
+		[groups, plotWidth],
 	);
-	const yScale = React.useMemo(
+	const yScale = useMemo(
 		() => d3.scaleLinear().domain([0, 100]).range([plotHeight, 0]),
-		[plotHeight]
+		[plotHeight],
 	);
 
 	return (
