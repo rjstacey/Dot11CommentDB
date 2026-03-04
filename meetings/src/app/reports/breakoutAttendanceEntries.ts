@@ -1,4 +1,4 @@
-import { createSelector, EntityId, Dictionary } from "@reduxjs/toolkit";
+import { createSelector } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
 import { selectMeetingEntities, type Meeting } from "@/store/meetings";
@@ -26,12 +26,12 @@ export type BreakoutAttendanceEntry = {
 
 function generateBreakoutAttendanceEntries(
 	imatMeeting: SyncedImatMeeting | undefined,
-	breakoutIds: EntityId[],
-	breakoutEntities: Dictionary<Breakout>,
+	breakoutIds: number[],
+	breakoutEntities: Record<number, Breakout>,
 	timeslots: ImatTimeslot[],
-	meetingEntities: Dictionary<Meeting>,
-	groupEntities: Dictionary<Group>,
-	attendanceCountEntities: Record<number, number>
+	meetingEntities: Record<number, Meeting>,
+	groupEntities: Record<string, Group>,
+	attendanceCountEntities: Record<number, number>,
 ): BreakoutAttendanceEntry[] {
 	const groups = Object.values(groupEntities) as Group[];
 	if (!imatMeeting) {
@@ -44,7 +44,7 @@ function generateBreakoutAttendanceEntries(
 	breakoutIds.forEach((breakoutId) => {
 		const breakout = breakoutEntities[breakoutId]!;
 		const meeting = Object.values(meetingEntities).find(
-			(m) => m?.imatBreakoutId === breakoutId
+			(m) => m?.imatBreakoutId === breakoutId,
 		);
 		let group: Group | undefined, isCancelled: boolean, label: string;
 		if (meeting) {
@@ -71,7 +71,7 @@ function generateBreakoutAttendanceEntries(
 		if (!isCancelled) {
 			const attendanceCount = attendanceCountEntities[breakout.id] || 0;
 			const slot = timeslots.find(
-				(slot) => slot.id === breakout.startSlotId
+				(slot) => slot.id === breakout.startSlotId,
 			);
 			const color = group?.color || "yellow";
 			if (attendanceCount && slot) {
@@ -102,5 +102,5 @@ export const selectBreakoutAttendanceEntries = createSelector(
 	selectMeetingEntities,
 	selectGroupEntities,
 	selectMeetingAttendanceCountsByBreakout,
-	generateBreakoutAttendanceEntries
+	generateBreakoutAttendanceEntries,
 );

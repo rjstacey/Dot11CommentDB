@@ -88,72 +88,86 @@ type LoadingState = {
 	valid: boolean;
 };
 
-export type AppTableDataState<T> = EntityState<T, EntityId> &
+export type AppTableDataState<T, Id extends EntityId> = EntityState<T, Id> &
 	LoadingState &
-	SelectedState &
-	ExpandedState &
+	SelectedState<Id> &
+	ExpandedState<Id> &
 	FiltersState &
 	SortsState &
 	UiState;
 
-export type AppTableDataSelectorOptions<S, T1, T2 extends T1 = T1> = {
-	/** Optionally override the entities selector; allows for table join operations etc. */
-	selectEntities?: (state: S) => Record<EntityId, T2>;
-	/** Optionally override the ids selector; allows for pre-filtering of table entires */
-	selectIds?: (state: S) => EntityId[];
-	/** Optional function that will derive a field `dataKey` from other fields */
-	getField?: (entity: T2, dataKey: string) => any;
+type O0<S, Id extends EntityId> = {
+	selectIds?: (state: S) => Id[];
+};
+type O1<S, T1 extends {}, Id extends EntityId> = O0<S, Id> & {
+	getField?: GetEntityField<T1>;
+};
+type O2<S, T1 extends {}, T2 extends T1, Id extends EntityId> = O0<S, Id> & {
+	selectEntities: (state: S) => Record<Id, T2>;
+	getField?: GetEntityField<T2>;
 };
 
-interface O1<S, T1 extends {}> {
-	selectIds?: (state: S) => EntityId[];
-	getField?: GetEntityField<T1>;
-}
-interface O2<S, T1 extends {}, T2 extends T1>
-	extends Omit<O1<S, T1>, "getField"> {
-	selectEntities: (state: S) => Record<EntityId, T2>;
-	getField?: GetEntityField<T2>;
-}
+type R0<S, T1 extends {}, Id extends EntityId> = {
+	selectState: (state: S) => AppTableDataState<T1, Id>;
+	selectIds: (state: S) => Id[];
+	selectSortedIds: (state: S) => Id[];
+	selectFilteredIds: (state: S) => Id[];
+	selectSortedFilteredIds: (state: S) => Id[];
+} & ReturnType<typeof getSelectedSelectors<S>> &
+	ReturnType<typeof getExpandedSelectors<S>> &
+	ReturnType<typeof getFiltersSelectors<S>> &
+	ReturnType<typeof getSortsSelectors<S>> &
+	ReturnType<typeof getUiSelectors<S>>;
 
-interface R1<S, T1 extends {}>
-	extends ReturnType<typeof getSelectedSelectors<S>>,
-		ReturnType<typeof getExpandedSelectors<S>>,
-		ReturnType<typeof getFiltersSelectors<S>>,
-		ReturnType<typeof getSortsSelectors<S>>,
-		ReturnType<typeof getUiSelectors<S>> {
-	selectState: (state: S) => AppTableDataState<T1>;
-	selectIds: (state: S) => EntityId[];
-	selectSortedIds: (state: S) => EntityId[];
-	selectFilteredIds: (state: S) => EntityId[];
-	selectSortedFilteredIds: (state: S) => EntityId[];
-	selectEntities: (state: S) => Record<EntityId, T1>;
+type R1<S, T1 extends {}, Id extends EntityId> = R0<S, T1, Id> & {
+	selectEntities: (state: S) => Record<Id, T1>;
 	getField: GetEntityField<T1>;
-}
+};
 
-interface R2<S, T1 extends {}, T2 extends T1>
-	extends Omit<R1<S, T1>, "selectEntities" | "getField"> {
-	selectEntities: (state: S) => Record<EntityId, T2>;
+type R2<S, T1 extends {}, T2 extends T1, Id extends EntityId> = R0<
+	S,
+	T1,
+	Id
+> & {
+	selectEntities: (state: S) => Record<Id, T2>;
 	getField: GetEntityField<T2>;
-}
+};
 
-export function getAppTableDataSelectors<S, T1 extends {}, T2 extends T1>(
-	selectState: (state: S) => AppTableDataState<T1>,
-	options?: O1<S, T1>,
-): R1<S, T1>;
-export function getAppTableDataSelectors<S, T1 extends {}, T2 extends T1>(
-	selectState: (state: S) => AppTableDataState<T1>,
-	options?: O2<S, T1, T2>,
-): R2<S, T1, T2>;
 export function getAppTableDataSelectors<
 	S,
 	T1 extends {},
 	T2 extends T1,
-	O extends O1<S, T1> | O2<S, T1, T2>,
+	Id extends EntityId,
+>(selectState: (state: S) => AppTableDataState<T1, Id>): R1<S, T1, Id>;
+export function getAppTableDataSelectors<
+	S,
+	T1 extends {},
+	T2 extends T1,
+	Id extends EntityId,
+>(
+	selectState: (state: S) => AppTableDataState<T1, Id>,
+	options: O1<S, T1, Id>,
+): R1<S, T1, Id>;
+export function getAppTableDataSelectors<
+	S,
+	T1 extends {},
+	T2 extends T1,
+	Id extends EntityId,
+>(
+	selectState: (state: S) => AppTableDataState<T1, Id>,
+	options: O2<S, T1, T2, Id>,
+): R2<S, T1, T2, Id>;
+export function getAppTableDataSelectors<
+	S,
+	T1 extends {},
+	T2 extends T1,
+	Id extends EntityId,
+	O extends undefined | O1<S, T1, Id> | O2<S, T1, T2, Id>,
 >(
 	/** Selector for the slice state (required) */
-	selectState: (state: S) => AppTableDataState<T1>,
+	selectState: (state: S) => AppTableDataState<T1, Id>,
 	options?: O,
-): O extends O2<S, T1, T2> ? R2<S, T1, T2> : R1<S, T1> {
+): R2<S, T1, T2, Id> | R1<S, T1, Id> {
 	const selectFilters = (state: S) => selectState(state).filters;
 	const selectSorts = (state: S) => selectState(state).sorts;
 
@@ -163,62 +177,95 @@ export function getAppTableDataSelectors<
 		selectIds = options.selectIds;
 
 	/** If `selectEntities` is not provided, then default is to return slice `entities` */
-	let selectEntities: any;
-	let getField: any;
 	if (options && "selectEntities" in options) {
-		selectEntities = options.selectEntities;
-		getField =
+		const selectEntities = options.selectEntities;
+		const getField: GetEntityField<T2> =
 			options.getField ||
 			((entity: T2, dataKey: string) => entity[dataKey as keyof T2]);
+
+		/** Select array of filtered ids */
+		const selectFilteredIds: (state: S) => Id[] = createSelector(
+			selectFilters,
+			selectEntities,
+			selectIds,
+			(filters, entities, ids) =>
+				filterData(filters, getField, entities, ids),
+		);
+
+		/** Select array of sorted ids */
+		const selectSortedIds: (state: S) => Id[] = createSelector(
+			[selectSorts, selectEntities, selectIds],
+			(sorts, entities, ids) => sortData(sorts, getField, entities, ids),
+		);
+
+		/** Select array of sorted and filtered ids */
+		const selectSortedFilteredIds: (state: S) => Id[] = createSelector(
+			[selectSorts, selectEntities, selectFilteredIds],
+			(sorts, entities, ids) => sortData(sorts, getField, entities, ids),
+		);
+		return {
+			getField,
+			selectState,
+			selectIds,
+			selectEntities,
+			selectSortedIds,
+			selectFilteredIds,
+			selectSortedFilteredIds,
+			...getSelectedSelectors(selectState),
+			...getExpandedSelectors(selectState),
+			...getFiltersSelectors(selectState),
+			...getSortsSelectors(selectState),
+			...getUiSelectors(selectState),
+		};
 	} else {
-		selectEntities = (state: S) => selectState(state).entities;
-		getField =
+		const selectEntities = (state: S) => selectState(state).entities;
+		const getField: GetEntityField<T1> =
 			options?.getField ||
 			((entity: T1, dataKey: string) => entity[dataKey as keyof T1]);
+
+		/** Select array of filtered ids */
+		const selectFilteredIds: (state: S) => Id[] = createSelector(
+			selectFilters,
+			selectEntities,
+			selectIds,
+			(filters, entities, ids) =>
+				filterData(filters, getField, entities, ids),
+		);
+
+		/** Select array of sorted ids */
+		const selectSortedIds: (state: S) => Id[] = createSelector(
+			[selectSorts, selectEntities, selectIds],
+			(sorts, entities, ids) => sortData(sorts, getField, entities, ids),
+		);
+
+		/** Select array of sorted and filtered ids */
+		const selectSortedFilteredIds: (state: S) => Id[] = createSelector(
+			[selectSorts, selectEntities, selectFilteredIds],
+			(sorts, entities, ids) => sortData(sorts, getField, entities, ids),
+		);
+		return {
+			getField,
+			selectState,
+			selectIds,
+			selectEntities,
+			selectSortedIds,
+			selectFilteredIds,
+			selectSortedFilteredIds,
+			...getSelectedSelectors(selectState),
+			...getExpandedSelectors(selectState),
+			...getFiltersSelectors(selectState),
+			...getSortsSelectors(selectState),
+			...getUiSelectors(selectState),
+		};
 	}
-
-	/** Select array of filtered ids */
-	const selectFilteredIds: (state: S) => EntityId[] = createSelector(
-		selectFilters,
-		selectEntities,
-		selectIds,
-		(filters, entities, ids) =>
-			filterData(filters, getField, entities, ids),
-	);
-
-	/** Select array of sorted ids */
-	const selectSortedIds: (state: S) => EntityId[] = createSelector(
-		[selectSorts, selectEntities, selectIds],
-		(sorts, entities, ids) => sortData(sorts, getField, entities, ids),
-	);
-
-	/** Select array of sorted and filtered ids */
-	const selectSortedFilteredIds: (state: S) => EntityId[] = createSelector(
-		[selectSorts, selectEntities, selectFilteredIds],
-		(sorts, entities, ids) => sortData(sorts, getField, entities, ids),
-	);
-
-	return {
-		getField,
-		selectState,
-		selectIds,
-		selectEntities,
-		selectSortedIds,
-		selectFilteredIds,
-		selectSortedFilteredIds,
-		...getSelectedSelectors(selectState),
-		...getExpandedSelectors(selectState),
-		...getFiltersSelectors(selectState),
-		...getSortsSelectors(selectState),
-		...getUiSelectors(selectState),
-	};
 }
 
 export type AppTableDataSelectors<
 	S = any,
 	T1 extends {} = any,
 	T2 extends T1 = T1,
-> = ReturnType<typeof getAppTableDataSelectors<S, T1, T2>>;
+	Id extends EntityId = EntityId,
+> = ReturnType<typeof getAppTableDataSelectors<S, T1, T2, Id>>;
 
 /*
  * Create a redux slice suitible for AppTable rendering.
@@ -233,15 +280,14 @@ export type AppTableDataSelectors<
  */
 export function createAppTableDataSlice<
 	T extends {},
-	ExtraState = {},
-	Reducers extends SliceCaseReducers<
-		ExtraState & AppTableDataState<T>
-	> = SliceCaseReducers<ExtraState & AppTableDataState<T>>,
-	Name extends string = string,
+	Id extends EntityId,
+	ExtraState extends {},
+	Reducers extends SliceCaseReducers<ExtraState & AppTableDataState<T, Id>>,
+	Name extends string,
 >({
 	name,
 	fields,
-	selectId = (entity: unknown) => (entity as { id: EntityId }).id,
+	selectId = (entity: unknown) => (entity as { id: Id }).id,
 	sortComparer,
 	initialState,
 	reducers,
@@ -249,82 +295,67 @@ export function createAppTableDataSlice<
 }: {
 	name: Name;
 	fields: Fields;
-	selectId?: IdSelector<T, EntityId>;
+	selectId?: IdSelector<T, Id>;
 	sortComparer?: Comparer<T>;
 	initialState: ExtraState;
 	reducers: ValidateSliceCaseReducers<
-		ExtraState & AppTableDataState<T>,
+		ExtraState & AppTableDataState<T, Id>,
 		Reducers
 	>;
 	extraReducers?: (
-		builder: ActionReducerMapBuilder<ExtraState & AppTableDataState<T>>,
-		dataAdapter: EntityAdapter<T, EntityId>,
+		builder: ActionReducerMapBuilder<ExtraState & AppTableDataState<T, Id>>,
+		dataAdapter: EntityAdapter<T, Id>,
 	) => void;
 }) {
-	const dataAdapter = createEntityAdapter(
+	const dataAdapter = createEntityAdapter<T, Id>(
 		Object.assign({ selectId }, sortComparer ? { sortComparer } : {}),
 	);
 
-	const selectedSubslice = createSelectedSubslice(name);
-	const expandedSubslice = createExpandedSubslice(name);
+	const selectedSubslice = createSelectedSubslice<Id>(name);
+	const expandedSubslice = createExpandedSubslice<Id>(name);
 	const filtersSubslice = createFiltersSubslice(name, fields);
 	const sortsSubslice = createSortsSubslice(name, fields);
 	const uiSubslice = createUiSubslice(name);
 
 	const entityReducers: {
 		/** Indicate that a data set load is pending (flag as `loading`) */
-		getPending(state: AppTableDataState<T>): void;
+		getPending(state: AppTableDataState<T, Id>): void;
 		/** Load data set load and indicate successful (flag as `valid` and not `loading`) */
 		getSuccess(
-			state: AppTableDataState<T>,
+			state: AppTableDataState<T, Id>,
 			action: PayloadAction<T[]>,
 		): void;
 		/** Data set load failed (flag as not `loading`) */
-		getFailure(state: AppTableDataState<T>): void;
-		setAll(
-			state: EntityState<T, EntityId>,
-			action: PayloadAction<T[]>,
-		): void;
-		setOne(state: EntityState<T, EntityId>, action: PayloadAction<T>): void;
-		setMany(
-			state: EntityState<T, EntityId>,
-			action: PayloadAction<T[]>,
-		): void;
-		addOne(state: EntityState<T, EntityId>, action: PayloadAction<T>): void;
-		addMany(
-			state: EntityState<T, EntityId>,
-			action: PayloadAction<T[]>,
-		): void;
+		getFailure(state: AppTableDataState<T, Id>): void;
+		setAll(state: EntityState<T, Id>, action: PayloadAction<T[]>): void;
+		setOne(state: EntityState<T, Id>, action: PayloadAction<T>): void;
+		setMany(state: EntityState<T, Id>, action: PayloadAction<T[]>): void;
+		addOne(state: EntityState<T, Id>, action: PayloadAction<T>): void;
+		addMany(state: EntityState<T, Id>, action: PayloadAction<T[]>): void;
 		updateOne(
-			state: EntityState<T, EntityId>,
-			action: PayloadAction<Update<T, EntityId>>,
+			state: EntityState<T, Id>,
+			action: PayloadAction<Update<T, Id>>,
 		): void;
 		updateMany(
-			state: EntityState<T, EntityId>,
-			action: PayloadAction<Update<T, EntityId>[]>,
+			state: EntityState<T, Id>,
+			action: PayloadAction<Update<T, Id>[]>,
 		): void;
-		upsertOne(
-			state: EntityState<T, EntityId>,
-			action: PayloadAction<T>,
-		): void;
-		upsertMany(
-			state: EntityState<T, EntityId>,
-			action: PayloadAction<T[]>,
-		): void;
-		removeOne(
-			state: EntityState<T, EntityId>,
-			action: PayloadAction<EntityId>,
-		): void;
+		upsertOne(state: EntityState<T, Id>, action: PayloadAction<T>): void;
+		upsertMany(state: EntityState<T, Id>, action: PayloadAction<T[]>): void;
+		removeOne(state: EntityState<T, Id>, action: PayloadAction<Id>): void;
 		removeMany(
-			state: EntityState<T, EntityId>,
-			action: PayloadAction<EntityId[]>,
+			state: EntityState<T, Id>,
+			action: PayloadAction<Id[]>,
 		): void;
-		removeAll(state: EntityState<T, EntityId>): void;
+		removeAll(state: EntityState<T, Id>): void;
 	} = {
 		getPending(state) {
 			state.loading = true;
 		},
-		getSuccess(state, action) {
+		getSuccess(
+			state: AppTableDataState<T, Id>,
+			action: PayloadAction<T[]>,
+		) {
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
@@ -362,7 +393,7 @@ export function createAppTableDataSlice<
 			...sortsSubslice.initialState,
 			...uiSubslice.initialState,
 			...initialState,
-		}) as ExtraState & AppTableDataState<T>,
+		}) as ExtraState & AppTableDataState<T, Id>,
 		reducers: {
 			...reducers,
 			...entityReducers,
@@ -373,7 +404,9 @@ export function createAppTableDataSlice<
 			...uiSubslice.reducers,
 		},
 		extraReducers: (
-			builder: ActionReducerMapBuilder<ExtraState & AppTableDataState<T>>,
+			builder: ActionReducerMapBuilder<
+				ExtraState & AppTableDataState<T, Id>
+			>,
 		) => {
 			selectedSubslice.extraReducers(builder);
 			expandedSubslice.extraReducers(builder);
@@ -384,6 +417,9 @@ export function createAppTableDataSlice<
 	return slice;
 }
 
-export type AppTableDataActions<T extends {} = any> = ReturnType<
-	typeof createAppTableDataSlice<T>
+export type AppTableDataActions<
+	T extends {} = any,
+	Id extends EntityId = EntityId,
+> = ReturnType<
+	typeof createAppTableDataSlice<T, Id, {}, {}, string>
 >["actions"];

@@ -113,12 +113,12 @@ export function getCompFunc(comp: FilterComp): CmpFunc {
  * Applies the column filters in turn to the data.
  * Returns a list of ids that meet the filter requirements.
  */
-export function filterData<T extends {}>(
+export function filterData<T extends {}, Id extends EntityId>(
 	filters: Filters,
 	getField: GetEntityField<T>,
-	entities: Record<EntityId, T>,
-	ids: EntityId[],
-): EntityId[] {
+	entities: Record<Id, T>,
+	ids: Id[],
+): Id[] {
 	let filteredIds = ids.slice();
 	const dataKeys = Object.keys(filters).filter(
 		(dataKey) => dataKey !== globalFilterKey,

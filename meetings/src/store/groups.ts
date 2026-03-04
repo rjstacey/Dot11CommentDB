@@ -2,9 +2,8 @@ import {
 	createSlice,
 	createEntityAdapter,
 	createSelector,
-	PayloadAction,
-	EntityId,
-	Dictionary,
+	type PayloadAction,
+	type EntityId,
 } from "@reduxjs/toolkit";
 
 import { fetcher } from "@common";
@@ -24,16 +23,16 @@ export type { GroupType, Group, GroupCreate, GroupUpdate };
 export { AccessLevel };
 
 function arrangeIdsHeirarchically(
-	ids: EntityId[],
-	entities: Dictionary<Group>,
+	ids: string[],
+	entities: Record<string, Group>,
 ) {
 	interface Node {
-		id: EntityId;
+		id: string;
 		children: Node[];
 	}
 
 	// Order by group type and then alphabetically
-	function compare(id1: EntityId, id2: EntityId) {
+	function compare(id1: string, id2: string) {
 		const g1 = entities[id1]!;
 		const g2 = entities[id2]!;
 		const g1TypeIndex = g1.type
@@ -47,15 +46,15 @@ function arrangeIdsHeirarchically(
 		return n;
 	}
 
-	function buildTree(parent_id: EntityId | null): Node[] {
+	function buildTree(parent_id: string | null): Node[] {
 		return ids
 			.filter((id) => entities[id]!.parent_id === parent_id)
 			.sort(compare)
 			.map((id) => ({ id, children: buildTree(id) }));
 	}
 
-	function flattenTree(nodes: Node[]): EntityId[] {
-		let ids: EntityId[] = [];
+	function flattenTree(nodes: Node[]): string[] {
+		let ids: string[] = [];
 		for (const node of nodes)
 			ids = ids.concat(node.id, flattenTree(node.children));
 		return ids;

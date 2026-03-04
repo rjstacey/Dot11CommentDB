@@ -79,12 +79,12 @@ export const sortFunc = {
 	DATE: cmpDate,
 } as const;
 
-export function sortData<EntityType extends {} = {}>(
+export function sortData<EntityType extends {}, Id extends EntityId>(
 	sorts: Sorts,
 	getField: GetEntityField<EntityType>,
-	entities: Record<EntityId, EntityType>,
-	ids: EntityId[],
-): EntityId[] {
+	entities: Record<Id, EntityType>,
+	ids: Id[],
+): Id[] {
 	let sortedIds = ids.slice();
 	for (const dataKey of sorts.by) {
 		const { direction, type } = sorts.settings[dataKey];

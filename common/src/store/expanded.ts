@@ -8,21 +8,18 @@ import type {
 
 const name = "expanded";
 
-export type ExpandedState = { [name]: EntityId[] };
+export type ExpandedState<Id extends EntityId> = { [name]: Id[] };
 
-export function createExpandedSubslice(dataSet: string) {
-	const initialState: ExpandedState = { [name]: [] };
+export function createExpandedSubslice<Id extends EntityId>(dataSet: string) {
+	const initialState: ExpandedState<Id> = { [name]: [] };
 
 	const reducers = {
 		/** Set the list of expanded rows to @param list */
-		setExpanded(state: ExpandedState, action: PayloadAction<EntityId[]>) {
+		setExpanded(state: ExpandedState<Id>, action: PayloadAction<Id[]>) {
 			state[name] = action.payload;
 		},
 		/** For @param list, remove entries that are present and add entries that are not present */
-		toggleExpanded(
-			state: ExpandedState,
-			action: PayloadAction<EntityId[]>,
-		) {
+		toggleExpanded(state: ExpandedState<Id>, action: PayloadAction<Id[]>) {
 			const list = state[name];
 			for (let id of action.payload) {
 				const i = list.indexOf(id);
@@ -33,7 +30,7 @@ export function createExpandedSubslice(dataSet: string) {
 	};
 
 	const extraReducers = <
-		S extends EntityState<unknown, EntityId> & ExpandedState,
+		S extends EntityState<unknown, Id> & ExpandedState<Id>,
 	>(
 		builder: ActionReducerMapBuilder<S>,
 	) => {
@@ -60,8 +57,8 @@ export function createExpandedSubslice(dataSet: string) {
 	};
 }
 
-export function getExpandedSelectors<S>(
-	selectState: (state: S) => ExpandedState,
+export function getExpandedSelectors<S, Id extends EntityId = EntityId>(
+	selectState: (state: S) => ExpandedState<Id>,
 ) {
 	return {
 		/** The list of ids that represent expanded rows */

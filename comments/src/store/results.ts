@@ -1,9 +1,4 @@
-import {
-	createAction,
-	Action,
-	EntityId,
-	createSelector,
-} from "@reduxjs/toolkit";
+import { createAction, Action, createSelector } from "@reduxjs/toolkit";
 
 import {
 	fetcher,
@@ -282,7 +277,7 @@ export const uploadResults =
 	};
 
 export const deleteResultsMany =
-	(ids: EntityId[]): AppThunk =>
+	(ids: string[]): AppThunk =>
 	async (dispatch, getState) => {
 		const ballot_id = selectResultsBallot_id(getState());
 		const url = `${baseUrl}/${ballot_id}`;

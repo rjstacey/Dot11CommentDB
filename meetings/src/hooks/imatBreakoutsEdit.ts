@@ -1,7 +1,6 @@
 import { useCallback, useState, useEffect } from "react";
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
-import type { Dictionary } from "@reduxjs/toolkit";
 import {
 	deepMergeTagMultiple,
 	deepMerge,
@@ -60,7 +59,7 @@ function convertBreakoutToMeetingEntry(
 	imatMeeting: ImatMeeting,
 	session: Session,
 	groupId: string,
-	groupEntities: Dictionary<Group>,
+	groupEntities: Record<string, Group>,
 ) {
 	const start = DateTime.fromFormat(
 		`${imatMeeting.start} ${breakout.startTime}`,

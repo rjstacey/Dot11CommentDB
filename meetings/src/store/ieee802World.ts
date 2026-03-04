@@ -7,7 +7,6 @@ import {
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	FieldType,
-	AppTableDataState,
 	Fields,
 } from "@common";
 
@@ -76,7 +75,7 @@ export function getField(entity: Ieee802WorldScheduleEntry, key: string) {
 		return DateTime.fromISO(entity.breakoutDate).toFormat("dd LLL yyyy");
 	if (key === "dayDate")
 		return DateTime.fromISO(entity.breakoutDate).toFormat(
-			"EEE, dd LLL yyyy"
+			"EEE, dd LLL yyyy",
 		);
 	if (key === "timeRange")
 		return (
@@ -92,6 +91,7 @@ export function getField(entity: Ieee802WorldScheduleEntry, key: string) {
 const dataSet = "ieee802World";
 const slice = createAppTableDataSlice({
 	name: dataSet,
+	selectId: (entry: Ieee802WorldScheduleEntry) => entry.id,
 	fields,
 	initialState: {},
 	reducers: {},
@@ -104,8 +104,7 @@ export const ieee802WorldActions = slice.actions;
 const { getPending, getSuccess, getFailure } = slice.actions;
 
 /* Selectors */
-export const select802WorldState = (state: RootState) =>
-	state[dataSet] as AppTableDataState<Ieee802WorldScheduleEntry>;
+export const select802WorldState = (state: RootState) => state[dataSet];
 export const select802WorldEntities = (state: RootState) =>
 	select802WorldState(state).entities;
 export const select802WorldIds = (state: RootState) =>
@@ -133,14 +132,14 @@ export const selectSynced802WorldEntities = createSelector(
 				const entityStart = DateTime.fromFormat(
 					`${entity.breakoutDate} ${entity.startTime}`,
 					"yyyy-MM-dd HH:mm:ss",
-					{ zone: session?.timezone || "America/New_York" }
+					{ zone: session?.timezone || "America/New_York" },
 				);
 				/* Find a meeting that matches group, start, and room */
 				const m = Object.values(meetingEntities).find(
 					(m) =>
 						entityStart.equals(
-							DateTime.fromISO(m!.start, { zone: m!.timezone })
-						) && entityRoomId === m!.roomId
+							DateTime.fromISO(m!.start, { zone: m!.timezone }),
+						) && entityRoomId === m!.roomId,
 				);
 				if (m) meetingId = m.id;
 			}
@@ -151,12 +150,12 @@ export const selectSynced802WorldEntities = createSelector(
 		});
 		//console.log(newEntities)
 		return newEntities;
-	}
+	},
 );
 
 export const ieee802WorldSelectors = getAppTableDataSelectors(
 	select802WorldState,
-	{ selectEntities: selectSynced802WorldEntities, getField }
+	{ selectEntities: selectSynced802WorldEntities, getField },
 );
 
 /* Thunk actions */
@@ -175,7 +174,7 @@ function validEntry(entry: unknown): entry is Ieee802WorldScheduleEntry {
 }
 
 function validResponse(
-	response: unknown
+	response: unknown,
 ): response is Ieee802WorldScheduleEntry[] {
 	return Array.isArray(response) && response.every(validEntry);
 }
@@ -221,7 +220,7 @@ export const importSelectedAsMeetings =
 				? "802"
 				: "802." + groupName; // Sometimes "802W"
 			const groupId = groupIds.find(
-				(id) => groupEntities[id]!.name === groupName
+				(id) => groupEntities[id]!.name === groupName,
 			);
 
 			/* Meeting name is in the form:
@@ -235,7 +234,7 @@ export const importSelectedAsMeetings =
 				(groupIds.find(
 					(id) =>
 						groupEntities[id]!.name === subgroupName &&
-						groupEntities[id]!.parent_id === groupId
+						groupEntities[id]!.parent_id === groupId,
 				) as string) || null;
 			if (!organizationId) {
 				organizationId = (groupId as string) || null;
@@ -243,8 +242,8 @@ export const importSelectedAsMeetings =
 					dispatch(
 						setError(
 							"Can't determine group/subgroup",
-							`group=${entry.groupName} meeting=${entry.meeting}`
-						)
+							`group=${entry.groupName} meeting=${entry.meeting}`,
+						),
 					);
 					return;
 				}
@@ -266,12 +265,12 @@ export const importSelectedAsMeetings =
 				start: DateTime.fromFormat(
 					`${entry.breakoutDate} ${entry.startTime}`,
 					"yyyy-MM-dd HH:mm:ss",
-					{ zone: session.timezone }
+					{ zone: session.timezone },
 				).toISO()!,
 				end: DateTime.fromFormat(
 					`${entry.breakoutDate} ${entry.endTime}`,
 					"yyyy-MM-dd HH:mm:ss",
-					{ zone: session.timezone }
+					{ zone: session.timezone },
 				).toISO()!,
 				timezone: session.timezone,
 				sessionId: session.id,

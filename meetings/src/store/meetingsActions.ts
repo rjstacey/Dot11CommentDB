@@ -1,4 +1,3 @@
-import { EntityId } from "@reduxjs/toolkit";
 import { fetcher, shallowEqual } from "@common";
 
 import slice, { getPending, clearMeetings } from "./meetingsSlice";
@@ -59,7 +58,7 @@ export const loadMeetings =
 	(
 		groupName: string,
 		query?: MeetingsQuery, //LoadMeetingsConstraints,
-		force = false
+		force = false,
 	): AppThunk<void> =>
 	(dispatch, getState) => {
 		const state = getState();
@@ -114,7 +113,7 @@ export const updateMeetings =
 	};
 
 export const addMeetings =
-	(meetingsToAdd: MeetingCreate[]): AppThunk<EntityId[]> =>
+	(meetingsToAdd: MeetingCreate[]): AppThunk<number[]> =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMeetingsState(getState());
 		const url = `/api/${groupName}/meetings`;
@@ -134,7 +133,7 @@ export const addMeetings =
 	};
 
 export const deleteMeetings =
-	(ids: EntityId[]): AppThunk =>
+	(ids: number[]): AppThunk =>
 	async (dispatch, getState) => {
 		const { groupName } = selectMeetingsState(getState());
 		return fetcher

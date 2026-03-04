@@ -12,6 +12,7 @@ import {
 	FieldType,
 	getAppTableDataSelectors,
 	Fields,
+	AppTableDataState,
 } from "@common";
 
 import type { AppThunk, RootState } from ".";
@@ -55,24 +56,24 @@ export const getField = (entity: Breakout, dataKey: string) => {
 		return DateTime.fromISO(entity.start, { setZone: true }).weekdayShort;
 	if (dataKey === "date")
 		return DateTime.fromISO(entity.start, { setZone: true }).toFormat(
-			"dd LLL yyyy"
+			"dd LLL yyyy",
 		);
 	if (dataKey === "dayDate")
 		return DateTime.fromISO(entity.start, { setZone: true }).toFormat(
-			"EEE, d LLL yyyy"
+			"EEE, d LLL yyyy",
 		);
 	if (dataKey === "startTime")
 		return DateTime.fromISO(entity.start, { setZone: true }).toFormat(
-			"HH:mm"
+			"HH:mm",
 		);
 	if (dataKey === "endTime")
 		return DateTime.fromISO(entity.end, { setZone: true }).toFormat(
-			"HH:mm"
+			"HH:mm",
 		);
 	if (dataKey === "timeRange")
 		return (
 			DateTime.fromISO(entity.start, { setZone: true }).toFormat(
-				"HH:mm"
+				"HH:mm",
 			) +
 			"-" +
 			DateTime.fromISO(entity.end, { setZone: true }).toFormat("HH:mm")
@@ -80,7 +81,7 @@ export const getField = (entity: Breakout, dataKey: string) => {
 	if (dataKey === "duration")
 		return DateTime.fromFormat(entity.endTime, "HH:mm").diff(
 			DateTime.fromFormat(entity.startTime, "HH:mm"),
-			"hours"
+			"hours",
 		).hours;
 	return entity[dataKey as keyof Breakout];
 };
@@ -120,10 +121,14 @@ const dataSet = "imatBreakouts";
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
+	selectId: (breakout) => breakout.id,
 	sortComparer,
 	initialState,
 	reducers: {
-		setDetails(state, action: PayloadAction<Partial<ExtraState>>) {
+		setDetails(
+			state: ExtraState & AppTableDataState<Breakout, number>,
+			action: PayloadAction<Partial<ExtraState>>,
+		) {
 			return { ...state, ...action.payload };
 		},
 	},
@@ -142,7 +147,7 @@ const slice = createAppTableDataSlice({
 						dataAdapter.removeAll(state);
 					}
 					state.lastLoad = new Date().toISOString();
-				}
+				},
 			)
 			.addMatcher(
 				(action) => action.type === clearBreakouts.toString(),
@@ -152,7 +157,7 @@ const slice = createAppTableDataSlice({
 					state.committees = [];
 					state.imatMeetingId = null;
 					state.valid = false;
-				}
+				},
 			);
 	},
 });
@@ -183,7 +188,7 @@ export {
 
 // Override the default getPending()
 const getPending = createAction<{ groupName: string; imatMeetingId: number }>(
-	dataSet + "/getPending"
+	dataSet + "/getPending",
 );
 export const clearBreakouts = createAction(dataSet + "/clear");
 
@@ -230,7 +235,7 @@ export const selectSyncedBreakoutEntities = createSelector(
 			const meeting = Object.values(meetingEntities).find(
 				(m) =>
 					m!.imatMeetingId === imatMeetingId &&
-					m!.imatBreakoutId === breakout!.id
+					m!.imatBreakoutId === breakout!.id,
 			);
 			newEntities[key] = {
 				...breakout!,
@@ -239,12 +244,12 @@ export const selectSyncedBreakoutEntities = createSelector(
 			};
 		}
 		return newEntities;
-	}
+	},
 );
 
 export const imatBreakoutsSelectors = getAppTableDataSelectors(
 	selectBreakoutsState,
-	{ selectEntities: selectSyncedBreakoutEntities, getField }
+	{ selectEntities: selectSyncedBreakoutEntities, getField },
 );
 
 /* Thunk actions */
@@ -255,7 +260,7 @@ export const loadBreakouts =
 	(
 		groupName: string,
 		imatMeetingId: number,
-		force = false
+		force = false,
 	): AppThunk<Breakout[]> =>
 	(dispatch, getState) => {
 		const state = getState();
@@ -326,7 +331,7 @@ export const updateBreakouts =
 	};
 
 export const deleteBreakouts =
-	(imatMeetingId: number, ids: EntityId[]): AppThunk =>
+	(imatMeetingId: number, ids: number[]): AppThunk =>
 	async (dispatch, getState) => {
 		const { groupName } = selectBreakoutsState(getState());
 		const url = `/api/${groupName}/imat/breakouts/${imatMeetingId}`;

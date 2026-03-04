@@ -1,9 +1,4 @@
-import {
-	createSelector,
-	EntityId,
-	Dictionary,
-	createAction,
-} from "@reduxjs/toolkit";
+import { createSelector, createAction, type EntityId } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
 import {
@@ -46,7 +41,7 @@ export type SessionType = keyof typeof SessionTypeLabels;
 
 export const SessionTypeOptions = Object.entries(SessionTypeLabels).map(
 	([value, label]) =>
-		({ value, label }) as { value: SessionType; label: string }
+		({ value, label }) as { value: SessionType; label: string },
 );
 
 export const displaySessionType = (type: SessionType | null) =>
@@ -143,14 +138,14 @@ const slice = createAppTableDataSlice({
 						state.groupName = groupName;
 						dataAdapter.removeAll(state);
 					}
-				}
+				},
 			)
 			.addMatcher(
 				(action) => action.type === clearSessions.toString(),
 				(state) => {
 					dataAdapter.removeAll(state);
 					state.valid = false;
-				}
+				},
 			);
 	},
 });
@@ -203,7 +198,7 @@ export const selectCurrentSession = (state: RootState) => {
 export const selectSessions = createSelector(
 	selectSessionIds,
 	selectSessionEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 export const selectSessionByNumber = (state: RootState, number: number) => {
@@ -213,7 +208,7 @@ export const selectSessionByNumber = (state: RootState, number: number) => {
 
 export const selectSessionByImatMeetingId = (
 	state: RootState,
-	imatMeetingId: number
+	imatMeetingId: number,
 ) => {
 	const sessions = selectSessions(state);
 	return sessions.find((session) => session.imatMeetingId === imatMeetingId);
@@ -227,7 +222,7 @@ export const selectSyncedSessionEntities = createSelector(
 	selectSessionEntities,
 	selectGroupEntities,
 	(sessions, groupEntities) => {
-		const entities: Dictionary<SyncedSession> = {};
+		const entities: Record<EntityId, SyncedSession> = {};
 		for (const [id, session] of Object.entries(sessions)) {
 			const group = session!.groupId
 				? groupEntities[session!.groupId]
@@ -238,7 +233,7 @@ export const selectSyncedSessionEntities = createSelector(
 			};
 		}
 		return entities;
-	}
+	},
 );
 
 export const sessionsSelectors = getAppTableDataSelectors(selectSessionsState, {

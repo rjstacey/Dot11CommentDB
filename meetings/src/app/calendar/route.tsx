@@ -1,5 +1,4 @@
 import { LoaderFunction, RouteObject } from "react-router";
-import { EntityId, Dictionary } from "@reduxjs/toolkit";
 import { store } from "@/store";
 import {
 	type CalendarAccount,
@@ -12,8 +11,8 @@ import Calendar from "./Calendar";
 export type LoaderData = string | null;
 
 function getPrimaryCalendarId(
-	ids: EntityId[],
-	entities: Dictionary<CalendarAccount>
+	ids: number[],
+	entities: Record<number, CalendarAccount>,
 ) {
 	for (const id of ids) {
 		const account = entities[id]!;
