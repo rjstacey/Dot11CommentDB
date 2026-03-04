@@ -1,4 +1,3 @@
-import type { CSSProperties, ComponentProps } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { Form, Spinner } from "react-bootstrap";
 import { Select } from "@common";
@@ -26,7 +25,7 @@ function SessionSelector({
 	value: number | null;
 	onChange: (value: number | null) => void;
 	readOnly?: boolean;
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	className?: string;
 }) {
 	const { loading, valid } = useAppSelector(selectSessionsState);
@@ -53,7 +52,7 @@ function SessionSelector({
 	);
 }
 
-export function SessionSelectorNav(props: ComponentProps<"div">) {
+export function SessionSelectorNav(props: React.ComponentProps<"div">) {
 	const navigate = useNavigate();
 	const params = useParams();
 	const [searchParams] = useSearchParams();

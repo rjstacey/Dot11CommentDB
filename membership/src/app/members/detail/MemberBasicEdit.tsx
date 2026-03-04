@@ -1,4 +1,3 @@
-import type { ComponentProps, ReactNode } from "react";
 import { Table, Row, Col, Form } from "react-bootstrap";
 import { DateTime } from "luxon";
 
@@ -73,7 +72,7 @@ function ExpandingInput({
 	saved?: MultipleMember;
 	onChange: (changes: MemberChange) => void;
 	invalidFeedback?: string;
-} & ComponentProps<typeof Form.Control>) {
+} & React.ComponentProps<typeof Form.Control>) {
 	const value = "" + edited[dataKey];
 	const savedValue: string | number | boolean | null | undefined =
 		saved?.[dataKey] || "";
@@ -142,7 +141,7 @@ export function MemberBasicEdit({
 	}
 
 	const hasMany = sapins.length > 1;
-	let sapinEl: ReactNode;
+	let sapinEl: React.ReactNode;
 	if (hasMany) {
 		sapinEl = (
 			<>

@@ -1,5 +1,3 @@
-import type { ComponentProps } from "react";
-
 import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -27,7 +25,7 @@ export function IeeeMemberSelector({
 	onChange: (value: number) => void;
 	showAll?: boolean;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"id" | "className" | "placeholder" | "readOnly" | "disabled" | "isInvalid"
 >) {
 	const memberSapins = useAppSelector(selectMemberIds);

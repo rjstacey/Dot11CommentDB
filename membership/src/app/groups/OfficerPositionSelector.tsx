@@ -1,4 +1,4 @@
-import { useCallback, type ComponentProps } from "react";
+import { useCallback } from "react";
 import { Select } from "@common";
 import { officerPositionsForGroupType } from "@/store/officers";
 import { GroupType } from "@/store/groups";
@@ -12,7 +12,7 @@ function OfficerPositionSelector({
 	value: string;
 	onChange: (value: string) => void;
 	groupType: GroupType;
-} & Partial<Pick<ComponentProps<typeof Select>, "id" | "style" | "readOnly">>) {
+} & Pick<React.ComponentProps<typeof Select>, "id" | "style" | "readOnly">) {
 	const options = officerPositionsForGroupType(groupType).map((v) => ({
 		value: v,
 		label: v,

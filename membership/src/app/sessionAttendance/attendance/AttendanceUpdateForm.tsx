@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Row, Form } from "react-bootstrap";
 
 import type { SessionAttendanceUpdateManyState } from "@/hooks/sessionAttendanceEdit";
@@ -25,7 +25,7 @@ export function AttendanceUpdateForm({
 	const [importUpdates, setImportUpdates] = useState(true);
 	const [busy, setBusy] = useState(false);
 
-	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await submit(importNew, importUpdates, importAttendance);

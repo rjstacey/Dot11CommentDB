@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Row, Col, Table, Form, Button } from "react-bootstrap";
 
 import { AttendanceInfoEdit } from "../attendance/AttendanceInfoEdit";
@@ -35,7 +35,7 @@ export function RegistrationEditForm({
 	const dispatch = useAppDispatch();
 	const [busy, setBusy] = useState(false);
 
-	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await submit();

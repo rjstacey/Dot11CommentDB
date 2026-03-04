@@ -1,4 +1,4 @@
-import { useMemo, type ComponentProps } from "react";
+import { useMemo } from "react";
 
 import { Select } from "@common";
 
@@ -13,7 +13,7 @@ export function MemberAllSelector({
 	value: number | null;
 	onChange: (value: number | null) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"id" | "style" | "placeholder" | "readOnly"
 >) {
 	const members = useAppSelector(selectAllMembers);

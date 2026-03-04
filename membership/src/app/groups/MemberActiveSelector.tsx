@@ -1,4 +1,4 @@
-import { useCallback, type ComponentProps } from "react";
+import { useCallback } from "react";
 
 import { Select } from "@common";
 
@@ -14,7 +14,7 @@ function MemberSelector({
 	value: number;
 	onChange: (value: number) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"id" | "placeholder" | "readOnly" | "disabled"
 >) {
 	const workingGroup = useAppSelector(selectWorkingGroup);

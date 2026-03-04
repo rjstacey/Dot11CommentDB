@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ChangeEvent } from "react";
+import { useState } from "react";
 import { Dropdown, Form, Button, Row, Col, Spinner } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
@@ -11,7 +11,7 @@ function RosterUpdateForm({ close }: { close: () => void }) {
 	const [file, setFile] = useState<File | null>(null);
 	const [busy, setBusy] = useState(false);
 
-	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!file) return;
 		setBusy(true);
@@ -42,14 +42,18 @@ function RosterUpdateForm({ close }: { close: () => void }) {
 			>
 				<Form.Check
 					checked={removeUnchanged}
-					onChange={(e) => setRemoveUnchanged(e.target.checked)}
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						setRemoveUnchanged(e.target.checked)
+					}
 					label="Remove rows with no change"
 				/>
 			</Form.Group>
 			<Form.Group as={Row} controlId="appendNew" className="ps-3 mb-3">
 				<Form.Check
 					checked={appendNew}
-					onChange={(e) => setAppendNew(e.target.checked)}
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+						setAppendNew(e.target.checked)
+					}
 					label="Append new members"
 				/>
 			</Form.Group>
@@ -61,7 +65,7 @@ function RosterUpdateForm({ close }: { close: () => void }) {
 					<Form.Control
 						type="file"
 						accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-						onChange={(e: ChangeEvent<HTMLInputElement>) =>
+						onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
 							setFile(e.target.files ? e.target.files[0] : null)
 						}
 						required

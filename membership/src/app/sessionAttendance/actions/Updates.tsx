@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import {
 	Form,
 	Row,
@@ -32,7 +32,7 @@ function UpdateForm({ close }: { close: () => void }) {
 		false,
 	);
 
-	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await submit(importNew, importUpdates, importAttendance);

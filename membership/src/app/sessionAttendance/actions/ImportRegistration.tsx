@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ChangeEvent } from "react";
+import { useState } from "react";
 import {
 	Form,
 	Row,
@@ -23,7 +23,7 @@ function ImportRegistrationForm({
 	const [busy, setBusy] = useState(false);
 	const [file, setFile] = useState<File | null>(null);
 
-	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(
@@ -44,7 +44,7 @@ function ImportRegistrationForm({
 				<Form.Control
 					type="file"
 					accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-					onChange={(e: ChangeEvent<HTMLInputElement>) =>
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
 						setFile(e.target.files?.[0] || null)
 					}
 					isInvalid={!file}

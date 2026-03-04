@@ -1,4 +1,4 @@
-import { useCallback, type ComponentProps } from "react";
+import { useCallback } from "react";
 
 import { Select } from "@common";
 
@@ -19,7 +19,7 @@ function ImatCommitteeSelector({
 	onChange: (value: string | null) => void;
 	type?: ImatCommitteeType;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"id" | "style" | "placeholder" | "readOnly" | "disabled"
 >) {
 	let options = useAppSelector(selectImatCommittees);

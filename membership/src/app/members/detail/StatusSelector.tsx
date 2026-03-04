@@ -1,4 +1,3 @@
-import type { ComponentProps } from "react";
 import { Select, isMultiple, MULTIPLE } from "@common";
 import { statusOptions, StatusType } from "@/store/members";
 import { MULTIPLE_STR, BLANK_STR } from "@/components/constants";
@@ -11,7 +10,7 @@ function StatusSelector({
 	value: string | typeof MULTIPLE;
 	onChange: (value: StatusType) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"id" | "style" | "readOnly" | "placeholder"
 >) {
 	const values = statusOptions.filter((o) => o.value === value);

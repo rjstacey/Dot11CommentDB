@@ -1,5 +1,4 @@
 import styles from "./Table.module.css";
-import React from "react";
 
 const Table = ({ className, ...props }: React.ComponentProps<"table">) => (
 	<table className={styles.table} {...props} />

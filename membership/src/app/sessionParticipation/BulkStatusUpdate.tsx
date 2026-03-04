@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { DateTime } from "luxon";
 import { Form, Row, Col, Button, Dropdown, Spinner } from "react-bootstrap";
 
@@ -71,7 +71,7 @@ function BulkStatusUpdateForm({
 		updates.length !== 1 ? "s" : ""
 	}`;
 
-	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(updateMembers(updates));

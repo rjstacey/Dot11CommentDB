@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 
 import { ConfirmModal } from "@common";
@@ -34,7 +34,7 @@ export function MemberAddForm({
 	const [busy, setBusy] = useState(false);
 	const ieeeMemberEntities = useAppSelector(selectIeeeMemberEntities);
 
-	const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		if (!e.currentTarget.checkValidity()) {
 			ConfirmModal.show("Fix errors", false);

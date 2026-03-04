@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Dropdown, Form, Button, CloseButton, Row, Col } from "react-bootstrap";
 
 import { useAppDispatch } from "@/store/hooks";
@@ -33,7 +33,7 @@ function MembersExportForm() {
 		setStatuses([...statuses]);
 	}
 
-	function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		e.stopPropagation();
 		dispatch(exportMembers({ format, status: statuses, date }));

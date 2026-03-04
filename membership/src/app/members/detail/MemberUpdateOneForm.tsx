@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type FormEvent } from "react";
+import { useState } from "react";
 import { Tabs, Tab, Row, Form } from "react-bootstrap";
 
 import { ConfirmModal, shallowDiff } from "@common";
@@ -50,7 +50,7 @@ const hasStatusChanges = (changeKeys: string[]) =>
 	statusKeys.some((dataKey) => changeKeys.includes(dataKey));
 
 function titleWithChangeMark(title: string, hasChanges: boolean) {
-	const changesStyle: CSSProperties = { backgroundColor: "#ffff003d" };
+	const changesStyle: React.CSSProperties = { backgroundColor: "#ffff003d" };
 	return <span style={hasChanges ? changesStyle : undefined}>{title}</span>;
 }
 
@@ -97,7 +97,7 @@ export function MemberUpdateOneForm({
 		cancel: ballotParticipationCancel,
 	} = useBallotParticipationEdit(sapins[0]);
 
-	const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		if (!e.currentTarget.checkValidity()) {
 			ConfirmModal.show("Fix errors", false);
