@@ -2,7 +2,12 @@ import {
 	combineReducers,
 	configureStore as configureReduxStore,
 } from "@reduxjs/toolkit";
-import type { Action, ThunkAction, Middleware } from "@reduxjs/toolkit";
+import type {
+	Action,
+	ThunkAction,
+	Middleware,
+	UnknownAction,
+} from "@reduxjs/toolkit";
 
 import { createLogger } from "redux-logger";
 import {
@@ -47,7 +52,7 @@ const transformState = createTransform(
 	(state: GenericObject) => ({ ...state, loading: false }),
 	{
 		whitelist: [],
-	}
+	},
 );
 
 const appReducer = combineReducers({
@@ -63,7 +68,7 @@ const appReducer = combineReducers({
 
 const rootReducer = (
 	state: ReturnType<typeof appReducer> | undefined,
-	action: Action<unknown>
+	action: UnknownAction,
 ) => {
 	if (action.type === RESET_STORE_ACTION) state = undefined;
 	return appReducer(state, action);

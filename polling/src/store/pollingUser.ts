@@ -21,8 +21,8 @@ export type { Event, Poll, PollResult };
 export { PollChoice, PollVotersType };
 
 const pollsAdapter = createEntityAdapter<Poll>();
-const pollVotesAdapter = createEntityAdapter<PollResult>({
-	selectId: (r) => r.pollId,
+const pollVotesAdapter = createEntityAdapter({
+	selectId: (r: PollResult) => r.pollId,
 });
 
 /* Create slice */
@@ -102,7 +102,7 @@ export const selectPollingUserStatus = (state: RootState) =>
 
 export const selectPollingUserPolls = createSelector(
 	(state: RootState) => selectPollingUserState(state).polls,
-	(polls) => pollsAdapter.getSelectors().selectAll(polls)
+	(polls) => pollsAdapter.getSelectors().selectAll(polls),
 );
 
 export const selectPollingUserSelectedPollId = (state: RootState) =>
@@ -134,7 +134,7 @@ export const pollingUserSubmitVote =
 				SAPIN: user.SAPIN,
 				pollId,
 				votes,
-			})
+			}),
 		);
 		try {
 			await pollingSocketEmit("poll:vote", {

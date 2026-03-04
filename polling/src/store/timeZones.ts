@@ -27,23 +27,20 @@ const slice = createSlice({
 	name: dataSet,
 	initialState,
 	reducers: {
-		getPending(state: TimeZonesState) {
+		getPending(state) {
 			state.loading = true;
 			state.lastLoad = new Date().toISOString();
 		},
-		getSuccess(
-			state: TimeZonesState,
-			action: PayloadAction<Array<string>>
-		) {
+		getSuccess(state, action: PayloadAction<string[]>) {
 			state.loading = false;
 			state.valid = true;
 			state.timeZones = action.payload;
 		},
-		getFailure(state: TimeZonesState) {
+		getFailure(state) {
 			state.loading = false;
 			state.lastLoad = null;
 		},
-		setTimezone(state: TimeZonesState, action: PayloadAction<string>) {
+		setTimezone(state, action: PayloadAction<string>) {
 			state.timeZone = action.payload;
 		},
 	},

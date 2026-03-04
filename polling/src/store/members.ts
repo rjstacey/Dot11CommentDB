@@ -2,7 +2,7 @@ import {
 	createSlice,
 	createEntityAdapter,
 	createSelector,
-	PayloadAction,
+	type PayloadAction,
 } from "@reduxjs/toolkit";
 import { fetcher } from "@common";
 
@@ -20,7 +20,7 @@ type ExtraState = {
 };
 
 const selectId = (user: UserMember) => user.SAPIN;
-const dataAdapter = createEntityAdapter<UserMember>({ selectId });
+const dataAdapter = createEntityAdapter({ selectId });
 const initialState = dataAdapter.getInitialState<ExtraState>({
 	valid: false,
 	loading: false,
@@ -43,7 +43,7 @@ const slice = createSlice({
 				dataAdapter.removeAll(state);
 			}
 		},
-		getSuccess(state, action) {
+		getSuccess(state, action: PayloadAction<UserMember[]>) {
 			state.loading = false;
 			state.valid = true;
 			dataAdapter.setAll(state, action.payload);
@@ -76,7 +76,7 @@ const selectMembersAge = (state: RootState) => {
 export const selectMembers = createSelector(
 	selectMemberIds,
 	selectMemberEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 export const selectMemberName = (state: RootState, sapin: number) => {

@@ -2,9 +2,7 @@ import {
 	createSlice,
 	createEntityAdapter,
 	createSelector,
-	PayloadAction,
-	EntityId,
-	Dictionary,
+	type PayloadAction,
 } from "@reduxjs/toolkit";
 
 import { fetcher } from "@common";
@@ -25,16 +23,16 @@ export { AccessLevel };
 const topLevelGroupTypes = ["r", "c", "wg"] as const satisfies GroupType[];
 
 function arrangeIdsHeirarchically(
-	ids: EntityId[],
-	entities: Dictionary<Group>
+	ids: string[],
+	entities: Record<string, Group>,
 ) {
 	interface Node {
-		id: EntityId;
+		id: string;
 		children: Node[];
 	}
 
 	// Order by group type and then alphabetically
-	function compare(id1: EntityId, id2: EntityId) {
+	function compare(id1: string, id2: string) {
 		const g1 = entities[id1]!;
 		const g2 = entities[id2]!;
 		const g1TypeIndex = g1.type
@@ -48,15 +46,15 @@ function arrangeIdsHeirarchically(
 		return n;
 	}
 
-	function buildTree(parent_id: EntityId | null): Node[] {
+	function buildTree(parent_id: string | null): Node[] {
 		return ids
 			.filter((id) => entities[id]!.parent_id === parent_id)
 			.sort(compare)
 			.map((id) => ({ id, children: buildTree(id) }));
 	}
 
-	function flattenTree(nodes: Node[]): EntityId[] {
-		let ids: EntityId[] = [];
+	function flattenTree(nodes: Node[]): string[] {
+		let ids: string[] = [];
 		for (const node of nodes)
 			ids = ids.concat(node.id, flattenTree(node.children));
 		return ids;
@@ -151,19 +149,19 @@ export const selectTopLevelGroups = createSelector(
 	(ids, entities) =>
 		ids
 			.map((id) => entities[id]!)
-			.filter((g) => topLevelGroupTypes.includes(g.type as any)) // eslint-disable-line @typescript-eslint/no-explicit-any
+			.filter((g) => topLevelGroupTypes.includes(g.type as any)), // eslint-disable-line @typescript-eslint/no-explicit-any
 );
 
 /** Select top level group by name. Only for root (r), committee (c) and working group (wg). Root is selected with groupName = "". */
 export const selectTopLevelGroupByName = (
 	state: RootState,
-	groupName: string
+	groupName: string,
 ) => {
 	const groups = selectTopLevelGroups(state);
 	return groups.find((g) =>
 		groupName
 			? (g.type === "c" || g.type === "wg") && g.name === groupName
-			: g.type === "r"
+			: g.type === "r",
 	);
 };
 
@@ -189,10 +187,10 @@ export const selectSubgroupIds = createSelector(
 			if (parent && (parent.type === "r" || parent.type === "c")) {
 				ids = ids.filter(
 					(id) =>
-						topLevelGroupTypes.includes(entities[id]!.type as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+						topLevelGroupTypes.includes(entities[id]!.type as any), // eslint-disable-line @typescript-eslint/no-explicit-any
 				);
 			}
-			function isDescendent(id: EntityId) {
+			function isDescendent(id: string) {
 				if (id === topLevelGroupId) return true;
 				let g: Group | undefined = entities[id]!;
 				do {
@@ -204,10 +202,10 @@ export const selectSubgroupIds = createSelector(
 			return ids.filter(isDescendent);
 		} else {
 			return ids.filter(
-				(id) => topLevelGroupTypes.includes(entities[id]!.type as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+				(id) => topLevelGroupTypes.includes(entities[id]!.type as any), // eslint-disable-line @typescript-eslint/no-explicit-any
 			);
 		}
-	}
+	},
 );
 
 export const selectSubgroups = createSelector(
@@ -221,13 +219,13 @@ export const selectSubgroups = createSelector(
 				if (i === 0) g = { ...g, name: g.type!.toLocaleUpperCase() };
 				return g;
 			})
-			.filter((g) => g.status)
+			.filter((g) => g.status),
 );
 
 /** Select subgroup by name. */
 export const selectSubgroupByName = (
 	state: RootState,
-	subgroupName: string
+	subgroupName: string,
 ) => {
 	const groups = selectSubgroups(state);
 	return groups.find((g) => g.name === subgroupName);
@@ -248,7 +246,7 @@ export const selectTopLevelGroupParents = createSelector(
 			}
 		}
 		return groups;
-	}
+	},
 );
 
 export const selectGroup = (state: RootState, groupId: string) =>
@@ -256,7 +254,7 @@ export const selectGroup = (state: RootState, groupId: string) =>
 
 export const selectGroupPermissions = (
 	state: RootState,
-	groupId: string
+	groupId: string,
 ): Record<string, number> => {
 	const group = selectGroup(state, groupId);
 	return group ? group.permissions : {};
