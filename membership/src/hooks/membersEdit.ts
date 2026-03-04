@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useEffect, useState } from "react";
 import isEqual from "lodash.isequal";
 
 import { ConfirmModal, deepMergeTagMultiple } from "@common";
@@ -57,7 +57,7 @@ export type MembersEditState = (
 
 function useInitState(selected: number[]) {
 	const { entities, loading, valid } = useAppSelector(selectMembersState);
-	return React.useCallback((): MembersEditState => {
+	return useCallback((): MembersEditState => {
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -75,7 +75,7 @@ function useInitState(selected: number[]) {
 			}
 			edited = deepMergeTagMultiple(
 				edited || {},
-				member
+				member,
 			) as MultipleMember;
 			originals.push(member);
 		}
@@ -105,14 +105,14 @@ export function useMembersEdit({
 	readOnly?: boolean;
 }) {
 	const initState = useInitState(selected); // Callback to initialize state
-	const [state, setState] = React.useState<MembersEditState>(initState);
+	const [state, setState] = useState<MembersEditState>(initState);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const { action, originals } = state;
 		if (action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) setState(initState);
 					else setSelected([]);
@@ -126,7 +126,7 @@ export function useMembersEdit({
 			const ids = originals.map((m) => m.SAPIN);
 			if (!isEqual(selected, ids)) {
 				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?"
+					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
 					if (ok) setState(initState);
 					else setSelected(ids);
@@ -141,7 +141,7 @@ export function useMembersEdit({
 	const membersUpdate = useMembersUpdate();
 	const membersDelete = useMembersDelete();
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: MemberChange) =>
 			setState((state) => {
 				if (
@@ -160,21 +160,21 @@ export function useMembersEdit({
 				if (isEqual(edited, state.saved)) edited = state.saved;
 				return { ...state, edited };
 			}),
-		[readOnly, setState]
+		[readOnly, setState],
 	);
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() =>
 			state.action === "add" ||
 			(state.action === "update" && state.edited !== state.saved),
-		[state]
+		[state],
 	);
 
 	const disableAdd = readOnly;
-	const onAdd = React.useCallback(async () => {
+	const onAdd = useCallback(async () => {
 		if (state.action === "update" && state.edited !== state.saved) {
 			const ok = await ConfirmModal.show(
-				`Changes not applied! Do you want to discard changes?`
+				`Changes not applied! Do you want to discard changes?`,
 			);
 			if (!ok) return;
 		}
@@ -202,7 +202,7 @@ export function useMembersEdit({
 	}, [state, setSelected, setState]);
 
 	const disableDelete = readOnly || state.originals.length === 0;
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		const { originals } = state;
 		if (originals.length > 0) {
 			const str =
@@ -221,7 +221,7 @@ export function useMembersEdit({
 		}
 	}, [state, membersDelete, setSelected, setState]);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (readOnly || state.action === null) {
 			console.warn("submit: bad state");
 			return;
@@ -245,7 +245,7 @@ export function useMembersEdit({
 		}
 	}, [readOnly, state, membersAdd, membersUpdate, setSelected, setState]);
 
-	const cancel = React.useCallback(() => {
+	const cancel = useCallback(() => {
 		setState(initState);
 	}, [initState]);
 

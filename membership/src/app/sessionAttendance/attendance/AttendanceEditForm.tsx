@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useRef, type MouseEvent } from "react";
 import { Row, Col, Form, Button, Spinner } from "react-bootstrap";
 
 import { ConfirmModal } from "@common";
@@ -37,10 +37,10 @@ export function AttendanceEditForm({
 	hasAttendanceChanges: () => boolean;
 	readOnly?: boolean;
 }) {
-	const formRef = React.useRef<HTMLFormElement>(null);
-	const [busy, setBusy] = React.useState(false);
+	const formRef = useRef<HTMLFormElement>(null);
+	const [busy, setBusy] = useState(false);
 
-	async function handleMemberSubmit(e: React.MouseEvent<HTMLButtonElement>) {
+	async function handleMemberSubmit(e: MouseEvent<HTMLButtonElement>) {
 		e.preventDefault();
 		if (!e.currentTarget.checkValidity()) {
 			ConfirmModal.show("Fix errors", false);
@@ -51,9 +51,7 @@ export function AttendanceEditForm({
 		setBusy(false);
 	}
 
-	async function handleAttendanceSubmit(
-		e: React.MouseEvent<HTMLButtonElement>,
-	) {
+	async function handleAttendanceSubmit(e: MouseEvent<HTMLButtonElement>) {
 		e.preventDefault();
 		if (!e.currentTarget.checkValidity()) {
 			ConfirmModal.show("Fix errors", false);

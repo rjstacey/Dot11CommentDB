@@ -1,9 +1,7 @@
-import { lazy } from "react";
 import { RouteObject } from "react-router";
 import { loader } from "./loader";
 import SessionAttendanceReport from ".";
-
-const SessionAttendanceChart = lazy(() => import("./chart"));
+import SessionAttendanceChart from "./chart";
 
 export const route: RouteObject = {
 	element: <SessionAttendanceReport />,
@@ -11,7 +9,6 @@ export const route: RouteObject = {
 		{
 			path: ":sessionNumber",
 			loader,
-			hydrateFallbackElement: <div>Loading...</div>,
 			element: <SessionAttendanceChart />,
 		},
 	],

@@ -1,11 +1,9 @@
-import { lazy } from "react";
 import { RouteObject } from "react-router";
 import { loader } from "../../sessionParticipation/loader";
 import SessionParticipationReport from "./layout";
-
-const PerSessionChart = lazy(() => import("./AttendancePerSessionChart"));
-const CumulativeChart = lazy(() => import("./AttendanceCumulativeChart"));
-const ByAffiliationChart = lazy(() => import("./AttendanceByAffiliationChart"));
+import AttendancePerSessionChart from "./AttendancePerSessionChart";
+import AttendanceCumulativeChart from "./AttendanceCumulativeChart";
+import AttendanceByAffiliationChart from "./AttendanceByAffiliationChart";
 
 export const route: RouteObject = {
 	element: <SessionParticipationReport />,
@@ -13,18 +11,15 @@ export const route: RouteObject = {
 	children: [
 		{
 			path: "per-session",
-			hydrateFallbackElement: <div>Loading...</div>,
-			element: <PerSessionChart />,
+			element: <AttendancePerSessionChart />,
 		},
 		{
 			path: "cumulative",
-			hydrateFallbackElement: <div>Loading...</div>,
-			element: <CumulativeChart />,
+			element: <AttendanceCumulativeChart />,
 		},
 		{
 			path: "by-affiliation",
-			hydrateFallbackElement: <div>Loading...</div>,
-			element: <ByAffiliationChart />,
+			element: <AttendanceByAffiliationChart />,
 		},
 	],
 };

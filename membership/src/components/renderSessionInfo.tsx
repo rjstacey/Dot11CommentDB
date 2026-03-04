@@ -1,14 +1,14 @@
-import React from "react";
+import type { CSSProperties } from "react";
 import { displayDateRange } from "@common";
 import { type Session } from "@/store/sessions";
 
-const sessionDescStyle: React.CSSProperties = {
+const sessionDescStyle: CSSProperties = {
 	overflow: "hidden",
 	whiteSpace: "nowrap",
 	textOverflow: "ellipsis",
 };
 
-const sessionNameStyle: React.CSSProperties = {
+const sessionNameStyle: CSSProperties = {
 	fontStyle: "italic",
 	fontSize: "smaller",
 };

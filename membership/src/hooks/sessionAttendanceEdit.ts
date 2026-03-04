@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
 import { shallowDiff, deepMerge } from "@common";
@@ -166,7 +166,7 @@ function useInitState(ids: number[]): SessionAttendanceEditState {
 		selectImatAttendanceSummarySyncedEntities,
 	);
 
-	return React.useMemo(() => {
+	return useMemo(() => {
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -276,14 +276,13 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 
 	const initState = useInitState(ids);
 
-	const [state, setState] =
-		React.useState<SessionAttendanceEditState>(initState);
+	const [state, setState] = useState<SessionAttendanceEditState>(initState);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!isEqual(ids, state.ids)) setState(initState);
 	}, [ids, state.ids, setState, initState]);
 
-	const memberOnChange = React.useCallback(
+	const memberOnChange = useCallback(
 		(changes: MemberChange) => {
 			setState((state) => {
 				if (!readOnly) {
@@ -310,7 +309,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 		[readOnly, setState],
 	);
 
-	const attendanceOnChange = React.useCallback(
+	const attendanceOnChange = useCallback(
 		(changes: SessionAttendanceSummaryChange) => {
 			setState((state) => {
 				if (
@@ -335,7 +334,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 		[readOnly, setState],
 	);
 
-	const hasMemberChanges = React.useCallback(
+	const hasMemberChanges = useCallback(
 		() =>
 			state.action === "addOne" ||
 			(state.action === "updateOne" &&
@@ -346,7 +345,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 		[state],
 	);
 
-	const hasAttendanceChanges = React.useCallback(
+	const hasAttendanceChanges = useCallback(
 		() =>
 			state.action === "addOne" ||
 			(state.action === "updateOne" &&
@@ -358,12 +357,12 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 		[state],
 	);
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() => hasMemberChanges() || hasAttendanceChanges(),
 		[hasMemberChanges, hasAttendanceChanges],
 	);
 
-	const submit = React.useCallback(
+	const submit = useCallback(
 		async (
 			doAddMembers = true,
 			doUpdateMembers = true,
@@ -428,7 +427,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 		[state, dispatch, setState, initState],
 	);
 
-	const cancel = React.useCallback(() => {
+	const cancel = useCallback(() => {
 		setState((state) => {
 			const { action } = state;
 			if (action === "addOne") return initState;

@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useState } from "react";
 import { ConfirmModal, shallowDiff, useDebounce } from "@common";
 
 import { useAppDispatch } from "@/store/hooks";
@@ -10,8 +10,8 @@ import {
 
 export function useEmailTemplateEdit(readOnly: boolean = false) {
 	const dispatch = useAppDispatch();
-	const [edited, setEdited] = React.useState<EmailTemplate | null>(null);
-	const [saved, setSaved] = React.useState<EmailTemplate | null>(null);
+	const [edited, setEdited] = useState<EmailTemplate | null>(null);
+	const [saved, setSaved] = useState<EmailTemplate | null>(null);
 
 	const debouncedSave = useDebounce(() => {
 		if (!edited || !saved) return;
@@ -20,28 +20,28 @@ export function useEmailTemplateEdit(readOnly: boolean = false) {
 		setSaved(edited);
 	});
 
-	const setEmailTemplate = React.useCallback(
+	const setEmailTemplate = useCallback(
 		(emailTemplate: EmailTemplate | null) => {
 			debouncedSave.flush();
 			setEdited(emailTemplate);
 			setSaved(emailTemplate);
 		},
-		[debouncedSave, setEdited, setSaved]
+		[debouncedSave, setEdited, setSaved],
 	);
 
-	const change = React.useCallback(
+	const change = useCallback(
 		(changes: Partial<EmailTemplate>) => {
 			if (readOnly) return;
 			setEdited((state) => ({ ...state!, ...changes }));
 			debouncedSave();
 		},
-		[readOnly, debouncedSave, setEdited]
+		[readOnly, debouncedSave, setEdited],
 	);
 
-	const doDelete = React.useCallback(async () => {
+	const doDelete = useCallback(async () => {
 		if (!edited) return;
 		const ok = await ConfirmModal.show(
-			`Are you sure you want to delete ${edited.name}?`
+			`Are you sure you want to delete ${edited.name}?`,
 		);
 		if (ok) {
 			setEmailTemplate(null);

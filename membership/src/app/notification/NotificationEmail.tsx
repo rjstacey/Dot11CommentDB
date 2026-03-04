@@ -1,4 +1,4 @@
-import React from "react";
+import { useEffect, useState } from "react";
 import { Row, Col, Button, Spinner } from "react-bootstrap";
 import { useParams } from "react-router";
 import { convert } from "html-to-text";
@@ -50,9 +50,9 @@ function genEmail(email: EmailTemplate, user: User, member: Member) {
 function NotificationEmail() {
 	const { groupName } = useParams();
 	const dispatch = useAppDispatch();
-	const [preview, setPreview] = React.useState<EmailTemplate | null>(null);
-	const [isPreview, setIsPreview] = React.useState(false);
-	const [busy, setBusy] = React.useState(false);
+	const [preview, setPreview] = useState<EmailTemplate | null>(null);
+	const [isPreview, setIsPreview] = useState(false);
+	const [busy, setBusy] = useState(false);
 
 	const user = useAppSelector(selectUser);
 	const members = useAppSelector(selectSelectedMembers);
@@ -66,7 +66,7 @@ function NotificationEmail() {
 
 	const doSubstitution = useEmailSubstitution();
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!emailTemplate || members.length === 0) {
 			setPreview(null);
 		} else {

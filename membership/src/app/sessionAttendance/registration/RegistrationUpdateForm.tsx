@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, type FormEvent } from "react";
 import { Row, Form } from "react-bootstrap";
 
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
@@ -14,9 +14,9 @@ export function RegistrationUpdateForm({
 	submit: () => Promise<void>;
 	cancel: () => void;
 }) {
-	const [busy, setBusy] = React.useState(false);
+	const [busy, setBusy] = useState(false);
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await submit();

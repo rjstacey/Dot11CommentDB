@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import isEqual from "lodash.isequal";
 import { shallowDiff } from "@common";
 
@@ -67,7 +67,7 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 		selectSessionRegistrationSyncedEntities,
 	);
 
-	return React.useMemo(() => {
+	return useMemo(() => {
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -139,14 +139,13 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 	const dispatch = useAppDispatch();
 	const initState = useInitState(ids);
 
-	const [state, setState] =
-		React.useState<SessionRegistrationEditState>(initState);
+	const [state, setState] = useState<SessionRegistrationEditState>(initState);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		setState(initState);
 	}, [setState, initState]);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: SessionAttendanceSummaryChange) => {
 			setState((state) => {
 				if (!readOnly && state.action === "updateOne") {
@@ -168,7 +167,7 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 		[readOnly, setState],
 	);
 
-	const hasChanges = React.useCallback(
+	const hasChanges = useCallback(
 		() =>
 			(state.action === "updateOne" &&
 				state.attendanceEdit !== state.attendanceSaved) ||
@@ -177,7 +176,7 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 		[state],
 	);
 
-	const submit = React.useCallback(async () => {
+	const submit = useCallback(async () => {
 		if (state.action === "updateOne") {
 			const id = state.attendanceSaved.id;
 			if (id) {
@@ -203,7 +202,7 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 		}
 	}, [dispatch, setState, state]);
 
-	const cancel = React.useCallback(() => {
+	const cancel = useCallback(() => {
 		setState((state) => {
 			const { action } = state;
 			if (action === "updateOne") {

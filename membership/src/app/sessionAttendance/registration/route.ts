@@ -1,8 +1,8 @@
-import { lazy } from "react";
 import { RouteObject } from "react-router";
+import { SessionRegistrationTable } from ".";
 
 const route: RouteObject = {
-	Component: lazy(() => import(".")),
+	Component: SessionRegistrationTable,
 };
 
 export default route;

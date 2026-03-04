@@ -1,4 +1,4 @@
-import React from "react";
+import { useRef, useEffect } from "react";
 import * as d3 from "d3";
 
 export function YAxis({
@@ -14,8 +14,8 @@ export function YAxis({
 	label: string;
 	setWidth?: (width: number) => void;
 }) {
-	const ref = React.useRef<SVGGElement>(null);
-	React.useEffect(() => {
+	const ref = useRef<SVGGElement>(null);
+	useEffect(() => {
 		const g = d3.select(ref.current!);
 		g.selectAll("*").remove();
 		g.call(d3.axisLeft(scale)).attr("font-size", null);

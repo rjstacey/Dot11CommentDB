@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback } from "react";
 import { displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -19,7 +19,7 @@ export const SELECTED_MEMBERS_KEY = `{{${SELECTED_MEMBERS}}}`;
 export const substitutionTags = Object.keys(fields).concat(
 	"SessionName",
 	"SessionNumber",
-	"SessionDate"
+	"SessionDate",
 );
 
 const SUBSTITUTION_TAG_PATTERN = "{{([A-Za-z_-]+)}}";
@@ -29,7 +29,7 @@ export function useEmailSubstitution() {
 	const renderSessionParticipation = useRenderSessionParticipation();
 	const renderBallotParticipation = useRenderBallotParticipation();
 
-	const substitute = React.useCallback(
+	const substitute = useCallback(
 		(key: string, member: Member): string => {
 			if (Object.keys(member).includes(key))
 				return "" + member[key as keyof Member] || "(Blank)";
@@ -57,10 +57,10 @@ export function useEmailSubstitution() {
 
 			return "";
 		},
-		[session, renderSessionParticipation, renderBallotParticipation]
+		[session, renderSessionParticipation, renderBallotParticipation],
 	);
 
-	return React.useCallback(
+	return useCallback(
 		(email: EmailTemplate, member: Member) => {
 			let to = email.to || SELECTED_MEMBERS_KEY;
 			to = to.replace(SELECTED_MEMBERS_KEY, genEmailAddress(member));
@@ -69,7 +69,7 @@ export function useEmailSubstitution() {
 			if (email.cc) {
 				const cc = email.cc.replace(
 					SELECTED_MEMBERS_KEY,
-					genEmailAddress(member)
+					genEmailAddress(member),
 				);
 				email = { ...email, cc };
 			}
@@ -77,7 +77,7 @@ export function useEmailSubstitution() {
 			if (email.bcc) {
 				const bcc = email.bcc.replace(
 					SELECTED_MEMBERS_KEY,
-					genEmailAddress(member)
+					genEmailAddress(member),
 				);
 				email = { ...email, bcc };
 			}
@@ -91,7 +91,7 @@ export function useEmailSubstitution() {
 				body += bodyRemaining.substring(0, match.index);
 				body += substitute(match[1], member);
 				bodyRemaining = bodyRemaining.substring(
-					match.index + match[0].length
+					match.index + match[0].length,
 				);
 			}
 			body += bodyRemaining;
@@ -100,6 +100,6 @@ export function useEmailSubstitution() {
 			email = { ...email, body };
 			return email;
 		},
-		[substitute]
+		[substitute],
 	);
 }

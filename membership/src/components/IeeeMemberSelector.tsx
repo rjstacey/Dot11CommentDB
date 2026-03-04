@@ -1,4 +1,4 @@
-import React from "react";
+import type { ComponentProps } from "react";
 
 import { Select } from "@common";
 
@@ -27,14 +27,14 @@ export function IeeeMemberSelector({
 	onChange: (value: number) => void;
 	showAll?: boolean;
 } & Pick<
-	React.ComponentProps<typeof Select>,
+	ComponentProps<typeof Select>,
 	"id" | "className" | "placeholder" | "readOnly" | "disabled" | "isInvalid"
 >) {
 	const memberSapins = useAppSelector(selectMemberIds);
 	let options = useAppSelector(selectIeeeMembers);
 	if (!showAll) {
 		options = options.filter(
-			(o) => o.SAPIN === value || !memberSapins.includes(o.SAPIN)
+			(o) => o.SAPIN === value || !memberSapins.includes(o.SAPIN),
 		);
 	}
 	const values = options.filter((o) => o.SAPIN === value);

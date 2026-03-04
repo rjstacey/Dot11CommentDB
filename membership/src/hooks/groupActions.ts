@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback } from "react";
 import { Multiple, shallowDiff } from "@common";
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -27,11 +27,11 @@ export type MultipleGroupEntry = Multiple<GroupCreate> & {
 export function useGroupsUpdate() {
 	const dispatch = useAppDispatch();
 
-	return React.useCallback(
+	return useCallback(
 		async (
 			edited: MultipleGroupEntry,
 			saved: MultipleGroupEntry,
-			groups: Group[]
+			groups: Group[],
 		) => {
 			const { officers: savedOfficers, ...savedEntry } = saved;
 			const { officers: editedOfficers, ...editedEntry } = edited;
@@ -76,13 +76,13 @@ export function useGroupsUpdate() {
 					await dispatch(deleteOfficers(officerDeletes));
 			}
 		},
-		[dispatch]
+		[dispatch],
 	);
 }
 
 export function useGroupAdd() {
 	const dispatch = useAppDispatch();
-	return React.useCallback(
+	return useCallback(
 		async (edited: GroupEntry) => {
 			let { officers, ...newGroup } = edited; // eslint-disable-line
 			const group = await dispatch(addGroup(newGroup));
@@ -97,16 +97,16 @@ export function useGroupAdd() {
 			}
 			return group;
 		},
-		[dispatch]
+		[dispatch],
 	);
 }
 
 export function useGroupsDelete() {
 	const dispatch = useAppDispatch();
-	return React.useCallback(
+	return useCallback(
 		async (groups: Group[]) => {
 			await dispatch(deleteGroups(groups.map((g) => g.id)));
 		},
-		[dispatch]
+		[dispatch],
 	);
 }
