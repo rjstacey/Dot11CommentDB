@@ -8,6 +8,8 @@ import {
 import { refresh } from "./loader";
 
 import { MembershipOverTimeDetail } from "./detail";
+import { MembershipOverTimeUpload } from "./upload";
+import { MembershipOverTimeExport } from "./export";
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
 export function MembershipOverTimeMain() {
@@ -21,6 +23,8 @@ export function MembershipOverTimeMain() {
 					columns={tableColumns}
 				/>
 				<Col xs="auto" className="d-flex justify-content-end gap-2">
+					<MembershipOverTimeUpload />
+					<MembershipOverTimeExport />
 					<Button
 						variant="outline-primary"
 						className="bi-arrow-repeat"

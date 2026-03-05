@@ -180,3 +180,42 @@ export const deleteMembershipOverTime =
 				dispatch(setError("DELETE " + url, error));
 			});
 	};
+
+export const uploadMembershipOverTime =
+	(file: File): AppThunk =>
+	async (dispatch, getState) => {
+		const { groupName } = selectMembershipOverTimeState(getState());
+		if (!groupName) {
+			dispatch(
+				setError("Unable to upload members", "Group not selected"),
+			);
+			return;
+		}
+		const url = `/api/${groupName}/membershipOverTime/upload`;
+		dispatch(getPending({ groupName }));
+		try {
+			const response = await fetcher.postFile(url, file);
+			const membershipOverTime = membershipEventsSchema.parse(response);
+			dispatch(getSuccess(membershipOverTime));
+		} catch (error) {
+			dispatch(getFailure());
+			dispatch(setError("POST " + url, error));
+		}
+	};
+
+export const exportMembershipOverTime =
+	(): AppThunk => async (dispatch, getState) => {
+		const { groupName } = selectMembershipOverTimeState(getState());
+		if (!groupName) {
+			dispatch(
+				setError("Unable to export members", "Group not selected"),
+			);
+			return;
+		}
+		const url = `/api/${groupName}/membershipOverTime/export`;
+		try {
+			await fetcher.getFile(url);
+		} catch (error) {
+			dispatch(setError("GET " + url, error));
+		}
+	};

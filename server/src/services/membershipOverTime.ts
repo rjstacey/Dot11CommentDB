@@ -1,5 +1,6 @@
 import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import type { Response } from "express";
 
 import type { Group } from "@schemas/groups.js";
 import {
@@ -7,10 +8,15 @@ import {
 	MembershipEventCreate,
 	MembershipEventUpdate,
 } from "@schemas/membershipOverTime.js";
+import { UserContext } from "./users.js";
+
+import {
+	parseMembershipOverTimeSpreadsheet,
+	genMembershipOverTimeSpreadsheet,
+} from "./membershipOverTimeSpreadsheet.js";
 
 export async function init() {
 	const sql = `
-	DROP TABLE IF EXISTS membershipOverTime;
 		CREATE TABLE IF NOT EXISTS membershipOverTime (
 			id INT AUTO_INCREMENT PRIMARY KEY,
 			groupId BINARY(16) NOT NULL,
@@ -125,4 +131,27 @@ export async function removeMembershipOverTimeEvents(
 	);
 	const result = await db.query<ResultSetHeader>(sql);
 	return result.affectedRows;
+}
+
+export async function uploadMembershipOverTime(group: Group, buffer: Buffer) {
+	const events = await parseMembershipOverTimeSpreadsheet(buffer);
+
+	const sql = db.format(
+		"DELETE FROM membershipOverTime WHERE groupId=UUID_TO_BIN(?)",
+		[group.id],
+	);
+	await db.query(sql);
+
+	return addMembershipOverTimeEvents(group, events);
+}
+
+export async function exportMembershipOverTime(
+	user: UserContext,
+	group: Group,
+	res: Response,
+) {
+	const events = await getMembershipOverTime({ groupId: group.id });
+
+	res.attachment(`${group.name}_membership_over_time.xlsx`);
+	return genMembershipOverTimeSpreadsheet(user, events, res);
 }
