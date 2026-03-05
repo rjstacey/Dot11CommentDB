@@ -59,6 +59,8 @@ export async function getMembershipOverTime(query?: MembershipOverTimeQuery) {
 		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 	}
 
+	sql += " ORDER BY date ASC";
+
 	return await db.query<(RowDataPacket & MembershipEvent)[]>(sql);
 }
 

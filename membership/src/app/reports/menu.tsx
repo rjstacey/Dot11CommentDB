@@ -33,6 +33,9 @@ export function Menu() {
 			<Nav.Link as={NavLink} to="sessionParticipation/by-affiliation">
 				In-Person By Affiliation
 			</Nav.Link>
+			<Nav.Link as={NavLink} to="membershipOverTime">
+				Membership Over Time
+			</Nav.Link>
 		</Nav>
 	);
 }
