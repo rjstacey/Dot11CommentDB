@@ -4,6 +4,7 @@ import isEqual from "lodash.isequal";
 import { ConfirmModal, shallowDiff } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectMembersSummary } from "@/store/members";
 import {
 	MembershipEvent,
 	MembershipEventCreate,
@@ -13,12 +14,6 @@ import {
 	addMembershipOverTime,
 	deleteMembershipOverTime,
 } from "@/store/membershipOverTime";
-
-const nullMembershipEvent: MembershipEventCreate = {
-	date: "",
-	count: 0,
-	note: null,
-};
 
 export type MembershipOverTimeEditState = (
 	| {
@@ -43,6 +38,7 @@ export function useMembershipOverTimeEdit(readOnly: boolean) {
 	const { entities, selected, loading, valid } = useAppSelector(
 		selectMembershipOverTimeState,
 	);
+	const membersSummary = useAppSelector(selectMembersSummary);
 
 	const initState = useCallback((): MembershipOverTimeEditState => {
 		let message: string;
@@ -177,14 +173,20 @@ export function useMembershipOverTimeEdit(readOnly: boolean) {
 			);
 			if (!ok) return;
 		}
+		const edited: MembershipEventCreate = {
+			date: new Date().toISOString().slice(0, 10),
+			count: membersSummary.Voter || 0,
+			note: null,
+		};
+
 		dispatch(setSelected([]));
 		setState({
 			action: "add",
-			edited: nullMembershipEvent,
+			edited: edited,
 			saved: undefined,
 			ids: [],
 		});
-	}, [disableAdd, hasChanges, dispatch]);
+	}, [disableAdd, hasChanges, dispatch, membersSummary]);
 
 	const disableDelete = readOnly || state.ids.length === 0;
 	const onDelete = useCallback(async () => {
