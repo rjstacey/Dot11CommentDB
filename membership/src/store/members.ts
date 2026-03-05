@@ -292,6 +292,30 @@ export const selectUserMembersAccess = (state: RootState) => {
 	return group?.permissions.members || AccessLevel.none;
 };
 
+export type MemberSummary = Partial<
+	Record<(typeof activeMemberStatusValues)[number] | "Non-Voter", number>
+>;
+
+export const selectMembersSummary = createSelector(
+	selectMemberIds,
+	selectMemberEntities,
+	(ids, entities) => {
+		const s: MemberSummary = {
+			"Non-Voter": 0,
+			Observer: 0,
+			Aspirant: 0,
+			"Potential Voter": 0,
+			Voter: 0,
+			ExOfficio: 0,
+		};
+		for (const id of ids) {
+			const m = entities[id];
+			if (m && m.Status in s) s[m.Status as keyof MemberSummary]!++;
+		}
+		return s;
+	},
+);
+
 /* Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
