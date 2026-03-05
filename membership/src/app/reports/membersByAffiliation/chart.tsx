@@ -1,27 +1,27 @@
-import { Ratio } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import StackedBarChart from "@/components/StackedBarChart";
-import { useDimensions } from "../useDimensions";
 import {
 	selectMembersByAffiliation,
 	series,
 } from "./selectMembersByAffiliation";
+import { ChartWrapper } from "../ChartWrapper";
 
 export function MembersChart() {
 	const { ids, entities } = useAppSelector(selectMembersByAffiliation);
-	const { ref, width, height } = useDimensions();
 
 	return (
-		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden m-3">
-			<StackedBarChart
-				width={width}
-				height={height}
-				series={series}
-				ids={ids}
-				entities={entities}
-				yLabel="Number of members"
-			/>
-		</Ratio>
+		<ChartWrapper>
+			{({ width, height }) => (
+				<StackedBarChart
+					width={width}
+					height={height}
+					series={series}
+					ids={ids}
+					entities={entities}
+					yLabel="Number of members"
+				/>
+			)}
+		</ChartWrapper>
 	);
 }
 

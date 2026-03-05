@@ -1,12 +1,11 @@
-import { useEffect, useRef, useMemo, useState } from "react";
-import { Ratio } from "react-bootstrap";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import * as d3 from "d3";
 import { useAppSelector } from "@/store/hooks";
-import { useDimensions } from "../useDimensions";
 import {
 	type MembershipEvent,
 	selectMembershipOverTimeState,
 } from "@/store/membershipOverTime";
+import { ChartWrapper } from "../ChartWrapper";
 
 const VIEW = { width: 1600, height: 900 };
 const MARGIN = { top: 10, right: 10, bottom: 10, left: 10 };
@@ -143,12 +142,12 @@ export function MembershipOverTimeChart() {
 		() => ids.map((id) => entities[id]!).filter((e) => e.count > 0),
 		[ids, entities],
 	);
-	const { ref, width, height } = useDimensions();
-
 	return (
-		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden m-3">
-			<LineChart width={width} height={height} events={events} />
-		</Ratio>
+		<ChartWrapper>
+			{({ width, height }) => (
+				<LineChart events={events} width={width} height={height} />
+			)}
+		</ChartWrapper>
 	);
 }
 

@@ -1,5 +1,4 @@
 import { useRef, useEffect, useMemo, useState } from "react";
-import { Ratio } from "react-bootstrap";
 import * as d3 from "d3";
 import { useOutletContext } from "react-router";
 
@@ -10,8 +9,7 @@ import {
 	type AttendancePerSession,
 } from "./useAttendancePerSession";
 import type { SessionParticipationReportContext } from "./layout";
-
-import { useDimensions } from "../useDimensions";
+import { ChartWrapper } from "../ChartWrapper";
 import { XAxis } from "./XAxis";
 import { YAxis } from "./YAxis";
 
@@ -269,11 +267,10 @@ function Chart({ width, height }: { width: number; height: number }) {
 }
 
 export function PerSessionChart() {
-	const { ref, width, height } = useDimensions();
 	return (
-		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden m-3">
-			<Chart width={width} height={height} />
-		</Ratio>
+		<ChartWrapper>
+			{({ width, height }) => <Chart width={width} height={height} />}
+		</ChartWrapper>
 	);
 }
 

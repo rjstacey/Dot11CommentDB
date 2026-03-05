@@ -4,8 +4,8 @@ export function useDimensions() {
 	const ref = useRef<HTMLDivElement>(null);
 	const getDimensions = () => {
 		return {
-			width: ref.current ? ref.current.offsetWidth : 16,
-			height: ref.current ? ref.current.offsetHeight : 9,
+			width: ref.current ? ref.current.offsetWidth : 0,
+			height: ref.current ? ref.current.offsetHeight : 0,
 		};
 	};
 

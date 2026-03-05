@@ -241,7 +241,6 @@ function StackedBarChart({
 		xAxis({ gRef, xScale });
 		const b = gRef.getBoundingClientRect();
 		// Prevent repeated re-rendering by rounding to 0.1
-		console.log("height", b.height);
 		const h = Math.ceil(b.height * 10) / 10;
 		const scaledHeight = (h * viewHeight) / height;
 		setXAxisHeight(scaledHeight);

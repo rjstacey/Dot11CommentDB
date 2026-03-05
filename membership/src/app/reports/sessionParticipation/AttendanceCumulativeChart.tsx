@@ -1,5 +1,4 @@
 import { useRef, useEffect, useMemo, useState } from "react";
-import { Ratio } from "react-bootstrap";
 import * as d3 from "d3";
 
 import {
@@ -7,9 +6,9 @@ import {
 	type AttendanceCumulative,
 } from "./useAttendanceCumulative";
 
-import { useDimensions } from "../useDimensions";
 import { XAxis } from "./XAxis";
 import { YAxis } from "./YAxis";
+import { ChartWrapper } from "../ChartWrapper";
 
 // Set of pastel colors as an array of hex strings
 const colors = [
@@ -230,11 +229,10 @@ function Chart({ width, height }: { width: number; height: number }) {
 }
 
 export function CumulativeChart() {
-	const { ref, width, height } = useDimensions();
 	return (
-		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden m-3">
-			<Chart width={width} height={height} />
-		</Ratio>
+		<ChartWrapper>
+			{({ width, height }) => <Chart width={width} height={height} />}
+		</ChartWrapper>
 	);
 }
 
