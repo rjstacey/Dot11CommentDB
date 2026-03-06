@@ -181,7 +181,7 @@ export function useSessionsEdit(readOnly: boolean) {
 				saved: edited,
 			});
 		}
-	}, [readOnly, state, setState]);
+	}, [readOnly, state, setState, dispatch]);
 
 	const disableAdd = readOnly || (state.action === "update" && hasChanges());
 	const onAdd = useCallback(() => {

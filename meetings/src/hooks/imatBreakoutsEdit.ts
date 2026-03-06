@@ -383,7 +383,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				await dispatch(updateMeetings(meetingUpdates));
 			}
 		}
-	}, [state, resetState]);
+	}, [state, resetState, dispatch]);
 
 	const onAdd = useCallback(async () => {
 		if (readOnly) {
@@ -408,7 +408,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 			saved: undefined,
 		}));
 		dispatch(setSelected([]));
-	}, [readOnly, state, setState]);
+	}, [readOnly, state, setState, dispatch]);
 
 	const onDelete = useCallback(async () => {
 		if (readOnly) {
