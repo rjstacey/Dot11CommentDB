@@ -53,7 +53,7 @@ export function TextFormatGroup({
 			/>,
 		);
 
-	let moreButtons: JSX.Element[] = [];
+	let moreButtons: React.ReactElement[] = [];
 	if (size === "md" || size == "sm") {
 		moreButtons = buttons.splice(-3, 3);
 	}

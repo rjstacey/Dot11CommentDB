@@ -43,7 +43,7 @@ export function TextBlockGroup({
 		/>
 	));
 
-	let moreButtons: JSX.Element[] = [];
+	let moreButtons: React.ReactElement[] = [];
 	if (size === "md") {
 		moreButtons = buttons.splice(-3, 3);
 	} else if (size === "sm") {

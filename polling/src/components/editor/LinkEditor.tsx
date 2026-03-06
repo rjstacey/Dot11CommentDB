@@ -118,7 +118,7 @@ function FloatingLinkEditor({
 	anchorElem: HTMLElement;
 	isLinkEditMode: boolean;
 	setIsLinkEditMode: React.Dispatch<boolean>;
-}): JSX.Element {
+}) {
 	const editorRef = useRef<HTMLDivElement | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [linkUrl, setLinkUrl] = useState("");

@@ -100,7 +100,7 @@ export function PollOptionsEdit({
 		inputRefs.current[i]?.focus();
 	}
 
-	let addOptionRow: JSX.Element | null = null;
+	let addOptionRow: React.ReactNode = null;
 	if (!readOnly) {
 		addOptionRow = (
 			<div className={css["poll-option"]}>
@@ -166,7 +166,7 @@ export function PollOptionsRow({
 				<PollVotingChoiceSelect
 					className={cx(
 						"mt-3",
-						poll.type === "m" && "visually-hidden"
+						poll.type === "m" && "visually-hidden",
 					)}
 					value={poll.choice}
 					onChange={(choice) => changePoll({ choice })}
