@@ -181,13 +181,13 @@ export function useSessionsEdit(readOnly: boolean) {
 				saved: edited,
 			});
 		}
-	}, [readOnly, setState]);
+	}, [readOnly, state, setState]);
 
 	const disableAdd = readOnly || (state.action === "update" && hasChanges());
 	const onAdd = useCallback(() => {
 		setState({ action: "add", edited: defaultSession, saved: undefined });
 		dispatch(setSelected([]));
-	}, [dispatch]);
+	}, [dispatch, setState]);
 
 	const disableDelete = readOnly || state.action === "add";
 	const onDelete = useCallback(async () => {
