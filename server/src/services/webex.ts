@@ -464,9 +464,9 @@ export async function getWebexMeetings({
 			scheduledType: "meeting",
 			from: from.toISO()!,
 			to: to.toISO()!,
-			max: 200,
+			max: 100,
 		};
-		//if (account.owner) params.hostEmail = account.owner.userName;
+		if (account.owner) params.hostEmail = account.owner.userName;
 
 		const data = await api.get<{ items: WebexMeeting[] }>(
 			"/meetings",

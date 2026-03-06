@@ -77,7 +77,7 @@ export default defineConfig(({ command, mode }) => {
 				"^(/api|/auth|/oauth2|/login|/logout)": {
 					target: env.SERVER,
 					changeOrigin: true,
-					agent: new https.Agent({
+					/*agent: new https.Agent({
 						proxyEnv: {
 							HTTPS_PROXY:
 								process.env.HTTPS_PROXY ||
@@ -88,7 +88,7 @@ export default defineConfig(({ command, mode }) => {
 							NO_PROXY:
 								process.env.NO_PROXY || process.env.no_proxy,
 						},
-					}),
+					}),*/
 				},
 				"/socket.io": {
 					target: env.SERVER,
