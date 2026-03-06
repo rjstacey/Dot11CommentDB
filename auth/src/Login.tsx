@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState } from "react";
 import "./App.css";
 
 const ieeeSA_forgotPasswordLink =
@@ -180,14 +180,14 @@ const ForgotPassword = () => (
 );
 
 function App() {
-	const [credentials, setCredentials] = React.useState({
+	const [credentials, setCredentials] = useState({
 		username: "",
 		password: "",
 	});
 	const urlParams = new URLSearchParams(window.location.search);
 	const redirect = urlParams.get("redirect");
 
-	const submit: React.FormEventHandler<HTMLFormElement> = async (e) => {
+	const submit = async (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		const user = await login(credentials.username, credentials.password);
 		if (user && redirect) {
