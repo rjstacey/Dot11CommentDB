@@ -276,7 +276,7 @@ function useMeetingsEditState() {
 	]);
 
 	useEffect(() => {
-		if (state.action === "add-by-date" || state.action === "add-by-slot") {
+		if (state.action === "add-by-date") {
 			if (selectedMeetings.length > 0) {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
@@ -284,7 +284,11 @@ function useMeetingsEditState() {
 					if (ok) resetState();
 					else dispatch(setSelectedMeetings([]));
 				});
+			} else {
+				resetState();
 			}
+		} else if (state.action === "add-by-slot") {
+			resetState();
 		} else if (state.action === "update") {
 			if (state.edited === state.saved) {
 				resetState();
@@ -302,7 +306,7 @@ function useMeetingsEditState() {
 		} else {
 			resetState();
 		}
-	}, [selectedMeetings, resetState]);
+	}, [selectedMeetings, selectedSlots, resetState]);
 
 	return [state, setState, resetState, setAddState] as const;
 }
@@ -354,6 +358,10 @@ export function useMeetingsEdit(readOnly: boolean) {
 	);
 
 	const submit = useCallback(async () => {
+		if (readOnly) {
+			console.warn("submit: state is readOnly");
+			return;
+		}
 		if (state.action === "add-by-date" || state.action === "add-by-slot") {
 			const { action, session } = state;
 			let entry = state.edited;
@@ -453,7 +461,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 			}
 			setState({ ...state, saved: state.edited });
 		}
-	}, []);
+	}, [readOnly, state, dispatch, setState]);
 
 	const onAdd = useCallback(async () => {
 		if (readOnly) {
