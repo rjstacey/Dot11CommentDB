@@ -1,4 +1,4 @@
-import { useState, type ChangeEventHandler, type FormEvent } from "react";
+import { useState } from "react";
 import {
 	Row,
 	Col,
@@ -65,7 +65,7 @@ function ImportFieldsList({
 	setFields: (fields: FieldToUpdate[]) => void;
 	disableCID: boolean;
 }) {
-	const change: ChangeEventHandler<HTMLInputElement> = (e) => {
+	const change = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const newFields = fields.slice();
 		if (e.target.checked) {
 			newFields.push(e.target.name as FieldToUpdate);
@@ -220,7 +220,7 @@ function CommentsImportDropdown({
 
 	const formValid = fields.length > 0 && file !== null;
 
-	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		if (!file) return;
 		setBusy(true);

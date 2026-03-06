@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { Container, Row, Col, DropdownButton, Button } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -25,7 +24,7 @@ function copyHtmlToClipboard(html: string) {
 const camelToKebab = (value: string) =>
 	value.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
 
-function styleObjToString(style: CSSProperties) {
+function styleObjToString(style: React.CSSProperties) {
 	return Object.entries(style)
 		.map(([key, value]) => `${camelToKebab(key)}: ${value}`)
 		.join("; ");
@@ -33,7 +32,7 @@ function styleObjToString(style: CSSProperties) {
 
 type Label = string | ((b: Ballot) => string);
 type Value = null | ((b: Ballot) => string | number);
-type Style = undefined | ((b: Ballot) => CSSProperties);
+type Style = undefined | ((b: Ballot) => React.CSSProperties);
 
 type ResultRender = {
 	label?: Label;

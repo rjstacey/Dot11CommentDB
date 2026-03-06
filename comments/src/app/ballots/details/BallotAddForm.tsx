@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Form } from "react-bootstrap";
 
 import type { BallotCreate, BallotChange } from "@/store/ballots";
@@ -28,7 +28,7 @@ export function BallotAddForm({
 		setFormValid(formValid);
 	});
 
-	async function onSubmit(e: FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await submit();

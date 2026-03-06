@@ -1,4 +1,3 @@
-import type { CSSProperties, ChangeEvent } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple } from "@common";
 
@@ -10,6 +9,7 @@ import {
 	type BallotChange,
 } from "@/store/ballots";
 import { useGetBallotSeries, type BallotMultiple } from "@/hooks/ballotsEdit";
+import React from "react";
 
 export function BallotSeriesRows({
 	edited,
@@ -28,7 +28,11 @@ export function BallotSeriesRows({
 	if (edited.Type !== BallotType.WG && edited.Type !== BallotType.SA)
 		return null;
 
-	function ballotSeriesNode(b: Ballot, i: number, style?: CSSProperties) {
+	function ballotSeriesNode(
+		b: Ballot,
+		i: number,
+		style?: React.CSSProperties,
+	) {
 		return (
 			<span
 				key={b.id}
@@ -41,7 +45,7 @@ export function BallotSeriesRows({
 			</span>
 		);
 	}
-	let ballotSeriesNodes: JSX.Element[] = [];
+	let ballotSeriesNodes: React.ReactElement[] = [];
 
 	let prevBallots: Ballot[] = [];
 	let stage = 0;
@@ -119,7 +123,7 @@ export function BallotSeriesRows({
 		}
 	}
 
-	function onChangeIsComplete(e: ChangeEvent<HTMLInputElement>) {
+	function onChangeIsComplete(e: React.ChangeEvent<HTMLInputElement>) {
 		if (readOnly) return;
 		onChange({
 			IsComplete: e.target.checked,
@@ -142,20 +146,20 @@ export function BallotSeriesRows({
 						label="Initial"
 						checked={!edited.prev_id}
 						onChange={togglePrevId}
-						ref={(ref) =>
-							ref &&
-							(ref.indeterminate = isMultiple(edited.prev_id))
-						}
+						ref={(ref) => {
+							if (ref)
+								ref.indeterminate = isMultiple(edited.prev_id);
+						}}
 					/>
 					<Form.Check
 						className={cn1 + " me-2"}
 						label="Recirculation"
 						checked={Boolean(edited.prev_id)}
 						onChange={togglePrevId}
-						ref={(ref) =>
-							ref &&
-							(ref.indeterminate = isMultiple(edited.prev_id))
-						}
+						ref={(ref) => {
+							if (ref)
+								ref.indeterminate = isMultiple(edited.prev_id);
+						}}
 						disabled={!prevBallot}
 					/>
 				</Col>
@@ -174,10 +178,12 @@ export function BallotSeriesRows({
 						label="Final in series"
 						checked={Boolean(edited.IsComplete)}
 						onChange={onChangeIsComplete}
-						ref={(ref) =>
-							ref &&
-							(ref.indeterminate = isMultiple(edited.IsComplete))
-						}
+						ref={(ref) => {
+							if (ref)
+								ref.indeterminate = isMultiple(
+									edited.IsComplete,
+								);
+						}}
 						disabled={!isLast}
 					/>
 				</Col>

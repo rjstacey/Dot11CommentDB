@@ -1,4 +1,4 @@
-import { forwardRef, useState, type MouseEventHandler } from "react";
+import { forwardRef, useState } from "react";
 import { Dropdown } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -20,7 +20,7 @@ const Selector = forwardRef<
 	if (status === "unreachable") color = "#ffb04e";
 	const background = `radial-gradient(circle at 5px 5px, ${color}, #000000b0)`;
 
-	let onClick: MouseEventHandler | undefined;
+	let onClick: React.MouseEventHandler | undefined;
 	if (status !== "online") onClick = () => setShow(!show);
 
 	return (

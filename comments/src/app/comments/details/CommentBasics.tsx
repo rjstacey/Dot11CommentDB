@@ -47,7 +47,7 @@ export function renderCommenter(comment: MultipleComment) {
 	const commenter = comment.CommenterName;
 	if (isMultiple(commenter)) return <ShowMultiple />;
 
-	let vote: JSX.Element | null = null;
+	let vote: React.ReactNode = null;
 	if (comment.Vote === "Approve") {
 		vote = <i className="icon icon-vote-yes ms-2" />;
 	} else if (comment.Vote === "Disapprove") {

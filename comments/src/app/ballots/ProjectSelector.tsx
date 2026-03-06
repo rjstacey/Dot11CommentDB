@@ -1,4 +1,4 @@
-import { useState, useEffect, type ComponentProps } from "react";
+import { useState, useEffect } from "react";
 import { Select, SelectRendererProps } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectGroupProjectOptions, GroupProjectOption } from "@/store/ballots";
@@ -15,7 +15,7 @@ function SelectProject({
 	groupId: string | null;
 	readOnly?: boolean;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	| "placeholder"
 	| "readOnly"
 	| "disabled"

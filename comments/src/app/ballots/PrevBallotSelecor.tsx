@@ -1,4 +1,4 @@
-import { useMemo, type ComponentProps } from "react";
+import { useMemo } from "react";
 import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { getBallotId, selectBallotsState } from "@/store/ballots";
@@ -37,7 +37,7 @@ function SelectPrevBallot({
 	onChange: (value: number | null) => void;
 	ballot_id: number;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const options = usePrevBallotOptions(ballot_id);

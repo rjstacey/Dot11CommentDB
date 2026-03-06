@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import {
 	DropdownButton,
 	Button,
@@ -25,7 +25,7 @@ function ResultsExportForm({
 
 	const dispatch = useAppDispatch();
 
-	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(exportResults(ballot.id, forProject));

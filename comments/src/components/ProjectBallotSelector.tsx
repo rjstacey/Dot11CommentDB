@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from "react";
+import { useMemo } from "react";
 import { FormCheck } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router";
 
@@ -51,7 +51,7 @@ function ProjectSelect({
 	onChange: (value: GroupProject) => void;
 	loading: boolean;
 	readOnly?: boolean;
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	id?: string;
 }) {
 	const options = useAppSelector(selectGroupProjectOptions);
@@ -86,7 +86,7 @@ function BallotSelect({
 	onChange: (value: number | null) => void;
 	loading: boolean;
 	readOnly?: boolean;
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	id?: string;
 }) {
 	const ballots = useAppSelector(selectBallotOptions);

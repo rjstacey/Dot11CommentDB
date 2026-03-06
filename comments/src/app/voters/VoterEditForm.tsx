@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 
 import { VoterChange, VoterCreate } from "@/store/voters";
@@ -92,7 +92,7 @@ export function VoterEditForm({
 }) {
 	const [busy, setBusy] = useState(false);
 
-	async function onSubmit(e: FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await submit();

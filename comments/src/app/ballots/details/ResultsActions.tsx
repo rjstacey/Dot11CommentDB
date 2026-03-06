@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent } from "react";
+import { useState, useRef } from "react";
 import { Button, Row, Col, Form, Spinner } from "react-bootstrap";
 import { ConfirmModal } from "@common";
 
@@ -65,7 +65,7 @@ function UploadResults({ ballot }: { ballot: Ballot }) {
 	const [inputValue, setInputValue] = useState("");
 	const isReimport = Boolean(ballot.Results?.TotalReturns);
 
-	const onChangeFile = async (e: ChangeEvent<HTMLInputElement>) => {
+	const onChangeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		setInputValue(e.target.value);
 		const file = e.target.files?.[0];
 		if (!file) return;

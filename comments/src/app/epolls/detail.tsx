@@ -1,4 +1,3 @@
-import type { ComponentProps } from "react";
 import { Container, Row, Col } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
@@ -9,8 +8,9 @@ import { useEpollsEdit } from "@/hooks/epollsEdit";
 import ShowAccess from "@/components/ShowAccess";
 import { BallotAddForm } from "../ballots/details/BallotAddForm";
 import { BallotEditForm } from "../ballots/details/BallotEditForm";
+import React from "react";
 
-const Placeholder = (props: ComponentProps<"span">) => (
+const Placeholder = (props: React.ComponentProps<"span">) => (
 	<div className="details-panel-placeholder">
 		<span {...props} />
 	</div>
@@ -25,7 +25,7 @@ export function EpollsDetail() {
 		useEpollsEdit(readOnly);
 
 	let title = "";
-	let content: JSX.Element;
+	let content: React.ReactElement;
 	if (state.action === null) {
 		content = <Placeholder>{state.message}</Placeholder>;
 	} else if (state.action === "add") {

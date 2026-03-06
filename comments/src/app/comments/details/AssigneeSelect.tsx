@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from "react";
+import { useState } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { Select, SelectRendererProps, strComp } from "@common";
@@ -73,7 +73,7 @@ export function AssigneeSelect({
 	onChange: (value: Assignee) => void;
 	readOnly?: boolean;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const { loading } = useAppSelector(selectMembersState);

@@ -1,4 +1,4 @@
-import { useMemo, type ComponentProps } from "react";
+import { useMemo } from "react";
 import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -12,7 +12,7 @@ export function MemberSelect({
 	value: number;
 	onChange: (value: number) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"className" | "readOnly" | "id" | "isInvalid"
 >) {
 	const { loading } = useAppSelector(selectMembersState);

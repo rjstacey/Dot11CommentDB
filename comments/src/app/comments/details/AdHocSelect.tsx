@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from "react";
+import { useState } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { Select, SelectRendererProps } from "@common";
@@ -74,7 +74,7 @@ export function AdHocSelect({
 	value: AdHoc;
 	onChange: (value: AdHoc) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const existingOptions = useAppSelector(selectAdHocOptions);

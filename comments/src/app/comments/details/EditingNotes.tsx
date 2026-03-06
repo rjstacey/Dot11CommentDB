@@ -1,4 +1,3 @@
-import type { ChangeEventHandler } from "react";
 import { Row, Col, Form, Accordion } from "react-bootstrap";
 import { isMultiple, Multiple } from "@common";
 
@@ -32,7 +31,7 @@ function EditingStatus({
 	updateResolution: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
-	const changeEditStatus: ChangeEventHandler<HTMLInputElement> = (e) => {
+	const changeEditStatus = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const fields: Partial<Resolution> = {};
 		if (e.target.name === "EditStatus") {
 			if (e.target.checked) {
@@ -72,12 +71,12 @@ function EditingStatus({
 						id="implementedindraft"
 						name="EditStatus"
 						value="I"
-						ref={(ref) =>
-							ref &&
-							(ref.indeterminate = isMultiple(
-								resolution.EditStatus,
-							))
-						}
+						ref={(ref) => {
+							if (ref)
+								ref.indeterminate = isMultiple(
+									resolution.EditStatus,
+								);
+						}}
 						checked={resolution.EditStatus === "I"}
 						onChange={changeEditStatus}
 						label="Implemented in draft"
@@ -108,12 +107,12 @@ function EditingStatus({
 						id="nochange"
 						name="EditStatus"
 						value="N"
-						ref={(ref) =>
-							ref &&
-							(ref.indeterminate = isMultiple(
-								resolution.EditStatus,
-							))
-						}
+						ref={(ref) => {
+							if (ref)
+								ref.indeterminate = isMultiple(
+									resolution.EditStatus,
+								);
+						}}
 						checked={resolution.EditStatus === "N"}
 						onChange={changeEditStatus}
 						label="No change"

@@ -1,5 +1,6 @@
 import { DropdownButton, Button } from "react-bootstrap";
 import { useTextFormatEdit, TextFormatType } from "../useTextFormatEdit";
+import React from "react";
 
 const options: {
 	value: TextFormatType;
@@ -53,7 +54,7 @@ export function TextFormatGroup({
 			/>,
 		);
 
-	let moreButtons: JSX.Element[] = [];
+	let moreButtons: React.ReactElement[] = [];
 	if (size === "md" || size == "sm") {
 		moreButtons = buttons.splice(-3, 3);
 	}

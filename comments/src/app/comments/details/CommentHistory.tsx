@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Row, Col } from "react-bootstrap";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -73,7 +73,7 @@ function CommentUpdate(entry: CommentHistoryEntry) {
 	const comment = entry.comment;
 	const updatedComment = { ...comment, ...changes };
 
-	const body: JSX.Element[] = [];
+	const body: React.ReactElement[] = [];
 	if ("CommentID" in changes)
 		body.push(
 			<Row key="cid">
@@ -146,7 +146,7 @@ function ResolutionUpdate(entry: CommentHistoryEntry) {
 	const comment = entry.comment;
 	const resolution = entry.resolution!;
 	const updatedResolution = { ...resolution, ...changes };
-	const body: JSX.Element[] = [];
+	const body: React.ReactElement[] = [];
 
 	if ("AssigneeName" in changes)
 		body.push(

@@ -1,4 +1,4 @@
-import { useCallback, type ChangeEventHandler } from "react";
+import { useCallback } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import cx from "clsx";
 import { isMultiple, MULTIPLE, Multiple } from "@common";
@@ -22,7 +22,7 @@ function ResnStatus({
 	onChange: (value: ResnStatusType | null) => void;
 	readOnly?: boolean;
 }) {
-	const handleChange: ChangeEventHandler<HTMLInputElement> = (e) =>
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
 		onChange(e.target.checked ? (e.target.value as ResnStatusType) : null);
 
 	return (
@@ -32,7 +32,9 @@ function ResnStatus({
 				name="ResnStatus"
 				value="A"
 				checked={value === "A"}
-				ref={(ref) => ref && (ref.indeterminate = isMultiple(value))}
+				ref={(ref) => {
+					if (ref) ref.indeterminate = isMultiple(value);
+				}}
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="ACCEPTED"
@@ -44,7 +46,9 @@ function ResnStatus({
 				name="ResnStatus"
 				value="V"
 				checked={value === "V"}
-				ref={(ref) => ref && (ref.indeterminate = isMultiple(value))}
+				ref={(ref) => {
+					if (ref) ref.indeterminate = isMultiple(value);
+				}}
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="REVISED"
@@ -56,7 +60,9 @@ function ResnStatus({
 				name="ResnStatus"
 				value="J"
 				checked={value === "J"}
-				ref={(ref) => ref && (ref.indeterminate = isMultiple(value))}
+				ref={(ref) => {
+					if (ref) ref.indeterminate = isMultiple(value);
+				}}
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="REJECTED"

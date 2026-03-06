@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, type ChangeEvent } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple } from "@common";
 
@@ -73,7 +73,7 @@ function BallotTypeNumberCol({
 		}
 	}
 
-	function onChangeNumber(e: ChangeEvent<HTMLInputElement>) {
+	function onChangeNumber(e: React.ChangeEvent<HTMLInputElement>) {
 		setBallotNumber(e.target.value);
 		const number = Number(e.target.value);
 		onChange({ number });
@@ -91,9 +91,9 @@ function BallotTypeNumberCol({
 				label={label}
 				checked={edited.Type === type}
 				onChange={readOnly ? () => {} : () => updateBallotType(type)}
-				ref={(ref) =>
-					ref && (ref.indeterminate = isMultiple(edited.Type))
-				}
+				ref={(ref) => {
+					if (ref) ref.indeterminate = isMultiple(edited.Type);
+				}}
 				className="me-2"
 			/>
 			{type !== BallotType.SA && (

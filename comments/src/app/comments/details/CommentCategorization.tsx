@@ -114,9 +114,9 @@ function CommentAdHocStatus({
 						id="more-work-required"
 						name="MoreWorkRequired"
 						value={AdHocStatus.MoreWorkRequired}
-						ref={(ref) =>
-							ref && (ref.indeterminate = isIndeterminate)
-						}
+						ref={(ref) => {
+							if (ref) ref.indeterminate = isIndeterminate;
+						}}
 						checked={
 							comment.AdHocStatus === AdHocStatus.MoreWorkRequired
 						}
@@ -140,9 +140,9 @@ function CommentAdHocStatus({
 						id="submission-required"
 						name="SubmissionRequired"
 						value={AdHocStatus.SubmissionRequired}
-						ref={(ref) =>
-							ref && (ref.indeterminate = isIndeterminate)
-						}
+						ref={(ref) => {
+							if (ref) ref.indeterminate = isIndeterminate;
+						}}
 						checked={
 							comment.AdHocStatus ===
 							AdHocStatus.SubmissionRequired

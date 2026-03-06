@@ -1,4 +1,3 @@
-import type { ChangeEventHandler } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple, Multiple } from "@common";
 
@@ -16,7 +15,7 @@ export function ResolutionApprovalRow({
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
-	const changeApproved: ChangeEventHandler<HTMLInputElement> = (e) => {
+	const changeApproved = (e: React.ChangeEvent<HTMLInputElement>) => {
 		let value: string;
 		if (e.target.name === "Approved")
 			value = e.target.checked ? new Date().toDateString() : "";
@@ -38,12 +37,12 @@ export function ResolutionApprovalRow({
 					<Form.Check
 						id="resolution-ReadyForMotion"
 						name="ReadyForMotion"
-						ref={(ref) =>
-							ref &&
-							(ref.indeterminate = isMultiple(
-								resolution.ReadyForMotion,
-							))
-						}
+						ref={(ref) => {
+							if (ref)
+								ref.indeterminate = isMultiple(
+									resolution.ReadyForMotion,
+								);
+						}}
 						checked={!!resolution.ReadyForMotion}
 						onChange={(e) =>
 							updateResolution({
@@ -62,12 +61,12 @@ export function ResolutionApprovalRow({
 					<Form.Check
 						id="resolution-ApprovedByMotion"
 						name="Approved"
-						ref={(ref) =>
-							ref &&
-							(ref.indeterminate = isMultiple(
-								resolution.ApprovedByMotion,
-							))
-						}
+						ref={(ref) => {
+							if (ref)
+								ref.indeterminate = isMultiple(
+									resolution.ApprovedByMotion,
+								);
+						}}
 						checked={!!resolution.ApprovedByMotion}
 						onChange={changeApproved}
 						readOnly={readOnly}

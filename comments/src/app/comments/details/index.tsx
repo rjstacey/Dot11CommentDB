@@ -1,4 +1,4 @@
-import { useState, type ComponentProps, type ReactNode } from "react";
+import { useState } from "react";
 import {
 	Container,
 	Row,
@@ -60,7 +60,7 @@ function CidAndStatusRow({
 	);
 }
 
-const Placeholder = (props: ComponentProps<"span">) => (
+const Placeholder = (props: React.ComponentProps<"span">) => (
 	<div className="details-panel-placeholder">
 		<span {...props} />
 	</div>
@@ -139,7 +139,7 @@ export function CommentsDetail() {
 		</>
 	);
 
-	let content: ReactNode;
+	let content: React.ReactNode;
 	if (state.action === null) {
 		content = <Placeholder>{state.message}</Placeholder>;
 	} else if (showHistory) {

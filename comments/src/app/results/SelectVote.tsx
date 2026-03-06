@@ -1,4 +1,3 @@
-import type { ComponentProps } from "react";
 import { Select } from "@common";
 
 const voteOptions = [
@@ -30,7 +29,7 @@ export function SelectVote({
 	value: string;
 	onChange: (value: string) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "style" | "className"
 >) {
 	let options = voteOptions;

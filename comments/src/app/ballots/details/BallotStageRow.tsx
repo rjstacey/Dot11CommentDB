@@ -104,9 +104,9 @@ export function BallotStageRow({
 												},
 									)
 					}
-					ref={(ref) =>
-						ref && (ref.indeterminate = isMultiple(edited.prev_id))
-					}
+					ref={(ref) => {
+						if (ref) ref.indeterminate = isMultiple(edited.prev_id);
+					}}
 				/>
 				<Form.Check
 					className={cn + " me-2"}
@@ -128,9 +128,9 @@ export function BallotStageRow({
 												},
 									)
 					}
-					ref={(ref) =>
-						ref && (ref.indeterminate = isMultiple(edited.prev_id))
-					}
+					ref={(ref) => {
+						if (ref) ref.indeterminate = isMultiple(edited.prev_id);
+					}}
 					disabled={!prevBallot}
 				/>
 			</Col>

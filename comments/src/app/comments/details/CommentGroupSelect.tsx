@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from "react";
+import { useState } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 
 import { Select, SelectRendererProps } from "@common";
@@ -35,7 +35,7 @@ export function CommentGroupSelect({
 	value: string;
 	onChange: (value: string) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"placeholder" | "readOnly" | "disabled" | "style" | "id"
 >) {
 	const existingOptions = useAppSelector(selectFieldValues);

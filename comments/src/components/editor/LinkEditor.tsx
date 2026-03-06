@@ -1,4 +1,4 @@
-import {
+import React, {
 	useState,
 	useEffect,
 	useRef,
@@ -127,7 +127,7 @@ function FloatingLinkEditor({
 	anchorElem: HTMLElement;
 	isLinkEditMode: boolean;
 	setIsLinkEditMode: Dispatch<boolean>;
-}): JSX.Element {
+}) {
 	const editorRef = useRef<HTMLDivElement | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [linkUrl, setLinkUrl] = useState("");

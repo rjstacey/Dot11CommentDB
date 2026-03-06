@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Form, Row, Col } from "react-bootstrap";
 import { TextArea } from "@common";
 
@@ -24,7 +24,7 @@ export function ResultEditForm({
 	readOnly?: boolean;
 }) {
 	const [busy, setBusy] = useState(false);
-	async function onSubmit(e: FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await submit();

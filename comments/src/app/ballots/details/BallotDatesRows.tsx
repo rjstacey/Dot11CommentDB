@@ -1,4 +1,3 @@
-import type { ChangeEventHandler } from "react";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple } from "@common";
 
@@ -51,7 +50,7 @@ function BallotDateInput({
 		? ""
 		: dateToShortDate(edited[dataKey]);
 
-	const changeDate: ChangeEventHandler<HTMLInputElement> = (e) => {
+	const changeDate = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target;
 		const dateStr = shortDateToDate(value);
 		if (dateStr) onChange({ [name]: dateStr });
