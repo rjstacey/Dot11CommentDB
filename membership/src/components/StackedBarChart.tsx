@@ -1,11 +1,4 @@
-import React, {
-	useState,
-	useMemo,
-	useRef,
-	useEffect,
-	type RefObject,
-	type StyleHTMLAttributes,
-} from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import * as d3 from "d3";
 
 const colors = ["#0000ff", "#ffa500", "#008000", "red"];
@@ -197,7 +190,7 @@ function StackedBarChart({
 	className,
 	style,
 }: {
-	svgRef?: RefObject<SVGSVGElement>;
+	svgRef?: React.RefObject<SVGSVGElement>;
 	height: number;
 	width: number;
 	series: Record<string, string>;
@@ -205,7 +198,7 @@ function StackedBarChart({
 	entities: Record<string, Record<string, number>>;
 	yLabel: string;
 	className?: string;
-	style?: StyleHTMLAttributes<HTMLOrSVGElement>;
+	style?: React.StyleHTMLAttributes<HTMLOrSVGElement>;
 }) {
 	const viewWidth = 1600;
 	const viewHeight = 900;

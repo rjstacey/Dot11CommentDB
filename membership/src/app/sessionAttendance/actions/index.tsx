@@ -19,7 +19,6 @@ import {
 	selectors as regTableSelectors,
 	actions as regTableActions,
 } from "../registration/tableColumns";
-import React from "react";
 
 function useRoute() {
 	const { pathname } = useLocation();

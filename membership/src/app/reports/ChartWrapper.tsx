@@ -1,4 +1,3 @@
-import React from "react";
 import { Ratio } from "react-bootstrap";
 import { useDimensions } from "./useDimensions";
 
