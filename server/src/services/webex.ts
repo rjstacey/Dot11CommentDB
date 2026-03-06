@@ -78,7 +78,7 @@ function createWebexAccount(oauthAccount: OAuthAccount) {
 	webexAccounts[id] = {
 		...oauthAccount,
 		api: new WebexClient(authParams, (...args) =>
-			updateAuthParams(id, ...args)
+			updateAuthParams(id, ...args),
 		),
 		//authParams: authParams,
 		templates: [],
@@ -199,7 +199,7 @@ async function activatedWebexAccount(id: number) {
 export async function getWebexAccounts(
 	req: Request,
 	user: UserContext,
-	query?: WebexAccountsQuery
+	query?: WebexAccountsQuery,
 ) {
 	const proxyHost = req.headers["x-forwarded-host"] as string;
 	const m = /(http[s]?:\/\/[^/]+)\//.exec(req.headers["referer"] || "");
@@ -257,7 +257,7 @@ export async function addWebexAccount(
 	req: Request,
 	user: UserContext,
 	groupId: string,
-	accountIn: WebexAccountCreate
+	accountIn: WebexAccountCreate,
 ) {
 	const oauthAccountIn: OAuthAccountCreate = {
 		...accountIn,
@@ -284,7 +284,7 @@ export async function updateWebexAccount(
 	user: UserContext,
 	groupId: string,
 	id: number,
-	changes: WebexAccountChange
+	changes: WebexAccountChange,
 ) {
 	const [oauthAccount] = await getOAuthAccounts({
 		id,
@@ -307,7 +307,7 @@ export async function updateWebexAccount(
  */
 export async function deleteWebexAccount(
 	groupId: string,
-	id: number
+	id: number,
 ): Promise<number> {
 	const affectedRows = await deleteOAuthAccount(groupId, id);
 	removeWebexAccount(id);
@@ -325,7 +325,7 @@ export async function revokeAuthWebexAccount(
 	req: Request,
 	user: UserContext,
 	groupId: string,
-	id: number
+	id: number,
 ) {
 	const account = await activatedWebexAccount(id);
 	if (account) await account.api.revokeAuth();
@@ -352,7 +352,7 @@ async function getWebexTemplates(api: WebexClient, siteUrl: string) {
 }
 
 async function getWebexMeetingPreferencesSites(
-	api: WebexClient
+	api: WebexClient,
 ): Promise<WebexSites[]> {
 	const url = "/meetingPreferences/sites";
 	const data = await api.get<WebexMeetingPreferences>(url);
@@ -361,7 +361,7 @@ async function getWebexMeetingPreferencesSites(
 
 async function getWebexMeetingPreferences(
 	api: WebexClient,
-	siteUrl: string
+	siteUrl: string,
 ): Promise<WebexMeetingPreferences> {
 	return await api.get<WebexMeetingPreferences>("/meetingPreferences", {
 		siteUrl,
@@ -375,7 +375,7 @@ async function getWebexMeetingPreferences(
  * @returns Webex meeting configuration parameters
  */
 export function webexMeetingToWebexMeetingParams(
-	i: WebexMeeting
+	i: WebexMeeting,
 ): WebexMeetingChange {
 	const o = {
 		accountId: i.accountId,
@@ -401,6 +401,18 @@ export function webexMeetingToWebexMeetingParams(
 
 	return o;
 }
+
+type WebexApiMeetingsQuery = {
+	meetingType?: "meetingSeries" | "scheduledMeeting" | "meeting";
+	scheduledType?: "meeting" | "webinar" | "personalRoomMeeting";
+	state?: "active" | "scheduled" | "ready" | "lobby" | "inProgress";
+	from?: string;
+	to?: string;
+	max?: number;
+	hostEmail?: string;
+	siteUrl?: string;
+	integrationTag?: string;
+};
 
 /**
  * Get a list of Webex meetings.
@@ -442,22 +454,24 @@ export async function getWebexMeetings({
 			? DateTime.fromISO(toDate, { zone: timezone }).plus({ days: 1 })
 			: from.plus({ years: 1 });
 	}
-	const params = {
-		meetingType: "scheduledMeeting",
-		scheduledType: "meeting",
-		from: from.toISO(),
-		to: to.toISO(),
-		max: 100,
-	};
 
 	let webexMeetings: WebexMeeting[] = [];
 	const accounts = await getActiveWebexAccounts({ groupId });
 	for (const account of accounts) {
 		const api = account.api;
+		const params: WebexApiMeetingsQuery = {
+			meetingType: "scheduledMeeting",
+			scheduledType: "meeting",
+			from: from.toISO()!,
+			to: to.toISO()!,
+			max: 200,
+		};
+		if (account.owner) params.hostEmail = account.owner.userName;
+
 		const data = await api.get<{ items: WebexMeeting[] }>(
 			"/meetings",
 			params,
-			{ headers: { timezone } }
+			{ headers: { timezone } },
 		);
 		//console.log(account.name, params, response.data.items.length)
 
@@ -476,7 +490,7 @@ export async function getWebexMeetings({
 	webexMeetings = webexMeetings.sort(
 		(a, b) =>
 			DateTime.fromISO(a.start).toMillis() -
-			DateTime.fromISO(b.start).toMillis()
+			DateTime.fromISO(b.start).toMillis(),
 	);
 	return webexMeetings;
 }
@@ -486,7 +500,7 @@ type WebexMeetingResponse = Omit<WebexMeeting, "accountId" | "accountName">;
 export async function getWebexMeeting(
 	accountId: number,
 	id: string,
-	timezone?: string
+	timezone?: string,
 ): Promise<WebexMeeting> {
 	const account = await activatedWebexAccount(accountId);
 	const api = account.api;
@@ -494,7 +508,7 @@ export async function getWebexMeeting(
 	const data = await api.get<WebexMeetingResponse>(
 		`/meetings/${id}`,
 		undefined,
-		config
+		config,
 	);
 	return {
 		accountId,
@@ -537,7 +551,7 @@ export async function addWebexMeeting({
 export async function addWebexMeetings(webexMeetings: WebexMeetingCreate[]) {
 	// Make sure the account Ids are active
 	await Promise.all(
-		webexMeetings.map((m) => activatedWebexAccount(m.accountId))
+		webexMeetings.map((m) => activatedWebexAccount(m.accountId)),
 	);
 	return Promise.all(webexMeetings.map(addWebexMeeting));
 }
@@ -560,7 +574,7 @@ export async function updateWebexMeeting({
 	const api = account.api;
 	const data = await api.patch<WebexMeetingResponse>(
 		`/meetings/${id}`,
-		params
+		params,
 	);
 	return {
 		accountId,
@@ -578,7 +592,7 @@ export async function updateWebexMeeting({
 export async function updateWebexMeetings(webexMeetings: WebexMeetingChange[]) {
 	// Make sure the account Ids are active
 	await Promise.all(
-		webexMeetings.map((m) => activatedWebexAccount(m.accountId))
+		webexMeetings.map((m) => activatedWebexAccount(m.accountId)),
 	);
 	return Promise.all(webexMeetings.map(updateWebexMeeting));
 }
@@ -608,7 +622,7 @@ export async function deleteWebexMeeting({
 export async function deleteWebexMeetings(webexMeetings: WebexMeetingDelete[]) {
 	// Make sure the account Ids are active
 	await Promise.all(
-		webexMeetings.map((m) => activatedWebexAccount(m.accountId))
+		webexMeetings.map((m) => activatedWebexAccount(m.accountId)),
 	);
 	await Promise.all(webexMeetings.map(deleteWebexMeeting));
 	return webexMeetings.length;
