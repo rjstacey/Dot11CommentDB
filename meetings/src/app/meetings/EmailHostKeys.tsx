@@ -1,4 +1,4 @@
-import { useCallback, useState, type ChangeEvent } from "react";
+import { useCallback, useState } from "react";
 import {
 	Form,
 	Tab,
@@ -42,12 +42,12 @@ function EmailHostKeysForm({ close }: { close: () => void }) {
 	const [busy, setBusy] = useState(false);
 	console.log(groupIds);
 
-	function onChangeGroupId(e: ChangeEvent<HTMLInputElement>) {
+	function onChangeGroupId(e: React.ChangeEvent<HTMLInputElement>) {
 		if (e.target.checked) addGroupId(e.target.value);
 		else removeGroupId(e.target.value);
 	}
 
-	async function onSubmit(e: ChangeEvent<HTMLFormElement>) {
+	async function onSubmit(e: React.ChangeEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setBusy(true);
 		await sendGroupEmails(selectedGroupIds);

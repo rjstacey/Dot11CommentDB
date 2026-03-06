@@ -1,14 +1,13 @@
-import type { ReactNode } from "react";
 import { Button } from "react-bootstrap";
 
 import { selectUserSessionsAccess, AccessLevel } from "@/store/sessions";
+import { useAppSelector } from "@/store/hooks";
+import { useSessionsEdit } from "@/hooks/sessionsEdit";
 
 import { SessionEditForm } from "./SessionEditForm";
 import { SessionAddForm } from "./SessionAddForm";
 
 import ShowAccess from "@/components/ShowAccess";
-import { useAppSelector } from "@/store/hooks";
-import { useSessionsEdit } from "@/hooks/sessionsEdit";
 
 export function SessionsDetails() {
 	const access = useAppSelector(selectUserSessionsAccess);
@@ -26,7 +25,7 @@ export function SessionsDetails() {
 		disableDelete,
 	} = useSessionsEdit(readOnly);
 
-	let actions: ReactNode = null;
+	let actions: React.ReactNode = null;
 	if (!readOnly) {
 		actions = (
 			<>
@@ -52,7 +51,7 @@ export function SessionsDetails() {
 		);
 	}
 
-	let content: JSX.Element;
+	let content: React.ReactNode;
 	if (state.action === "add") {
 		content = (
 			<SessionAddForm

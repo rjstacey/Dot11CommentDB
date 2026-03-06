@@ -6,7 +6,7 @@ import styles from "./MeetingSummary.module.css";
 function MeetingSummary({ meetingId }: { meetingId?: number | null }) {
 	const meetingEntities = useAppSelector(selectSyncedMeetingEntities);
 	const meeting = meetingId ? meetingEntities[meetingId] : undefined;
-	let content: JSX.Element | null = null;
+	let content: React.ReactElement | null = null;
 	if (meeting) {
 		const summary = (meeting.isCancelled ? "🚫 " : "") + meeting.summary;
 		content = (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback, type ComponentProps } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectWebexAccountsState } from "@/store/webexAccounts";
@@ -13,7 +13,7 @@ function WebexTemplateSelector({
 	onChange: (value: string | null) => void;
 	accountId: number | null;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const { loading, entities } = useAppSelector(selectWebexAccountsState);

@@ -1,4 +1,4 @@
-import { useMemo, type ComponentProps } from "react";
+import { useMemo } from "react";
 import { DateTime } from "luxon";
 
 import { Select, SelectItemRendererProps } from "@common";
@@ -46,7 +46,7 @@ function MeetingSelector({
 	fromDate?: string;
 	toDate?: string;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
 >) {
 	const { loading, valid, ids } = useAppSelector(selectMeetingsState);

@@ -1,4 +1,4 @@
-import { useCallback, type ComponentProps } from "react";
+import { useCallback } from "react";
 import { createSelector } from "@reduxjs/toolkit";
 import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
@@ -36,7 +36,7 @@ export function SubgroupSelector({
 	value: string;
 	onChange: (value: string) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	| "readOnly"
 	| "disabled"
 	| "id"

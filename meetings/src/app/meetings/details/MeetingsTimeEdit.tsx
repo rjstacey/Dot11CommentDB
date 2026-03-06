@@ -1,4 +1,3 @@
-import type { ComponentProps } from "react";
 import { Form, Row, Col } from "react-bootstrap";
 import { Select, isMultiple, Multiple, InputDates, InputTime } from "@common";
 
@@ -20,7 +19,7 @@ function SessionDateSelector({
 	onChange: (date: string | null) => void;
 	session: Session;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "placeholder" | "id" | "style" | "className"
 >) {
 	const options = getSessionDates(session).map((date) => ({
@@ -50,7 +49,7 @@ function TimeslotSelector({
 	onChange: (value: number | null) => void;
 	session: Session;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "placeholder" | "id" | "style" | "className"
 >) {
 	const timeslots = session.timeslots;

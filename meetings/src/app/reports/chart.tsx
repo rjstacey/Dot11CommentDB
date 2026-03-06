@@ -1,18 +1,17 @@
-import type { SVGProps, FunctionComponent } from "react";
 import { useParams } from "react-router";
 import AutoSizer from "react-virtualized-auto-sizer";
 
 import SessionAttendanceChart from "./SessionAttendanceChart";
 import TeleconAttendanceChart from "./TeleconAttendanceChart";
 
-export type ReportChartProps = SVGProps<SVGSVGElement> & {
+export type ReportChartProps = React.SVGProps<SVGSVGElement> & {
 	width: number;
 	height: number;
 };
 
 export function ReportsChart() {
 	const { chart } = useParams();
-	let Chart: FunctionComponent<ReportChartProps>;
+	let Chart: React.FunctionComponent<ReportChartProps>;
 	if (chart === "sessionAttendance") Chart = SessionAttendanceChart;
 	else if (chart === "teleconAttendance") Chart = TeleconAttendanceChart;
 	else return null;

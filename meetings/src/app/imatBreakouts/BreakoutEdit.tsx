@@ -1,4 +1,4 @@
-import { useMemo, useCallback, type ComponentProps } from "react";
+import { useMemo, useCallback } from "react";
 import { DateTime } from "luxon";
 import { Form, Row, Col } from "react-bootstrap";
 
@@ -30,7 +30,7 @@ function SlotSelector({
 	onChange: (value: number) => void;
 	isStart?: boolean;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	| "readOnly"
 	| "disabled"
 	| "id"
@@ -66,7 +66,7 @@ function SlotSelector({
 	);
 }
 
-const StartSlotSelector = (props: ComponentProps<typeof SlotSelector>) =>
+const StartSlotSelector = (props: React.ComponentProps<typeof SlotSelector>) =>
 	SlotSelector({ ...props, isStart: true });
 const EndSlotSelector = SlotSelector;
 
@@ -78,7 +78,7 @@ function SessionDaySelector({
 	value: number | null;
 	onChange: (value: number) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "className" | "style" | "placeholder"
 >) {
 	const imatMeeting = useAppSelector(selectBreakoutMeeting)!;
@@ -129,7 +129,7 @@ function GroupIdSelector({
 	value: number | null;
 	onChange: (value: number) => void;
 } & Pick<
-	ComponentProps<typeof ImatCommitteeSelector>,
+	React.ComponentProps<typeof ImatCommitteeSelector>,
 	| "id"
 	| "readOnly"
 	| "disabled"
@@ -160,7 +160,7 @@ function AssociatedMeetingSelector({
 }: {
 	value: number | null;
 	onChange: (value: number | null) => void;
-} & Omit<ComponentProps<typeof MeetingSelector>, "value" | "onChange">) {
+} & Omit<React.ComponentProps<typeof MeetingSelector>, "value" | "onChange">) {
 	const imatMeeting = useAppSelector(selectBreakoutMeeting);
 
 	function handleChange(v: number | null) {

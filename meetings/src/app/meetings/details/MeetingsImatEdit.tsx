@@ -1,4 +1,4 @@
-import { useCallback, type ComponentProps } from "react";
+import { useCallback } from "react";
 import { Form, Row, Col } from "react-bootstrap";
 import { Select, isMultiple } from "@common";
 import type {
@@ -22,7 +22,7 @@ function GracePeriodSelector({
 	value: number | null;
 	onChange: (value: number) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	| "readOnly"
 	| "disabled"
 	| "id"

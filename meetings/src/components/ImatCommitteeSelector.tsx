@@ -1,4 +1,4 @@
-import { useCallback, type ComponentProps } from "react";
+import { useCallback } from "react";
 import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -12,7 +12,7 @@ function ImatCommitteeSelector({
 	value: string | null;
 	onChange: (value: string | null) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	| "readOnly"
 	| "disabled"
 	| "id"

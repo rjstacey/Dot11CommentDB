@@ -1,4 +1,4 @@
-import { useMemo, type ComponentProps } from "react";
+import { useMemo } from "react";
 import { Dropdown, DropdownItem } from "react-bootstrap";
 import { Select, displayDateRange } from "@common";
 
@@ -34,7 +34,7 @@ function SessionSelector({
 	value: number | null;
 	onChange: (value: number | null) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "style" | "isInvalid"
 >) {
 	const { loading, valid } = useAppSelector(selectSessionsState);
@@ -70,7 +70,7 @@ export function RawSessionSelector({
 }: {
 	onChange: (value: number) => void;
 	disabled?: boolean;
-} & Pick<ComponentProps<typeof Dropdown>, "id">) {
+} & Pick<React.ComponentProps<typeof Dropdown>, "id">) {
 	const { ids, entities } = useAppSelector(selectSessionsState);
 	const options = useMemo(
 		() => ids.map((id) => entities[id]!),

@@ -1,5 +1,3 @@
-import type { ComponentProps } from "react";
-
 import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -13,7 +11,7 @@ export function GroupParentsSelector({
 	value: string | null;
 	onChange: (value: string | null) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	| "readOnly"
 	| "disabled"
 	| "id"

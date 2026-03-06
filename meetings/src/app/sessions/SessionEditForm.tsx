@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { Form, Tabs, Tab } from "react-bootstrap";
 import { shallowDiff } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -51,7 +51,7 @@ export function SessionEditForm({
 		setFormValid(valid);
 	}, [edited, saved]);
 
-	async function handleSubmit(e: FormEvent) {
+	async function handleSubmit(e: React.SubmitEvent) {
 		e.preventDefault();
 		setBusy(true);
 		await submit();

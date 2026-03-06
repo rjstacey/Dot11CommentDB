@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo } from "react";
 import { NavLink, useParams, useLocation, useMatch } from "react-router";
 import { Navbar, Nav } from "react-bootstrap";
 
@@ -87,7 +87,7 @@ function AppNavLink({
 }: {
 	to: string;
 	eventKey?: string;
-	children?: ReactNode;
+	children?: React.ReactNode;
 }) {
 	const active = useMatch(to);
 	return (
@@ -107,7 +107,7 @@ function AppNavLinkActive({
 	children,
 }: {
 	to: string;
-	children?: ReactNode;
+	children?: React.ReactNode;
 }) {
 	const active = useMatch(to);
 	if (!active) return null;

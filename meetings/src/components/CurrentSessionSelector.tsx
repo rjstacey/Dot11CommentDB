@@ -1,4 +1,3 @@
-import type { ComponentProps } from "react";
 import { useLocation, useNavigate } from "react-router";
 
 import { FormCheck } from "react-bootstrap";
@@ -19,7 +18,7 @@ export function CurrentSessionSelector({
 	...otherProps
 }: {
 	onChange?: (sessionId: number | null) => void;
-} & Omit<ComponentProps<typeof SessionSelector>, "value" | "onChange">) {
+} & Omit<React.ComponentProps<typeof SessionSelector>, "value" | "onChange">) {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const dispatch = useAppDispatch();
@@ -53,7 +52,7 @@ function LabeledCurrentSessionSelector({
 	...props
 }: {
 	allowShowDateRange?: boolean;
-} & ComponentProps<typeof CurrentSessionSelector>) {
+} & React.ComponentProps<typeof CurrentSessionSelector>) {
 	const dispatch = useAppDispatch();
 	const showDateRange = useAppSelector(selectShowDateRange);
 

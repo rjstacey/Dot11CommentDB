@@ -1,4 +1,4 @@
-import {
+import React, {
 	useMemo,
 	type CSSProperties,
 	type MouseEventHandler,
@@ -36,7 +36,7 @@ function ShowSelectedSlots({
 	const slots = useAppSelector(selectSelectedSlots);
 	const session = useAppSelector(selectCurrentSession);
 	const elements = useMemo(() => {
-		const elements: JSX.Element[] = [];
+		const elements: React.ReactElement[] = [];
 		slots.forEach((s) => {
 			const [date, slotId, roomId] = fromSlotId(s || "");
 			const weekday = DateTime.fromISO(date).weekdayShort!;

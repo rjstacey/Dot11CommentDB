@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Row, Col, Button, Container } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectUserMeetingsAccess, AccessLevel } from "@/store/meetings";
@@ -83,7 +82,7 @@ export function MeetingsDetails() {
 		</Col>
 	);
 
-	let content: ReactNode;
+	let content: React.ReactNode;
 	if (state.action === null) {
 		content = <div className="placeholder">{state.message}</div>;
 	} else {

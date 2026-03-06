@@ -1,4 +1,4 @@
-import { useMemo, type ComponentProps } from "react";
+import { useMemo } from "react";
 
 import { Select, displayDateRange } from "@common";
 
@@ -24,7 +24,7 @@ function ImatMeetingSelector({
 	value: number | null;
 	onChange: (value: number | null) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "placeholder" | "id" | "className" | "style"
 >) {
 	const { loading, valid, ids, entities } = useAppSelector(

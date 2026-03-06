@@ -1,4 +1,3 @@
-import type { ComponentProps } from "react";
 import { DateTime } from "luxon";
 import { Row, Col, Form } from "react-bootstrap";
 import { isMultiple, TextArea, Select } from "@common";
@@ -26,7 +25,7 @@ function SessionTypeSelector({
 	value: SessionType | null;
 	onChange: (value: SessionType) => void;
 } & Pick<
-	ComponentProps<typeof Select>,
+	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "placeholder" | "id" | "style" | "className"
 >) {
 	const values = SessionTypeOptions.filter((o) => o.value === value);

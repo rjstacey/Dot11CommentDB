@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Button, Container, Row, Col } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
@@ -57,7 +56,7 @@ export function ImatBreakoutsDetails() {
 	);
 
 	let title = "Breakout";
-	let content: ReactNode;
+	let content: React.ReactNode;
 	if (state.action === "import") {
 		title = "Import as meeting";
 		content = (

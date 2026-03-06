@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useState } from "react";
 import { FormControl } from "react-bootstrap";
 
 function timeRangeToDuration(startTime: string, endTime: string) {
@@ -60,7 +60,7 @@ function InputTimeRangeAsDuration({
 	entry: TimeRange;
 	changeEntry: (changes: Partial<TimeRange>) => void;
 } & Omit<
-	ComponentProps<typeof FormControl>,
+	React.ComponentProps<typeof FormControl>,
 	"style" | "type" | "value" | "onChange"
 >) {
 	const [duration, setDuration] = useState(
