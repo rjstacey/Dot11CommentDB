@@ -466,7 +466,7 @@ export async function getWebexMeetings({
 			to: to.toISO()!,
 			max: 200,
 		};
-		if (account.owner) params.hostEmail = account.owner.userName;
+		//if (account.owner) params.hostEmail = account.owner.userName;
 
 		const data = await api.get<{ items: WebexMeeting[] }>(
 			"/meetings",
@@ -476,6 +476,10 @@ export async function getWebexMeetings({
 		//console.log(account.name, params, response.data.items.length)
 
 		let meetings: WebexMeeting[] = data.items || [];
+		if (account.owner) {
+			const hostEmail = account.owner.userName;
+			meetings = meetings.filter((m) => m.hostEmail === hostEmail);
+		}
 		meetings = meetings.map((m) => ({
 			...m,
 			groupId,
