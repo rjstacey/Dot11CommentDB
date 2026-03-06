@@ -144,7 +144,7 @@ export function useTableColumns() {
 					session.type.toLocaleUpperCase() + ": " + yearMonth;
 				const parts = session.name.split(",");
 				const place = (parts.length > 1 ? parts[1] : parts[0]).trim();
-				const label: ReactNode = (
+				const label: React.ReactNode = (
 					<>
 						<span style={lineTruncStyle}>{identifier}</span>
 						<br />
