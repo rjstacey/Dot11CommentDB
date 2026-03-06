@@ -3,10 +3,11 @@ import { Container } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectUser } from "@/store";
 import WorkingGroupSelector from "./WorkingGroupSelector";
+import React from "react";
 
 function Root() {
 	const user = useAppSelector(selectUser);
-	let mainEl: JSX.Element | undefined;
+	let mainEl: React.ReactNode;
 	if (!user.SAPIN) {
 		mainEl = (
 			<>

@@ -25,6 +25,6 @@
 		}
 	},
 	"include": ["src", "../schemas", "../common/src"],
-	"exclude": ["../common/src/stories"],
+	"exclude": ["../common/src/stories", "../common/**/*.test.*"],
 	"references": [{ "path": "./tsconfig.node.json" }]
 }
