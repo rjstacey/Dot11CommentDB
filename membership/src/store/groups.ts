@@ -214,12 +214,14 @@ const selectGroupsAge = (state: RootState, groupName: string) => {
 export const selectGroup = (state: RootState, id: string) =>
 	selectGroupEntities(state)[id];
 
-export const selectWorkingGroups = (state: RootState) => {
-	const { ids, entities } = selectGroupsState(state);
-	return ids
-		.map((id) => entities[id]!)
-		.filter((g) => ["r", "c", "wg"].includes(g.type!));
-};
+export const selectWorkingGroups = createSelector(
+	selectGroupIds,
+	selectGroupEntities,
+	(ids, entities) =>
+		ids
+			.map((id) => entities[id]!)
+			.filter((g) => ["r", "c", "wg"].includes(g.type!)),
+);
 
 /** Select top level group by name. Only for root ("r"), committee (c) and working group (wg). Root is selected with groupName = "". */
 export const selectTopLevelGroupByName = (
