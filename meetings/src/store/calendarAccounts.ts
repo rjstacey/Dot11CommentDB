@@ -2,8 +2,8 @@ import {
 	createSlice,
 	createEntityAdapter,
 	createSelector,
+	type PayloadAction,
 } from "@reduxjs/toolkit";
-import type { PayloadAction } from "@reduxjs/toolkit";
 
 import { fetcher } from "@common";
 import type { AppThunk, RootState } from ".";
@@ -96,11 +96,6 @@ export { clearCalendarAccounts };
 
 /* Selectors */
 export const selectCalendarAccountsState = (state: RootState) => state[dataSet];
-const selectCalendarAccountsAge = (state: RootState) => {
-	const lastLoad = selectCalendarAccountsState(state).lastLoad;
-	if (!lastLoad) return NaN;
-	return new Date().valueOf() - new Date(lastLoad).valueOf();
-};
 export const selectCalendarAccountIds = (state: RootState) =>
 	selectCalendarAccountsState(state).ids;
 export const selectCalendarAccountEntities = (state: RootState) =>
@@ -112,25 +107,16 @@ export const selectCalendarAccountDefaultId = (state: RootState) =>
 export const selectCalendarAccounts = createSelector(
 	selectCalendarAccountIds,
 	selectCalendarAccountEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 /* Thunk actions */
-const AGE_STALE = 60 * 60 * 1000; // 1 hour
-let loading = false;
-let loadingPromise: Promise<void>;
+let loadingPromise: Promise<void> | undefined;
 export const loadCalendarAccounts =
-	(groupName: string, force = false): AppThunk<void> =>
-	(dispatch, getState) => {
-		const state = getState();
-		const currentGroupName = selectCalendarAccountsState(state).groupName;
-		if (groupName === currentGroupName) {
-			if (loading) return loadingPromise;
-			const age = selectCalendarAccountsAge(state);
-			if (!force && age && age < AGE_STALE) return Promise.resolve();
-		}
+	(groupName: string): AppThunk<void> =>
+	async (dispatch) => {
+		if (loadingPromise) return loadingPromise;
 		dispatch(getPending({ groupName }));
-		loading = true;
 		const url = `/api/${groupName}/calendar/accounts`;
 		loadingPromise = fetcher
 			.get(url)
@@ -143,7 +129,7 @@ export const loadCalendarAccounts =
 				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
-				loading = false;
+				loadingPromise = undefined;
 			});
 		return loadingPromise;
 	};

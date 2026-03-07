@@ -2,8 +2,8 @@ import {
 	createSlice,
 	createEntityAdapter,
 	createSelector,
+	type PayloadAction,
 } from "@reduxjs/toolkit";
-import type { PayloadAction } from "@reduxjs/toolkit";
 
 import { fetcher } from "@common";
 
@@ -18,38 +18,6 @@ import {
 
 export type { WebexAccount, WebexAccountCreate };
 
-/*
-export type WebexTemplate = {
-	id: string;
-	isDefault: boolean;
-};
-export interface WebexAccount {
-	id: number;
-	name: string;
-	groupId: string;
-	authDate?: string;
-	authUrl: string;
-	authUserId?: number;
-	displayName?: string;
-	userName?: string;
-	templates: WebexTemplate[];
-	lastAccessed: string | null;
-}
-
-function validWebexAccount(account: any): account is WebexAccount {
-	return (
-		isObject(account) &&
-		typeof account.id === "number" &&
-		typeof account.name === "string" &&
-		typeof account.groupId === "string"
-	);
-}
-
-export type WebexAccountCreate = {
-	name: string;
-	groups: string[];
-};
-*/
 type ExtraState = {
 	valid: boolean;
 	loading: boolean;
@@ -130,11 +98,6 @@ export { clearWebexAccounts };
 
 /* Selectors */
 export const selectWebexAccountsState = (state: RootState) => state[dataSet];
-const selectWebexAccountsAge = (state: RootState) => {
-	const lastLoad = selectWebexAccountsState(state).lastLoad;
-	if (!lastLoad) return NaN;
-	return new Date().valueOf() - new Date(lastLoad).valueOf();
-};
 export const selectWebexAccountIds = (state: RootState) =>
 	selectWebexAccountsState(state).ids;
 export const selectWebexAccountEntities = (state: RootState) =>
@@ -147,25 +110,16 @@ export const selectWebexAccountDefaultId = (state: RootState) =>
 export const selectWebexAccounts = createSelector(
 	selectWebexAccountIds,
 	selectWebexAccountEntities,
-	(ids, entities) => ids.map((id) => entities[id]!)
+	(ids, entities) => ids.map((id) => entities[id]!),
 );
 
 /* Thunk actions */
-const AGE_STALE = 60 * 60 * 1000; // 1 hour
-let loading = false;
-let loadingPromise: Promise<void>;
+let loadingPromise: Promise<void> | undefined;
 export const loadWebexAccounts =
-	(groupName: string, force = false): AppThunk<void> =>
-	(dispatch, getState) => {
-		const state = getState();
-		const currentGroupName = selectWebexAccountsState(state).groupName;
-		if (groupName === currentGroupName) {
-			if (loading) return loadingPromise;
-			const age = selectWebexAccountsAge(state);
-			if (!force && age && age < AGE_STALE) return Promise.resolve();
-		}
+	(groupName: string): AppThunk<void> =>
+	async (dispatch) => {
+		if (loadingPromise) return loadingPromise;
 		dispatch(getPending({ groupName }));
-		loading = true;
 		const url = `/api/${groupName}/webex/accounts`;
 		loadingPromise = fetcher
 			.get(url)
@@ -178,7 +132,7 @@ export const loadWebexAccounts =
 				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
-				loading = false;
+				loadingPromise = undefined;
 			});
 		return loadingPromise;
 	};
