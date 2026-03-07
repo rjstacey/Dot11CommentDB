@@ -21,8 +21,6 @@ export const loader: LoaderFunction = async function (args) {
 	const { groupName } = args.params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 
-	membersLoader(args);
+	await membersLoader(args);
 	store.dispatch(loadEmailTemplates(groupName));
-
-	return null;
 };

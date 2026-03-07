@@ -35,6 +35,7 @@ export const loader: LoaderFunction = async (args) => {
 
 	const { dispatch, getState } = store;
 
+	await dispatch(loadGroups());
 	const group = selectTopLevelGroupByName(getState(), groupName);
 	if (!group) throw new Error(`Group ${groupName} not found`);
 	const access = group.permissions.members || AccessLevel.none;
