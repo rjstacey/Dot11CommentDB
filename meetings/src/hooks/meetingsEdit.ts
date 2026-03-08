@@ -459,6 +459,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 				if (Object.keys(changes).length > 0)
 					updates.push({ id: meeting.id, changes });
 			}
+			await dispatch(updateMeetings(updates));
 			setState({ ...state, saved: state.edited });
 		}
 	}, [readOnly, state, dispatch, setState]);
