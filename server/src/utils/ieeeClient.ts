@@ -31,7 +31,7 @@ export class IeeeHttpClient {
 	async get(
 		url: string,
 		params?: qs.ParsedUrlQueryInput,
-		options?: RequestInit
+		options?: RequestInit,
 	): Promise<string> {
 		if (params) url += "?" + qs.stringify(params);
 		const response = await this.fetch("GET", url, options);
@@ -44,7 +44,7 @@ export class IeeeHttpClient {
 	async post(
 		url: string,
 		params: qs.ParsedUrlQueryInput,
-		options?: RequestInit
+		options?: RequestInit,
 	): Promise<string> {
 		options = { ...options };
 		options.body = qs.stringify(params);
@@ -84,7 +84,7 @@ export class IeeeClient extends IeeeHttpClient {
 
 		const m =
 			/<span class="attendance_nav">Home - (.*), SA PIN: (\d+)<\/span>/.exec(
-				data
+				data,
 			);
 		if (!m) {
 			const m = /<div class="title">([^<]*)<\/div>/.exec(data);
@@ -137,7 +137,7 @@ export class IeeeClient extends IeeeHttpClient {
 	async getCsv(
 		url: string,
 		params?: qs.ParsedUrlQueryInput,
-		options?: RequestInit
+		options?: RequestInit,
 	): Promise<Buffer> {
 		this.verifyPreviousLogin();
 		if (params) url += "?" + qs.stringify(params);
@@ -159,7 +159,7 @@ export class IeeeClient extends IeeeHttpClient {
 	async getHtml(
 		url: string,
 		params?: qs.ParsedUrlQueryInput,
-		options?: RequestInit
+		options?: RequestInit,
 	): Promise<string> {
 		this.verifyPreviousLogin();
 		if (params) url += "?" + qs.stringify(params);
@@ -182,7 +182,7 @@ export class IeeeClient extends IeeeHttpClient {
 	async postForm(
 		url: string,
 		params: qs.ParsedUrlQueryInput,
-		options?: RequestInit
+		options?: RequestInit,
 	): Promise<string> {
 		this.verifyPreviousLogin();
 		let data = await this.post(url, params, options);

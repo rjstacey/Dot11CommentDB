@@ -9,7 +9,7 @@ import { csvParse } from "./csv.js";
  */
 export function isCorrectSpreadsheetHeader(
 	headerRow: string[],
-	expectedHeader: readonly (string | RegExp)[]
+	expectedHeader: readonly (string | RegExp)[],
 ) {
 	return expectedHeader.every((expectedValue, i) => {
 		let value = headerRow[i];
@@ -29,13 +29,13 @@ export function isCorrectSpreadsheetHeader(
  */
 export function validateSpreadsheetHeader(
 	headerRow: string[],
-	expectedHeader: readonly (string | RegExp)[]
+	expectedHeader: readonly (string | RegExp)[],
 ) {
 	if (!isCorrectSpreadsheetHeader(headerRow, expectedHeader))
 		throw new TypeError(
 			`Unexpected column headings:\n${headerRow.join(
-				", "
-			)}\n\nExpected:\n${expectedHeader.join(", ")}`
+				", ",
+			)}\n\nExpected:\n${expectedHeader.join(", ")}`,
 		);
 }
 
@@ -53,7 +53,7 @@ export async function parseSpreadsheet(
 	buffer: Buffer,
 	expectedHeader: readonly (string | RegExp)[],
 	headerRowIndex = 0,
-	numberColumns = 0
+	numberColumns = 0,
 ) {
 	let rows: string[][]; // an array of arrays
 	if (filename.search(/\.xlsx$/i) >= 0) {
@@ -71,19 +71,19 @@ export async function parseSpreadsheet(
 					row.values
 						.slice(1, (numberColumns || expectedHeader.length) + 1)
 						.map((r) =>
-							typeof r === "string" ? r : r ? r.toString() : ""
-						)
+							typeof r === "string" ? r : r ? r.toString() : "",
+						),
 				);
 		});
 	} else if (filename.search(/\.csv$/i) >= 0) {
 		rows = await csvParse(buffer, {
 			columns: false,
 			bom: true,
-			encoding: "latin1",
+			encoding: "utf-8",
 		});
 	} else {
 		throw TypeError(
-			"Must be an Excel Workbook (*.xlsx) or .csv file. Older Excel Workbook formats are not supported."
+			"Must be an Excel Workbook (*.xlsx) or .csv file. Older Excel Workbook formats are not supported.",
 		);
 	}
 
