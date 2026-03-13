@@ -28,8 +28,6 @@ export function MeetingsWebexEdit({
 		changeEntry(changes);
 	}
 
-	console.log(entry);
-
 	return (
 		<>
 			<WebexMeetingAccount

@@ -284,7 +284,7 @@ function useMeetingsEditState() {
 					if (ok) resetState();
 					else dispatch(setSelectedMeetings([]));
 				});
-			} else {
+			} else if (selectedSlots.length > 0) {
 				resetState();
 			}
 		} else if (state.action === "add-by-slot") {
