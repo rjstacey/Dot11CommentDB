@@ -29,11 +29,11 @@ import {
 	addAttendanceSummaries,
 	updateAttendanceSummaries,
 	deleteAttendanceSummaries,
+	getNullAttendanceSummary,
 	type SessionAttendanceSummaryCreate,
 	type SessionAttendanceSummaryChange,
 	type SessionAttendanceSummaryUpdate,
 	type SessionAttendanceSummary,
-	getNullAttendanceSummary,
 } from "@/store/attendanceSummaries";
 
 /** Create a new member from attendee */
@@ -239,7 +239,7 @@ function useInitState(ids: number[]): SessionAttendanceEditState {
 					memberAdds.push(newMember);
 				}
 				const attendance = entity.attendance;
-				if (attendance) {
+				if (attendance?.id) {
 					const changes = sessionAttendeeAttendanceChanges(entity);
 					if (Object.keys(changes).length > 0) {
 						if (attendance.id) {
@@ -248,10 +248,7 @@ function useInitState(ids: number[]): SessionAttendanceEditState {
 								changes,
 							});
 						}
-					} else if (
-						!attendance.AttendancePercentage &&
-						attendance.id
-					) {
+					} else if (!attendance.AttendancePercentage) {
 						// Delete entries with no attendance
 						attendanceDeletes.push(attendance.id);
 					}
@@ -284,8 +281,12 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 	const [state, setState] = useState<SessionAttendanceEditState>(initState);
 
 	useEffect(() => {
-		if (!isEqual(ids, state.ids)) setState(initState);
-	}, [ids, state.ids, setState, initState]);
+		if (state.action === "updateOne" || state.action === "addOne") {
+			if (!isEqual(ids, state.ids)) setState(initState);
+		} else {
+			setState(initState);
+		}
+	}, [ids, state, setState, initState]);
 
 	const memberOnChange = useCallback(
 		(changes: MemberChange) => {
@@ -378,13 +379,19 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 			if (action === "addOne" || action === "updateOne") {
 				if (doUpdateAttendance) {
 					const id = state.attendanceSaved.id;
-					const changes = shallowDiff(
-						state.attendanceSaved,
-						state.attendanceEdit,
-					) as SessionAttendanceSummaryChange;
-					if (Object.keys(changes).length > 0) {
+					if (id) {
+						const changes = shallowDiff(
+							state.attendanceSaved,
+							state.attendanceEdit,
+						) as SessionAttendanceSummaryChange;
+						if (Object.keys(changes).length > 0) {
+							await dispatch(
+								updateAttendanceSummaries([{ id, changes }]),
+							);
+						}
+					} else {
 						await dispatch(
-							updateAttendanceSummaries([{ id, changes }]),
+							addAttendanceSummaries([state.attendanceEdit]),
 						);
 					}
 				}
@@ -396,14 +403,13 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 				}
 				if (action === "updateOne") {
 					if (doUpdateMembers) {
+						const id = state.ids[0];
 						const changes = shallowDiff(
 							state.memberSaved,
 							state.memberEdit,
 						) as MemberChange;
 						if (changes) {
-							await dispatch(
-								updateMembers([{ id: state.ids[0], changes }]),
-							);
+							await dispatch(updateMembers([{ id, changes }]));
 						}
 					}
 					setState({
