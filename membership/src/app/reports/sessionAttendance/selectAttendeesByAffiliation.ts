@@ -48,7 +48,7 @@ export const selectAttendeesByAffiliation = createSelector(
 		for (const id of shortAffiliations) {
 			const entry = { ...nullEntry };
 			for (const m of membersEntities[id]) {
-				let status = m.Status;
+				let status: string = m.member?.Status || "Non-Voter";
 				if (status === "Non-Voter") status = "New";
 				if (isCountedStatus(status)) entry[status]++;
 			}
@@ -64,7 +64,6 @@ export const selectAttendeesByAffiliation = createSelector(
 			return n;
 		}
 		shortAffiliations = shortAffiliations.sort(idsComp);
-
 		const entry = { ...nullEntry };
 		const ids: string[] = [];
 		shortAffiliations.forEach((id) => {
@@ -88,5 +87,5 @@ export const selectAttendeesByAffiliation = createSelector(
 		ids.push(id);
 
 		return { ids, entities };
-	}
+	},
 );

@@ -46,8 +46,8 @@ function yAxis({
 	plotHeight: number;
 	label: string;
 }) {
+	d3.select(gRef).selectChildren().remove();
 	d3.select(gRef)
-		.call((g) => g.select("#y-label").remove())
 		.call(d3.axisLeft(yScale))
 		.attr("font-size", null)
 		.call((g) => g.select("text").attr("font-size", null))
@@ -69,6 +69,7 @@ function xAxis({
 	gRef: SVGGElement;
 	xScale: d3.ScaleBand<string>;
 }) {
+	d3.select(gRef).selectChildren().remove();
 	d3.select(gRef)
 		.call(d3.axisBottom(xScale))
 		.attr("font-size", null)
@@ -203,10 +204,11 @@ function StackedBarChart({
 	const viewWidth = 1600;
 	const viewHeight = 900;
 
-	const [xAxisHeight, setXAxisHeight] = useState(200);
-	const [yAxisWidth, setYAxisWidth] = useState(40);
+	const [xAxisHeight, setXAxisHeight] = useState(1);
+	const [yAxisWidth, setYAxisWidth] = useState(1);
 	const plotWidth = viewWidth - yAxisWidth;
 	const plotHeight = viewHeight - xAxisHeight;
+	console.log({ xAxisHeight, yAxisWidth, plotWidth, plotHeight });
 
 	const keys = Object.keys(series);
 
@@ -235,6 +237,7 @@ function StackedBarChart({
 		const b = gRef.getBoundingClientRect();
 		// Prevent repeated re-rendering by rounding to 0.1
 		const h = Math.ceil(b.height * 10) / 10;
+		console.log("xAxis height:", h);
 		const scaledHeight = (h * viewHeight) / height;
 		setXAxisHeight(scaledHeight);
 	}, [xScale]);
@@ -266,10 +269,11 @@ function StackedBarChart({
 			id="chart"
 			ref={svgRef}
 			viewBox={`0 0 ${viewWidth} ${viewHeight}`}
-			//width={width}
-			//height={height}
+			width={width}
+			height={height}
 			fontSize={16}
 			style={{ ...style, color: "black" }}
+			preserveAspectRatio="xMidYMid meet"
 			className={className}
 		>
 			<g

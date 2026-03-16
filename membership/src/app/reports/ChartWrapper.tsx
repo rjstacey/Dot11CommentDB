@@ -1,4 +1,3 @@
-import { Ratio } from "react-bootstrap";
 import { useDimensions } from "./useDimensions";
 
 export function ChartWrapper({
@@ -11,8 +10,26 @@ export function ChartWrapper({
 	if (width === 0 || height === 0) children = () => <div />;
 
 	return (
-		<Ratio ref={ref} aspectRatio="16x9" className="overflow-hidden m-3">
-			{children({ width, height })}
-		</Ratio>
+		<div
+			style={{
+				flex: 1,
+				width: "100%",
+				overflow: "hidden",
+			}}
+		>
+			<div
+				ref={ref}
+				style={{
+					position: "relative",
+					maxHeight: "100%",
+					maxWidth: "100%",
+					aspectRatio: "16/9",
+					objectFit: "cover",
+					margin: "auto",
+				}}
+			>
+				{children({ width, height })}
+			</div>
+		</div>
 	);
 }

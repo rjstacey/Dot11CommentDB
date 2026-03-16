@@ -242,11 +242,16 @@ function useInitState(ids: number[]): SessionAttendanceEditState {
 				if (attendance) {
 					const changes = sessionAttendeeAttendanceChanges(entity);
 					if (Object.keys(changes).length > 0) {
-						attendanceUpdates.push({
-							id: attendance.id,
-							changes,
-						});
-					} else if (!attendance.AttendancePercentage) {
+						if (attendance.id) {
+							attendanceUpdates.push({
+								id: attendance.id,
+								changes,
+							});
+						}
+					} else if (
+						!attendance.AttendancePercentage &&
+						attendance.id
+					) {
 						// Delete entries with no attendance
 						attendanceDeletes.push(attendance.id);
 					}
