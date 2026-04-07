@@ -153,12 +153,12 @@ function useMeetingsEditState() {
 				dates: [...new Set(dates)], // Unique dates
 				slots: selectedSlots,
 				roomId,
-				isSessionMeeting: true,
 				startSlotId: slotId,
 				sessionId: session.id,
 				timezone: session.timezone,
 				startTime,
 				endTime,
+				isSessionMeeting: true,
 				organizationId: groupId,
 				webexAccountId: defaultWebexAccountId,
 				calendarAccountId: defaultCalenderAccountId,
@@ -239,7 +239,6 @@ function useMeetingsEditState() {
 			};
 		} else {
 			if (!session) throw new Error("No current session");
-
 			edited = {
 				...defaultMeetingEntry,
 				date: "",
@@ -250,6 +249,7 @@ function useMeetingsEditState() {
 				startTime: "",
 				endTime: "",
 				duration: "",
+				isSessionMeeting: session.type === "p" || session.type === "i",
 				organizationId: groupId,
 				webexAccountId: defaultWebexAccountId,
 				calendarAccountId: defaultCalenderAccountId,
