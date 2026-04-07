@@ -427,6 +427,11 @@ export function useMeetingsEdit(readOnly: boolean) {
 			}
 
 			const ids = await dispatch(addMeetings(meetings));
+			setState((state) => ({
+				...state,
+				action: null,
+				message: "Nothing selected",
+			}));
 			dispatch(setSelectedSlots([]));
 			dispatch(setSelectedMeetings(ids));
 		} else if (state.action === "update") {
