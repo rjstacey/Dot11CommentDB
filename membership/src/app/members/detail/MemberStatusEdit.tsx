@@ -164,6 +164,10 @@ export function MemberStatusEdit({
 		statusChangeDate =
 			DateTime.fromISO(edited.StatusChangeDate).toISODate() || "";
 
+	function changeStatusChangeDate(date: string) {
+		onChange({ StatusChangeDate: DateTime.fromISO(date).toISO() });
+	}
+
 	const columns = useMemo(() => {
 		function update(id: number, changes: Partial<StatusChangeEntry>) {
 			const StatusChangeHistory = statusChangeHistory.map((h) =>
@@ -252,6 +256,12 @@ export function MemberStatusEdit({
 							"StatusChangeOverride",
 						)}
 						checked={Boolean(edited.StatusChangeOverride)}
+						ref={(ref) => {
+							if (ref)
+								ref.indeterminate = isMultiple(
+									edited.StatusChangeOverride,
+								);
+						}}
 						//indeterminate={isMultiple(edited.StatusChangeOverride)}
 						onChange={(e) =>
 							onChange({
@@ -271,11 +281,7 @@ export function MemberStatusEdit({
 							"StatusChangeDate",
 						)}
 						value={statusChangeDate}
-						onChange={(e) =>
-							onChange({
-								StatusChangeDate: e.target.value,
-							})
-						}
+						onChange={(e) => changeStatusChangeDate(e.target.value)}
 						placeholder={
 							isMultiple(edited.StatusChangeDate)
 								? MULTIPLE_STR
