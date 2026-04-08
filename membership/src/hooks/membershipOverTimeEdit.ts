@@ -134,7 +134,14 @@ export function useMembershipOverTimeEdit(readOnly: boolean) {
 			const [event] = await dispatch(
 				addMembershipOverTime([state.edited]),
 			);
-			if (event) dispatch(setSelected([event.id]));
+			if (event) {
+				setState((state) => ({
+					...state,
+					action: null,
+					message: "Adding...",
+				}));
+				dispatch(setSelected([event.id]));
+			}
 		} else if (state.action === "update") {
 			const { edited, saved } = state;
 			const update = {
