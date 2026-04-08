@@ -1,10 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
 	Row,
 	Col,
 	Button,
 	FormGroup,
-	Form,
 	FormLabel,
 	FormControl,
 	FormCheck,
@@ -18,7 +17,6 @@ import type {
 	MemberChange,
 	MemberCreate,
 	StatusChangeEntry,
-	StatusType,
 } from "@/store/members";
 
 import { EditTable as Table } from "@/components/Table";
@@ -37,7 +35,6 @@ function MemberStatusChangeForm({
 }: {
 	entry: StatusChangeEntry;
 	onChange: (entry: StatusChangeEntry) => void;
-	close: () => void;
 }) {
 	function change(changes: Partial<StatusChangeEntry>) {
 		onChange({ ...entry, ...changes });
@@ -46,7 +43,7 @@ function MemberStatusChangeForm({
 	const date = entry.Date?.substring(0, 10);
 
 	return (
-		<Form className="p-3" style={{ width: 350 }}>
+		<div className="p-3">
 			<FormGroup as={Row} controlId="date" className="mb-2">
 				<FormLabel column>Date:</FormLabel>
 				<Col xs="auto">
@@ -94,7 +91,7 @@ function MemberStatusChangeForm({
 					/>
 				</Col>
 			</FormGroup>
-		</Form>
+		</div>
 	);
 }
 
@@ -117,13 +114,7 @@ export function MemberStatusChangeDropdown({
 				disabled={readOnly}
 			/>
 			<Dropdown.Menu>
-				<MemberStatusChangeForm
-					entry={entry}
-					onChange={onChange}
-					close={() => {
-						setShow(false);
-					}}
-				/>
+				<MemberStatusChangeForm entry={entry} onChange={onChange} />
 			</Dropdown.Menu>
 		</Dropdown>
 	);
@@ -165,71 +156,86 @@ export function MemberStatusEdit({
 			DateTime.fromISO(edited.StatusChangeDate).toISODate() || "";
 
 	function changeStatusChangeDate(date: string) {
-		onChange({ StatusChangeDate: DateTime.fromISO(date).toISO() });
+		try {
+			const dateTime = DateTime.fromISO(date);
+			if (dateTime.isValid)
+				onChange({ StatusChangeDate: dateTime.toISO() });
+		} catch (error) {
+			console.error("Invalid date:", error);
+		}
 	}
 
-	const columns = useMemo(() => {
-		function update(id: number, changes: Partial<StatusChangeEntry>) {
-			const StatusChangeHistory = statusChangeHistory.map((h) =>
+	const updateEntry = useCallback(
+		(id: number, changes: Partial<StatusChangeEntry>) => {
+			const StatusChangeHistory = edited.StatusChangeHistory!.map((h) =>
 				h.id === id ? { ...h, ...changes } : h,
 			);
 			onChange({ StatusChangeHistory });
-		}
+		},
+		[edited.StatusChangeHistory, onChange],
+	);
 
-		function addClick() {
-			let id = 0;
-			for (const h of statusChangeHistory) if (h.id > id) id = h.id + 1;
-			const entry: StatusChangeEntry = {
-				id,
-				Date: new Date().toISOString(),
-				NewStatus: edited.Status as StatusType,
-				OldStatus: edited.Status as StatusType,
-				Reason: "New member",
-			};
-			const StatusChangeHistory = [entry].concat(...statusChangeHistory);
-			onChange({ StatusChangeHistory });
-		}
+	const addEntry = useCallback(() => {
+		const id =
+			Math.max(0, ...edited.StatusChangeHistory!.map((h) => h.id)) + 1;
+		const entry: StatusChangeEntry = {
+			id,
+			Date: new Date().toISOString(),
+			NewStatus: edited.Status,
+			OldStatus: edited.Status,
+			Reason: "New member",
+		};
+		const StatusChangeHistory = [entry].concat(
+			...edited.StatusChangeHistory!,
+		);
+		onChange({ StatusChangeHistory });
+	}, [edited.StatusChangeHistory, edited.Status, onChange]);
 
-		function remove(id: number) {
-			const StatusChangeHistory = statusChangeHistory.filter(
+	const removeEntry = useCallback(
+		(id: number) => {
+			const StatusChangeHistory = edited.StatusChangeHistory!.filter(
 				(h) => h.id !== id,
 			);
 			onChange({ StatusChangeHistory });
-		}
+		},
+		[edited.StatusChangeHistory, onChange],
+	);
 
-		const columns = statusChangeHistoryColumns.map((col) => {
-			if (col.key === "actions") {
-				const label = (
-					<Button
-						variant="outline-primary"
-						className="bi-plus-lg"
-						onClick={addClick}
-					/>
-				);
-				const renderCell = (entry: StatusChangeEntry) => (
-					<div className="d-flex gap-2">
-						<MemberStatusChangeDropdown
-							entry={entry}
-							onChange={(changes: StatusChangeEntry) =>
-								update(entry.id, changes)
-							}
-							readOnly={readOnly}
-						/>
+	const columns = useMemo(
+		() =>
+			statusChangeHistoryColumns.map((col) => {
+				if (col.key === "actions") {
+					const label = (
 						<Button
-							variant="outline-danger"
-							className="bi-trash"
-							onClick={() => remove(entry.id)}
-							disabled={readOnly}
+							variant="outline-primary"
+							className="bi-plus-lg"
+							onClick={addEntry}
 						/>
-					</div>
-				);
+					);
+					const renderCell = (entry: StatusChangeEntry) => (
+						<div className="d-flex gap-2">
+							<MemberStatusChangeDropdown
+								entry={entry}
+								onChange={(changes: StatusChangeEntry) =>
+									updateEntry(entry.id, changes)
+								}
+								readOnly={readOnly}
+							/>
+							<Button
+								variant="outline-danger"
+								className="bi-trash"
+								onClick={() => removeEntry(entry.id)}
+								disabled={readOnly}
+							/>
+						</div>
+					);
 
-				return { ...col, label, renderCell };
-			}
-			return col;
-		});
-		return columns;
-	}, [edited, statusChangeHistory, readOnly, onChange]);
+					return { ...col, label, renderCell };
+				}
+				return col;
+			}),
+		[addEntry, updateEntry, removeEntry, readOnly],
+	);
 
 	return (
 		<>
@@ -262,7 +268,6 @@ export function MemberStatusEdit({
 									edited.StatusChangeOverride,
 								);
 						}}
-						//indeterminate={isMultiple(edited.StatusChangeOverride)}
 						onChange={(e) =>
 							onChange({
 								StatusChangeOverride: e.target.checked,
