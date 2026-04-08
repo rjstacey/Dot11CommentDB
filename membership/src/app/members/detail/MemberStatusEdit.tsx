@@ -43,7 +43,7 @@ function MemberStatusChangeForm({
 	const date = entry.Date?.substring(0, 10);
 
 	return (
-		<div className="p-3">
+		<div className="p-3" style={{ width: 350 }}>
 			<FormGroup as={Row} controlId="date" className="mb-2">
 				<FormLabel column>Date:</FormLabel>
 				<Col xs="auto">
@@ -158,8 +158,8 @@ export function MemberStatusEdit({
 	function changeStatusChangeDate(date: string) {
 		try {
 			const dateTime = DateTime.fromISO(date);
-			if (dateTime.isValid)
-				onChange({ StatusChangeDate: dateTime.toISO() });
+			const StatusChangeDate = dateTime.isValid ? dateTime.toISO() : date;
+			onChange({ StatusChangeDate });
 		} catch (error) {
 			console.error("Invalid date:", error);
 		}
