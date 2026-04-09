@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import isEqual from "lodash.isequal";
 
 import { ConfirmModal, shallowDiff } from "@common";
@@ -32,15 +32,32 @@ export type MembershipOverTimeEditState = (
 	  }
 ) & { ids: number[] };
 
-export function useMembershipOverTimeEdit(readOnly: boolean) {
-	const dispatch = useAppDispatch();
+type MembershipOverTimeEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "ADD";
+	  }
+	| {
+			type: "UPDATE";
+			changes: Partial<MembershipEvent>;
+	  }
+	| {
+			type: "SUBMIT";
+	  }
+	| {
+			type: "ERROR";
+			error: string;
+	  };
 
+function useMembershipOverTimeReducer() {
 	const { entities, selected, loading, valid } = useAppSelector(
 		selectMembershipOverTimeState,
 	);
 	const membersSummary = useAppSelector(selectMembersSummary);
 
-	const initState = useCallback((): MembershipOverTimeEditState => {
+	const init = useCallback((): MembershipOverTimeEditState => {
 		let message: string;
 		if (loading && !valid) {
 			message = "Loading...";
@@ -70,80 +87,135 @@ export function useMembershipOverTimeEdit(readOnly: boolean) {
 		};
 	}, [loading, valid, selected, entities]);
 
-	const [state, setState] = useState(initState);
-
-	useEffect(() => {
-		if (state.action === "add") {
-			if (selected.length > 0) {
-				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?",
-				).then((ok) => {
-					if (ok) setState(initState);
-					else dispatch(setSelected([]));
-				});
+	const reducer = useCallback(
+		(
+			state: MembershipOverTimeEditState,
+			action: MembershipOverTimeEditAction,
+		): MembershipOverTimeEditState => {
+			if (action.type === "INIT") {
+				return init();
 			}
-		} else if (state.action === "update") {
-			if (selected.length !== 1 || state.ids[0] !== selected[0]) {
-				if (state.edited === state.saved) {
-					setState(initState);
-					return;
-				}
-				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?",
-				).then((ok) => {
-					if (ok) setState(initState);
-					else dispatch(setSelected(state.ids));
-				});
+			if (action.type === "ADD") {
+				const edited: MembershipEventCreate = {
+					date: new Date().toISOString().slice(0, 10),
+					count: membersSummary.Voter || 0,
+					note: null,
+				};
+				return {
+					action: "add",
+					edited: edited,
+					saved: undefined,
+					ids: [],
+				};
 			}
-		} else if (selected.length > 0) {
-			setState(initState);
-		}
-	}, [selected]);
-
-	const onChange = useCallback(
-		(changes: Partial<MembershipEvent>) => {
-			setState((state) => {
-				if (readOnly || state.action === null) {
-					console.warn("onChange: bad state");
-					return state;
-				}
+			if (action.type === "UPDATE") {
 				if (state.action === "add") {
 					return {
 						...state,
-						edited: { ...state.edited, ...changes },
+						edited: { ...state.edited, ...action.changes },
 					};
-				} else {
-					let edited = { ...state.edited, ...changes };
+				} else if (state.action === "update") {
+					let edited = { ...state.edited, ...action.changes };
 					if (isEqual(edited, state.saved)) edited = state.saved;
 					return {
 						...state,
 						edited,
 					};
 				}
-			});
+				return state;
+			}
+			if (action.type === "SUBMIT") {
+				if (state.action === "add") {
+					return {
+						...state,
+						action: null,
+						message: "Adding...",
+					};
+				} else if (state.action === "update") {
+					return {
+						...state,
+						saved: state.edited,
+					};
+				}
+				return state;
+			}
+			if (action.type === "ERROR") {
+				return {
+					...state,
+					action: null,
+					message: action.error,
+				};
+			}
+			console.error("Unknown action:", action);
+			return state;
 		},
-		[readOnly],
+		[init],
+	);
+
+	return useReducer(reducer, undefined, init);
+}
+
+export function useMembershipOverTimeEdit(readOnly: boolean) {
+	const [state, dispatchStateAction] = useMembershipOverTimeReducer();
+
+	const dispatch = useAppDispatch();
+	const { selected } = useAppSelector(selectMembershipOverTimeState);
+
+	/** If `selected` changes, then determine how to reevaluate state.
+	 * Note that `selected` might change as a result of submit, etc. so becareful of race conditions. */
+	useEffect(() => {
+		if (state.action === null) {
+			dispatchStateAction({ type: "INIT" });
+		} else if (state.action === "add") {
+			if (selected.length > 0) {
+				ConfirmModal.show(
+					"Changes not applied! Do you want to discard changes?",
+				).then((ok) => {
+					if (ok) dispatchStateAction({ type: "INIT" });
+					else dispatch(setSelected([]));
+				});
+			}
+		} else if (state.action === "update") {
+			if (selected.length !== 1 || state.ids[0] !== selected[0]) {
+				if (state.edited === state.saved) {
+					dispatchStateAction({ type: "INIT" });
+					return;
+				}
+				ConfirmModal.show(
+					"Changes not applied! Do you want to discard changes?",
+				).then((ok) => {
+					if (ok) dispatchStateAction({ type: "INIT" });
+					else dispatch(setSelected(state.ids));
+				});
+			}
+		}
+	}, [selected]);
+
+	const onChange = useCallback(
+		(changes: Partial<MembershipEvent>) => {
+			if (readOnly || state.action === null) {
+				dispatchStateAction({
+					type: "ERROR",
+					error: "onChange: bad state",
+				});
+				return;
+			}
+			dispatchStateAction({ type: "UPDATE", changes });
+		},
+		[readOnly, state.action],
 	);
 
 	const submit = useCallback(async () => {
 		if (readOnly || state.action === null) {
-			console.warn("submit: bad state");
+			dispatchStateAction({ type: "ERROR", error: "submit: bad state" });
 			return;
 		}
 		if (state.action === "add") {
 			const [event] = await dispatch(
 				addMembershipOverTime([state.edited]),
 			);
-			if (event) {
-				setState((state) => {
-					dispatch(setSelected([event.id]));
-					return {
-						...state,
-						action: null,
-						message: "Adding...",
-					};
-				});
-			}
+			if (!event) return;
+			dispatch(setSelected([event.id]));
 		} else if (state.action === "update") {
 			const { edited, saved } = state;
 			const update = {
@@ -152,16 +224,13 @@ export function useMembershipOverTimeEdit(readOnly: boolean) {
 			};
 			if (Object.keys(update.changes).length > 0)
 				await dispatch(updateMembershipOverTime([update]));
-			setState({
-				...state,
-				saved: edited,
-			});
 		}
+		dispatchStateAction({ type: "SUBMIT" });
 	}, [readOnly, state]);
 
 	const cancel = useCallback(() => {
-		setState(initState);
-	}, [initState]);
+		dispatchStateAction({ type: "INIT" });
+	}, []);
 
 	const hasChanges = useCallback(
 		() =>
@@ -173,7 +242,7 @@ export function useMembershipOverTimeEdit(readOnly: boolean) {
 	const disableAdd = readOnly;
 	const onAdd = useCallback(async () => {
 		if (disableAdd) {
-			console.warn("onAdd: bad state");
+			dispatchStateAction({ type: "ERROR", error: "onAdd: bad state" });
 			return;
 		}
 		if (hasChanges()) {
@@ -182,33 +251,25 @@ export function useMembershipOverTimeEdit(readOnly: boolean) {
 			);
 			if (!ok) return;
 		}
-		const edited: MembershipEventCreate = {
-			date: new Date().toISOString().slice(0, 10),
-			count: membersSummary.Voter || 0,
-			note: null,
-		};
-
+		dispatchStateAction({ type: "ADD" });
 		dispatch(setSelected([]));
-		setState({
-			action: "add",
-			edited: edited,
-			saved: undefined,
-			ids: [],
-		});
-	}, [disableAdd, hasChanges, dispatch, membersSummary]);
+	}, [disableAdd, hasChanges, dispatch]);
 
-	const disableDelete = readOnly || state.ids.length === 0;
+	const disableDelete =
+		readOnly || state.action === "add" || state.ids.length === 0;
 	const onDelete = useCallback(async () => {
 		if (disableDelete) {
-			console.warn("onDelete: bad state");
+			dispatchStateAction({
+				type: "ERROR",
+				error: "onDelete: bad state",
+			});
 			return;
 		}
 		const str = `Are you sure you want to delete ${state.ids.length} membership event${state.ids.length > 1 ? "s" : ""}?`;
 		const ok = await ConfirmModal.show(str);
 		if (ok) {
-			if (state.action === "update")
-				setState({ ...state, edited: state.saved });
 			await dispatch(deleteMembershipOverTime(state.ids));
+			dispatchStateAction({ type: "SUBMIT" });
 			dispatch(setSelected([]));
 		}
 	}, [disableDelete, state.ids, dispatch]);
