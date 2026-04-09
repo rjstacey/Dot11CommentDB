@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import isEqual from "lodash.isequal";
 
 import { ConfirmModal, deepMergeTagMultiple } from "@common";
@@ -56,19 +56,46 @@ type GroupsEditState =
 			groups: Group[];
 	  };
 
-function useInitState(selected: string[]) {
-	const { entities, loading, valid } = useAppSelector(selectGroupsState);
+type GroupsEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "ADD";
+	  }
+	| {
+			type: "UPDATE";
+			changes: Partial<GroupEntry>;
+	  }
+	| {
+			type: "SUBMIT";
+	  };
+
+function useGroupsEditReducer({
+	groupId,
+	selected,
+	entities,
+	loading,
+	valid,
+}: {
+	groupId: string | null;
+	selected: string[];
+	entities: Record<string, Group>;
+	loading: boolean;
+	valid: boolean;
+}) {
 	const officerEntities = useAppSelector(selectOfficerEntities);
 	const officerIds = useAppSelector(selectOfficerIds);
 
-	return useCallback((): GroupsEditState => {
-		const groups = selected.map((id) => entities[id]!).filter(Boolean);
+	const init = useCallback((): GroupsEditState => {
 		if (loading && !valid) {
 			return {
 				action: null,
 				message: "Loading...",
 			} satisfies GroupsEditState;
-		} else if (groups.length === 0) {
+		}
+		const groups = selected.map((id) => entities[id]!).filter(Boolean);
+		if (groups.length === 0) {
 			return {
 				action: null,
 				message: "Nothing selected",
@@ -101,33 +128,97 @@ function useInitState(selected: string[]) {
 				groups,
 			};
 		}
-	}, [selected, entities, officerIds, officerEntities]);
+	}, [selected, entities, loading, valid, officerIds, officerEntities]);
+
+	const reducer = useCallback(
+		(state: GroupsEditState, action: GroupsEditAction): GroupsEditState => {
+			if (action.type === "INIT") {
+				return init();
+			}
+			if (action.type === "ADD") {
+				const parentGroup = groupId ? entities[groupId] : undefined;
+				const entry: GroupEntry = {
+					...defaultEntry,
+					type:
+						(parentGroup &&
+							getSubgroupTypes(parentGroup.type!)[0]) ||
+						null,
+					parent_id: groupId,
+				};
+				return {
+					action: "add",
+					edited: entry,
+					saved: undefined,
+				};
+			}
+			if (action.type === "UPDATE") {
+				if (state.action === "add") {
+					return {
+						...state,
+						edited: { ...state.edited, ...action.changes },
+					};
+				} else if (state.action === "update") {
+					let edited = { ...state.edited, ...action.changes };
+					if (isEqual(edited, state.saved)) edited = state.saved;
+					return {
+						...state,
+						edited,
+					};
+				}
+				return state;
+			}
+			if (action.type === "SUBMIT") {
+				if (state.action === "add") {
+					return {
+						...state,
+						action: null,
+						message: "Adding...",
+					};
+				} else if (state.action === "update") {
+					return {
+						...state,
+						saved: state.edited,
+					};
+				}
+				return state;
+			}
+			console.error("Unknown action:", action);
+			return state;
+		},
+		[init, groupId, entities],
+	);
+
+	return useReducer(reducer, undefined, init);
 }
 
 export function useGroupsEdit(readOnly: boolean) {
+	const groupId = useAppSelector(selectTopLevelGroupId);
+	const { selected, entities, loading, valid } =
+		useAppSelector(selectGroupsState);
+	const [state, dispatchStateAction] = useGroupsEditReducer({
+		groupId,
+		selected,
+		entities,
+		loading,
+		valid,
+	});
 	const dispatch = useAppDispatch();
 
-	const { entities, loading } = useAppSelector(selectGroupsState);
-	const selected = useAppSelector(selectGroupsState).selected as string[];
-	const groupId = useAppSelector(selectTopLevelGroupId);
-
-	const initState = useInitState(selected);
-
-	const [state, setState] = useState(initState);
-
 	useEffect(() => {
-		if (state.action === "add") {
+		if (state.action === null) {
+			dispatchStateAction({ type: "INIT" });
+		} else if (state.action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) setState(initState);
+					if (ok) dispatchStateAction({ type: "INIT" });
 					else dispatch(setSelected([]));
 				});
 			}
 		} else if (state.action === "update") {
 			if (state.edited === state.saved) {
-				setState(initState);
+				dispatchStateAction({ type: "INIT" });
 				return;
 			}
 			const ids = state.groups.map((g) => g.id);
@@ -135,14 +226,12 @@ export function useGroupsEdit(readOnly: boolean) {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) setState(initState);
+					if (ok) dispatchStateAction({ type: "INIT" });
 					else dispatch(setSelected(ids));
 				});
 			}
-		} else {
-			setState(initState);
 		}
-	}, [selected, initState]);
+	}, [selected]);
 
 	const hasChanges = useCallback(() => {
 		return (
@@ -153,22 +242,13 @@ export function useGroupsEdit(readOnly: boolean) {
 
 	const onChange = useCallback(
 		(changes: Partial<GroupEntry>) => {
-			setState((state) => {
-				if (readOnly || state.action === null) {
-					console.warn("onChange: bad state");
-					return state;
-				}
-				if (state.action === "add") {
-					const edited = { ...state.edited, ...changes };
-					return { ...state, edited } satisfies GroupsEditState;
-				} else {
-					let edited = { ...state.edited, ...changes };
-					if (isEqual(edited, state.saved)) edited = state.saved;
-					return { ...state, edited };
-				}
-			});
+			if (readOnly || state.action === null) {
+				console.warn("onChange: bad state");
+				return;
+			}
+			dispatchStateAction({ type: "UPDATE", changes });
 		},
-		[readOnly, setState],
+		[readOnly, state.action],
 	);
 
 	const groupAdd = useGroupAdd();
@@ -197,48 +277,34 @@ export function useGroupsEdit(readOnly: boolean) {
 					return;
 				}
 			}
-			setState({
-				action: null,
-				message: "Adding...",
-			});
 			const group = await groupAdd(edited);
 			dispatch(setSelected(group ? [group.id] : []));
 		} else if (state.action === "update") {
 			const { edited, saved, groups } = state;
-			setState({
-				...state,
-				saved: edited,
-			});
 			await groupsUpdate(edited, saved, groups);
 		}
-	}, [readOnly, state]);
+		dispatchStateAction({ type: "SUBMIT" });
+	}, [readOnly, state, groupId, entities]);
 
 	const cancel = useCallback(async () => {
-		setState(initState);
-	}, [initState]);
+		dispatchStateAction({ type: "INIT" });
+	}, []);
 
 	const disableAdd = readOnly || loading;
 	const onAdd = useCallback(async () => {
-		if (state.action === "update" && state.edited !== state.saved) {
+		if (disableAdd) {
+			console.warn("onAdd: bad state");
+			return;
+		}
+		if (hasChanges()) {
 			const ok = await ConfirmModal.show(
 				`Changes not applied! Do you want to discard changes?`,
 			);
 			if (!ok) return;
 		}
 		dispatch(setSelected([]));
-		const parentGroup = groupId ? entities[groupId] : undefined;
-		const entry: GroupEntry = {
-			...defaultEntry,
-			type:
-				(parentGroup && getSubgroupTypes(parentGroup.type!)[0]) || null,
-			parent_id: groupId,
-		};
-		setState({
-			action: "add",
-			edited: entry,
-			saved: undefined,
-		});
-	}, [state, dispatch, setState]);
+		dispatchStateAction({ type: "ADD" });
+	}, [disableAdd, hasChanges]);
 
 	const groupsDelete = useGroupsDelete();
 
@@ -266,10 +332,11 @@ export function useGroupsEdit(readOnly: boolean) {
 			const ok = await ConfirmModal.show(str);
 			if (ok) {
 				await groupsDelete(groups);
-				setSelected([]);
+				dispatchStateAction({ type: "SUBMIT" });
+				dispatch(setSelected([]));
 			}
 		}
-	}, [disableDelete, state, dispatch, groupsDelete, setSelected]);
+	}, [disableDelete, state, groupsDelete]);
 
 	return {
 		state,

@@ -44,10 +44,12 @@ export function useEmailTemplateEdit(readOnly: boolean = false) {
 			`Are you sure you want to delete ${edited.name}?`,
 		);
 		if (ok) {
-			setEmailTemplate(null);
+			debouncedSave.cancel(); // cancel, don't flush
+			setEdited(null);
+			setSaved(null);
 			await dispatch(deleteEmailTemplate(edited.id));
 		}
-	}, [edited, dispatch, setEmailTemplate]);
+	}, [edited, debouncedSave, setEdited, setSaved, dispatch]);
 
 	return {
 		emailTemplate: edited,

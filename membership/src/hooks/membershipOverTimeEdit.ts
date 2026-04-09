@@ -253,7 +253,7 @@ export function useMembershipOverTimeEdit(readOnly: boolean) {
 		}
 		dispatchStateAction({ type: "ADD" });
 		dispatch(setSelected([]));
-	}, [disableAdd, hasChanges, dispatch]);
+	}, [disableAdd, hasChanges]);
 
 	const disableDelete =
 		readOnly || state.action === "add" || state.ids.length === 0;
