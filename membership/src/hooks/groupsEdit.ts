@@ -61,15 +61,20 @@ type GroupsEditAction =
 			type: "INIT";
 	  }
 	| {
-			type: "ADD";
+			type: "CREATE";
 	  }
 	| {
-			type: "UPDATE";
+			type: "CHANGE";
 			changes: Partial<GroupEntry>;
 	  }
 	| {
 			type: "SUBMIT";
 	  };
+const INIT = { type: "INIT" } as const;
+const CREATE = { type: "CREATE" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (changes: Partial<GroupEntry>) =>
+	({ type: "CHANGE", changes }) as const;
 
 function useGroupsEditReducer({
 	groupId,
@@ -135,7 +140,7 @@ function useGroupsEditReducer({
 			if (action.type === "INIT") {
 				return init();
 			}
-			if (action.type === "ADD") {
+			if (action.type === "CREATE") {
 				const parentGroup = groupId ? entities[groupId] : undefined;
 				const entry: GroupEntry = {
 					...defaultEntry,
@@ -151,7 +156,7 @@ function useGroupsEditReducer({
 					saved: undefined,
 				};
 			}
-			if (action.type === "UPDATE") {
+			if (action.type === "CHANGE") {
 				if (state.action === "add") {
 					return {
 						...state,
@@ -206,19 +211,19 @@ export function useGroupsEdit(readOnly: boolean) {
 
 	useEffect(() => {
 		if (state.action === null) {
-			dispatchStateAction({ type: "INIT" });
+			dispatchStateAction(INIT);
 		} else if (state.action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) dispatchStateAction({ type: "INIT" });
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected([]));
 				});
 			}
 		} else if (state.action === "update") {
 			if (state.edited === state.saved) {
-				dispatchStateAction({ type: "INIT" });
+				dispatchStateAction(INIT);
 				return;
 			}
 			const ids = state.groups.map((g) => g.id);
@@ -226,7 +231,7 @@ export function useGroupsEdit(readOnly: boolean) {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) dispatchStateAction({ type: "INIT" });
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected(ids));
 				});
 			}
@@ -246,7 +251,7 @@ export function useGroupsEdit(readOnly: boolean) {
 				console.warn("onChange: bad state");
 				return;
 			}
-			dispatchStateAction({ type: "UPDATE", changes });
+			dispatchStateAction(CHANGE(changes));
 		},
 		[readOnly, state.action],
 	);
@@ -283,11 +288,11 @@ export function useGroupsEdit(readOnly: boolean) {
 			const { edited, saved, groups } = state;
 			await groupsUpdate(edited, saved, groups);
 		}
-		dispatchStateAction({ type: "SUBMIT" });
+		dispatchStateAction(SUBMIT);
 	}, [readOnly, state, groupId, entities]);
 
 	const cancel = useCallback(async () => {
-		dispatchStateAction({ type: "INIT" });
+		dispatchStateAction(INIT);
 	}, []);
 
 	const disableAdd = readOnly || loading;
@@ -303,7 +308,7 @@ export function useGroupsEdit(readOnly: boolean) {
 			if (!ok) return;
 		}
 		dispatch(setSelected([]));
-		dispatchStateAction({ type: "ADD" });
+		dispatchStateAction(CREATE);
 	}, [disableAdd, hasChanges]);
 
 	const groupsDelete = useGroupsDelete();
@@ -332,7 +337,7 @@ export function useGroupsEdit(readOnly: boolean) {
 			const ok = await ConfirmModal.show(str);
 			if (ok) {
 				await groupsDelete(groups);
-				dispatchStateAction({ type: "SUBMIT" });
+				dispatchStateAction(SUBMIT);
 				dispatch(setSelected([]));
 			}
 		}

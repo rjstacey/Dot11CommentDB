@@ -41,15 +41,20 @@ type AffiliationMapEditAction =
 			type: "INIT";
 	  }
 	| {
-			type: "ADD";
+			type: "CREATE";
 	  }
 	| {
-			type: "UPDATE";
+			type: "CHANGE";
 			changes: Partial<AffiliationMap>;
 	  }
 	| {
 			type: "SUBMIT";
 	  };
+const INIT = { type: "INIT" } as const;
+const CREATE = { type: "CREATE" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (changes: Partial<AffiliationMap>) =>
+	({ type: "CHANGE", changes }) as const;
 
 export function useAffiliationMapEdit(readOnly: boolean) {
 	const dispatch = useAppDispatch();
@@ -96,7 +101,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 			if (action.type === "INIT") {
 				return init();
 			}
-			if (action.type === "ADD") {
+			if (action.type === "CREATE") {
 				return {
 					action: "add",
 					edited: nullAffiliationMap,
@@ -104,7 +109,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 					ids: [],
 				};
 			}
-			if (action.type === "UPDATE") {
+			if (action.type === "CHANGE") {
 				if (state.action === "add") {
 					return {
 						...state,
@@ -145,26 +150,26 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 
 	useEffect(() => {
 		if (state.action === null) {
-			dispatchStateAction({ type: "INIT" });
+			dispatchStateAction(INIT);
 		} else if (state.action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) dispatchStateAction({ type: "INIT" });
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected([]));
 				});
 			}
 		} else if (state.action === "update") {
 			if (selected.length !== 1 || state.ids[0] !== selected[0]) {
 				if (state.edited === state.saved) {
-					dispatchStateAction({ type: "INIT" });
+					dispatchStateAction(INIT);
 					return;
 				}
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) dispatchStateAction({ type: "INIT" });
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected(state.ids));
 				});
 			}
@@ -177,9 +182,9 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 				console.warn("onChange: bad state");
 				return;
 			}
-			dispatchStateAction({ type: "UPDATE", changes });
+			dispatchStateAction(CHANGE(changes));
 		},
-		[readOnly, state.action],
+		[readOnly, state.action, dispatchStateAction],
 	);
 
 	const submit = useCallback(async () => {
@@ -200,11 +205,11 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 				await dispatch(updateAffiliationMaps([update]));
 		}
 		dispatchStateAction({ type: "SUBMIT" });
-	}, [readOnly, state]);
+	}, [readOnly, state, dispatchStateAction, dispatch]);
 
 	const cancel = useCallback(() => {
-		dispatchStateAction({ type: "INIT" });
-	}, []);
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
 
 	const hasChanges = useCallback(
 		() =>
@@ -226,8 +231,8 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 			if (!ok) return;
 		}
 		dispatch(setSelected([]));
-		dispatchStateAction({ type: "ADD" });
-	}, [disableAdd, hasChanges]);
+		dispatchStateAction(CREATE);
+	}, [disableAdd, hasChanges, dispatch, dispatchStateAction]);
 
 	const disableDelete = readOnly || state.action !== "update";
 	const onDelete = useCallback(async () => {
@@ -239,10 +244,10 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 		const ok = await ConfirmModal.show(str);
 		if (ok) {
 			await dispatch(deleteAffiliationMaps(state.ids));
-			dispatchStateAction({ type: "SUBMIT" });
+			dispatchStateAction(SUBMIT);
 			dispatch(setSelected([]));
 		}
-	}, [disableDelete, state.ids]);
+	}, [disableDelete, state.ids, dispatch, dispatchStateAction]);
 
 	return {
 		state,

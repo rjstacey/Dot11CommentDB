@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import isEqual from "lodash.isequal";
 
 import { ConfirmModal, deepMergeTagMultiple } from "@common";
@@ -55,9 +55,30 @@ export type MembersEditState = (
 	originals: MemberCreate[];
 };
 
-function useInitState(selected: number[]) {
+type MembersEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "CREATE";
+	  }
+	| {
+			type: "CHANGE";
+			changes: MemberChange;
+	  }
+	| {
+			type: "SUBMIT";
+	  };
+const INIT = { type: "INIT" } as const;
+const CREATE = { type: "CREATE" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (changes: MemberChange) =>
+	({ type: "CHANGE", changes }) as const;
+
+function useMembersEditReducer(selected: number[]) {
 	const { entities, loading, valid } = useAppSelector(selectMembersState);
-	return useCallback((): MembersEditState => {
+
+	const init = useCallback((): MembersEditState => {
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -93,6 +114,74 @@ function useInitState(selected: number[]) {
 			originals,
 		} satisfies MembersEditState;
 	}, [selected, loading, valid, entities]);
+
+	const reducer = useCallback(
+		(
+			state: MembersEditState,
+			action: MembersEditAction,
+		): MembersEditState => {
+			if (action.type === "INIT") {
+				return init();
+			}
+			if (action.type === "CREATE") {
+				const entry: MemberCreate & {
+					StatusChangeHistory: Member["StatusChangeHistory"];
+					ContactEmails: Member["ContactEmails"];
+					ContactInfo: Member["ContactInfo"];
+					ReplacedBySAPIN: Member["ReplacedBySAPIN"];
+					ObsoleteSAPINs: Member["ObsoleteSAPINs"];
+				} = {
+					...defaultMember,
+					StatusChangeHistory: [],
+					ContactEmails: [],
+					ReplacedBySAPIN: null,
+					ObsoleteSAPINs: [],
+				};
+				return {
+					action: "add",
+					edited: entry,
+					saved: undefined,
+					originals: [entry],
+				};
+			}
+			if (action.type === "CHANGE") {
+				if (state.action === "add") {
+					return {
+						...state,
+						edited: { ...state.edited, ...action.changes },
+					};
+				} else if (state.action === "update") {
+					let edited = { ...state.edited, ...action.changes };
+					if (isEqual(edited, state.saved)) edited = state.saved;
+					return {
+						...state,
+						edited,
+					};
+				}
+				return state;
+			}
+			if (action.type === "SUBMIT") {
+				if (state.action === "add") {
+					return {
+						...state,
+						action: null,
+						message: "Adding...",
+					};
+				} else if (state.action === "update") {
+					return {
+						...state,
+						saved: state.edited,
+					};
+				}
+				return state;
+			}
+			console.error("Unknown action:", action);
+			return state;
+		},
+		[],
+	);
+
+	return useReducer(reducer, undefined, init);
 }
 
 export function useMembersEdit({
@@ -104,23 +193,24 @@ export function useMembersEdit({
 	setSelected: (ids: number[]) => void;
 	readOnly?: boolean;
 }) {
-	const initState = useInitState(selected); // Callback to initialize state
-	const [state, setState] = useState<MembersEditState>(initState);
+	const [state, dispatchStateAction] = useMembersEditReducer(selected);
 
 	useEffect(() => {
 		const { action, originals } = state;
-		if (action === "add") {
+		if (action === null) {
+			dispatchStateAction(INIT);
+		} else if (action === "add") {
 			if (selected.length > 0) {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) setState(initState);
+					if (ok) dispatchStateAction(INIT);
 					else setSelected([]);
 				});
 			}
 		} else if (action === "update") {
 			if (state.edited === state.saved) {
-				setState(initState);
+				dispatchStateAction(INIT);
 				return;
 			}
 			const ids = originals.map((m) => m.SAPIN);
@@ -128,39 +218,26 @@ export function useMembersEdit({
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) setState(initState);
+					if (ok) dispatchStateAction(INIT);
 					else setSelected(ids);
 				});
 			}
-		} else {
-			setState(initState);
 		}
-	}, [selected, initState]);
+	}, [selected]);
 
 	const membersAdd = useMembersAdd();
 	const membersUpdate = useMembersUpdate();
 	const membersDelete = useMembersDelete();
 
 	const onChange = useCallback(
-		(changes: MemberChange) =>
-			setState((state) => {
-				if (
-					readOnly ||
-					state.action === null ||
-					state.edited === null
-				) {
-					console.warn("Update in bad state");
-					return state;
-				}
-				if (state.action === "add") {
-					const edited = { ...state.edited, ...changes };
-					return { ...state, edited };
-				}
-				let edited = { ...state.edited, ...changes };
-				if (isEqual(edited, state.saved)) edited = state.saved;
-				return { ...state, edited };
-			}),
-		[readOnly, setState],
+		(changes: MemberChange) => {
+			if (readOnly || state.action === null) {
+				console.warn("onChange: bad state");
+				return;
+			}
+			dispatchStateAction(CHANGE(changes));
+		},
+		[readOnly, state.action],
 	);
 
 	const hasChanges = useCallback(
@@ -178,28 +255,9 @@ export function useMembersEdit({
 			);
 			if (!ok) return;
 		}
-
-		const entry: MemberCreate & {
-			StatusChangeHistory: Member["StatusChangeHistory"];
-			ContactEmails: Member["ContactEmails"];
-			ContactInfo: Member["ContactInfo"];
-			ReplacedBySAPIN: Member["ReplacedBySAPIN"];
-			ObsoleteSAPINs: Member["ObsoleteSAPINs"];
-		} = {
-			...defaultMember,
-			StatusChangeHistory: [],
-			ContactEmails: [],
-			ReplacedBySAPIN: null,
-			ObsoleteSAPINs: [],
-		};
 		setSelected([]);
-		setState({
-			action: "add",
-			edited: entry,
-			saved: undefined,
-			originals: [entry],
-		});
-	}, [state, setSelected, setState]);
+		dispatchStateAction(CREATE);
+	}, [state, setSelected]);
 
 	const disableDelete = readOnly || state.originals.length === 0;
 	const onDelete = useCallback(async () => {
@@ -210,16 +268,12 @@ export function useMembersEdit({
 				originals.map((o) => `${o.SAPIN} ${o.Name}`).join("\n");
 			const ok = await ConfirmModal.show(str);
 			if (ok) {
-				setSelected([]);
-				setState({
-					action: null,
-					message: "Nothing selected...",
-					originals: [],
-				});
 				await membersDelete(originals);
+				setSelected([]);
+				dispatchStateAction(INIT);
 			}
 		}
-	}, [state, membersDelete, setSelected, setState]);
+	}, [state, membersDelete, setSelected]);
 
 	const submit = useCallback(async () => {
 		if (readOnly || state.action === null) {
@@ -228,26 +282,18 @@ export function useMembersEdit({
 		}
 		if (state.action === "add") {
 			const { edited } = state;
-			setState({
-				action: null,
-				message: "Adding...",
-				originals: [],
-			});
 			const ids = await membersAdd(edited);
 			setSelected(ids);
 		} else if (state.action === "update") {
 			const { edited, saved, originals } = state;
-			setState({
-				...state,
-				saved: edited,
-			});
 			await membersUpdate(edited, saved, originals);
 		}
-	}, [readOnly, state, membersAdd, membersUpdate, setSelected, setState]);
+		dispatchStateAction(SUBMIT);
+	}, [readOnly, state, membersAdd, membersUpdate, setSelected]);
 
 	const cancel = useCallback(() => {
-		setState(initState);
-	}, [initState]);
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
 
 	return {
 		state,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import isEqual from "lodash.isequal";
 import { shallowDiff } from "@common";
 
@@ -36,38 +36,53 @@ function sessionRegistrationAttendanceChanges(
 	return changes;
 }
 
-export type SessionRegistrationEditState =
+export type SessionRegistrationEditState = (
 	| {
 			action: "updateOne";
-			ids: number[];
 			registration: SyncedSessionRegistration;
 			attendanceEdit: SessionAttendanceSummary;
 			attendanceSaved: SessionAttendanceSummary;
 	  }
 	| {
-			action: "unmatched";
-			ids: number[];
-			registration: SyncedSessionRegistration;
-	  }
-	| {
 			action: "updateMany";
-			ids: number[];
 			adds: SessionAttendanceSummaryCreate[];
 			updates: SessionAttendanceSummaryUpdate[];
 	  }
 	| {
+			action: "unmatched";
+			registration: SyncedSessionRegistration;
+	  }
+	| {
 			action: null;
-			ids: number[];
 			message: string;
+	  }
+) & { ids: number[] };
+
+type SessionRegistrationEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "CHANGE";
+			changes: SessionAttendanceSummaryChange;
+	  }
+	| {
+			type: "SUBMIT";
+	  }
+	| {
+			type: "CANCEL";
 	  };
+const INIT = { type: "INIT" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CANCEL = { type: "CANCEL" } as const;
+const CHANGE = (changes: SessionAttendanceSummaryChange) =>
+	({ type: "CHANGE", changes }) as const;
 
-function useInitState(ids: number[]): SessionRegistrationEditState {
+function useSessionRegistrationEditReducer(ids: number[]) {
 	const { loading, valid } = useAppSelector(selectSessionRegistrationState);
-	const syncedEntities = useAppSelector(
-		selectSessionRegistrationSyncedEntities,
-	);
+	const entities = useAppSelector(selectSessionRegistrationSyncedEntities);
 
-	return useMemo(() => {
+	const init = useCallback((): SessionRegistrationEditState => {
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -82,7 +97,7 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 			} satisfies SessionRegistrationEditState;
 		} else if (ids.length === 1) {
 			const id = ids[0];
-			const registration = syncedEntities[id];
+			const registration = entities[id];
 			if (!registration) throw new Error("Invalid selection");
 			const attendance = registration.attendance;
 			if (attendance) {
@@ -109,7 +124,7 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 			const updates: SessionAttendanceSummaryUpdate[] = [];
 			const adds: SessionAttendanceSummaryCreate[] = [];
 			for (const id of ids) {
-				const registration = syncedEntities[id];
+				const registration = entities[id];
 				if (!registration) throw new Error("Invalid selection");
 				const attendance = registration.attendance;
 				if (attendance) {
@@ -132,26 +147,21 @@ function useInitState(ids: number[]): SessionRegistrationEditState {
 				updates,
 			} satisfies SessionRegistrationEditState;
 		}
-	}, [loading, valid, ids, syncedEntities]);
-}
+	}, [loading, valid, ids, entities]);
 
-export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
-	const dispatch = useAppDispatch();
-	const initState = useInitState(ids);
-
-	const [state, setState] = useState<SessionRegistrationEditState>(initState);
-
-	useEffect(() => {
-		setState(initState);
-	}, [setState, initState]);
-
-	const onChange = useCallback(
-		(changes: SessionAttendanceSummaryChange) => {
-			setState((state) => {
-				if (!readOnly && state.action === "updateOne") {
+	const reducer = useCallback(
+		(
+			state: SessionRegistrationEditState,
+			action: SessionRegistrationEditAction,
+		): SessionRegistrationEditState => {
+			if (action.type === "INIT") {
+				return init();
+			}
+			if (action.type === "CHANGE") {
+				if (state.action === "updateOne") {
 					let attendanceEdit = {
 						...state.attendanceEdit,
-						...changes,
+						...action.changes,
 					};
 					if (isEqual(attendanceEdit, state.attendanceSaved))
 						attendanceEdit = state.attendanceSaved;
@@ -160,11 +170,52 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 						attendanceEdit,
 					};
 				}
-				console.warn("onChange: bad state");
 				return state;
-			});
+			}
+			if (action.type === "SUBMIT") {
+				if (state.action === "updateOne") {
+					return {
+						...state,
+						attendanceSaved: state.attendanceEdit,
+					};
+				}
+				return state;
+			}
+			if (action.type === "CANCEL") {
+				if (state.action === "updateOne") {
+					return {
+						...state,
+						attendanceEdit: state.attendanceSaved,
+					};
+				}
+				return state;
+			}
+			console.error("Unknown action:", action);
+			return state;
 		},
-		[readOnly, setState],
+		[init],
+	);
+
+	return useReducer(reducer, undefined, init);
+}
+
+export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
+	const dispatch = useAppDispatch();
+	const [state, dispatchStateAction] = useSessionRegistrationEditReducer(ids);
+
+	useEffect(() => {
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
+
+	const onChange = useCallback(
+		(changes: SessionAttendanceSummaryChange) => {
+			if (readOnly || state.action !== "updateOne") {
+				console.warn("onChange: readOnly or bad state");
+				return;
+			}
+			dispatchStateAction(CHANGE(changes));
+		},
+		[readOnly, state.action, dispatchStateAction],
 	);
 
 	const hasChanges = useCallback(
@@ -177,6 +228,10 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 	);
 
 	const submit = useCallback(async () => {
+		if (readOnly) {
+			console.warn("submit: readOnly");
+			return;
+		}
 		if (state.action === "updateOne") {
 			const id = state.attendanceSaved.id;
 			if (id) {
@@ -185,35 +240,28 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 					state.attendanceEdit,
 				) as SessionAttendanceSummaryChange;
 				if (Object.keys(changes).length > 0) {
-					dispatch(updateAttendanceSummaries([{ id, changes }]));
-					setState({
-						...state,
-						attendanceSaved: state.attendanceEdit,
-					});
+					await dispatch(
+						updateAttendanceSummaries([{ id, changes }]),
+					);
 				}
 			} else {
-				dispatch(addAttendanceSummaries([state.attendanceEdit]));
+				await dispatch(addAttendanceSummaries([state.attendanceEdit]));
 			}
+			dispatchStateAction(SUBMIT);
 		} else if (state.action === "updateMany") {
 			await Promise.all([
 				dispatch(addAttendanceSummaries(state.adds)),
 				dispatch(updateAttendanceSummaries(state.updates)),
 			]);
+			dispatchStateAction(INIT);
+		} else {
+			console.warn("submit: bad state");
 		}
-	}, [dispatch, setState, state]);
+	}, [readOnly, state, dispatchStateAction, dispatch]);
 
 	const cancel = useCallback(() => {
-		setState((state) => {
-			const { action } = state;
-			if (action === "updateOne") {
-				return {
-					...state,
-					attendanceEdit: state.attendanceSaved,
-				};
-			}
-			return state;
-		});
-	}, [setState]);
+		dispatchStateAction(CANCEL);
+	}, [dispatchStateAction]);
 
 	return {
 		state,
