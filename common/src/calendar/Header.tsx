@@ -20,7 +20,11 @@ function Header({ onClickPrev, onClickNext, viewDate, options }: HeaderProps) {
 	}
 	return (
 		<div className={styles["header"]}>
-			<button className="arrow-left" onClick={onClickPrev} />
+			<button
+				type="button"
+				className="arrow-left"
+				onClick={onClickPrev}
+			/>
 			{years.map((year) => (
 				<div
 					key={year}
@@ -39,7 +43,11 @@ function Header({ onClickPrev, onClickNext, viewDate, options }: HeaderProps) {
 					{monthLabels[month]}
 				</div>
 			))}
-			<button className="arrow-right" onClick={onClickNext} />
+			<button
+				type="button"
+				className="arrow-right"
+				onClick={onClickNext}
+			/>
 		</div>
 	);
 }
