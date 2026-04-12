@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import isEqual from "lodash.isequal";
 import {
 	ConfirmModal,
@@ -14,9 +14,9 @@ import {
 	setSelected,
 	selectSessionsState,
 	type Session,
-	SessionCreate,
+	type SessionCreate,
+	type SessionChanges,
 } from "@/store/sessions";
-import { SessionChanges } from "@schemas/sessions";
 
 export type MultipleSession = Multiple<Session>;
 
@@ -36,6 +36,25 @@ export type SessionsEditState =
 			saved: MultipleSession;
 			sessions: Session[];
 	  };
+type SessionsEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "CREATE";
+	  }
+	| {
+			type: "CHANGE";
+			changes: SessionChanges;
+	  }
+	| {
+			type: "SUBMIT";
+	  };
+const INIT = { type: "INIT" } as const;
+const CREATE = { type: "CREATE" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (changes: SessionChanges) =>
+	({ type: "CHANGE", changes }) as const;
 
 const defaultSession: SessionCreate = {
 	number: null,
@@ -53,19 +72,19 @@ const defaultSession: SessionCreate = {
 	OrganizerID: "",
 };
 
-function useSessionsEditState() {
-	const dispatch = useAppDispatch();
+function useSessionsEditReducer() {
 	const { loading, valid, selected, entities } =
 		useAppSelector(selectSessionsState);
 
-	const initState = useCallback(() => {
-		const sessions = selected.map((id) => entities[id]!).filter(Boolean);
+	const init = useCallback(() => {
 		if (loading && !valid) {
 			return {
 				action: null,
 				message: "Loading...",
 			} satisfies SessionsEditState;
-		} else if (sessions.length === 0) {
+		}
+		const sessions = selected.map((id) => entities[id]!).filter(Boolean);
+		if (sessions.length === 0) {
 			return {
 				action: null,
 				message: "Nothing selected",
@@ -83,7 +102,62 @@ function useSessionsEditState() {
 		}
 	}, [loading, valid, selected, entities]);
 
-	const resetState = useCallback(() => setState(initState), [initState]);
+	const reducer = useCallback(
+		(
+			state: SessionsEditState,
+			action: SessionsEditAction,
+		): SessionsEditState => {
+			if (action.type === "INIT") {
+				return init();
+			}
+			if (action.type === "CREATE") {
+				return {
+					action: "add",
+					edited: defaultSession,
+					saved: undefined,
+				};
+			}
+			if (action.type === "CHANGE") {
+				if (state.action === "add") {
+					return {
+						...state,
+						edited: { ...state.edited, ...action.changes },
+					};
+				} else if (state.action === "update") {
+					let edited = { ...state.edited, ...action.changes };
+					if (isEqual(edited, state.saved)) edited = state.saved;
+					return { ...state, edited };
+				}
+				return state;
+			}
+			if (action.type === "SUBMIT") {
+				if (state.action === "add") {
+					return {
+						action: null,
+						message: "Adding...",
+					};
+				} else if (state.action === "update") {
+					return {
+						...state,
+						saved: state.edited,
+					};
+				}
+				return state;
+			}
+			console.error("Unknown action:", action);
+			return state;
+		},
+		[init],
+	);
+
+	return useReducer(reducer, undefined, init);
+}
+
+export function useSessionsEdit(readOnly: boolean) {
+	const dispatch = useAppDispatch();
+	const { selected } = useAppSelector(selectSessionsState);
+
+	const [state, dispatchStateAction] = useSessionsEditReducer();
 
 	useEffect(() => {
 		if (state.action === "add") {
@@ -91,13 +165,13 @@ function useSessionsEditState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected([]));
 				});
 			}
 		} else if (state.action === "update") {
 			if (state.edited === state.saved) {
-				resetState();
+				dispatchStateAction(INIT);
 				return;
 			}
 			const ids = state.sessions.map((s) => s.id);
@@ -105,24 +179,14 @@ function useSessionsEditState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected(ids));
 				});
 			}
 		} else {
-			resetState();
+			dispatchStateAction(INIT);
 		}
-	}, [selected, resetState]);
-
-	const [state, setState] = useState<SessionsEditState>(initState);
-
-	return [state, setState, resetState] as const;
-}
-
-export function useSessionsEdit(readOnly: boolean) {
-	const dispatch = useAppDispatch();
-
-	const [state, setState, resetState] = useSessionsEditState();
+	}, [selected, dispatchStateAction]);
 
 	const hasChanges = useCallback(
 		() =>
@@ -133,26 +197,13 @@ export function useSessionsEdit(readOnly: boolean) {
 
 	const onChange = useCallback(
 		(changes: SessionChanges) => {
-			setState((state) => {
-				if (readOnly) {
-					console.warn("onChange: making changes while readOnly");
-					return state;
-				}
-				if (state.action === "add") {
-					return {
-						...state,
-						edited: { ...state.edited, ...changes },
-					};
-				} else if (state.action === "update") {
-					let edited = { ...state.edited, ...changes };
-					if (isEqual(edited, state.saved)) edited = state.saved;
-					return { ...state, edited };
-				}
+			if (readOnly || state.action === null) {
 				console.warn("onChange: bad state");
-				return state;
-			});
+				return;
+			}
+			dispatchStateAction(CHANGE(changes));
 		},
-		[readOnly, setState],
+		[readOnly, state.action, dispatchStateAction],
 	);
 
 	const submit = useCallback(async () => {
@@ -161,10 +212,6 @@ export function useSessionsEdit(readOnly: boolean) {
 			return;
 		}
 		if (state.action === "add") {
-			setState({
-				action: null,
-				message: "Adding...",
-			});
 			const id = await dispatch(addSession(state.edited));
 			dispatch(setSelected(id ? [id] : []));
 		} else if (state.action === "update") {
@@ -176,22 +223,23 @@ export function useSessionsEdit(readOnly: boolean) {
 					p.push(dispatch(updateSession(s.id, changes)));
 			}
 			await Promise.all(p);
-			setState({
-				...state,
-				saved: edited,
-			});
 		}
-	}, [readOnly, state, setState, dispatch]);
+		dispatchStateAction(SUBMIT);
+	}, [readOnly, state, dispatch, dispatchStateAction]);
+
+	const cancel = useCallback(() => {
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
 
 	const disableAdd = readOnly || (state.action === "update" && hasChanges());
 	const onAdd = useCallback(() => {
-		setState({ action: "add", edited: defaultSession, saved: undefined });
+		dispatchStateAction(CREATE);
 		dispatch(setSelected([]));
-	}, [dispatch, setState]);
+	}, [dispatch, dispatchStateAction]);
 
-	const disableDelete = readOnly || state.action === "add";
+	const disableDelete = readOnly || state.action !== "update";
 	const onDelete = useCallback(async () => {
-		if (state.action !== "update") {
+		if (disableDelete) {
 			console.warn("onDelete: bad state");
 			return;
 		}
@@ -199,8 +247,12 @@ export function useSessionsEdit(readOnly: boolean) {
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ${ids.length} sessions?`,
 		);
-		if (ok) await dispatch(deleteSessions(ids));
-	}, [dispatch, state]);
+		if (ok) {
+			await dispatch(deleteSessions(ids));
+			dispatchStateAction(SUBMIT);
+			dispatch(setSelected([]));
+		}
+	}, [state, disableDelete, dispatch, dispatchStateAction]);
 
 	return {
 		state,
@@ -211,6 +263,6 @@ export function useSessionsEdit(readOnly: boolean) {
 		disableDelete,
 		onDelete,
 		submit,
-		cancel: resetState,
+		cancel,
 	};
 }

@@ -82,7 +82,7 @@ function useSessionRegistrationEditReducer(ids: number[]) {
 	const { loading, valid } = useAppSelector(selectSessionRegistrationState);
 	const entities = useAppSelector(selectSessionRegistrationSyncedEntities);
 
-	const init = useCallback((): SessionRegistrationEditState => {
+	const initState = useCallback((): SessionRegistrationEditState => {
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -155,7 +155,7 @@ function useSessionRegistrationEditReducer(ids: number[]) {
 			action: SessionRegistrationEditAction,
 		): SessionRegistrationEditState => {
 			if (action.type === "INIT") {
-				return init();
+				return initState();
 			}
 			if (action.type === "CHANGE") {
 				if (state.action === "updateOne") {
@@ -193,10 +193,10 @@ function useSessionRegistrationEditReducer(ids: number[]) {
 			console.error("Unknown action:", action);
 			return state;
 		},
-		[init],
+		[initState],
 	);
 
-	return useReducer(reducer, undefined, init);
+	return useReducer(reducer, undefined, initState);
 }
 
 export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {

@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import isEqual from "lodash.isequal";
 import {
 	deepMergeTagMultiple,
@@ -87,9 +87,27 @@ type MeetingsEditState = (
 ) & {
 	session: Session;
 };
+type MeetingsEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "CREATE";
+	  }
+	| {
+			type: "CHANGE";
+			changes: MeetingEntryPartial;
+	  }
+	| {
+			type: "SUBMIT";
+	  };
+const INIT = { type: "INIT" } as const;
+const CREATE = { type: "CREATE" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (changes: MeetingEntryPartial) =>
+	({ type: "CHANGE", changes }) as const;
 
-function useMeetingsEditState() {
-	const dispatch = useAppDispatch();
+function useMeetingsEditReducer() {
 	const { loading, valid } = useAppSelector(selectMeetingsState);
 	const entities = useAppSelector(selectSyncedMeetingEntities);
 	const selectedMeetings = useAppSelector(selectSelectedMeetings);
@@ -218,62 +236,125 @@ function useMeetingsEditState() {
 		groupEntities,
 	]);
 
-	const [state, setState] = useState<MeetingsEditState>(initState);
+	const createState = useCallback(
+		(state: MeetingsEditState) => {
+			let edited: MeetingEntryMultiple;
+			if (state.action === "update") {
+				const entry = state.edited;
+				edited = {
+					...entry,
+					startTime: isMultiple(entry.startTime)
+						? ""
+						: entry.startTime,
+					endTime: isMultiple(entry.endTime) ? "" : entry.endTime,
+					organizationId: isMultiple(entry.organizationId)
+						? groupId
+						: entry.organizationId,
+					hasMotions: isMultiple(entry.hasMotions)
+						? false
+						: entry.hasMotions,
+				};
+			} else {
+				if (!session) throw new Error("No current session");
+				edited = {
+					...defaultMeetingEntry,
+					date: "",
+					dates: [],
+					slots: [],
+					startSlotId: 0,
+					roomId: 0,
+					startTime: "",
+					endTime: "",
+					duration: "",
+					isSessionMeeting:
+						session.type === "p" || session.type === "i",
+					organizationId: groupId,
+					webexAccountId: defaultWebexAccountId,
+					calendarAccountId: defaultCalenderAccountId,
+					imatMeetingId: session.imatMeetingId,
+					webexMeeting: {
+						id: "",
+						...defaultWebexMeeting,
+						accountId: defaultWebexAccountId,
+					},
+				};
+			}
+			return {
+				...state,
+				action: "add-by-date",
+				edited,
+				saved: undefined,
+			} satisfies MeetingsEditState;
+		},
+		[defaultWebexAccountId, defaultCalenderAccountId, session, groupId],
+	);
 
-	const resetState = useCallback(() => setState(initState), [initState]);
+	const reducer = useCallback(
+		(
+			state: MeetingsEditState,
+			action: MeetingsEditAction,
+		): MeetingsEditState => {
+			if (action.type === "INIT") {
+				return initState();
+			}
+			if (action.type === "CREATE") {
+				return createState(state);
+			}
+			if (action.type === "CHANGE") {
+				if (
+					state.action === "add-by-date" ||
+					state.action === "add-by-slot"
+				) {
+					const edited: MeetingEntryMultiple = deepMerge(
+						state.edited,
+						action.changes,
+					);
+					return { ...state, edited } satisfies MeetingsEditState;
+				} else if (state.action === "update") {
+					let edited: MeetingEntryMultiple = deepMerge(
+						state.edited,
+						action.changes,
+					);
+					// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
+					const changes = deepDiff(state.saved, edited) || {};
+					if (Object.keys(changes).length === 0) edited = state.saved;
+					return { ...state, edited } satisfies MeetingsEditState;
+				}
+				return state;
+			}
+			if (action.type === "SUBMIT") {
+				if (
+					state.action === "add-by-date" ||
+					state.action === "add-by-slot"
+				) {
+					return {
+						...state,
+						action: null,
+						message: "Adding...",
+					};
+				} else if (state.action === "update") {
+					return {
+						...state,
+						saved: state.edited,
+					};
+				}
+				return state;
+			}
+			console.error("Unknown action:", action);
+			return state;
+		},
+		[initState, createState],
+	);
 
-	const setAddState = useCallback(() => {
-		let edited: MeetingEntryMultiple;
-		if (state.action === "update") {
-			const entry = state.edited;
-			edited = {
-				...entry,
-				startTime: isMultiple(entry.startTime) ? "" : entry.startTime,
-				endTime: isMultiple(entry.endTime) ? "" : entry.endTime,
-				organizationId: isMultiple(entry.organizationId)
-					? groupId
-					: entry.organizationId,
-				hasMotions: isMultiple(entry.hasMotions)
-					? false
-					: entry.hasMotions,
-			};
-		} else {
-			if (!session) throw new Error("No current session");
-			edited = {
-				...defaultMeetingEntry,
-				date: "",
-				dates: [],
-				slots: [],
-				startSlotId: 0,
-				roomId: 0,
-				startTime: "",
-				endTime: "",
-				duration: "",
-				isSessionMeeting: session.type === "p" || session.type === "i",
-				organizationId: groupId,
-				webexAccountId: defaultWebexAccountId,
-				calendarAccountId: defaultCalenderAccountId,
-				imatMeetingId: session.imatMeetingId,
-				webexMeeting: {
-					id: "",
-					...defaultWebexMeeting,
-					accountId: defaultWebexAccountId,
-				},
-			};
-		}
-		setState({
-			...state,
-			action: "add-by-date",
-			edited,
-			saved: undefined,
-		} satisfies MeetingsEditState);
-	}, [
-		state,
-		defaultWebexAccountId,
-		defaultCalenderAccountId,
-		session,
-		groupId,
-	]);
+	return useReducer(reducer, undefined, initState);
+}
+
+export function useMeetingsEdit(readOnly: boolean) {
+	const dispatch = useAppDispatch();
+	const selectedMeetings = useAppSelector(selectSelectedMeetings);
+	const selectedSlots = useAppSelector(selectSelectedSlots);
+
+	const [state, dispatchStateAction] = useMeetingsEditReducer();
 
 	useEffect(() => {
 		if (state.action === "add-by-date") {
@@ -281,17 +362,17 @@ function useMeetingsEditState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelectedMeetings([]));
 				});
 			} else if (selectedSlots.length > 0) {
-				resetState();
+				dispatchStateAction(INIT);
 			}
 		} else if (state.action === "add-by-slot") {
-			resetState();
+			dispatchStateAction(INIT);
 		} else if (state.action === "update") {
 			if (state.edited === state.saved) {
-				resetState();
+				dispatchStateAction(INIT);
 				return;
 			}
 			const ids = state.meetings.map((m) => m.id);
@@ -299,22 +380,14 @@ function useMeetingsEditState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelectedMeetings(ids));
 				});
 			}
 		} else {
-			resetState();
+			dispatchStateAction(INIT);
 		}
-	}, [selectedMeetings, selectedSlots, resetState]);
-
-	return [state, setState, resetState, setAddState] as const;
-}
-
-export function useMeetingsEdit(readOnly: boolean) {
-	const dispatch = useAppDispatch();
-
-	const [state, setState, resetState, setAddState] = useMeetingsEditState();
+	}, [selectedMeetings, selectedSlots, dispatchStateAction]);
 
 	const hasChanges = useCallback(
 		() =>
@@ -326,40 +399,18 @@ export function useMeetingsEdit(readOnly: boolean) {
 
 	const onChange = useCallback(
 		(changes: MeetingEntryPartial) => {
-			setState((state) => {
-				if (readOnly) {
-					console.warn("onChange: state is readOnly");
-					return state;
-				}
-				if (
-					state.action === "add-by-date" ||
-					state.action === "add-by-slot"
-				) {
-					const edited: MeetingEntryMultiple = deepMerge(
-						state.edited,
-						changes,
-					);
-					return { ...state, edited } satisfies MeetingsEditState;
-				} else if (state.action === "update") {
-					let edited: MeetingEntryMultiple = deepMerge(
-						state.edited,
-						changes,
-					);
-					// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
-					changes = deepDiff(state.saved, edited) || {};
-					if (Object.keys(changes).length === 0) edited = state.saved;
-					return { ...state, edited } satisfies MeetingsEditState;
-				}
-				console.warn("onChange: in unexpected state");
-				return state;
-			});
+			if (readOnly || state.action === null) {
+				console.warn("onChange: bad state");
+				return;
+			}
+			dispatchStateAction(CHANGE(changes));
 		},
-		[readOnly, setState],
+		[readOnly, state.action, dispatchStateAction],
 	);
 
 	const submit = useCallback(async () => {
-		if (readOnly) {
-			console.warn("submit: state is readOnly");
+		if (readOnly || state.action === null) {
+			console.warn("submit: bad state");
 			return;
 		}
 		if (state.action === "add-by-date" || state.action === "add-by-slot") {
@@ -427,11 +478,7 @@ export function useMeetingsEdit(readOnly: boolean) {
 			}
 
 			const ids = await dispatch(addMeetings(meetings));
-			setState((state) => ({
-				...state,
-				action: null,
-				message: "Nothing selected",
-			}));
+			dispatchStateAction(SUBMIT);
 			dispatch(setSelectedSlots([]));
 			dispatch(setSelectedMeetings(ids));
 		} else if (state.action === "update") {
@@ -465,13 +512,17 @@ export function useMeetingsEdit(readOnly: boolean) {
 					updates.push({ id: meeting.id, changes });
 			}
 			await dispatch(updateMeetings(updates));
-			setState({ ...state, saved: state.edited });
+			dispatchStateAction(SUBMIT);
 		}
-	}, [readOnly, state, dispatch, setState]);
+	}, [readOnly, state, dispatch, dispatchStateAction]);
+
+	const cancel = useCallback(() => {
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
 
 	const onAdd = useCallback(async () => {
 		if (readOnly) {
-			console.warn("onAdd: state is readOnly");
+			console.warn("onAdd: bad state");
 			return;
 		}
 		if (state.action === "update" && hasChanges()) {
@@ -480,17 +531,13 @@ export function useMeetingsEdit(readOnly: boolean) {
 			);
 			if (!ok) return;
 		}
-		setAddState();
+		dispatchStateAction(CREATE);
 		dispatch(setSelectedMeetings([]));
-	}, [readOnly, dispatch, setAddState]);
+	}, [readOnly, dispatch, dispatchStateAction]);
 
 	const onDelete = useCallback(async () => {
-		if (readOnly) {
-			console.warn("onDelete: state is readOnly");
-			return;
-		}
-		if (state.action !== "update") {
-			console.warn("onDelete: in unexpected state");
+		if (readOnly || state.action !== "update") {
+			console.warn("onDelete: bad state");
 			return;
 		}
 
@@ -500,18 +547,17 @@ export function useMeetingsEdit(readOnly: boolean) {
 				(ids.length > 1 ? ids.length + "entries?" : "entry?"),
 		);
 		if (!ok) return;
+		dispatchStateAction(SUBMIT);
 		await dispatch(deleteMeetings(ids));
-	}, [readOnly, dispatch, state]);
+		dispatch(setSelectedMeetings([]));
+	}, [readOnly, state, dispatch, dispatchStateAction]);
 
 	const onSync = useCallback(async () => {
-		if (readOnly) {
-			console.warn("onSync: state is readOnly");
+		if (readOnly || state.action !== "update") {
+			console.warn("onSync: bad state");
 			return;
 		}
-		if (state.action !== "update") {
-			console.warn("onSync: in unexpected state");
-			return;
-		}
+
 		const { meetings, session } = state;
 		// Hack to ensure sessionId is set
 		const updates = meetings.map((m) => {
@@ -519,16 +565,16 @@ export function useMeetingsEdit(readOnly: boolean) {
 			if (m.sessionId !== session.id) changes.sessionId = session.id;
 			return { id: m.id, changes };
 		});
-
+		dispatchStateAction(SUBMIT);
 		await dispatch(updateMeetings(updates));
-	}, [readOnly, dispatch, state]);
+	}, [readOnly, state, dispatch]);
 
 	return {
 		state,
 		hasChanges,
 		onChange,
 		submit,
-		cancel: resetState,
+		cancel,
 		onSync,
 		onAdd,
 		onDelete,

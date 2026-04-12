@@ -63,7 +63,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 		selectAffiliationMapState,
 	);
 
-	const init = useCallback((): AffiliationMapEditState => {
+	const initState = useCallback((): AffiliationMapEditState => {
 		let message: string;
 		if (loading && !valid) {
 			message = "Loading...";
@@ -99,7 +99,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 			action: AffiliationMapEditAction,
 		): AffiliationMapEditState => {
 			if (action.type === "INIT") {
-				return init();
+				return initState();
 			}
 			if (action.type === "CREATE") {
 				return {
@@ -143,10 +143,14 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 			console.error("Unknown action:", action);
 			return state;
 		},
-		[init],
+		[initState],
 	);
 
-	const [state, dispatchStateAction] = useReducer(reducer, undefined, init);
+	const [state, dispatchStateAction] = useReducer(
+		reducer,
+		undefined,
+		initState,
+	);
 
 	useEffect(() => {
 		if (state.action === null) {
@@ -194,7 +198,10 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 		}
 		if (state.action === "add") {
 			const [map] = await dispatch(addAffiliationMaps([state.edited]));
-			if (map) dispatch(setSelected([map.id]));
+			if (map) {
+				dispatchStateAction(SUBMIT);
+				dispatch(setSelected([map.id]));
+			}
 		} else if (state.action === "update") {
 			const { edited, saved } = state;
 			const update = {
@@ -203,8 +210,8 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 			};
 			if (Object.keys(update.changes).length > 0)
 				await dispatch(updateAffiliationMaps([update]));
+			dispatchStateAction(SUBMIT);
 		}
-		dispatchStateAction({ type: "SUBMIT" });
 	}, [readOnly, state, dispatchStateAction, dispatch]);
 
 	const cancel = useCallback(() => {
@@ -230,8 +237,8 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 			);
 			if (!ok) return;
 		}
-		dispatch(setSelected([]));
 		dispatchStateAction(CREATE);
+		dispatch(setSelected([]));
 	}, [disableAdd, hasChanges, dispatch, dispatchStateAction]);
 
 	const disableDelete = readOnly || state.action !== "update";
@@ -243,8 +250,8 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 		const str = `Are you sure you want to delete ${state.ids.length} affiliation map${state.ids.length > 1 ? "s" : ""}?`;
 		const ok = await ConfirmModal.show(str);
 		if (ok) {
-			await dispatch(deleteAffiliationMaps(state.ids));
 			dispatchStateAction(SUBMIT);
+			await dispatch(deleteAffiliationMaps(state.ids));
 			dispatch(setSelected([]));
 		}
 	}, [disableDelete, state.ids, dispatch, dispatchStateAction]);

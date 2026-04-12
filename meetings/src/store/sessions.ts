@@ -23,11 +23,12 @@ import {
 	Room,
 	Timeslot,
 	SessionCreate,
+	SessionChanges,
 	sessionSchema,
 	sessionsSchema,
 } from "@schemas/sessions";
 
-export type { Session, Room, Timeslot, SessionCreate };
+export type { Session, Room, Timeslot, SessionCreate, SessionChanges };
 export { AccessLevel };
 
 export const SessionTypeLabels = {

@@ -1,4 +1,5 @@
-import { Row, Col, Button, Container } from "react-bootstrap";
+import { useState } from "react";
+import { Row, Col, Button, Container, Spinner } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import { selectUserMeetingsAccess, AccessLevel } from "@/store/meetings";
 
@@ -21,6 +22,20 @@ export function MeetingsDetails() {
 		onAdd,
 		onDelete,
 	} = useMeetingsEdit(readOnly);
+
+	const [syncing, setSyncing] = useState(false);
+	async function clickSync() {
+		setSyncing(true);
+		await onSync();
+		setSyncing(false);
+	}
+
+	const [deleting, setDeleting] = useState(false);
+	async function clickDelete() {
+		setDeleting(true);
+		await onDelete();
+		setDeleting(false);
+	}
 
 	let title = getIsSessionMeeting(state.session)
 		? "Session meeting"
@@ -52,9 +67,10 @@ export function MeetingsDetails() {
 					state.meetings.length === 0 ||
 					readOnly
 				}
-				onClick={onSync}
+				onClick={clickSync}
 			>
 				{" Sync"}
+				{syncing && <Spinner size="sm" className="ms-2" />}
 			</Button>
 			<Button
 				variant="outline-primary"
@@ -75,9 +91,10 @@ export function MeetingsDetails() {
 					state.meetings.length === 0 ||
 					readOnly
 				}
-				onClick={onDelete}
+				onClick={clickDelete}
 			>
 				{" Delete"}
+				{deleting && <Spinner size="sm" className="ms-2" />}
 			</Button>
 		</Col>
 	);

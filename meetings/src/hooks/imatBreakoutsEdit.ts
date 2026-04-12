@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
 import {
@@ -150,16 +150,54 @@ type ImatBreakoutsEditState = (
 	imatMeetingId: number | null;
 	breakouts: SyncedBreakout[];
 };
+type BreakoutsEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "CREATE";
+	  }
+	| {
+			type: "IMPORT";
+	  }
+	| {
+			type: "CHANGE_BREAKOUT";
+			changes: BreakoutEntryPartial;
+	  }
+	| {
+			type: "CHANGE_MEETING";
+			changes: MeetingEntryPartial;
+	  }
+	| {
+			type: "SUBMIT";
+	  };
+const INIT = { type: "INIT" } as const;
+const CREATE = { type: "CREATE" } as const;
+const IMPORT = { type: "IMPORT" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE_BREAKOUT = (changes: BreakoutEntryPartial) =>
+	({ type: "CHANGE_BREAKOUT", changes }) as const;
+const CHANGE_MEETING = (changes: MeetingEntryPartial) =>
+	({ type: "CHANGE_MEETING", changes }) as const;
 
-function useImatBreakoutsEditState() {
-	const dispatch = useAppDispatch();
+function useImatBreakoutsEditReducer() {
 	const { loading, valid, selected } = useAppSelector(selectBreakoutsState);
 	const entities = useAppSelector(selectSyncedBreakoutEntities);
+	const groupId = useAppSelector(selectTopLevelGroupId)!;
+	const groupEntities = useAppSelector(selectGroupEntities);
+
 	const imatMeetingId = useAppSelector(selectBreakoutMeetingId);
+	const imatMeeting = useAppSelector((state) =>
+		imatMeetingId ? selectImatMeeting(state, imatMeetingId) : undefined,
+	);
+	const session = useAppSelector((state) =>
+		imatMeetingId
+			? selectSessionByImatMeetingId(state, imatMeetingId)
+			: undefined,
+	);
 
-	const initState = useCallback(() => {
+	const init = useCallback(() => {
 		const breakouts = selected.map((id) => entities[id]).filter(Boolean);
-
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -167,7 +205,8 @@ function useImatBreakoutsEditState() {
 				imatMeetingId,
 				breakouts,
 			} satisfies ImatBreakoutsEditState;
-		} else if (breakouts.length === 0) {
+		}
+		if (breakouts.length === 0) {
 			return {
 				action: null,
 				message: "Nothing selected",
@@ -189,7 +228,121 @@ function useImatBreakoutsEditState() {
 		}
 	}, [loading, valid, selected, entities, imatMeetingId]);
 
-	const resetState = useCallback(() => setState(initState), [initState]);
+	const importState = useCallback(
+		(state: ImatBreakoutsEditState) => {
+			if (!imatMeeting) {
+				console.warn("import: can't find IMAT meeting");
+				return state;
+			}
+			if (!session) {
+				console.warn("import: can't find session");
+				return state;
+			}
+			const breakout = state.breakouts[0];
+			const edited = convertBreakoutToMeetingEntry(
+				breakout,
+				imatMeeting,
+				session,
+				groupId,
+				groupEntities,
+			);
+			return {
+				...state,
+				action: "import",
+				edited,
+				saved: undefined,
+				session,
+			} satisfies ImatBreakoutsEditState;
+		},
+		[imatMeeting, session, groupId, groupEntities],
+	);
+
+	const reducer = useCallback(
+		(
+			state: ImatBreakoutsEditState,
+			action: BreakoutsEditAction,
+		): ImatBreakoutsEditState => {
+			if (action.type === "INIT") {
+				return init();
+			}
+			if (action.type === "CREATE") {
+				const edited: SyncedBreakout = {
+					...getDefaultBreakout(),
+					imatMeetingId: state.imatMeetingId,
+					meetingId: null,
+				};
+				return {
+					...state,
+					action: "add",
+					edited,
+					saved: undefined,
+				};
+			}
+			if (action.type === "IMPORT") {
+				return importState(state);
+			}
+			if (action.type === "CHANGE_BREAKOUT") {
+				if (state.action === "add") {
+					return {
+						...state,
+						edited: { ...state.edited, ...action.changes },
+					} satisfies ImatBreakoutsEditState;
+				} else if (state.action === "update") {
+					let edited = { ...state.edited, ...action.changes };
+					if (isEqual(edited, state.saved)) edited = state.saved;
+					return {
+						...state,
+						edited,
+					} satisfies ImatBreakoutsEditState;
+				}
+				return state;
+			}
+			if (action.type === "CHANGE_MEETING") {
+				if (state.action !== "import") {
+					console.warn("CHANGE_MEETING: unexpected state");
+					return state;
+				}
+				const edited: MeetingEntryMultiple = deepMerge(
+					state.edited,
+					action.changes,
+				);
+				return { ...state, edited } satisfies ImatBreakoutsEditState;
+			}
+			if (action.type === "SUBMIT") {
+				if (state.action === "add") {
+					return {
+						...state,
+						action: null,
+						message: "Adding...",
+					} satisfies ImatBreakoutsEditState;
+				} else if (state.action === "update") {
+					return {
+						...state,
+						saved: state.edited,
+					} satisfies ImatBreakoutsEditState;
+				} else if (state.action === "import") {
+					return {
+						...state,
+						action: null,
+						message: "Importing...",
+					} satisfies ImatBreakoutsEditState;
+				}
+				return state;
+			}
+			console.error("Unknown action:", action);
+			return state;
+		},
+		[init, importState],
+	);
+
+	return useReducer(reducer, undefined, init);
+}
+
+export function useImatBreakoutsEdit(readOnly: boolean) {
+	const dispatch = useAppDispatch();
+	const { selected } = useAppSelector(selectBreakoutsState);
+
+	const [state, dispatchStateAction] = useImatBreakoutsEditReducer();
 
 	useEffect(() => {
 		if (state.action === "add" || state.action === "import") {
@@ -197,13 +350,13 @@ function useImatBreakoutsEditState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected([]));
 				});
 			}
 		} else if (state.action === "update") {
 			if (state.edited === state.saved) {
-				resetState();
+				dispatchStateAction(INIT);
 				return;
 			}
 			const ids = state.breakouts.map((m) => m.id);
@@ -211,36 +364,14 @@ function useImatBreakoutsEditState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected(ids));
 				});
 			}
 		} else {
-			resetState();
+			dispatchStateAction(INIT);
 		}
-	}, [selected, resetState]);
-
-	const [state, setState] = useState<ImatBreakoutsEditState>(initState);
-
-	return [state, setState, resetState] as const;
-}
-
-export function useImatBreakoutsEdit(readOnly: boolean) {
-	const dispatch = useAppDispatch();
-	const groupId = useAppSelector(selectTopLevelGroupId)!;
-	const groupEntities = useAppSelector(selectGroupEntities);
-
-	const [state, setState, resetState] = useImatBreakoutsEditState();
-
-	const imatMeetingId = state.imatMeetingId;
-	const imatMeeting = useAppSelector((state) =>
-		imatMeetingId ? selectImatMeeting(state, imatMeetingId) : undefined,
-	);
-	const session = useAppSelector((state) =>
-		imatMeetingId
-			? selectSessionByImatMeetingId(state, imatMeetingId)
-			: undefined,
-	);
+	}, [selected, dispatchStateAction]);
 
 	const hasChanges = useCallback(
 		() =>
@@ -252,62 +383,34 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 
 	const onChangeMeeting = useCallback(
 		(changes: MeetingEntryPartial) => {
-			setState((state) => {
-				if (readOnly) {
-					console.warn("onChange: state is readOnly");
-					return state;
-				}
-				if (state.action !== "import") {
-					console.warn("onChange: in unexpected state");
-					return state;
-				}
-				const edited: MeetingEntryMultiple = deepMerge(
-					state.edited,
-					changes,
-				);
-				return { ...state, edited } satisfies ImatBreakoutsEditState;
-			});
+			if (readOnly || state.action !== "import") {
+				console.warn("onChange: bad state");
+				return;
+			}
+			dispatchStateAction(CHANGE_MEETING(changes));
 		},
-		[readOnly, setState],
+		[readOnly, dispatchStateAction],
 	);
 
 	const onChangeBreakout = useCallback(
 		(changes: BreakoutEntryPartial) => {
-			setState((state) => {
-				if (readOnly) {
-					console.warn("onChangeBreakout: state is readOnly");
-					return state;
-				}
-				if (state.action === "add") {
-					const edited: SyncedBreakout = deepMerge(
-						state.edited,
-						changes,
-					);
-					return {
-						...state,
-						edited,
-					} satisfies ImatBreakoutsEditState;
-				} else if (state.action === "update") {
-					let edited: BreakoutEntryMultiple = deepMerge(
-						state.edited,
-						changes,
-					);
-					// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
-					changes = deepDiff(state.saved, edited) || {};
-					if (Object.keys(changes).length === 0) edited = state.saved;
-					return {
-						...state,
-						edited,
-					} satisfies ImatBreakoutsEditState;
-				}
-				console.warn("onChangeBreakout: in unexpected state");
-				return state;
-			});
+			if (
+				readOnly ||
+				(state.action !== "add" && state.action !== "update")
+			) {
+				console.warn("onChangeBreakout: bad state");
+				return;
+			}
+			dispatchStateAction(CHANGE_BREAKOUT(changes));
 		},
-		[readOnly, setState],
+		[readOnly, state.action, dispatchStateAction],
 	);
 
 	const submit = useCallback(async () => {
+		if (readOnly || state.action === null) {
+			console.warn("submit: bad state");
+			return;
+		}
 		if (state.action === "import") {
 			let entry = state.edited;
 
@@ -326,13 +429,10 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				),
 			);
 			await dispatch(addMeetings(meetings));
-			resetState();
 		} else if (state.action === "add") {
 			const entry = state.edited;
 			const imatMeetingId = state.imatMeetingId;
-			const [id] = await dispatch(
-				addBreakouts(imatMeetingId!, [state.edited]),
-			);
+			const [id] = await dispatch(addBreakouts(imatMeetingId!, [entry]));
 			if (entry.meetingId) {
 				await dispatch(
 					updateMeetings([
@@ -343,9 +443,9 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 					]),
 				);
 			}
+			dispatchStateAction(SUBMIT);
 			dispatch(setSelected([id]));
 		} else if (state.action === "update") {
-			/* Only called when action === "update" */
 			const { edited: entry, saved, imatMeetingId, breakouts } = state;
 
 			// Find differences
@@ -373,7 +473,6 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 					breakoutUpdates.push(updated);
 				}
 			}
-
 			if (breakoutUpdates.length > 0) {
 				await dispatch(
 					updateBreakouts(imatMeetingId!, breakoutUpdates),
@@ -382,12 +481,17 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 			if (meetingUpdates.length > 0) {
 				await dispatch(updateMeetings(meetingUpdates));
 			}
+			dispatchStateAction(SUBMIT);
 		}
-	}, [state, resetState, dispatch]);
+	}, [readOnly, state, dispatch, dispatchStateAction]);
+
+	const cancel = useCallback(() => {
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
 
 	const onAdd = useCallback(async () => {
 		if (readOnly) {
-			console.warn("onAdd: state is readOnly");
+			console.warn("onAdd: bad state");
 			return;
 		}
 		if (state.action === "update" && hasChanges()) {
@@ -396,30 +500,15 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 			);
 			if (!ok) return;
 		}
-		const edited: SyncedBreakout = {
-			...getDefaultBreakout(),
-			imatMeetingId: state.imatMeetingId,
-			meetingId: null,
-		};
-		setState((state) => ({
-			...state,
-			action: "add",
-			edited,
-			saved: undefined,
-		}));
+		dispatchStateAction(CREATE);
 		dispatch(setSelected([]));
-	}, [readOnly, state, setState, dispatch]);
+	}, [readOnly, state.action, hasChanges, dispatchStateAction, dispatch]);
 
 	const onDelete = useCallback(async () => {
-		if (readOnly) {
-			console.warn("onDelete: state is readOnly");
+		if (readOnly || state.action !== "update") {
+			console.warn("onDelete: bad state");
 			return;
 		}
-		if (state.action !== "update") {
-			console.warn("onDelete: in unexpected state");
-			return;
-		}
-
 		const ids = state.breakouts.map((m) => m.id);
 		const ok = await ConfirmModal.show(
 			"Are you sure you want to delete the selected " +
@@ -427,43 +516,17 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 		);
 		if (!ok) return;
 		await dispatch(deleteBreakouts(state.imatMeetingId!, ids));
-	}, [state, dispatch]);
+		dispatchStateAction(SUBMIT);
+		dispatch(setSelected([]));
+	}, [state, dispatch, dispatchStateAction]);
 
 	const onImport = useCallback(async () => {
-		setState((state) => {
-			if (readOnly) {
-				console.warn("onImport: state is readOnly");
-				return state;
-			}
-			if (state.action !== "update") {
-				console.warn("onImport: unexpected state");
-				return state;
-			}
-			if (!imatMeeting) {
-				console.warn("onImport: can't find imat meeting");
-				return state;
-			}
-			if (!session) {
-				console.warn("onImport: can't find session");
-				return state;
-			}
-			const breakout = state.breakouts[0];
-			const edited = convertBreakoutToMeetingEntry(
-				breakout,
-				imatMeeting,
-				session,
-				groupId,
-				groupEntities,
-			);
-			return {
-				...state,
-				action: "import",
-				edited,
-				saved: undefined,
-				session,
-			} satisfies ImatBreakoutsEditState;
-		});
-	}, [imatMeeting, session, groupId, groupEntities, setState]);
+		if (readOnly || state.action !== "update") {
+			console.warn("onImport: bad state");
+			return state;
+		}
+		dispatchStateAction(IMPORT);
+	}, [readOnly, state.action, dispatchStateAction]);
 
 	return {
 		state,
@@ -471,7 +534,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 		onChangeBreakout,
 		onChangeMeeting,
 		submit,
-		cancel: resetState,
+		cancel,
 		onImport,
 		onAdd,
 		onDelete,

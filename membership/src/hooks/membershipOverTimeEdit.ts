@@ -58,7 +58,7 @@ function useMembershipOverTimeReducer() {
 	);
 	const membersSummary = useAppSelector(selectMembersSummary);
 
-	const init = useCallback((): MembershipOverTimeEditState => {
+	const initState = useCallback((): MembershipOverTimeEditState => {
 		let message: string;
 		if (loading && !valid) {
 			message = "Loading...";
@@ -94,7 +94,7 @@ function useMembershipOverTimeReducer() {
 			action: MembershipOverTimeEditAction,
 		): MembershipOverTimeEditState => {
 			if (action.type === "INIT") {
-				return init();
+				return initState();
 			}
 			if (action.type === "CREATE") {
 				const edited: MembershipEventCreate = {
@@ -143,10 +143,10 @@ function useMembershipOverTimeReducer() {
 			console.error("Unknown action:", action);
 			return state;
 		},
-		[init],
+		[initState, membersSummary],
 	);
 
-	return useReducer(reducer, undefined, init);
+	return useReducer(reducer, undefined, initState);
 }
 
 export function useMembershipOverTimeEdit(readOnly: boolean) {

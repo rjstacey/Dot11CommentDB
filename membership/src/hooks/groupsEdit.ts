@@ -92,7 +92,7 @@ function useGroupsEditReducer({
 	const officerEntities = useAppSelector(selectOfficerEntities);
 	const officerIds = useAppSelector(selectOfficerIds);
 
-	const init = useCallback((): GroupsEditState => {
+	const initState = useCallback((): GroupsEditState => {
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -138,7 +138,7 @@ function useGroupsEditReducer({
 	const reducer = useCallback(
 		(state: GroupsEditState, action: GroupsEditAction): GroupsEditState => {
 			if (action.type === "INIT") {
-				return init();
+				return initState();
 			}
 			if (action.type === "CREATE") {
 				const parentGroup = groupId ? entities[groupId] : undefined;
@@ -190,10 +190,10 @@ function useGroupsEditReducer({
 			console.error("Unknown action:", action);
 			return state;
 		},
-		[init, groupId, entities],
+		[initState, groupId, entities],
 	);
 
-	return useReducer(reducer, undefined, init);
+	return useReducer(reducer, undefined, initState);
 }
 
 export function useGroupsEdit(readOnly: boolean) {
@@ -283,17 +283,18 @@ export function useGroupsEdit(readOnly: boolean) {
 				}
 			}
 			const group = await groupAdd(edited);
+			dispatchStateAction(SUBMIT);
 			dispatch(setSelected(group ? [group.id] : []));
 		} else if (state.action === "update") {
 			const { edited, saved, groups } = state;
 			await groupsUpdate(edited, saved, groups);
+			dispatchStateAction(SUBMIT);
 		}
-		dispatchStateAction(SUBMIT);
-	}, [readOnly, state, groupId, entities]);
+	}, [readOnly, state, groupId, entities, dispatchStateAction]);
 
 	const cancel = useCallback(async () => {
 		dispatchStateAction(INIT);
-	}, []);
+	}, [dispatchStateAction]);
 
 	const disableAdd = readOnly || loading;
 	const onAdd = useCallback(async () => {
@@ -307,9 +308,9 @@ export function useGroupsEdit(readOnly: boolean) {
 			);
 			if (!ok) return;
 		}
-		dispatch(setSelected([]));
 		dispatchStateAction(CREATE);
-	}, [disableAdd, hasChanges]);
+		dispatch(setSelected([]));
+	}, [disableAdd, hasChanges, dispatchStateAction]);
 
 	const groupsDelete = useGroupsDelete();
 
@@ -341,7 +342,7 @@ export function useGroupsEdit(readOnly: boolean) {
 				dispatch(setSelected([]));
 			}
 		}
-	}, [disableDelete, state, groupsDelete]);
+	}, [disableDelete, state, groupsDelete, dispatchStateAction]);
 
 	return {
 		state,

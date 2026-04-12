@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import isEqual from "lodash.isequal";
 import { DateTime } from "luxon";
 import {
@@ -73,13 +73,32 @@ type WebexMeetingEditState =
 			saved: WebexMeetingEntryMultiple;
 			webexMeetings: WebexMeeting[];
 	  };
+type WebexMeetingEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "CREATE";
+	  }
+	| {
+			type: "CHANGE";
+			changes: WebexMeetingEntryPartial;
+	  }
+	| {
+			type: "SUBMIT";
+	  };
+const INIT = { type: "INIT" } as const;
+const CREATE = { type: "CREATE" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (changes: WebexMeetingEntryPartial) =>
+	({ type: "CHANGE", changes }) as const;
 
-function useWebexMeetingsEditState() {
-	const dispatch = useAppDispatch();
+function useWebexMeetingsEditReducer() {
 	const { loading, valid, selected } = useAppSelector(
 		selectWebexMeetingsState,
 	);
 	const entities = useAppSelector(selectSyncedWebexMeetingEntities);
+	const defaultWebexAccountId = useAppSelector(selectWebexAccountDefaultId);
 
 	const initState = useCallback(() => {
 		const webexMeetings: SyncedWebexMeeting[] = selected
@@ -145,7 +164,74 @@ function useWebexMeetingsEditState() {
 		}
 	}, [loading, valid, selected, entities]);
 
-	const resetState = useCallback(() => setState(initState), [initState]);
+	const reducer = useCallback(
+		(
+			state: WebexMeetingEditState,
+			action: WebexMeetingEditAction,
+		): WebexMeetingEditState => {
+			if (action.type === "INIT") {
+				return initState();
+			}
+			if (action.type === "CREATE") {
+				const edited: WebexMeetingEntryCreate = {
+					...defaultWebexMeeting,
+					meetingOptions: defaultWebexMeeting.meetingOptions!,
+					audioConnectionOptions:
+						defaultWebexMeeting.audioConnectionOptions!,
+					accountId: defaultWebexAccountId,
+				};
+				return {
+					action: "add",
+					edited,
+					saved: undefined,
+				} satisfies WebexMeetingEditState;
+			}
+			if (action.type === "CHANGE") {
+				if (state.action === "add") {
+					const edited: WebexMeetingEntryCreate = deepMerge(
+						state.edited,
+						action.changes,
+					);
+					return { ...state, edited } satisfies WebexMeetingEditState;
+				} else if (state.action === "update") {
+					let edited: WebexMeetingEntryMultiple = deepMerge(
+						state.edited,
+						action.changes,
+					);
+					// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
+					const changes = deepDiff(state.saved, edited) || {};
+					if (Object.keys(changes).length === 0) edited = state.saved;
+					return { ...state, edited } satisfies WebexMeetingEditState;
+				}
+				return state;
+			}
+			if (action.type === "SUBMIT") {
+				if (state.action === "add") {
+					return {
+						...state,
+						action: null,
+						message: "Adding...",
+					};
+				} else if (state.action === "update") {
+					return {
+						...state,
+						saved: state.edited,
+					};
+				}
+				return state;
+			}
+			return state;
+		},
+		[initState, defaultWebexAccountId],
+	);
+
+	return useReducer(reducer, null, initState);
+}
+
+export function useWebexMeetingsEdit(readOnly: boolean) {
+	const dispatch = useAppDispatch();
+	const { selected } = useAppSelector(selectWebexMeetingsState);
+	const [state, dispatchStateAction] = useWebexMeetingsEditReducer();
 
 	useEffect(() => {
 		if (state.action === "add") {
@@ -153,13 +239,13 @@ function useWebexMeetingsEditState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected([]));
 				});
 			}
 		} else if (state.action === "update") {
 			if (state.edited === state.saved) {
-				resetState();
+				dispatchStateAction(INIT);
 				return;
 			}
 			const ids = state.webexMeetings.map((m) => m.id);
@@ -167,25 +253,14 @@ function useWebexMeetingsEditState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected(ids));
 				});
 			}
 		} else {
-			resetState();
+			dispatchStateAction(INIT);
 		}
-	}, [selected, resetState]);
-
-	const [state, setState] = useState<WebexMeetingEditState>(initState);
-
-	return [state, setState, resetState] as const;
-}
-
-export function useWebexMeetingsEdit(readOnly: boolean) {
-	const dispatch = useAppDispatch();
-	const defaultWebexAccountId = useAppSelector(selectWebexAccountDefaultId);
-
-	const [state, setState, resetState] = useWebexMeetingsEditState();
+	}, [selected, dispatchStateAction]);
 
 	const hasChanges = useCallback(
 		() =>
@@ -196,35 +271,21 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 
 	const onChange = useCallback(
 		(changes: WebexMeetingEntryPartial) => {
-			setState((state) => {
-				if (readOnly) {
-					console.warn("onChange: state is readOnly");
-					return state;
-				}
-				if (state.action === "add") {
-					const edited: WebexMeetingEntryCreate = deepMerge(
-						state.edited,
-						changes,
-					);
-					return { ...state, edited } satisfies WebexMeetingEditState;
-				} else if (state.action === "update") {
-					let edited: WebexMeetingEntryMultiple = deepMerge(
-						state.edited,
-						changes,
-					);
-					// If the changes revert to the original, then store entry as original for easy hasUpdates comparison
-					changes = deepDiff(state.saved, edited) || {};
-					if (Object.keys(changes).length === 0) edited = state.saved;
-					return { ...state, edited } satisfies WebexMeetingEditState;
-				}
-				console.warn("onChange: in unexpected state");
-				return state;
-			});
+			if (readOnly || state.action === null) {
+				console.warn("onChange: bad state");
+				return;
+			}
+			dispatchStateAction(CHANGE(changes));
 		},
-		[readOnly, setState],
+		[readOnly, state.action, dispatchStateAction],
 	);
 
 	const submit = useCallback(async () => {
+		if (readOnly || state.action === null) {
+			console.warn("submit: bad state");
+			return;
+		}
+
 		if (state.action === "add") {
 			const entry = state.edited;
 			const webexMeeting = convertEntryToWebexMeeting(entry);
@@ -243,10 +304,7 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 						},
 					]),
 				);
-			setState({
-				action: null,
-				message: "Adding...",
-			});
+			dispatchStateAction(SUBMIT);
 			dispatch(setSelected(id ? [id] : []));
 		} else if (state.action === "update") {
 			const { edited, saved, webexMeetings } = state;
@@ -287,18 +345,21 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 					});
 				}
 			}
-			console.log(webexMeetingUpdates, meetingUpdates);
 			if (webexMeetingUpdates.length > 0)
 				await dispatch(updateWebexMeetings(webexMeetingUpdates));
 			if (meetingUpdates.length > 0)
 				await dispatch(updateMeetings(meetingUpdates));
-			setState({ ...state, saved: state.edited });
+			dispatchStateAction(SUBMIT);
 		}
-	}, []);
+	}, [readOnly, state, dispatch, dispatchStateAction]);
+
+	const cancel = useCallback(() => {
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
 
 	const onAdd = useCallback(async () => {
 		if (readOnly) {
-			console.warn("onAdd: state is readOnly");
+			console.warn("onAdd: bad state");
 			return;
 		}
 		if (state.action === "update" && hasChanges()) {
@@ -307,27 +368,13 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 			);
 			if (!ok) return;
 		}
-		const edited: WebexMeetingEntryCreate = {
-			...defaultWebexMeeting,
-			meetingOptions: defaultWebexMeeting.meetingOptions!,
-			audioConnectionOptions: defaultWebexMeeting.audioConnectionOptions!,
-			accountId: defaultWebexAccountId,
-		};
-		setState({
-			action: "add",
-			edited,
-			saved: undefined,
-		});
+		dispatchStateAction(CREATE);
 		dispatch(setSelected([]));
-	}, [readOnly, dispatch]);
+	}, [readOnly, state, dispatch, dispatchStateAction]);
 
 	const onDelete = useCallback(async () => {
-		if (readOnly) {
-			console.warn("onDelete: state is readOnly");
-			return;
-		}
-		if (state.action !== "update") {
-			console.warn("onDelete: in unexpected state");
+		if (readOnly || state.action !== "update") {
+			console.warn("onDelete: bad state");
 			return;
 		}
 
@@ -339,15 +386,16 @@ export function useWebexMeetingsEdit(readOnly: boolean) {
 					: "entry?"),
 		);
 		if (!ok) return;
+		dispatchStateAction(SUBMIT);
 		await dispatch(deleteWebexMeetings(webexMeetings));
-	}, [dispatch]);
+	}, [readOnly, state, dispatch, dispatchStateAction]);
 
 	return {
 		state,
 		hasChanges,
 		onChange,
 		submit,
-		cancel: resetState,
+		cancel,
 		onAdd,
 		onDelete,
 	};
