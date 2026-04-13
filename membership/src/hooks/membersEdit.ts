@@ -78,7 +78,7 @@ const CHANGE = (changes: MemberChange) =>
 function useMembersEditReducer(selected: number[]) {
 	const { entities, loading, valid } = useAppSelector(selectMembersState);
 
-	const init = useCallback((): MembersEditState => {
+	const initState = useCallback((): MembersEditState => {
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -121,7 +121,7 @@ function useMembersEditReducer(selected: number[]) {
 			action: MembersEditAction,
 		): MembersEditState => {
 			if (action.type === "INIT") {
-				return init();
+				return initState();
 			}
 			if (action.type === "CREATE") {
 				const entry: MemberCreate & {
@@ -175,13 +175,12 @@ function useMembersEditReducer(selected: number[]) {
 				}
 				return state;
 			}
-			console.error("Unknown action:", action);
-			return state;
+			throw new Error("Unknown action: " + action);
 		},
-		[],
+		[initState],
 	);
 
-	return useReducer(reducer, undefined, init);
+	return useReducer(reducer, undefined, initState);
 }
 
 export function useMembersEdit({

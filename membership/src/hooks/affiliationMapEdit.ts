@@ -250,8 +250,8 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 		const str = `Are you sure you want to delete ${state.ids.length} affiliation map${state.ids.length > 1 ? "s" : ""}?`;
 		const ok = await ConfirmModal.show(str);
 		if (ok) {
-			dispatchStateAction(SUBMIT);
 			await dispatch(deleteAffiliationMaps(state.ids));
+			dispatchStateAction(SUBMIT);
 			dispatch(setSelected([]));
 		}
 	}, [disableDelete, state.ids, dispatch, dispatchStateAction]);

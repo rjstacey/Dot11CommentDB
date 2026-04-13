@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
 import { shallowDiff, deepMerge } from "@common";
@@ -156,17 +156,42 @@ export type SessionAttendanceEditState =
 			ids: number[];
 			message: string;
 	  };
+type SessionAttendanceEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "CHANGE_ATTENDANCE";
+			changes: SessionAttendanceSummaryChange;
+	  }
+	| {
+			type: "CHANGE_MEMBER";
+			changes: MemberChange;
+	  }
+	| {
+			type: "SUBMIT";
+	  }
+	| {
+			type: "CANCEL";
+	  };
+const INIT = { type: "INIT" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE_ATTENDANCE = (changes: SessionAttendanceSummaryChange) =>
+	({ type: "CHANGE_ATTENDANCE", changes }) as const;
+const CHANGE_MEMBER = (changes: MemberChange) =>
+	({ type: "CHANGE_MEMBER", changes }) as const;
+const CANCEL = { type: "CANCEL" } as const;
 
-function useInitState(ids: number[]): SessionAttendanceEditState {
+function useSessionAttendanceEditReducer(ids: number[], readOnly: boolean) {
 	const session = useAppSelector(selectImatAttendanceSummarySession);
-	if (!session) throw new Error("No session for IMAT attendance summary");
 	const { loading, valid } = useAppSelector(selectImatAttendanceSummaryState);
 	const memberEntities = useAppSelector(selectMemberEntities);
 	const synchedEntities = useAppSelector(
 		selectImatAttendanceSummarySyncedEntities,
 	);
 
-	return useMemo(() => {
+	const initState = useCallback(() => {
+		if (!session) throw new Error("No session for IMAT attendance summary");
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -271,60 +296,47 @@ function useInitState(ids: number[]): SessionAttendanceEditState {
 			} satisfies SessionAttendanceEditState;
 		}
 	}, [loading, valid, ids, memberEntities, synchedEntities, session]);
-}
 
-export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
-	const dispatch = useAppDispatch();
-
-	const initState = useInitState(ids);
-
-	const [state, setState] = useState<SessionAttendanceEditState>(initState);
-
-	useEffect(() => {
-		if (state.action === "updateOne" || state.action === "addOne") {
-			if (!isEqual(ids, state.ids)) setState(initState);
-		} else {
-			setState(initState);
-		}
-	}, [ids, state, setState, initState]);
-
-	const memberOnChange = useCallback(
-		(changes: MemberChange) => {
-			setState((state) => {
-				if (!readOnly) {
-					if (state.action === "addOne") {
-						const memberEdit = {
-							...state.memberEdit,
-							...changes,
-						};
-						return { ...state, memberEdit };
-					} else if (state.action === "updateOne") {
-						let memberEdit = {
-							...state.memberEdit,
-							...changes,
-						};
-						if (isEqual(memberEdit, state.memberSaved))
-							memberEdit = state.memberSaved;
-						return { ...state, memberEdit };
-					}
+	const reducer = useCallback(
+		(
+			state: SessionAttendanceEditState,
+			action: SessionAttendanceEditAction,
+		): SessionAttendanceEditState => {
+			if (action.type === "INIT") {
+				return initState();
+			}
+			if (action.type === "CHANGE_MEMBER") {
+				if (readOnly) {
+					console.warn("Change member while read-only");
+					return state;
 				}
-				console.warn("memberOnChange: bad state");
+				if (state.action === "addOne") {
+					const memberEdit = {
+						...state.memberEdit,
+						...action.changes,
+					};
+					return { ...state, memberEdit };
+				} else if (state.action === "updateOne") {
+					let memberEdit = {
+						...state.memberEdit,
+						...action.changes,
+					};
+					if (isEqual(memberEdit, state.memberSaved))
+						memberEdit = state.memberSaved;
+					return { ...state, memberEdit };
+				}
+				console.warn("Change member in unexpected state");
 				return state;
-			});
-		},
-		[readOnly, setState],
-	);
-
-	const attendanceOnChange = useCallback(
-		(changes: SessionAttendanceSummaryChange) => {
-			setState((state) => {
-				if (
-					!readOnly &&
-					(state.action === "addOne" || state.action === "updateOne")
-				) {
+			}
+			if (action.type === "CHANGE_ATTENDANCE") {
+				if (readOnly) {
+					console.warn("Change attendance while read-only");
+					return state;
+				}
+				if (state.action === "addOne" || state.action === "updateOne") {
 					let attendanceEdit = {
 						...state.attendanceEdit,
-						...changes,
+						...action.changes,
 					};
 					if (isEqual(attendanceEdit, state.attendanceSaved))
 						attendanceEdit = state.attendanceSaved;
@@ -333,11 +345,62 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 						attendanceEdit,
 					};
 				}
-				console.warn("attendanceOnChange: bad state");
 				return state;
-			});
+			}
+			if (action.type === "SUBMIT") {
+				if (state.action === "addOne") {
+					return initState();
+				}
+				if (state.action === "updateOne") {
+					return {
+						...state,
+						memberSaved: state.memberEdit,
+						attendanceSaved: state.attendanceEdit,
+					};
+				}
+				return state;
+			}
+			if (action.type === "CANCEL") {
+				if (state.action === "addOne") return initState();
+				if (state.action === "updateOne")
+					return {
+						...state,
+						memberEdit: state.memberSaved,
+						attendanceEdit: state.attendanceSaved,
+					};
+				return state;
+			}
+			throw new Error("Unknown action: " + action);
 		},
-		[readOnly, setState],
+		[readOnly, initState],
+	);
+
+	return useReducer(reducer, undefined, initState);
+}
+
+export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
+	const dispatch = useAppDispatch();
+	const [state, dispatchStateAction] = useSessionAttendanceEditReducer(
+		ids,
+		readOnly,
+	);
+
+	useEffect(() => {
+		if (!isEqual(ids, state.ids)) dispatchStateAction(INIT);
+	}, [ids, dispatchStateAction]);
+
+	const memberOnChange = useCallback(
+		(changes: MemberChange) => {
+			dispatchStateAction(CHANGE_MEMBER(changes));
+		},
+		[dispatchStateAction],
+	);
+
+	const attendanceOnChange = useCallback(
+		(changes: SessionAttendanceSummaryChange) => {
+			dispatchStateAction(CHANGE_ATTENDANCE(changes));
+		},
+		[dispatchStateAction],
 	);
 
 	const hasMemberChanges = useCallback(
@@ -374,9 +437,7 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 			doUpdateMembers = true,
 			doUpdateAttendance = true,
 		) => {
-			const { action } = state;
-
-			if (action === "addOne" || action === "updateOne") {
+			if (state.action === "addOne" || state.action === "updateOne") {
 				if (doUpdateAttendance) {
 					const id = state.attendanceSaved.id;
 					if (id) {
@@ -395,13 +456,11 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 						);
 					}
 				}
-				if (action === "addOne") {
+				if (state.action === "addOne") {
 					if (doAddMembers) {
 						await dispatch(addMembers([state.memberEdit]));
 					}
-					setState(initState);
-				}
-				if (action === "updateOne") {
+				} else if (state.action === "updateOne") {
 					if (doUpdateMembers) {
 						const id = state.ids[0];
 						const changes = shallowDiff(
@@ -412,13 +471,9 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 							await dispatch(updateMembers([{ id, changes }]));
 						}
 					}
-					setState({
-						...state,
-						memberSaved: state.memberEdit,
-						attendanceSaved: state.attendanceEdit,
-					});
 				}
-			} else if (action === "updateMany") {
+				dispatchStateAction(SUBMIT);
+			} else if (state.action === "updateMany") {
 				if (doAddMembers) await dispatch(addMembers(state.memberAdds));
 				if (doUpdateMembers)
 					await dispatch(updateMembers(state.memberUpdates));
@@ -435,22 +490,12 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 				}
 			}
 		},
-		[state, dispatch, setState, initState],
+		[state, dispatch, dispatchStateAction],
 	);
 
 	const cancel = useCallback(() => {
-		setState((state) => {
-			const { action } = state;
-			if (action === "addOne") return initState;
-			if (action === "updateOne")
-				return {
-					...state,
-					memberEdit: state.memberSaved,
-					attendanceEdit: state.attendanceSaved,
-				};
-			return state;
-		});
-	}, [setState, initState]);
+		dispatchStateAction(CANCEL);
+	}, [dispatchStateAction]);
 
 	return {
 		state,

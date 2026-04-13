@@ -44,6 +44,7 @@
 		"bootstrap": "^5.3.8",
 		"bootstrap-icons": "^1.13.1",
 		"clsx": "^2.1.1",
+		"d3": "^7.9.0",
 		"lexical": "^0.40.0",
 		"lodash.debounce": "^4.0.8",
 		"lodash.isequal": "^4.5.0",
@@ -64,6 +65,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.38.0",
+		"@types/d3": "^7.4.3",
 		"@types/lodash.debounce": "^4.0.9",
 		"@types/lodash.isequal": "^4.5.8",
 		"@types/lodash.throttle": "^4.1.9",

@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useState } from "react";
+import { useEffect, useCallback, useMemo, useReducer } from "react";
 import { shallowDiff } from "@common";
 import isEqual from "lodash.isequal";
 
@@ -46,28 +46,40 @@ export type SessionParticipationEditState = {
 	edited: MemberSessionAttendanceSummaries;
 	saved: MemberSessionAttendanceSummaries;
 };
+type SessionParticipationEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "CHANGE";
+			session_id: number;
+			changes: SessionAttendanceSummaryChange;
+	  }
+	| {
+			type: "SUBMIT";
+	  };
+const INIT = { type: "INIT" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (session_id: number, changes: SessionAttendanceSummaryChange) =>
+	({ type: "CHANGE", session_id, changes }) as const;
 
-export function useSessionParticipationEdit(SAPIN: number) {
-	const dispatch = useAppDispatch();
+function useSessionParticipationEditReducer(SAPIN: number) {
 	const { session_ids, attendances } = useSessionAttendances(SAPIN);
 
-	const [state, setState] = useState<SessionParticipationEditState>({
-		session_ids,
-		edited: attendances,
-		saved: attendances,
-	});
-
-	useEffect(() => {
-		setState({
-			session_ids,
-			edited: attendances,
-			saved: attendances,
-		});
-	}, [session_ids, attendances]);
-
-	const onChange = useCallback(
-		(session_id: number, changes: SessionAttendanceSummaryChange) => {
-			setState((state) => {
+	const reducer = useCallback(
+		(
+			state: SessionParticipationEditState,
+			action: SessionParticipationEditAction,
+		): SessionParticipationEditState => {
+			if (action.type === "INIT") {
+				return {
+					session_ids,
+					edited: attendances,
+					saved: attendances,
+				};
+			}
+			if (action.type === "CHANGE") {
+				const { session_id, changes } = action;
 				let edited = {
 					...state.edited,
 					[session_id]: { ...state.edited[session_id], ...changes },
@@ -77,9 +89,38 @@ export function useSessionParticipationEdit(SAPIN: number) {
 					...state,
 					edited,
 				};
-			});
+			}
+			if (action.type === "SUBMIT") {
+				return {
+					...state,
+					saved: state.edited,
+				};
+			}
+			throw new Error("Unknown action: " + action);
 		},
-		[setState],
+		[session_ids, attendances],
+	);
+
+	return useReducer(reducer, {
+		session_ids,
+		edited: attendances,
+		saved: attendances,
+	});
+}
+export function useSessionParticipationEdit(SAPIN: number) {
+	const dispatch = useAppDispatch();
+	const [state, dispatchStateAction] =
+		useSessionParticipationEditReducer(SAPIN);
+
+	useEffect(() => {
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
+
+	const onChange = useCallback(
+		(session_id: number, changes: SessionAttendanceSummaryChange) => {
+			dispatchStateAction(CHANGE(session_id, changes));
+		},
+		[dispatchStateAction],
 	);
 
 	const hasChanges = useCallback(() => state.edited !== state.saved, [state]);
@@ -107,23 +148,17 @@ export function useSessionParticipationEdit(SAPIN: number) {
 				}
 			}
 		}
-		setState((state) => ({
-			...state,
-			saved: state.edited,
-		}));
 		if (adds.length > 0) await dispatch(addAttendanceSummaries(adds));
 		if (updates.length > 0)
 			await dispatch(updateAttendanceSummaries(updates));
 		if (deletes.length > 0)
 			await dispatch(deleteAttendanceSummaries(deletes));
-	}, [dispatch, state, setState]);
+		dispatchStateAction(SUBMIT);
+	}, [dispatch, state, dispatchStateAction]);
 
 	const cancel = useCallback(() => {
-		setState((state) => ({
-			...state,
-			edited: state.saved,
-		}));
-	}, [setState]);
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
 
 	return {
 		state,

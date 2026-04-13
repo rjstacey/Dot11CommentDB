@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import { shallowDiff } from "@common";
 import isEqual from "lodash.isequal";
 
@@ -15,9 +15,26 @@ export type BallotParticipationEditState = {
 	edited: Record<number, BallotSeriesParticipationSummary>;
 	saved: Record<number, BallotSeriesParticipationSummary>;
 };
+type BallotParticipationEditAction =
+	| {
+			type: "INIT";
+	  }
+	| {
+			type: "CHANGE";
+			series_id: number;
+			changes: Partial<BallotSeriesParticipationSummary>;
+	  }
+	| {
+			type: "SUBMIT";
+	  };
+const INIT = { type: "INIT" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (
+	series_id: number,
+	changes: Partial<BallotSeriesParticipationSummary>,
+) => ({ type: "CHANGE", series_id, changes }) as const;
 
-export function useBallotParticipationEdit(SAPIN: number) {
-	const dispatch = useAppDispatch();
+function useBallotParticipationEditReducer(SAPIN: number) {
 	const entities = useAppSelector(selectBallotParticipationEntities);
 
 	const initState = useCallback(() => {
@@ -38,30 +55,60 @@ export function useBallotParticipationEdit(SAPIN: number) {
 		} satisfies BallotParticipationEditState;
 	}, [SAPIN, entities]);
 
-	const [state, setState] = useState<BallotParticipationEditState>(initState);
-
-	useEffect(() => {
-		setState(initState);
-	}, [initState]);
-
-	const onChange = useCallback(
+	const reducer = useCallback(
 		(
-			series_id: number,
-			changes: Partial<BallotSeriesParticipationSummary>,
-		) => {
-			setState((state) => {
+			state: BallotParticipationEditState,
+			action: BallotParticipationEditAction,
+		): BallotParticipationEditState => {
+			if (action.type === "INIT") {
+				return initState();
+			}
+			if (action.type === "CHANGE") {
+				const { series_id, ...changes } = action;
 				let edited = {
 					...state.edited,
-					[series_id]: { ...state.edited[series_id], ...changes },
+					[action.series_id]: {
+						...state.edited[series_id],
+						...changes,
+					},
 				};
 				if (isEqual(edited, state.saved)) edited = state.saved;
 				return {
 					...state,
 					edited,
 				};
-			});
+			}
+			if (action.type === "SUBMIT") {
+				return {
+					...state,
+					saved: state.edited,
+				};
+			}
+			throw new Error("Unknown action: " + action);
 		},
-		[setState],
+		[initState],
+	);
+
+	return useReducer(reducer, undefined, initState);
+}
+
+export function useBallotParticipationEdit(SAPIN: number) {
+	const dispatch = useAppDispatch();
+	const [state, dispatchStateAction] =
+		useBallotParticipationEditReducer(SAPIN);
+
+	useEffect(() => {
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
+
+	const onChange = useCallback(
+		(
+			series_id: number,
+			changes: Partial<BallotSeriesParticipationSummary>,
+		) => {
+			dispatchStateAction(CHANGE(series_id, changes));
+		},
+		[dispatchStateAction],
 	);
 
 	const hasChanges = useCallback(() => state.edited !== state.saved, [state]);
@@ -77,20 +124,14 @@ export function useBallotParticipationEdit(SAPIN: number) {
 			if (Object.keys(changes).length > 0)
 				updates.push({ id: series_id, changes });
 		}
-		setState((state) => ({
-			...state,
-			saved: state.edited,
-		}));
 		if (updates.length > 0)
 			await dispatch(updateBallotParticipation(SAPIN, updates));
-	}, [dispatch, SAPIN, state, setState]);
+		dispatchStateAction(SUBMIT);
+	}, [dispatch, SAPIN, state, dispatchStateAction]);
 
 	const cancel = useCallback(() => {
-		setState((state) => ({
-			...state,
-			edited: state.saved,
-		}));
-	}, [setState]);
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
 
 	return {
 		state,
