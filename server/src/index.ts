@@ -35,25 +35,26 @@ dotenv.config();
 // EnvHttpProxyAgent automatically reads HTTP_PROXY, HTTPS_PROXY, and NO_PROXY environment variables
 setGlobalDispatcher(new EnvHttpProxyAgent());
 
-async function initDatabase() {
-	process.stdout.write("init database... ");
-	try {
-		await initDatabaseConnection();
-		process.stdout.write("success\n");
-	} catch (error) {
-		process.stdout.write("FAIL\n");
-		console.warn(error);
-		throw error;
-	}
-}
-
-const timeServiceInit = async (serviceName: string, initFn: () => Promise<void> | void) => {
+const timeServiceInit = async (
+	serviceName: string,
+	initFn: () => Promise<void> | void,
+) => {
 	process.stdout.write(`init ${serviceName}... `);
 	const start = Date.now();
 	await initFn();
 	const elapsed = Date.now() - start;
 	process.stdout.write(`success (${elapsed}ms)\n`);
 };
+
+async function initDatabase() {
+	try {
+		await timeServiceInit("database", initDatabaseConnection);
+	} catch (error) {
+		process.stdout.write("FAIL\n");
+		console.warn(error);
+		throw error;
+	}
+}
 
 async function initServices() {
 	try {
@@ -65,7 +66,7 @@ async function initServices() {
 		await timeServiceInit("comment history", initCommentHistory);
 		await timeServiceInit("webex", webexInit);
 		await timeServiceInit("calendar", calendarInit);
-		await timeServiceInit("email", () => emailInit());
+		await timeServiceInit("email", emailInit);
 		await timeServiceInit("meetings", meetingsInit);
 		await timeServiceInit("attendances", attendancesInit);
 		await timeServiceInit("polls", pollInit);
