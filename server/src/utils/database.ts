@@ -12,7 +12,7 @@ let pool: Pool;
 async function init() {
 	if (!process.env.DB_HOST) {
 		console.warn(
-			"Environment variables DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_DATABASE not set"
+			"Environment variables DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_DATABASE not set",
 		);
 	}
 
@@ -53,10 +53,10 @@ async function query<
 		| RowDataPacket[]
 		| ResultSetHeader
 		| RowDataPacket[][]
-		| ResultSetHeader[]
+		| ResultSetHeader[],
 >(
 	sql: string | QueryOptions,
-	values?: any // eslint-disable-line @typescript-eslint/no-explicit-any
+	values?: any, // eslint-disable-line @typescript-eslint/no-explicit-any
 ) {
 	return pool.query<T>(sql as string, values).then(([rows]) => rows);
 }

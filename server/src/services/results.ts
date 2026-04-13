@@ -1,5 +1,6 @@
 import db from "../utils/database.js";
-import { shallowEqual, AuthError, NotFoundError } from "../utils/index.js";
+import { AuthError, NotFoundError } from "../utils/index.js";
+import isEqual from "lodash.isequal";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Response } from "express";
 import type { UserContext } from "./users.js";
@@ -328,7 +329,7 @@ export async function getResultsCoalesced(ballot: Ballot): Promise<Result[]> {
 	}
 
 	/* Update results summary in ballots table if different */
-	if (!ballot.Results || !shallowEqual(summary, ballot.Results)) {
+	if (!ballot.Results || !isEqual(summary, ballot.Results)) {
 		await db.query("UPDATE ballots SET ResultsSummary=? WHERE id=?", [
 			JSON.stringify(summary),
 			ballot.id,
