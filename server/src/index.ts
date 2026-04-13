@@ -47,59 +47,29 @@ async function initDatabase() {
 	}
 }
 
+const timeServiceInit = async (serviceName: string, initFn: () => Promise<void> | void) => {
+	process.stdout.write(`init ${serviceName}... `);
+	const start = Date.now();
+	await initFn();
+	const elapsed = Date.now() - start;
+	process.stdout.write(`success (${elapsed}ms)\n`);
+};
+
 async function initServices() {
 	try {
-		process.stdout.write("init members... ");
-		await initMembers();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init ballots... ");
-		await initBallots();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init ballot voters... ");
-		await initBallotVoters();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init ballot results... ");
-		await initBallotResults();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init comments... ");
-		await initComments();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init comment history... ");
-		await initCommentHistory();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init webex... ");
-		await webexInit();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init calendar... ");
-		await calendarInit();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init email... ");
-		emailInit();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init meetings... ");
-		await meetingsInit();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init attendances... ");
-		await attendancesInit();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init polls... ");
-		await pollInit();
-		process.stdout.write("success\n");
-
-		process.stdout.write("init membership over time... ");
-		await membersOverTimeInit();
-		process.stdout.write("success\n");
+		await timeServiceInit("members", initMembers);
+		await timeServiceInit("ballots", initBallots);
+		await timeServiceInit("ballot voters", initBallotVoters);
+		await timeServiceInit("ballot results", initBallotResults);
+		await timeServiceInit("comments", initComments);
+		await timeServiceInit("comment history", initCommentHistory);
+		await timeServiceInit("webex", webexInit);
+		await timeServiceInit("calendar", calendarInit);
+		await timeServiceInit("email", () => emailInit());
+		await timeServiceInit("meetings", meetingsInit);
+		await timeServiceInit("attendances", attendancesInit);
+		await timeServiceInit("polls", pollInit);
+		await timeServiceInit("membership over time", membersOverTimeInit);
 	} catch (error) {
 		process.stdout.write("FAIL\n");
 		console.warn(error);

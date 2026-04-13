@@ -60,8 +60,8 @@ const createViewMemberAttendanceSummary = `
 		LEFT JOIN membersCurrent m ON a.SAPIN=m.SAPIN AND a.groupId=m.groupId
 `;
 
-export function init() {
-	return db.query(createViewMemberAttendanceSummary);
+export async function init() {
+	await db.query(createViewMemberAttendanceSummary);
 }
 
 function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {

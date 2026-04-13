@@ -79,7 +79,7 @@ const createViewMembersSQL =
 	"FROM users u JOIN groupMembers m ON (u.SAPIN=m.SAPIN)"
 
 export async function init() {
-	return db.query(createViewMembersSQL);
+	await db.query(createViewMembersSQL);
 }
 
 function selectMembersSql(query: MemberQuery) {
@@ -117,7 +117,7 @@ function selectMembersSql(query: MemberQuery) {
 				db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
 					key,
 					value,
-				])
+				]),
 			);
 		});
 	} else {
@@ -152,8 +152,8 @@ function selectMembersSql(query: MemberQuery) {
 					Array.isArray(groupId)
 						? "BIN_TO_UUID(groupId) IN (?)"
 						: "groupId=UUID_TO_BIN(?)",
-					[groupId]
-				)
+					[groupId],
+				),
 			);
 		}
 
@@ -162,7 +162,7 @@ function selectMembersSql(query: MemberQuery) {
 				db.format(Array.isArray(value) ? "m.?? IN (?)" : "m.??=?", [
 					key,
 					value,
-				])
+				]),
 			);
 		});
 	}
@@ -210,7 +210,7 @@ export async function getUserEntities(): Promise<Record<number, UserType>> {
 			entities[user.SAPIN] = user;
 			return entities;
 		},
-		{} as Record<number, UserType>
+		{} as Record<number, UserType>,
 	);
 }
 
@@ -220,7 +220,7 @@ export async function getUserEntities(): Promise<Record<number, UserType>> {
  */
 export function getUserMembers(
 	access: number,
-	groupId: string
+	groupId: string,
 ): Promise<UserMember[]> {
 	let sql = "SELECT SAPIN, Name, Status";
 	// Admin privileges needed to see email addresses
@@ -278,7 +278,7 @@ export async function getMembersSnapshot(groupId: string, date: string) {
 				) {
 					if (status !== h.NewStatus)
 						console.warn(
-							`${m.SAPIN}: Status mismatch; status=${status} but new status=${h.NewStatus}`
+							`${m.SAPIN}: Status mismatch; status=${status} but new status=${h.NewStatus}`,
 						);
 					status = h.OldStatus;
 					//console.log(`status=${status}`)
@@ -374,7 +374,7 @@ function memberSetsSql(entry: Partial<GroupMemberDB>) {
 			db.format(key === "groupId" ? "??=UUID_TO_BIN(?)" : "??=?", [
 				key,
 				value,
-			])
+			]),
 		);
 	});
 
@@ -424,13 +424,13 @@ function validStatusChangeEntry(entry: unknown): entry is StatusChangeEntry {
 }
 
 function validStatusChangeEntries(
-	entries: unknown
+	entries: unknown,
 ): entries is StatusChangeEntry[] {
 	return Array.isArray(entries) && entries.every(validStatusChangeEntry);
 }
 
 function validStatusChangeUpdate(
-	update: unknown
+	update: unknown,
 ): update is StatusChangeUpdate {
 	return (
 		isPlainObject(update) &&
@@ -440,7 +440,7 @@ function validStatusChangeUpdate(
 }
 
 function validStatusChangeUpdates(
-	updates: unknown
+	updates: unknown,
 ): updates is StatusChangeUpdate[] {
 	return Array.isArray(updates) && updates.every(validStatusChangeUpdate);
 }
@@ -452,7 +452,7 @@ function validStatusChangeIds(ids: unknown): ids is number[] {
 export async function addMemberStatusChangeEntries(
 	groupId: string,
 	sapin: number,
-	entries: unknown
+	entries: unknown,
 ) {
 	if (!validStatusChangeEntries(entries))
 		throw new TypeError("Expected array of status change entries");
@@ -466,7 +466,7 @@ export async function addMemberStatusChangeEntries(
 	const sql = db.format(
 		"UPDATE groupMembers SET StatusChangeHistory=? " +
 			"WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-		[JSON.stringify(history), groupId, sapin]
+		[JSON.stringify(history), groupId, sapin],
 	);
 	await db.query(sql);
 
@@ -476,11 +476,11 @@ export async function addMemberStatusChangeEntries(
 export async function updateMemberStatusChangeEntries(
 	groupId: string,
 	sapin: number,
-	updates: unknown
+	updates: unknown,
 ) {
 	if (!validStatusChangeUpdates(updates))
 		throw new TypeError(
-			"Expected array of shape: {id: number, changes: object}[]"
+			"Expected array of shape: {id: number, changes: object}[]",
 		);
 
 	const member = await getMember(groupId, sapin);
@@ -495,7 +495,7 @@ export async function updateMemberStatusChangeEntries(
 	const sql = db.format(
 		"UPDATE groupMembers SET StatusChangeHistory=? " +
 			"WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-		[JSON.stringify(history), groupId, sapin]
+		[JSON.stringify(history), groupId, sapin],
 	);
 	await db.query(sql);
 
@@ -505,11 +505,11 @@ export async function updateMemberStatusChangeEntries(
 export async function deleteMemberStatusChangeEntries(
 	groupId: string,
 	sapin: number,
-	ids: unknown
+	ids: unknown,
 ) {
 	if (!validStatusChangeIds(ids))
 		throw new TypeError(
-			"Expected an array of status change entry identifiers: number[]"
+			"Expected an array of status change entry identifiers: number[]",
 		);
 
 	const member = await getMember(groupId, sapin);
@@ -517,12 +517,12 @@ export async function deleteMemberStatusChangeEntries(
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
 	const history = member.StatusChangeHistory.filter(
-		(h) => !ids.includes(h.id)
+		(h) => !ids.includes(h.id),
 	);
 	const sql = db.format(
 		"UPDATE groupMembers SET StatusChangeHistory=? " +
 			"WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-		[JSON.stringify(history), groupId, sapin]
+		[JSON.stringify(history), groupId, sapin],
 	);
 	await db.query(sql);
 
@@ -532,14 +532,14 @@ export async function deleteMemberStatusChangeEntries(
 export async function updateMemberContactEmail(
 	groupId: string,
 	sapin: number,
-	entry: Partial<ContactEmail>
+	entry: Partial<ContactEmail>,
 ) {
 	const member = await getMember(groupId, sapin);
 	if (!member)
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
 	const emails = member.ContactEmails.map((h) =>
-		h.id === entry.id ? { ...h, ...entry } : h
+		h.id === entry.id ? { ...h, ...entry } : h,
 	);
 	const sql = db.format("UPDATE users SET ContactEmails=? WHERE SAPIN=?", [
 		JSON.stringify(emails),
@@ -553,7 +553,7 @@ export async function updateMemberContactEmail(
 export async function addMemberContactEmail(
 	groupId: string,
 	sapin: number,
-	entry: Omit<ContactEmail, "id" | "DateAdded"> & { DateAdded?: string }
+	entry: Omit<ContactEmail, "id" | "DateAdded"> & { DateAdded?: string },
 ) {
 	const member = await getMember(groupId, sapin);
 	if (!member)
@@ -562,7 +562,7 @@ export async function addMemberContactEmail(
 	const id =
 		member.ContactEmails.reduce(
 			(maxId, h) => (h.id > maxId ? h.id : maxId),
-			0
+			0,
 		) + 1;
 	const emails = member.ContactEmails.slice();
 	emails.unshift({ id, DateAdded: DateTime.now().toISO(), ...entry });
@@ -578,7 +578,7 @@ export async function addMemberContactEmail(
 export async function deleteMemberContactEmail(
 	groupId: string,
 	sapin: number,
-	entry: Pick<ContactEmail, "id">
+	entry: Pick<ContactEmail, "id">,
 ) {
 	const member = await getMember(groupId, sapin);
 	if (!member)
@@ -598,13 +598,13 @@ async function updateMemberStatus(
 	member: Member,
 	status: string,
 	reason: string,
-	dateStr?: string
+	dateStr?: string,
 ) {
 	const date = dateStr ? DateTime.fromISO(dateStr) : DateTime.now();
 	const id =
 		member.StatusChangeHistory.reduce(
 			(maxId, h) => (h.id > maxId ? h.id : maxId),
-			0
+			0,
 		) + 1;
 	const historyEntry = {
 		id,
@@ -631,7 +631,7 @@ async function updateMemberStatus(
 			replacedBySAPIN,
 			member.groupId,
 			member.SAPIN,
-		]
+		],
 	);
 	await db.query(sql);
 }
@@ -639,7 +639,7 @@ async function updateMemberStatus(
 export async function updateMember(
 	groupId: string,
 	sapin: number,
-	changes: Partial<Member> & { StatusChangeReason?: string }
+	changes: Partial<Member> & { StatusChangeReason?: string },
 ) {
 	const p: Promise<void | ResultSetHeader>[] = [];
 	const { Status, StatusChangeReason, ...changesRest } = changes;
@@ -655,8 +655,8 @@ export async function updateMember(
 				member,
 				Status,
 				StatusChangeReason || "",
-				changes.StatusChangeDate || undefined
-			)
+				changes.StatusChangeDate || undefined,
+			),
 		);
 	}
 	const entry1 = userEntry(changesRest);
@@ -672,7 +672,7 @@ export async function updateMember(
 	if (Object.keys(entry2).length) {
 		const sql = db.format(
 			"UPDATE groupMembers SET ? WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-			[entry2, groupId, sapin]
+			[entry2, groupId, sapin],
 		);
 		p.push(db.query<ResultSetHeader>(sql));
 	}
@@ -688,17 +688,17 @@ type Update<T> = {
 };
 export async function updateMembers(
 	groupId: string,
-	updates: Update<Member>[]
+	updates: Update<Member>[],
 ) {
 	// Validate request
 	for (const u of updates) {
 		if (typeof u !== "object" || !u.id || typeof u.changes !== "object")
 			throw new TypeError(
-				"Expected array of objects with shape {id, changes}"
+				"Expected array of objects with shape {id, changes}",
 			);
 	}
 	const newMembers = await Promise.all(
-		updates.map((u) => updateMember(groupId, u.id, u.changes))
+		updates.map((u) => updateMember(groupId, u.id, u.changes)),
 	);
 	return newMembers;
 }
@@ -708,7 +708,7 @@ export async function deleteMembers(groupId: string, ids: number[]) {
 	if (ids.length > 0) {
 		sql = db.format(
 			"DELETE FROM groupMembers WHERE groupId=UUID_TO_BIN(?) AND SAPIN IN (?)",
-			[groupId, ids]
+			[groupId, ids],
 		);
 		const result = await db.query<ResultSetHeader>(sql);
 
@@ -732,7 +732,7 @@ export async function deleteMembers(groupId: string, ids: number[]) {
 
 async function uploadDatabaseMembers(groupId: string, buffer: Buffer) {
 	const members = (await parseMembersSpreadsheet(buffer)).filter(
-		(m) => m.SAPIN > 0
+		(m) => m.SAPIN > 0,
 	);
 
 	await db.query("DELETE FROM groupMembers WHERE groupId=UUID_TO_BIN(?)", [
@@ -747,7 +747,7 @@ async function uploadDatabaseMembers(groupId: string, buffer: Buffer) {
 
 		let insertKeys = Object.keys(users[0]);
 		let insertValues = users.map((u) =>
-			insertKeys.map((key) => db.escape(u[key])).join(", ")
+			insertKeys.map((key) => db.escape(u[key])).join(", "),
 		);
 		let updateKeys = insertKeys.filter((k) => k !== "SAPIN");
 		let sql =
@@ -770,12 +770,12 @@ async function uploadDatabaseMembers(groupId: string, buffer: Buffer) {
 				.map((key) =>
 					key === "groupId"
 						? `UUID_TO_BIN(${db.escape(m[key])})`
-						: db.escape(m[key])
+						: db.escape(m[key]),
 				)
-				.join(", ")
+				.join(", "),
 		);
 		updateKeys = insertKeys.filter(
-			(key) => key !== "groupId" && key !== "SAPIN"
+			(key) => key !== "groupId" && key !== "SAPIN",
 		);
 		sql =
 			`INSERT INTO groupMembers (${insertKeys}) VALUES ` +
@@ -792,7 +792,7 @@ async function uploadDatabaseMemberSAPINs(groupId: string, buffer: Buffer) {
 	const updateSql = (SAPIN: number, date: string | null) =>
 		db.format(
 			"UPDATE groupMembers SET DateAdded=? WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-			[date, groupId, SAPIN]
+			[date, groupId, SAPIN],
 		);
 
 	const insertUserSql = (SAPIN: number, memberId: number) =>
@@ -813,7 +813,7 @@ async function uploadDatabaseMemberSAPINs(groupId: string, buffer: Buffer) {
 	const insertGroupMemberSql = (
 		SAPIN: number,
 		date: string | null,
-		memberId: number
+		memberId: number,
 	) =>
 		// prettier-ignore
 		"INSERT INTO groupMembers (" +
@@ -843,10 +843,10 @@ async function uploadDatabaseMemberSAPINs(groupId: string, buffer: Buffer) {
 						.toFormat("yyyy-MM-dd HH:mm:ss")
 				: null;
 			const result = await db.query<ResultSetHeader>(
-				updateSql(s.SAPIN, dateAdded)
+				updateSql(s.SAPIN, dateAdded),
 			);
 			if (result.affectedRows === 0) missingSapins.push(s);
-		})
+		}),
 	);
 	const sql = missingSapins
 		.map((s) => {
@@ -887,12 +887,12 @@ async function uploadDatabaseMemberEmails(groupId: string, buffer: Buffer) {
 			([memberId, contactEmails]) =>
 				"UPDATE users u LEFT JOIN groupMembers m " +
 				`ON u.SAPIN=m.SAPIN AND m.groupId=UUID_TO_BIN(${db.escape(
-					groupId
+					groupId,
 				)}) ` +
 				`SET ContactEmails=${db.escape(
-					JSON.stringify(contactEmails)
+					JSON.stringify(contactEmails),
 				)} ` +
-				`WHERE m.MemberID=${memberId}`
+				`WHERE m.MemberID=${memberId}`,
 		)
 		.join("; ");
 
@@ -920,11 +920,11 @@ async function uploadDatabaseMemberHistory(groupId: string, buffer: Buffer) {
 				([memberId, history]) =>
 					"UPDATE groupMembers " +
 					`SET StatusChangeHistory=${db.escape(
-						JSON.stringify(history.reverse())
+						JSON.stringify(history.reverse()),
 					)} ` +
 					`WHERE groupId=UUID_TO_BIN(${db.escape(
-						groupId
-					)}) AND MemberID=${db.escape(memberId)}`
+						groupId,
+					)}) AND MemberID=${db.escape(memberId)}`,
 			)
 			.join("; ");
 
@@ -943,12 +943,12 @@ export async function uploadMembers(
 	groupId: string,
 	format: string,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ) {
 	format = format.toLocaleLowerCase();
 	if (!isUploadFormat(format))
 		throw new TypeError(
-			"Invalid format; expected one of " + uploadFormats.join(", ")
+			"Invalid format; expected one of " + uploadFormats.join(", "),
 		);
 
 	if (format === "members") await uploadDatabaseMembers(groupId, buffer);
@@ -965,14 +965,14 @@ export async function uploadMembers(
 export async function importMyProjectRoster(
 	groupId: string,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ) {
 	let roster = await parseMyProjectRosterSpreadsheet(buffer);
 	roster = roster.filter(
 		(u) =>
 			typeof u.SAPIN === "number" &&
 			u.SAPIN > 0 &&
-			u.Status.search(/Voter|Potential|Aspirant|Non-Voter/) === 0
+			u.Status.search(/Voter|Potential|Aspirant|Non-Voter/) === 0,
 	);
 
 	if (roster.length > 0) {
@@ -983,7 +983,7 @@ export async function importMyProjectRoster(
 
 		let insertKeys = Object.keys(users[0]);
 		let insertValues = users.map((u) =>
-			insertKeys.map((key) => db.escape(u[key])).join(", ")
+			insertKeys.map((key) => db.escape(u[key])).join(", "),
 		);
 		const updateKeys = insertKeys.filter((k) => k !== "SAPIN");
 		let sql =
@@ -995,7 +995,7 @@ export async function importMyProjectRoster(
 
 		sql = db.format(
 			"UPDATE groupMembers SET InRoster=0 WHERE groupId=UUID_TO_BIN(?)",
-			[groupId]
+			[groupId],
 		);
 		await db.query(sql);
 
@@ -1013,9 +1013,9 @@ export async function importMyProjectRoster(
 				.map((key) =>
 					key === "groupId"
 						? `UUID_TO_BIN(${db.escape(m[key])})`
-						: db.escape(m[key])
+						: db.escape(m[key]),
 				)
-				.join(", ")
+				.join(", "),
 		);
 		sql =
 			db.format("INSERT INTO groupMembers (??) VALUES ", [insertKeys]) +
@@ -1031,7 +1031,7 @@ export async function importMyProjectRoster(
 export async function exportMyProjectRoster(
 	user: UserContext,
 	groupId: string,
-	res: Response
+	res: Response,
 ) {
 	let members = await getMembers({
 		groupId,
@@ -1054,7 +1054,7 @@ export async function updateMyProjectRosterWithMemberStatus(
 	options: UpdateRosterOptions,
 	fileanme: string,
 	buffer: Buffer,
-	res: Response
+	res: Response,
 ) {
 	const members = await getMembers({
 		groupId,
@@ -1127,7 +1127,7 @@ function memberToDVLVotingMemberEntry(m: Member) {
 }
 
 type MemberMapper = (
-	m: Member
+	m: Member,
 ) =>
 	| ReturnType<typeof memberToVotingMemberEntry>
 	| ReturnType<typeof memberToDVLVotingMemberEntry>
@@ -1138,7 +1138,7 @@ export async function exportVotingMembers(
 	forPlenarySession: boolean,
 	forDVL: boolean,
 	date: string | undefined,
-	res: Response
+	res: Response,
 ) {
 	const Status = forPlenarySession
 		? ["Voter", "ExOfficio", "Potential Voter"]
@@ -1175,7 +1175,7 @@ export async function exportVotingMembers(
 export async function membersExport(
 	group: Group,
 	query: MembersExportQuery,
-	res: Response
+	res: Response,
 ) {
 	let members: Member[];
 	let Status: string[];

@@ -55,8 +55,8 @@ const createViewResultsCurrent = `
 		LEFT JOIN (SELECT COUNT(*) AS commentCount, ballot_id, CommenterName FROM comments GROUP BY ballot_id, CommenterName) c3 ON c3.ballot_id=r.ballot_id AND c3.CommenterName=r.Name;
 `;
 
-export function init() {
-	return db.query(createViewResultsCurrent);
+export async function init() {
+	await db.query(createViewResultsCurrent);
 }
 
 const zeroResultsSummary: ResultsSummary = {
@@ -348,23 +348,23 @@ export async function getResults(ballot: Ballot) {
 async function updateResult(
 	workingGroupId: string,
 	ballot: Ballot,
-	{ id, changes }: ResultUpdate
+	{ id, changes }: ResultUpdate,
 ) {
 	if (ballot.Type === BallotType.WG) {
 		const m = id.match(/(\d+)-(\d+)/); // id has format "{ballot_id}-{SAPIN}"
 		if (!m)
 			throw new TypeError(
-				`Invalid id=${id}; expected format "{ballot_id}-{SAPIN}"`
+				`Invalid id=${id}; expected format "{ballot_id}-{SAPIN}"`,
 			);
 		const ballot_id = Number(m[1]);
 		if (ballot_id !== ballot.id)
 			throw new TypeError(
-				`Invalid id=${id}; first number must match ballot_id=${ballot.id}`
+				`Invalid id=${id}; first number must match ballot_id=${ballot.id}`,
 			);
 		const sapin = Number(m[2]);
 		const result = await db.query<ResultSetHeader>(
 			"UPDATE results SET ? WHERE ballot_id=? AND SAPIN=?",
-			[changes, ballot.id, sapin]
+			[changes, ballot.id, sapin],
 		);
 		if (result.affectedRows === 0) {
 			const member = await getMember(workingGroupId, sapin);
@@ -386,7 +386,7 @@ async function updateResult(
 	} else {
 		await db.query(
 			"UPDATE results SET ? WHERE ballot_id=? AND id=UUID_TO_BIN(?)",
-			[changes, ballot.id, id]
+			[changes, ballot.id, id],
 		);
 	}
 }
@@ -394,10 +394,10 @@ async function updateResult(
 export async function updateResults(
 	workingGroupId: string,
 	ballot: Ballot,
-	updates: ResultUpdate[]
+	updates: ResultUpdate[],
 ) {
 	await Promise.all(
-		updates.map((update) => updateResult(workingGroupId, ballot, update))
+		updates.map((update) => updateResult(workingGroupId, ballot, update)),
 	);
 	return getResults(ballot);
 }
@@ -416,7 +416,7 @@ async function insertResults(ballot: Ballot, results: Partial<Result>[]) {
 	if (results.length) {
 		sql +=
 			`INSERT INTO results (ballot_id, ${Object.keys(
-				results[0]
+				results[0],
 			)}) VALUES` +
 			results
 				.map((c) => `(${ballot.id}, ${db.escape(Object.values(c))})`)
@@ -430,7 +430,7 @@ async function insertResults(ballot: Ballot, results: Partial<Result>[]) {
 export async function importEpollResults(
 	user: UserContext,
 	workingGroup: Group,
-	ballot: Ballot
+	ballot: Ballot,
 ) {
 	if (!ballot.EpollNum)
 		throw new TypeError("Ballot does not have an ePoll number");
@@ -440,10 +440,10 @@ export async function importEpollResults(
 
 	const [buffer, page] = await Promise.all([
 		ieeeClient.getCsv(
-			`https://mentor.ieee.org/${workingGroup.name}/poll-results.csv?p=${ballot.EpollNum}`
+			`https://mentor.ieee.org/${workingGroup.name}/poll-results.csv?p=${ballot.EpollNum}`,
 		),
 		ieeeClient.getHtml(
-			`https://mentor.ieee.org/${workingGroup.name}/poll-status?p=${ballot.EpollNum}`
+			`https://mentor.ieee.org/${workingGroup.name}/poll-status?p=${ballot.EpollNum}`,
 		),
 	]);
 
@@ -474,7 +474,7 @@ export async function importEpollResults(
 export async function uploadResults(
 	ballot: Ballot,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ) {
 	let results: Partial<ResultDB>[];
 	if (ballot.Type === BallotType.SA) {
@@ -492,7 +492,7 @@ export async function exportResults(
 	user: UserContext,
 	ballot: Ballot,
 	forBallotSeries: boolean,
-	res: Response
+	res: Response,
 ) {
 	let fileNamePrefix: string;
 	let resultsArr: Result[][];

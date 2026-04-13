@@ -9,7 +9,7 @@ import { resolutionChangeSchema } from "@schemas/resolutions.js";
 import type { Resolution } from "@schemas/resolutions.js";
 import type { CommentHistoryEntry } from "@schemas/commentHistory.js";
 import { RowDataPacket } from "mysql2";
-import { NotFoundError } from "src/utils/error.js";
+import { NotFoundError } from "@/utils/error.js";
 
 type CommentResolutionChangeDB = Omit<
 	CommentResolutionChange,
@@ -56,8 +56,8 @@ const createTriggerCommentsUpdateSQL = `
 			.map(
 				(f) =>
 					`IF NOT(NEW.${f}<=>OLD.${f}) THEN SET @changes = JSON_INSERT(@changes, '$.${f}', ${convertNewField(
-						f
-					)}); END IF;`
+						f,
+					)}); END IF;`,
 			)
 			.join("\n\t\t")}
 		SET @id = (SELECT id FROM resolutionsLog WHERE comment_id=NEW.id AND resolution_id IS NULL AND Action=@action AND UserID=NEW.LastModifiedBy AND Timestamp > DATE_SUB(NEW.LastModifiedTime, ${updateIntervalSQL}) ORDER BY Timestamp DESC LIMIT 1);
@@ -112,7 +112,7 @@ const createTriggerResolutionsUpdateSQL = `
 		${resolutionChangeFields
 			.map(
 				(f) =>
-					`IF NOT(NEW.${f}<=>OLD.${f}) THEN SET @changes = JSON_INSERT(@changes, '$.${f}', ${convertNewField(f)}); END IF;`
+					`IF NOT(NEW.${f}<=>OLD.${f}) THEN SET @changes = JSON_INSERT(@changes, '$.${f}', ${convertNewField(f)}); END IF;`,
 			)
 			.join("\n\t\t")}
 		SET @id = (SELECT id FROM resolutionsLog WHERE resolution_id=OLD.id AND Action=@action AND UserID=NEW.LastModifiedBy AND Timestamp > DATE_SUB(NEW.LastModifiedTime, ${updateIntervalSQL}) ORDER BY Timestamp DESC LIMIT 1);
@@ -136,7 +136,7 @@ const createTriggerResolutionsDeleteSQL = `
 	END;
 `;
 
-export function init() {
+export async function init() {
 	const sql =
 		createTriggerCommentsAddSQL +
 		createTriggerCommentsUpdateSQL +
@@ -146,7 +146,7 @@ export function init() {
 		createTriggerResolutionsDeleteSQL;
 
 	//console.log(sql);
-	return db.query(sql);
+	await db.query(sql);
 }
 
 const getCommentsHistorySql = `
@@ -194,7 +194,7 @@ const getCommentsSQL =
 	"FROM comments WHERE id=?;";
 
 function parseChanges(
-	changesDb: CommentResolutionChangeDB
+	changesDb: CommentResolutionChangeDB,
 ): CommentResolutionChange {
 	const changes = { ...changesDb } as CommentResolutionChange;
 	if ("AdHoc" in changesDb) changes.AdHoc = changesDb.AdHoc || "";
@@ -220,7 +220,7 @@ export async function getCommentHistory(comment_id: number) {
 	const [commentsHistory, comments] = await Promise.all([
 		db.query<(RowDataPacket & CommentHistoryEntryDB)[]>(
 			getCommentsHistorySql,
-			[comment_id]
+			[comment_id],
 		),
 		db.query<(RowDataPacket & Comment)[]>(getCommentsSQL, [comment_id]),
 	]);

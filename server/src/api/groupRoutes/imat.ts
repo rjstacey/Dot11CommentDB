@@ -20,7 +20,7 @@ import {
 	breakoutIdsSchema,
 	breakoutUpdatesSchema,
 } from "@schemas/imat.js";
-import { BadRequestError } from "src/utils/error.js";
+import { BadRequestError } from "@/utils/error.js";
 
 function imatMeetingIdOrThrow(req: Request): number {
 	const imatMeetingId = Number(req.params.imatMeetingId);
@@ -82,7 +82,7 @@ async function addBreakouts(req: Request, res: Response, next: NextFunction) {
 async function updateBreakouts(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { user, body } = req;
@@ -98,7 +98,7 @@ async function updateBreakouts(
 async function removeBreakouts(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { user, body } = req;
@@ -114,7 +114,7 @@ async function removeBreakouts(
 async function getMeetingAttendance(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { user } = req;
@@ -129,7 +129,7 @@ async function getMeetingAttendance(
 async function getMeetingAttendanceSummary(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { user, group, query } = req;
@@ -148,7 +148,7 @@ async function getMeetingAttendanceSummary(
 async function getBreakoutAttendance(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { user } = req;
@@ -157,7 +157,7 @@ async function getBreakoutAttendance(
 		const data = await getImatBreakoutAttendance(
 			user,
 			imatMeetingId,
-			imatBreakoutId
+			imatBreakoutId,
 		);
 		res.json(data);
 	} catch (error) {

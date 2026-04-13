@@ -60,8 +60,8 @@ const createViewVotersCurrent = `
 		LEFT JOIN membersCurrent m ON v.SAPIN=m.SAPIN AND b.workingGroupId=m.groupId;
 `;
 
-export function init() {
-	return db.query(createViewVotersCurrent);
+export async function init() {
+	await db.query(createViewVotersCurrent);
 }
 
 async function parseVoters(filename: string, buffer: Buffer) {
@@ -121,7 +121,7 @@ type VotersForBallots = {
 };
 
 export function getVotersForBallots(
-	ballot_ids: number[]
+	ballot_ids: number[],
 ): Promise<VotersForBallots[]> {
 	const e_ballot_ids = db.escape(ballot_ids);
 	// prettier-ignore
@@ -152,11 +152,11 @@ type BallotVoters = {
 };
 
 async function getVoterBallotUpdates(
-	ballot_id: number | number[]
+	ballot_id: number | number[],
 ): Promise<BallotVoters[]> {
 	const sql = db.format(
 		"SELECT ballot_id as id, COUNT(*) as Voters FROM wgVoters WHERE ballot_id IN (?) GROUP BY ballot_id",
-		[ballot_id]
+		[ballot_id],
 	);
 	return db.query<(RowDataPacket & BallotVoters)[]>(sql);
 }
@@ -177,7 +177,7 @@ function votersEntry(v: Partial<Voter>) {
 export async function addVoters(
 	workingGroupId: string,
 	ballot_id: number,
-	votersIn: VoterCreate[]
+	votersIn: VoterCreate[],
 ) {
 	let voters = votersIn.map((voter) => ({
 		...voter,
@@ -188,7 +188,7 @@ export async function addVoters(
 		const { id, ...voterDB } = voter;
 		return db.query<ResultSetHeader>(
 			"INSERT INTO wgVoters SET ?, id=UUID_TO_BIN(?);",
-			[voterDB, id]
+			[voterDB, id],
 		);
 	});
 	await Promise.all(results);
@@ -199,13 +199,13 @@ export async function addVoters(
 
 export async function updateVoters(
 	workingGroupId: string,
-	updates: VoterUpdate[]
+	updates: VoterUpdate[],
 ) {
 	const results = updates.map(({ id, changes }) =>
 		db.query<ResultSetHeader>(
 			"UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)",
-			[changes, id]
-		)
+			[changes, id],
+		),
 	);
 	await Promise.all(results);
 	const voters = await getVoters({ id: updates.map((u) => u.id) });
@@ -232,7 +232,7 @@ async function insertVoters(ballot_id: number, votersIn: Partial<Voter>[]) {
 					db.format("(?, ?)", [
 						ballot_id,
 						Object.values(votersEntry(v)),
-					])
+					]),
 				)
 				.join(", ") +
 			";";
@@ -247,7 +247,7 @@ export async function uploadVoters(
 	workingGroupId: string,
 	ballot_id: number,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ) {
 	const voters = await parseVoters(filename, buffer);
 	return insertVoters(ballot_id, voters);
@@ -257,11 +257,11 @@ export async function votersFromMembersSnapshot(
 	user: UserContext,
 	workingGroupId: string,
 	ballot_id: number,
-	date: string
+	date: string,
 ) {
 	const members = await getMembersSnapshot(workingGroupId, date);
 	const voters = members.filter(
-		(m) => m.Status === "Voter" || m.Status === "ExOfficio"
+		(m) => m.Status === "Voter" || m.Status === "ExOfficio",
 	);
 	return insertVoters(ballot_id, voters);
 }
@@ -269,7 +269,7 @@ export async function votersFromMembersSnapshot(
 function populateVotersWorksheet(
 	ws: ExcelJS.Worksheet,
 	ballot: Ballot,
-	voters: Voter[]
+	voters: Voter[],
 ) {
 	/* Create a table with the voters */
 	const columns = [
@@ -313,7 +313,7 @@ function populateVotersWorksheet(
 export async function exportVoters(
 	user: UserContext,
 	ballot: Ballot,
-	res: Response
+	res: Response,
 ) {
 	const voters = await getVoters({ ballot_id: ballot.id });
 
