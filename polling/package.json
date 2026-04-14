@@ -9,7 +9,8 @@
 	"author": "",
 	"license": "ISC",
 	"scripts": {
-		"start": "vite --force",
+		"start": "vite",
+		"remote": "vite --mode remote",
 		"preview": "vite preview",
 		"build": "vite build --emptyOutDir",
 		"test": "vite test",

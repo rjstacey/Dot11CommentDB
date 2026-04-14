@@ -17,11 +17,10 @@
 		"noEmit": true,
 		"jsx": "react-jsx",
 
-		"baseUrl": ".",
 		"paths": {
 			"@schemas/*": ["../schemas/*"],
 			"@common": ["../common/src"],
-			"@/*": ["src/*"]
+			"@/*": ["./src/*"]
 		}
 	},
 	"include": ["src", "../schemas", "../common/src"],
