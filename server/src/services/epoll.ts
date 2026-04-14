@@ -174,7 +174,7 @@ function parseEpollComment(cid: number, c: string[]): EpollComment | null {
 	if (isNaN(Page)) Page = 0;
 
 	const cat = c[5].charAt(0);
-	const Category = cat === "T" || cat == "E" || cat === "G" ? cat : "T"; // First letter only (G, T or E), T if blank
+	const Category = cat === "T" || cat === "E" || cat === "G" ? cat : "T"; // First letter only (G, T or E), T if blank
 
 	const Clause = (c[7] || "").trim();
 
@@ -241,7 +241,7 @@ function parseUserComment(
 	if (isNaN(Page)) Page = 0;
 
 	const cat = c[1].charAt(0);
-	const Category = cat === "T" || cat == "E" || cat === "G" ? cat : "T"; // First letter only (G, T or E), T if blank
+	const Category = cat === "T" || cat === "E" || cat === "G" ? cat : "T"; // First letter only (G, T or E), T if blank
 
 	const Clause = (c[3] || "").trim();
 
