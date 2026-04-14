@@ -152,13 +152,7 @@ type ImatBreakoutsEditState = (
 };
 type BreakoutsEditAction =
 	| {
-			type: "INIT";
-	  }
-	| {
-			type: "CREATE";
-	  }
-	| {
-			type: "IMPORT";
+			type: "INIT" | "CREATE" | "IMPORT" | "SUBMIT";
 	  }
 	| {
 			type: "CHANGE_BREAKOUT";
@@ -167,9 +161,6 @@ type BreakoutsEditAction =
 	| {
 			type: "CHANGE_MEETING";
 			changes: MeetingEntryPartial;
-	  }
-	| {
-			type: "SUBMIT";
 	  };
 const INIT = { type: "INIT" } as const;
 const CREATE = { type: "CREATE" } as const;

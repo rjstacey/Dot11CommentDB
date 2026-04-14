@@ -75,17 +75,11 @@ type WebexMeetingEditState =
 	  };
 type WebexMeetingEditAction =
 	| {
-			type: "INIT";
-	  }
-	| {
-			type: "CREATE";
+			type: "INIT" | "CREATE" | "SUBMIT";
 	  }
 	| {
 			type: "CHANGE";
 			changes: WebexMeetingEntryPartial;
-	  }
-	| {
-			type: "SUBMIT";
 	  };
 const INIT = { type: "INIT" } as const;
 const CREATE = { type: "CREATE" } as const;
