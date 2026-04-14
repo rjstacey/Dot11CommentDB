@@ -5,7 +5,8 @@
 	"homepage": "membership",
 	"type": "module",
 	"scripts": {
-		"start": "vite --force",
+		"start": "vite",
+		"remote": "vite --mode remote",
 		"build": "vite build --emptyOutDir",
 		"test": "vite test",
 		"check": "tsc --noEmit && eslint",

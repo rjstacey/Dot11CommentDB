@@ -6,7 +6,8 @@
 	"homepage": "/meetings",
 	"type": "module",
 	"scripts": {
-		"start": "vite -- --use-env-proxy",
+		"start": "vite",
+		"remote": "vite --mode remote",
 		"build": "vite build --emptyOutDir",
 		"test": "vite test",
 		"check": "tsc --noEmit && eslint",
