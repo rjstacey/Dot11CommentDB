@@ -17,15 +17,12 @@ export type BallotParticipationEditState = {
 };
 type BallotParticipationEditAction =
 	| {
-			type: "INIT";
+			type: "INIT" | "SUBMIT";
 	  }
 	| {
 			type: "CHANGE";
 			series_id: number;
 			changes: Partial<BallotSeriesParticipationSummary>;
-	  }
-	| {
-			type: "SUBMIT";
 	  };
 const INIT = { type: "INIT" } as const;
 const SUBMIT = { type: "SUBMIT" } as const;
@@ -99,7 +96,7 @@ export function useBallotParticipationEdit(SAPIN: number) {
 
 	useEffect(() => {
 		dispatchStateAction(INIT);
-	}, [dispatchStateAction]);
+	}, [SAPIN]);
 
 	const onChange = useCallback(
 		(
@@ -108,14 +105,13 @@ export function useBallotParticipationEdit(SAPIN: number) {
 		) => {
 			dispatchStateAction(CHANGE(series_id, changes));
 		},
-		[dispatchStateAction],
+		[],
 	);
 
 	const hasChanges = useCallback(() => state.edited !== state.saved, [state]);
 
 	const submit = useCallback(async () => {
 		const updates: BallotParticipationUpdate[] = [];
-
 		for (const series_id of state.series_ids) {
 			const changes = shallowDiff(
 				state.saved[series_id],
@@ -127,11 +123,11 @@ export function useBallotParticipationEdit(SAPIN: number) {
 		if (updates.length > 0)
 			await dispatch(updateBallotParticipation(SAPIN, updates));
 		dispatchStateAction(SUBMIT);
-	}, [dispatch, SAPIN, state, dispatchStateAction]);
+	}, [SAPIN, state]);
 
 	const cancel = useCallback(() => {
 		dispatchStateAction(INIT);
-	}, [dispatchStateAction]);
+	}, []);
 
 	return {
 		state,

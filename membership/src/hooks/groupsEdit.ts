@@ -197,6 +197,7 @@ function useGroupsEditReducer({
 }
 
 export function useGroupsEdit(readOnly: boolean) {
+	const dispatch = useAppDispatch();
 	const groupId = useAppSelector(selectTopLevelGroupId);
 	const { selected, entities, loading, valid } =
 		useAppSelector(selectGroupsState);
@@ -207,7 +208,6 @@ export function useGroupsEdit(readOnly: boolean) {
 		loading,
 		valid,
 	});
-	const dispatch = useAppDispatch();
 
 	useEffect(() => {
 		if (state.action === null) {
@@ -290,11 +290,11 @@ export function useGroupsEdit(readOnly: boolean) {
 			await groupsUpdate(edited, saved, groups);
 			dispatchStateAction(SUBMIT);
 		}
-	}, [readOnly, state, groupId, entities, dispatchStateAction]);
+	}, [readOnly, state, groupId, entities]);
 
 	const cancel = useCallback(async () => {
 		dispatchStateAction(INIT);
-	}, [dispatchStateAction]);
+	}, []);
 
 	const disableAdd = readOnly || loading;
 	const onAdd = useCallback(async () => {
@@ -310,7 +310,7 @@ export function useGroupsEdit(readOnly: boolean) {
 		}
 		dispatchStateAction(CREATE);
 		dispatch(setSelected([]));
-	}, [disableAdd, hasChanges, dispatchStateAction]);
+	}, [disableAdd, hasChanges]);
 
 	const groupsDelete = useGroupsDelete();
 
@@ -342,7 +342,7 @@ export function useGroupsEdit(readOnly: boolean) {
 				dispatch(setSelected([]));
 			}
 		}
-	}, [disableDelete, state, groupsDelete, dispatchStateAction]);
+	}, [disableDelete, state, groupsDelete]);
 
 	return {
 		state,

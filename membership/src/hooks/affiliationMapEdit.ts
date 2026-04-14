@@ -38,17 +38,11 @@ export type AffiliationMapEditState = (
 
 type AffiliationMapEditAction =
 	| {
-			type: "INIT";
-	  }
-	| {
-			type: "CREATE";
+			type: "INIT" | "CREATE" | "SUBMIT";
 	  }
 	| {
 			type: "CHANGE";
 			changes: Partial<AffiliationMap>;
-	  }
-	| {
-			type: "SUBMIT";
 	  };
 const INIT = { type: "INIT" } as const;
 const CREATE = { type: "CREATE" } as const;
@@ -140,8 +134,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 				}
 				return state;
 			}
-			console.error("Unknown action:", action);
-			return state;
+			throw new Error("Unknown action: " + action);
 		},
 		[initState],
 	);
@@ -188,7 +181,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 			}
 			dispatchStateAction(CHANGE(changes));
 		},
-		[readOnly, state.action, dispatchStateAction],
+		[readOnly, state.action],
 	);
 
 	const submit = useCallback(async () => {
@@ -212,7 +205,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 				await dispatch(updateAffiliationMaps([update]));
 			dispatchStateAction(SUBMIT);
 		}
-	}, [readOnly, state, dispatchStateAction, dispatch]);
+	}, [readOnly, state]);
 
 	const cancel = useCallback(() => {
 		dispatchStateAction(INIT);
@@ -239,7 +232,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 		}
 		dispatchStateAction(CREATE);
 		dispatch(setSelected([]));
-	}, [disableAdd, hasChanges, dispatch, dispatchStateAction]);
+	}, [disableAdd, hasChanges]);
 
 	const disableDelete = readOnly || state.action !== "update";
 	const onDelete = useCallback(async () => {
@@ -254,7 +247,7 @@ export function useAffiliationMapEdit(readOnly: boolean) {
 			dispatchStateAction(SUBMIT);
 			dispatch(setSelected([]));
 		}
-	}, [disableDelete, state.ids, dispatch, dispatchStateAction]);
+	}, [disableDelete, state.ids]);
 
 	return {
 		state,

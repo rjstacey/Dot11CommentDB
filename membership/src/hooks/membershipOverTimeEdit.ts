@@ -34,17 +34,11 @@ export type MembershipOverTimeEditState = (
 
 type MembershipOverTimeEditAction =
 	| {
-			type: "INIT";
-	  }
-	| {
-			type: "CREATE";
+			type: "INIT" | "CREATE" | "SUBMIT";
 	  }
 	| {
 			type: "CHANGE";
 			changes: Partial<MembershipEvent>;
-	  }
-	| {
-			type: "SUBMIT";
 	  };
 const INIT = { type: "INIT" } as const;
 const CREATE = { type: "CREATE" } as const;
@@ -140,8 +134,7 @@ function useMembershipOverTimeReducer() {
 				}
 				return state;
 			}
-			console.error("Unknown action:", action);
-			return state;
+			throw new Error("Unknown action: " + action);
 		},
 		[initState, membersSummary],
 	);
@@ -150,13 +143,12 @@ function useMembershipOverTimeReducer() {
 }
 
 export function useMembershipOverTimeEdit(readOnly: boolean) {
-	const [state, dispatchStateAction] = useMembershipOverTimeReducer();
-
 	const dispatch = useAppDispatch();
 	const { selected } = useAppSelector(selectMembershipOverTimeState);
+	const [state, dispatchStateAction] = useMembershipOverTimeReducer();
 
 	/** If `selected` changes, then determine how to reevaluate state.
-	 * Note that `selected` might change as a result of submit, etc. so becareful of race conditions. */
+	 * Note that `selected` might change as a result of submit, etc. so be careful of race conditions. */
 	useEffect(() => {
 		if (state.action === null) {
 			dispatchStateAction(INIT);
@@ -260,7 +252,7 @@ export function useMembershipOverTimeEdit(readOnly: boolean) {
 			dispatchStateAction(SUBMIT);
 			dispatch(setSelected([]));
 		}
-	}, [disableDelete, state.ids, dispatch]);
+	}, [disableDelete, state.ids]);
 
 	return {
 		state,

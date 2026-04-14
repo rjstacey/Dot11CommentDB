@@ -60,17 +60,11 @@ export type SessionRegistrationEditState = (
 
 type SessionRegistrationEditAction =
 	| {
-			type: "INIT";
+			type: "INIT" | "SUBMIT" | "CANCEL";
 	  }
 	| {
 			type: "CHANGE";
 			changes: SessionAttendanceSummaryChange;
-	  }
-	| {
-			type: "SUBMIT";
-	  }
-	| {
-			type: "CANCEL";
 	  };
 const INIT = { type: "INIT" } as const;
 const SUBMIT = { type: "SUBMIT" } as const;
@@ -190,8 +184,7 @@ function useSessionRegistrationEditReducer(ids: number[]) {
 				}
 				return state;
 			}
-			console.error("Unknown action:", action);
-			return state;
+			throw new Error("Unknown action: " + action);
 		},
 		[initState],
 	);
@@ -205,7 +198,7 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 
 	useEffect(() => {
 		dispatchStateAction(INIT);
-	}, [dispatchStateAction]);
+	}, [ids]);
 
 	const onChange = useCallback(
 		(changes: SessionAttendanceSummaryChange) => {
@@ -215,7 +208,7 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 			}
 			dispatchStateAction(CHANGE(changes));
 		},
-		[readOnly, state.action, dispatchStateAction],
+		[readOnly, state.action],
 	);
 
 	const hasChanges = useCallback(
@@ -257,11 +250,11 @@ export function useSessionRegistrationEdit(ids: number[], readOnly: boolean) {
 		} else {
 			console.warn("submit: bad state");
 		}
-	}, [readOnly, state, dispatchStateAction, dispatch]);
+	}, [readOnly, state]);
 
 	const cancel = useCallback(() => {
 		dispatchStateAction(CANCEL);
-	}, [dispatchStateAction]);
+	}, []);
 
 	return {
 		state,

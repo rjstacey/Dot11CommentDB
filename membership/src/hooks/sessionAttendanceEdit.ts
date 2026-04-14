@@ -182,7 +182,7 @@ const CHANGE_MEMBER = (changes: MemberChange) =>
 	({ type: "CHANGE_MEMBER", changes }) as const;
 const CANCEL = { type: "CANCEL" } as const;
 
-function useSessionAttendanceEditReducer(ids: number[], readOnly: boolean) {
+function useSessionAttendanceEditReducer(ids: number[]) {
 	const session = useAppSelector(selectImatAttendanceSummarySession);
 	const { loading, valid } = useAppSelector(selectImatAttendanceSummaryState);
 	const memberEntities = useAppSelector(selectMemberEntities);
@@ -306,10 +306,6 @@ function useSessionAttendanceEditReducer(ids: number[], readOnly: boolean) {
 				return initState();
 			}
 			if (action.type === "CHANGE_MEMBER") {
-				if (readOnly) {
-					console.warn("Change member while read-only");
-					return state;
-				}
 				if (state.action === "addOne") {
 					const memberEdit = {
 						...state.memberEdit,
@@ -329,10 +325,6 @@ function useSessionAttendanceEditReducer(ids: number[], readOnly: boolean) {
 				return state;
 			}
 			if (action.type === "CHANGE_ATTENDANCE") {
-				if (readOnly) {
-					console.warn("Change attendance while read-only");
-					return state;
-				}
 				if (state.action === "addOne" || state.action === "updateOne") {
 					let attendanceEdit = {
 						...state.attendanceEdit,
@@ -372,7 +364,7 @@ function useSessionAttendanceEditReducer(ids: number[], readOnly: boolean) {
 			}
 			throw new Error("Unknown action: " + action);
 		},
-		[readOnly, initState],
+		[initState],
 	);
 
 	return useReducer(reducer, undefined, initState);
@@ -380,27 +372,32 @@ function useSessionAttendanceEditReducer(ids: number[], readOnly: boolean) {
 
 export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 	const dispatch = useAppDispatch();
-	const [state, dispatchStateAction] = useSessionAttendanceEditReducer(
-		ids,
-		readOnly,
-	);
+	const [state, dispatchStateAction] = useSessionAttendanceEditReducer(ids);
 
 	useEffect(() => {
 		if (!isEqual(ids, state.ids)) dispatchStateAction(INIT);
-	}, [ids, dispatchStateAction]);
+	}, [ids]);
 
 	const memberOnChange = useCallback(
 		(changes: MemberChange) => {
+			if (readOnly) {
+				console.warn("memberOnChange: read-only");
+				return;
+			}
 			dispatchStateAction(CHANGE_MEMBER(changes));
 		},
-		[dispatchStateAction],
+		[readOnly],
 	);
 
 	const attendanceOnChange = useCallback(
 		(changes: SessionAttendanceSummaryChange) => {
+			if (readOnly) {
+				console.warn("attendanceOnChange: read-only");
+				return;
+			}
 			dispatchStateAction(CHANGE_ATTENDANCE(changes));
 		},
-		[dispatchStateAction],
+		[readOnly],
 	);
 
 	const hasMemberChanges = useCallback(
@@ -437,6 +434,10 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 			doUpdateMembers = true,
 			doUpdateAttendance = true,
 		) => {
+			if (readOnly) {
+				console.warn("submit: read-only");
+				return;
+			}
 			if (state.action === "addOne" || state.action === "updateOne") {
 				if (doUpdateAttendance) {
 					const id = state.attendanceSaved.id;
@@ -490,12 +491,12 @@ export function useSessionAttendanceEdit(ids: number[], readOnly: boolean) {
 				}
 			}
 		},
-		[state, dispatch, dispatchStateAction],
+		[state],
 	);
 
 	const cancel = useCallback(() => {
 		dispatchStateAction(CANCEL);
-	}, [dispatchStateAction]);
+	}, []);
 
 	return {
 		state,

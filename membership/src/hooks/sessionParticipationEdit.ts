@@ -109,18 +109,19 @@ function useSessionParticipationEditReducer(SAPIN: number) {
 }
 export function useSessionParticipationEdit(SAPIN: number) {
 	const dispatch = useAppDispatch();
+
 	const [state, dispatchStateAction] =
 		useSessionParticipationEditReducer(SAPIN);
 
 	useEffect(() => {
 		dispatchStateAction(INIT);
-	}, [dispatchStateAction]);
+	}, [SAPIN]);
 
 	const onChange = useCallback(
 		(session_id: number, changes: SessionAttendanceSummaryChange) => {
 			dispatchStateAction(CHANGE(session_id, changes));
 		},
-		[dispatchStateAction],
+		[],
 	);
 
 	const hasChanges = useCallback(() => state.edited !== state.saved, [state]);
@@ -154,11 +155,11 @@ export function useSessionParticipationEdit(SAPIN: number) {
 		if (deletes.length > 0)
 			await dispatch(deleteAttendanceSummaries(deletes));
 		dispatchStateAction(SUBMIT);
-	}, [dispatch, state, dispatchStateAction]);
+	}, [state]);
 
 	const cancel = useCallback(() => {
 		dispatchStateAction(INIT);
-	}, [dispatchStateAction]);
+	}, []);
 
 	return {
 		state,
