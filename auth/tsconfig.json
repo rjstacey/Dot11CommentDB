@@ -17,8 +17,13 @@
 		"noEmit": true,
 		"jsx": "react-jsx",
 
-		"baseUrl": "."
+		"paths": {
+			"@schemas/*": ["../schemas/*"],
+			"@common": ["../common/src"],
+			"@/*": ["./src/*"]
+		}
 	},
-	"include": ["src", "../schemas"],
+	"include": ["src", "../schemas", "../common/src"],
+	"exclude": ["../common/src/stories", "../common/**/*.test.*"],
 	"references": [{ "path": "./tsconfig.node.json" }]
 }
