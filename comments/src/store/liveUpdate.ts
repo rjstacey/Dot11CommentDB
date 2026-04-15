@@ -4,7 +4,7 @@ import { getCommentUpdates } from "./comments";
 import type { StoreType, AppThunk, RootState } from ".";
 
 /* One second polling utility */
-let timerId: NodeJS.Timeout | null = null;
+let timerId: number | null = null;
 
 function startPoll(callback: () => void) {
 	function poll() {
@@ -60,7 +60,7 @@ const visibilityChange =
 
 const storeChange = (
 	dispatch: StoreType["dispatch"],
-	getState: StoreType["getState"]
+	getState: StoreType["getState"],
 ) => {
 	const state = getState();
 	const offline = selectOfflineState(state);

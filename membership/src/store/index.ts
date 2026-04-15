@@ -120,7 +120,7 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 };
 
 const middleware: Middleware[] = [];
-if (process.env.NODE_ENV !== "production")
+if (import.meta.env.DEV)
 	middleware.push(createLogger({ collapsed: true }) as Middleware);
 
 export const store = configureReduxStore({
