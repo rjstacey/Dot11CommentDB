@@ -7,7 +7,7 @@ import type { UserContext } from "./users.js";
 import { AccessLevel } from "@schemas/access.js";
 import { getBallots } from "./ballots.js";
 import { getSessions } from "./sessions.js";
-import {
+import type {
 	Group,
 	GroupsQuery,
 	GroupCreate,
@@ -47,7 +47,7 @@ export async function getGroupAndSubgroupIds(id: string) {
 		)
 		SELECT BIN_TO_UUID(id) as id FROM cte`;
 	return (await db.query<(RowDataPacket & { id: string })[]>(sql)).map(
-		(g) => g.id
+		(g) => g.id,
 	);
 }
 
@@ -70,7 +70,7 @@ export async function getGroupAndSubgroupIdsByName(groupName: string) {
 		SELECT BIN_TO_UUID(id) as id FROM cte`;
 
 	return (await db.query<(RowDataPacket & { id: string })[]>(sql)).map(
-		(g) => g.id
+		(g) => g.id,
 	);
 }
 
@@ -117,7 +117,7 @@ function groupCmp(g1: Group, g2: Group) {
 function rollupGroupUserPermissions(
 	user: UserContext,
 	group: Group,
-	groupEntities: Record<string, Group>
+	groupEntities: Record<string, Group>,
 ) {
 	const permissions = { ...getGroupUserPermissions(user, group) };
 	const parent = group.parent_id ? groupEntities[group.parent_id] : undefined;
@@ -125,7 +125,7 @@ function rollupGroupUserPermissions(
 		const parentPermissions = rollupGroupUserPermissions(
 			user,
 			parent,
-			groupEntities
+			groupEntities,
 		);
 		Object.entries(parentPermissions).forEach(([scope, access]) => {
 			if (!permissions[scope] || permissions[scope] < access)
@@ -161,12 +161,12 @@ export async function getGroups(user: UserContext, query?: GroupsQuery) {
 					Array.isArray(value)
 						? "BIN_TO_UUID(org.??) IN (?)"
 						: "BIN_TO_UUID(org.??)=?",
-					[key, value]
+					[key, value],
 				);
 			} else {
 				sql = db.format(
 					Array.isArray(value) ? "org.?? IN (?)" : "org.??=?",
-					[key, value]
+					[key, value],
 				);
 			}
 			wheres.push(sql);
@@ -184,7 +184,7 @@ export async function getGroups(user: UserContext, query?: GroupsQuery) {
 	const ids = groups
 		.map((group) => group.parent_id)
 		.filter(
-			(parent_id) => parent_id !== null && !groupEntities[parent_id]
+			(parent_id) => parent_id !== null && !groupEntities[parent_id],
 		) as string[];
 
 	// If any parents are missing, add them and their ancestors
@@ -202,7 +202,7 @@ export async function getGroups(user: UserContext, query?: GroupsQuery) {
 		group.permissions = rollupGroupUserPermissions(
 			user,
 			group,
-			groupEntities
+			groupEntities,
 		);
 	}
 
@@ -217,7 +217,7 @@ export async function getGroups(user: UserContext, query?: GroupsQuery) {
  */
 export async function getGroupHierarchy(
 	user: UserContext,
-	id: string
+	id: string,
 ): Promise<Group[]> {
 	let groups = await getGroupsAndParentGroups([id]);
 	if (groups.length === 0)
@@ -236,7 +236,7 @@ export async function getGroupHierarchy(
 		group.permissions = rollupGroupUserPermissions(
 			user,
 			group,
-			groupEntities
+			groupEntities,
 		);
 		groups.push(group);
 		group = group.parent_id ? groupEntities[group.parent_id] : undefined;
@@ -247,7 +247,7 @@ export async function getGroupHierarchy(
 
 export async function getGroupByName(
 	user: UserContext,
-	name: string
+	name: string,
 ): Promise<Group | undefined> {
 	const [group] = await getGroups(user, { name });
 	return group;
@@ -259,7 +259,7 @@ export function selectWorkingGroup(groups: Group[]) {
 
 export async function getWorkingGroup(
 	user: UserContext,
-	group_id: string
+	group_id: string,
 ): Promise<Group | undefined> {
 	const groups = await getGroupHierarchy(user, group_id);
 	return groups.find((group) => group.type === "wg");
@@ -369,7 +369,7 @@ function groupSetSql(group: Partial<Group>) {
 
 async function addGroup(
 	user: UserContext,
-	{ id, ...rest }: GroupCreate
+	{ id, ...rest }: GroupCreate,
 ): Promise<Group> {
 	if (!id) id = uuid();
 
@@ -386,13 +386,13 @@ export function addGroups(user: UserContext, groups: GroupCreate[]) {
 
 async function updateGroup(
 	user: UserContext,
-	{ id, changes }: GroupUpdate
+	{ id, changes }: GroupUpdate,
 ): Promise<Group> {
 	const setSql = groupSetSql(changes);
 	if (setSql)
 		await db.query(
 			"UPDATE organization SET " + setSql + " WHERE `id`=UUID_TO_BIN(?)",
-			[id]
+			[id],
 		);
 
 	id = changes.id || id;
@@ -409,7 +409,7 @@ export function updateGroups(user: UserContext, updates: GroupUpdate[]) {
 
 export async function removeGroups(
 	user: UserContext,
-	ids: string[]
+	ids: string[],
 ): Promise<number> {
 	if (ids.includes("00000000-0000-0000-0000-000000000000")) {
 		throw new ForbiddenError("Can't delete root entry");
@@ -425,7 +425,7 @@ export async function removeGroups(
 	}
 	if (undeletedChildIds.length > 0) {
 		throw new TypeError(
-			"One or more of the groups has a subgroup that would be orphaned"
+			"One or more of the groups has a subgroup that would be orphaned",
 		);
 	}
 
@@ -433,23 +433,23 @@ export async function removeGroups(
 	const ballots = await getBallots({ groupId: ids });
 	if (ballots.length) {
 		throw new TypeError(
-			"One or more of the groups has a ballot associated with it. These need to be deleted first."
+			"One or more of the groups has a ballot associated with it. These need to be deleted first.",
 		);
 	}
 	const seesions = await getSessions({ groupId: ids });
 	if (seesions.length > 0) {
 		throw new TypeError(
-			"One or more of the groups has a session associated with it. These need to be deleted first."
+			"One or more of the groups has a session associated with it. These need to be deleted first.",
 		);
 	}
 
 	const result1 = await db.query<ResultSetHeader>(
 		"DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)",
-		[ids]
+		[ids],
 	);
 	const result2 = await db.query<ResultSetHeader>(
 		"DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)",
-		[ids]
+		[ids],
 	);
 	return result1.affectedRows + result2.affectedRows;
 }
