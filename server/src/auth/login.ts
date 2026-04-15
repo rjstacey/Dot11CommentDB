@@ -37,7 +37,7 @@ async function postLogin(req: Request, res: Response, next: NextFunction) {
 		const ieeeClient = new IeeeClient();
 		const { SAPIN, Name, Email } = await ieeeClient.login(
 			username,
-			password
+			password,
 		);
 		//const SAPIN = 5073, Name = "Robert Stacey", Email= "rjstacey@gmail.com";
 

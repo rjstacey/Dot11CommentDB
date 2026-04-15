@@ -2,11 +2,17 @@ import { IeeeClient } from "../utils/ieeeClient.js";
 import db from "../utils/database.js";
 import type { User } from "@schemas/user.js";
 import { RowDataPacket } from "mysql2";
+import { AuthError } from "@/utils/index.js";
 
 /** Context for user performing access. Includes IEEE client API. */
 export type UserContext = User & {
 	ieeeClient?: IeeeClient;
 };
+
+export function getIeeeClientOrThrow(user: UserContext) {
+	if (!user.ieeeClient) throw new AuthError("Not logged in");
+	return user.ieeeClient;
+}
 
 export async function selectUser({
 	SAPIN,

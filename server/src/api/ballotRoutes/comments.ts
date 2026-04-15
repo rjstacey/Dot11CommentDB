@@ -2,7 +2,11 @@
  * Comments API
  */
 import { Request, Response, NextFunction, Router } from "express";
-import { BadRequestError, ForbiddenError } from "@/utils/index.js";
+import {
+	NotFoundError,
+	BadRequestError,
+	ForbiddenError,
+} from "@/utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
 import {
 	commentUpdatesSchema,
@@ -23,6 +27,17 @@ import {
 } from "@/services/comments.js";
 import { exportResolutionsForMyProject } from "@/services/myProjectSpreadsheets.js";
 import { exportCommentsSpreadsheet } from "@/services/commentsSpreadsheet.js";
+import { selectWorkingGroup } from "@/services/groups.js";
+
+function workingGroupOrThrow(req: Request) {
+	const workingGroup = selectWorkingGroup(req.groups!);
+	if (!workingGroup) {
+		throw new NotFoundError(
+			`Can't find working group for ${req.groups![0].id}`,
+		);
+	}
+	return workingGroup;
+}
 
 function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
 	if (!req.body) throw new BadRequestError("Missing file");
@@ -41,13 +56,13 @@ function fileBufferOrThrow(req: Request): { filename: string; buffer: Buffer } {
 async function patchStartCommentId(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const access = req.permissions?.comments || AccessLevel.none;
 		if (access < AccessLevel.admin) {
 			throw new ForbiddenError(
-				"Need admin privileges at the ballot level to change CIDs"
+				"Need admin privileges at the ballot level to change CIDs",
 			);
 		}
 
@@ -58,7 +73,7 @@ async function patchStartCommentId(
 		const data = await setStartCommentId(
 			req.user,
 			ballot_id,
-			startCommentId
+			startCommentId,
 		);
 		res.json(data);
 	} catch (error) {
@@ -71,16 +86,18 @@ async function postImport(req: Request, res: Response, next: NextFunction) {
 		const access = req.permissions?.comments || AccessLevel.none;
 		if (access < AccessLevel.admin) {
 			throw new ForbiddenError(
-				"Need admin privileges at the ballot level to import comments"
+				"Need admin privileges at the ballot level to import comments",
 			);
 		}
 
 		const params = commentsUploadParamsSchema.parse(req.body);
 		const startCommentId = params.startCommentId || 1;
+		const workingGroup = workingGroupOrThrow(req);
 		const data = await importEpollComments(
 			req.user,
+			workingGroup,
 			req.ballot!,
-			startCommentId
+			startCommentId,
 		);
 		res.json(data);
 	} catch (error) {
@@ -93,7 +110,7 @@ async function postUpload(req: Request, res: Response, next: NextFunction) {
 		const access = req.permissions?.comments || AccessLevel.none;
 		if (access < AccessLevel.admin) {
 			throw new ForbiddenError(
-				"Need admin privileges at the ballot level to upload comments"
+				"Need admin privileges at the ballot level to upload comments",
 			);
 		}
 
@@ -105,7 +122,7 @@ async function postUpload(req: Request, res: Response, next: NextFunction) {
 			req.ballot!,
 			startCommentId,
 			filename,
-			buffer
+			buffer,
 		);
 		res.json(data);
 	} catch (error) {
@@ -118,7 +135,7 @@ async function postUserUpload(req: Request, res: Response, next: NextFunction) {
 		const access = req.permissions?.comments || AccessLevel.none;
 		if (access < AccessLevel.admin) {
 			throw new ForbiddenError(
-				"Need admin privileges at the ballot level to upload comments"
+				"Need admin privileges at the ballot level to upload comments",
 			);
 		}
 
@@ -129,7 +146,7 @@ async function postUserUpload(req: Request, res: Response, next: NextFunction) {
 			req.ballot!,
 			params.SAPIN,
 			filename,
-			buffer
+			buffer,
 		);
 		res.json(data);
 	} catch (error) {
@@ -140,14 +157,14 @@ async function postUserUpload(req: Request, res: Response, next: NextFunction) {
 async function postPublicReviewUpload(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const access = req.permissions?.comments || AccessLevel.none;
 		// Need admin privileges for upload
 		if (access < AccessLevel.admin) {
 			throw new ForbiddenError(
-				"Need admin privileges at the ballot level to upload comments"
+				"Need admin privileges at the ballot level to upload comments",
 			);
 		}
 
@@ -156,7 +173,7 @@ async function postPublicReviewUpload(
 			req.user,
 			req.ballot!,
 			filename,
-			buffer
+			buffer,
 		);
 		res.json(data);
 	} catch (error) {
@@ -169,7 +186,7 @@ async function patchExport(req: Request, res: Response, next: NextFunction) {
 		const access = req.permissions?.comments || AccessLevel.none;
 		if (access < AccessLevel.ro) {
 			throw new ForbiddenError(
-				"Need at least read-only privileges at the ballot level to export comments"
+				"Need at least read-only privileges at the ballot level to export comments",
 			);
 		}
 
@@ -189,7 +206,7 @@ async function patchExport(req: Request, res: Response, next: NextFunction) {
 				style,
 				appendSheets,
 				buffer,
-				res
+				res,
 			);
 		}
 	} catch (error) {
@@ -202,7 +219,7 @@ async function getAll(req: Request, res: Response, next: NextFunction) {
 		const access = req.permissions?.comments || AccessLevel.none;
 		if (access < AccessLevel.ro) {
 			throw new ForbiddenError(
-				"Need at least read-only privileges at the ballot level to get comments"
+				"Need at least read-only privileges at the ballot level to get comments",
 			);
 		}
 
@@ -220,7 +237,7 @@ async function updateMany(req: Request, res: Response, next: NextFunction) {
 		// Need at least read-only privileges to update comments; check for comment level privileges later
 		if (access < AccessLevel.ro) {
 			throw new ForbiddenError(
-				"Need at least read-only privileges at the ballot level to update comments"
+				"Need at least read-only privileges at the ballot level to update comments",
 			);
 		}
 		const query = commentResolutionQuerySchema.parse(req.query);
@@ -232,7 +249,7 @@ async function updateMany(req: Request, res: Response, next: NextFunction) {
 			req.ballot!.id,
 			access,
 			updates,
-			modifiedSince
+			modifiedSince,
 		);
 		res.json(data);
 	} catch (error) {
@@ -245,7 +262,7 @@ async function removeAll(req: Request, res: Response, next: NextFunction) {
 		const access = req.permissions?.comments || AccessLevel.none;
 		if (access < AccessLevel.admin) {
 			throw new ForbiddenError(
-				"Need admin privileges at the ballot level to delete comments"
+				"Need admin privileges at the ballot level to delete comments",
 			);
 		}
 

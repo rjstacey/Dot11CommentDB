@@ -1,11 +1,11 @@
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
-import { AuthError, NotFoundError } from "../utils/index.js";
+import { NotFoundError } from "../utils/index.js";
 
 import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import type { UserContext } from "./users.js";
+import { getIeeeClientOrThrow, type UserContext } from "./users.js";
 
 import { getSession } from "./sessions.js";
 import type { Session } from "@schemas/sessions.js";
@@ -38,7 +38,7 @@ import {
 	addCalendarEvent,
 	updateCalendarEvent,
 	deleteCalendarEvent,
-	CalendarEvent,
+	type CalendarEvent,
 } from "./calendar.js";
 
 import type {
@@ -690,7 +690,7 @@ export async function addMeetings(
 	user: UserContext,
 	meetingsIn: MeetingCreate[],
 ) {
-	if (!user.ieeeClient) throw new AuthError("Not logged in");
+	getIeeeClientOrThrow(user);
 
 	const entries = await Promise.all(
 		meetingsIn.map((m) => addMeeting(user, m)),
@@ -1139,7 +1139,7 @@ export async function updateMeetings(
 	user: UserContext,
 	updates: MeetingUpdate[],
 ): Promise<MeetingsUpdateResponse> {
-	if (!user.ieeeClient) throw new AuthError("Not logged in");
+	getIeeeClientOrThrow(user);
 
 	const entries = await Promise.all(
 		updates.map((u) => updateMeeting(user, u.id, u.changes)),
@@ -1174,7 +1174,7 @@ export async function deleteMeetings(
 	user: UserContext,
 	ids: number[],
 ): Promise<number> {
-	if (!user.ieeeClient) throw new AuthError("Not logged in");
+	getIeeeClientOrThrow(user);
 
 	type DeleteMeetingSelect = Pick<
 		Meeting,

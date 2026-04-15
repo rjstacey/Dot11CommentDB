@@ -6,7 +6,7 @@ import { DateTime } from "luxon";
 import { load as cheerioLoad } from "cheerio";
 import { AuthError, parseSpreadsheet } from "../utils/index.js";
 
-import type { UserContext } from "./users.js";
+import { getIeeeClientOrThrow, type UserContext } from "./users.js";
 import type { Epoll } from "@schemas/epolls.js";
 
 // Convert date string to UTC
@@ -63,8 +63,7 @@ export async function getEpolls(
 	groupName: string,
 	n: number,
 ): Promise<Epoll[]> {
-	const { ieeeClient } = user;
-	if (!ieeeClient) throw new AuthError("Not logged in");
+	const ieeeClient = getIeeeClientOrThrow(user);
 
 	async function recursivePageGet(
 		epolls: Epoll[],
@@ -75,7 +74,7 @@ export async function getEpolls(
 		//console.log("get epolls n=", n);
 
 		const url = `https://mentor.ieee.org/${groupName}/polls/${type}?n=${page}`;
-		const data = await ieeeClient!.getHtml(url);
+		const data = await ieeeClient.getHtml(url);
 		//console.log(data.slice(0, 100));
 
 		const epollsPage = parseEpollsPage(data);
@@ -165,13 +164,18 @@ type EpollComment = {
 	MustSatisfy: boolean;
 };
 
+function parseCommentPage(C_Page: string, C_Line: string) {
+	let Page = Number(C_Page) + Number(C_Line) / 100;
+	if (isNaN(Page)) Page = 0;
+	return Page;
+}
+
 function parseEpollComment(cid: number, c: string[]): EpollComment | null {
 	const C_Index = parseInt(c[0]);
 	if (isNaN(C_Index)) return null;
 	const C_Page = c[6] ? c[6].trim() : "";
 	const C_Line = c[8] ? c[8].trim() : "";
-	let Page = parseFloat(C_Page) + parseFloat(C_Line) / 100;
-	if (isNaN(Page)) Page = 0;
+	const Page = parseCommentPage(C_Page, C_Line);
 
 	const cat = c[5].charAt(0);
 	const Category = cat === "T" || cat === "E" || cat === "G" ? cat : "T"; // First letter only (G, T or E), T if blank
@@ -237,8 +241,7 @@ function parseUserComment(
 ): EpollComment {
 	const C_Page = c[2] ? c[2].trim() : "";
 	const C_Line = c[4] ? c[4].trim() : "";
-	let Page = parseFloat(C_Page) + parseFloat(C_Line) / 100;
-	if (isNaN(Page)) Page = 0;
+	const Page = parseCommentPage(C_Page, C_Line);
 
 	const cat = c[1].charAt(0);
 	const Category = cat === "T" || cat === "E" || cat === "G" ? cat : "T"; // First letter only (G, T or E), T if blank

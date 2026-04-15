@@ -3,12 +3,12 @@ import { DateTime } from "luxon";
 import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
-import { AuthError, ForbiddenError, NotFoundError } from "../utils/index.js";
+import { ForbiddenError, NotFoundError } from "../utils/index.js";
 import { parseEpollComments, parseEpollUserComments } from "./epoll.js";
 import { parseMyProjectComments } from "./myProjectSpreadsheets.js";
 import { parsePublicReviewComments } from "./publicReviewSpreadsheets.js";
 import { getBallotWithNewResultsSummary } from "./ballots.js";
-import { selectUser, type UserContext } from "./users.js";
+import { selectUser, getIeeeClientOrThrow, type UserContext } from "./users.js";
 import { AccessLevel } from "@schemas/access.js";
 import { getGroups } from "./groups.js";
 import type {
@@ -19,7 +19,12 @@ import type {
 	CommentCreate,
 	UploadCommentsResponse,
 } from "@schemas/comments.js";
-import { Ballot, BallotType, CommentsSummary } from "@schemas/ballots.js";
+import {
+	type Ballot,
+	BallotType,
+	type CommentsSummary,
+} from "@schemas/ballots.js";
+import type { Group } from "@schemas/groups.js";
 
 const commentResolutionsView = "commentResolutions";
 
@@ -379,16 +384,17 @@ async function replaceComments(
  */
 export async function importEpollComments(
 	user: UserContext,
+	workingGroup: Group,
 	ballot: Ballot,
 	startCommentId: number,
 ) {
 	if (!ballot.EpollNum)
 		throw new TypeError("Ballot does not have an ePoll number");
 
-	if (!user.ieeeClient) throw new AuthError("Not logged in");
+	const ieeeClient = getIeeeClientOrThrow(user);
 
-	const buffer = await user.ieeeClient.getCsv(
-		`https://mentor.ieee.org/802.11/poll-comments.csv?p=${ballot.EpollNum}`,
+	const buffer = await ieeeClient.getCsv(
+		`https://mentor.ieee.org/${workingGroup.name}/poll-comments.csv?p=${ballot.EpollNum}`,
 	);
 	const comments = await parseEpollComments(
 		startCommentId,

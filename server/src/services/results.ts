@@ -1,9 +1,9 @@
 import db from "../utils/database.js";
-import { AuthError, NotFoundError } from "../utils/index.js";
+import { NotFoundError } from "../utils/index.js";
 import isEqual from "lodash.isequal";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Response } from "express";
-import type { UserContext } from "./users.js";
+import { getIeeeClientOrThrow, type UserContext } from "./users.js";
 
 import { parseEpollResults, parseEpollResultsHtml } from "./epoll.js";
 import { parseMyProjectResults } from "./myProjectSpreadsheets.js";
@@ -436,8 +436,7 @@ export async function importEpollResults(
 	if (!ballot.EpollNum)
 		throw new TypeError("Ballot does not have an ePoll number");
 
-	const { ieeeClient } = user;
-	if (!ieeeClient) throw new AuthError("Not logged in");
+	const ieeeClient = getIeeeClientOrThrow(user);
 
 	const [buffer, page] = await Promise.all([
 		ieeeClient.getCsv(
