@@ -4,10 +4,12 @@
 
 import { DateTime } from "luxon";
 import { load as cheerioLoad } from "cheerio";
-import { AuthError, parseSpreadsheet } from "../utils/index.js";
+import { parseSpreadsheet } from "../utils/index.js";
 
 import { getIeeeClientOrThrow, type UserContext } from "./users.js";
 import type { Epoll } from "@schemas/epolls.js";
+
+const UNEXPECTED_PAGE_STRING = "Unexpected page returned by mentor.ieee.org";
 
 // Convert date string to UTC
 function parseDateTime(dateStr: string) {
@@ -45,12 +47,8 @@ function parseEpollsPage(body: string): Epoll[] {
 			epolls.push(epoll);
 		});
 		return epolls;
-	} else if ($("div.title").length && $("div.title").html() == "Sign In") {
-		// If we get the "Sign In" page then the user is not logged in
-		throw new AuthError("Not logged in");
-	} else {
-		throw new Error("Unexpected page returned by mentor.ieee.org");
 	}
+	throw new Error(UNEXPECTED_PAGE_STRING);
 }
 
 /**
@@ -127,12 +125,8 @@ export function parseEpollResultsHtml(body: string) {
 				results.push(result);
 			});
 		return results;
-	} else if ($("div.title").length && $("div.title").html() == "Sign In") {
-		// If we get the "Sign In" page then the user is not logged in
-		throw new Error("Not logged in");
-	} else {
-		throw new Error("Unexpected page returned by mentor.ieee.org");
 	}
+	throw new Error(UNEXPECTED_PAGE_STRING);
 }
 
 const epollCommentsHeader = [
