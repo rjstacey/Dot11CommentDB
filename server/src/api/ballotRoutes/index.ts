@@ -5,7 +5,7 @@
  */
 import { NextFunction, Request, Response, Router } from "express";
 
-import { getGroups } from "@/services/groups.js";
+import { getGroupHierarchy } from "@/services/groups.js";
 import { getBallot } from "@/services/ballots.js";
 import { BadRequestError, NotFoundError } from "@/utils/index.js";
 
@@ -15,7 +15,7 @@ import comments from "./comments.js";
 import resolutions from "./resolutions.js";
 import commentHistory from "./commentHistory.js";
 import type { Ballot } from "@schemas/ballots.js";
-import { Group } from "@schemas/groups.js";
+import type { Group } from "@schemas/groups.js";
 
 const router = Router();
 
@@ -39,15 +39,15 @@ async function parseBallot_id(req: Request, res: Response, next: NextFunction) {
 		}
 		if (!ballot.groupId) {
 			throw new TypeError(
-				`Ballot ${ballot_id} not associated with a group`
+				`Ballot ${ballot_id} not associated with a group`,
 			);
 		}
 
 		req.ballot = ballot;
-		req.groups = await getGroups(req.user, { id: ballot.groupId });
+		req.groups = await getGroupHierarchy(req.user, ballot.groupId);
 		if (req.groups.length < 1) {
 			throw new NotFoundError(
-				`Group associated with ballot ${ballot_id} does not exist`
+				`Group associated with ballot ${ballot_id} does not exist`,
 			);
 		}
 		req.group = req.groups[0];
