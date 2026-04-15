@@ -10,9 +10,11 @@ export default defineConfig(({ command, mode }) => {
 	if (command === "build" && !env.BUILD_PATH)
 		throw Error("BUILD_PATH not set");
 	let target = "http://localhost:8080";
+	let agent: ProxyAgent | undefined = undefined;
 	if (mode === "remote") {
 		if (!env.REMOTE_SERVER) throw Error("REMOTE_SERVER not set");
 		target = env.REMOTE_SERVER;
+		agent = new ProxyAgent();
 	}
 	if (!env.BASE_URL) throw Error("BASE_URL not set");
 	return {
@@ -86,13 +88,13 @@ export default defineConfig(({ command, mode }) => {
 				"^(/api|/auth|/login|/logout)": {
 					target,
 					changeOrigin: true,
-					agent: new ProxyAgent(),
+					agent,
 				},
 				"/socket.io": {
 					target,
 					changeOrigin: true,
 					ws: true,
-					agent: new ProxyAgent(),
+					agent,
 				},
 			},
 		},
