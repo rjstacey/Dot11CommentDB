@@ -25,8 +25,8 @@ function DeleteResults({ ballot }: { ballot: Ballot }) {
 
 	return (
 		<Button variant="light" onClick={onClick}>
-			<Spinner size="sm" hidden={!busy} className="me-2" />
 			{"Delete"}
+			<Spinner size="sm" hidden={!busy} className="ms-2" />
 		</Button>
 	);
 }
@@ -52,8 +52,8 @@ function ImportResults({ ballot }: { ballot: Ballot }) {
 
 	return (
 		<Button variant="light" onClick={onClick}>
-			<Spinner size="sm" hidden={!busy} className="me-2" />
 			{(isReimport ? "Reimport" : "Import") + " from ePoll"}
+			<Spinner size="sm" hidden={!busy} className="ms-2" />
 		</Button>
 	);
 }
@@ -84,8 +84,8 @@ function UploadResults({ ballot }: { ballot: Ballot }) {
 	return (
 		<>
 			<Button variant="light" onClick={() => inputRef.current?.click()}>
-				<Spinner size="sm" hidden={!busy} className="me-2" />
 				{"Upload results"}
+				<Spinner size="sm" hidden={!busy} className="ms-2" />
 			</Button>
 			<input
 				ref={inputRef}

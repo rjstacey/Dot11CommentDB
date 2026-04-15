@@ -127,8 +127,8 @@ function DeleteComments({ ballot }: { ballot: Ballot }) {
 			onClick={onDelete}
 			disabled={ballot.Comments && ballot.Comments.Count === 0}
 		>
-			<Spinner size="sm" hidden={!busy} className="me-2" />
 			{"Delete"}
+			<Spinner size="sm" hidden={!busy} className="ms-2" />
 		</Button>
 	);
 }
@@ -160,8 +160,8 @@ function ImportComments({ ballot }: { ballot: Ballot }) {
 
 	return (
 		<Button variant="light" onClick={onImport}>
-			<Spinner size="sm" hidden={!busy} className="me-2" />
 			{title}
+			<Spinner size="sm" hidden={!busy} className="ms-2" />
 		</Button>
 	);
 }
@@ -195,8 +195,8 @@ function UploadComments({ ballot }: { ballot: Ballot }) {
 				title=""
 				onClick={() => inputRef.current?.click()}
 			>
-				<Spinner size="sm" hidden={!busy} className="me-2" />
 				{"Upload comments"}
+				<Spinner size="sm" hidden={!busy} className="ms-2" />
 			</Button>
 			<input
 				ref={inputRef}
@@ -337,8 +337,8 @@ function AddPublicReviewComments({ ballot }: { ballot: Ballot }) {
 				disabled={ballot.Comments && ballot.Comments.Count === 0}
 				onClick={() => inputRef.current?.click()}
 			>
-				<Spinner size="sm" hidden={!busy} className="me-2" />
 				{"Add public review comments"}
+				<Spinner size="sm" hidden={!busy} className="ms-2" />
 			</Button>
 			<input
 				ref={inputRef}

@@ -15,13 +15,13 @@ export function SubmitCancelRow({
 		<Row className="mt-3">
 			<Col xs={6} className="d-flex justify-content-center">
 				<Button type="submit" disabled={disabled}>
-					<Spinner size="sm" hidden={!busy} className="me-2" />
 					{submitLabel}
+					<Spinner size="sm" hidden={!busy} className="ms-2" />
 				</Button>
 			</Col>
 			<Col xs={6} className="d-flex justify-content-center">
 				<Button variant="secondary" onClick={cancel}>
-					Cancel
+					{"Cancel"}
 				</Button>
 			</Col>
 		</Row>
