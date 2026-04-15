@@ -1,10 +1,15 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
+import isEqual from "lodash.isequal";
+
 import { EntityId } from "@reduxjs/toolkit";
-import { useAppSelector } from "@/store/hooks";
+import { ConfirmModal } from "@common";
+
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectTopLevelGroupId } from "@/store/groups";
 import {
 	selectEpollsState,
 	selectSyncedEntities,
+	setSelected,
 	type SyncedEpoll,
 } from "@/store/epolls";
 import {
@@ -16,7 +21,9 @@ import {
 import {
 	getDefaultBallot,
 	useBallotsUpdate,
+	INIT,
 	type BallotsEditState,
+	type BallotsEditAction,
 } from "./ballotsEdit";
 
 function ePollToBallot(
@@ -54,7 +61,7 @@ function ePollToBallot(
 	return ballot;
 }
 
-function useEpollsInitState() {
+function useEpollsEditReducer() {
 	const groupId = useAppSelector(selectTopLevelGroupId)!;
 	const { selected, loading, valid } = useAppSelector(selectEpollsState);
 	const entities = useAppSelector(selectSyncedEntities);
@@ -122,32 +129,66 @@ function useEpollsInitState() {
 		}
 	}, [selected, entities, loading, valid, ballotIds, ballotEntities]);
 
-	const [state, setState] = useState<BallotsEditState>(initState);
-
-	const resetState = useCallback(
-		() => setState(initState),
-		[setState, initState],
+	const reducer = useCallback(
+		(
+			state: BallotsEditState,
+			action: BallotsEditAction,
+		): BallotsEditState => {
+			if (action.type === "INIT") {
+				return initState();
+			}
+			if (action.type === "CHANGE") {
+				if (state.action === "add") {
+					const edited = { ...state.edited, ...action.changes };
+					return { ...state, edited };
+				} else if (state.action === "update") {
+					let edited = { ...state.edited, ...action.changes };
+					if (isEqual(edited, state.saved)) edited = state.saved;
+					return { ...state, edited };
+				}
+				console.warn("CHANGE: bad state");
+				return state;
+			}
+			if (action.type === "SUBMIT") {
+				return initState();
+			}
+			throw new Error("Unknown action:" + action);
+		},
+		[initState],
 	);
 
-	useEffect(() => {
-		resetState();
-	}, [selected, resetState]);
-
-	return {
-		state,
-		setState,
-		resetState,
-	};
+	return useReducer(reducer, undefined, initState);
 }
 
 export function useEpollsEdit(readOnly: boolean) {
-	const { state, setState, resetState } = useEpollsInitState();
+	const dispatch = useAppDispatch();
+	const { selected } = useAppSelector(selectEpollsState);
+	const [state, dispatchStateAction] = useEpollsEditReducer();
 
-	const { onChange, hasChanges, submit } = useBallotsUpdate(
+	useEffect(() => {
+		if (state.action === "update") {
+			if (state.edited === state.saved) {
+				dispatchStateAction(INIT);
+				return;
+			}
+			const ids = state.ballots.map((s) => s.id);
+			if (!isEqual(selected, ids)) {
+				ConfirmModal.show(
+					"Changes not applied! Do you want to discard changes?",
+				).then((ok) => {
+					if (ok) dispatchStateAction(INIT);
+					else dispatch(setSelected(ids));
+				});
+			}
+		} else {
+			dispatchStateAction(INIT);
+		}
+	}, [selected]);
+
+	const { hasChanges, onChange, submit, cancel } = useBallotsUpdate(
 		readOnly,
 		state,
-		setState,
-		resetState,
+		dispatchStateAction,
 	);
 
 	return {
@@ -155,6 +196,6 @@ export function useEpollsEdit(readOnly: boolean) {
 		onChange,
 		hasChanges,
 		submit,
-		cancel: resetState,
+		cancel,
 	};
 }

@@ -1,10 +1,4 @@
-import {
-	useState,
-	useCallback,
-	useEffect,
-	type Dispatch,
-	type SetStateAction,
-} from "react";
+import React, { useCallback, useEffect, useReducer } from "react";
 import isEqual from "lodash.isequal";
 import { EntityId } from "@reduxjs/toolkit";
 import {
@@ -207,9 +201,21 @@ export type BallotsEditState = (
 			saved: BallotMultiple;
 	  }
 ) & { ballots: Ballot[] };
+export type BallotsEditAction =
+	| {
+			type: "INIT" | "CREATE" | "SUBMIT";
+	  }
+	| {
+			type: "CHANGE";
+			changes: BallotChange;
+	  };
+export const INIT = { type: "INIT" } as const;
+const CREATE = { type: "CREATE" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (changes: BallotChange) =>
+	({ type: "CHANGE", changes }) as const;
 
-function useBallotsInitState(readOnly: boolean) {
-	const dispatch = useAppDispatch();
+function useBallotsEditReducer() {
 	const { selected, ids, entities, loading, valid } =
 		useAppSelector(selectBallotsState);
 
@@ -240,88 +246,60 @@ function useBallotsInitState(readOnly: boolean) {
 		}
 	}, [selected, entities, loading, valid]);
 
-	const [state, setState] = useState<BallotsEditState>(initState);
-
-	const resetState = useCallback(
-		() => setState(initState),
-		[setState, initState],
+	const reducer = useCallback(
+		(
+			state: BallotsEditState,
+			action: BallotsEditAction,
+		): BallotsEditState => {
+			if (action.type === "INIT") {
+				return initState();
+			} else if (action.type === "CREATE") {
+				const edited = getDefaultBallot(
+					ids,
+					entities,
+					state.ballots[0],
+				);
+				return {
+					action: "add",
+					edited,
+					saved: undefined,
+					ballots: state.ballots,
+				};
+			} else if (action.type === "CHANGE") {
+				if (state.action === "add") {
+					const edited = { ...state.edited, ...action.changes };
+					return { ...state, edited };
+				} else if (state.action === "update") {
+					let edited = { ...state.edited, ...action.changes };
+					if (isEqual(edited, state.saved)) edited = state.saved;
+					return { ...state, edited };
+				}
+				console.warn("CHANGE: bad state");
+				return state;
+			} else if (action.type === "SUBMIT") {
+				if (state.action === "add") {
+					return {
+						...state,
+						action: null,
+						message: "Ballot added",
+					};
+				} else if (state.action === "update") {
+					return initState();
+				}
+				return state;
+			}
+			return state;
+		},
+		[initState, ids, entities],
 	);
 
-	const onAdd = useCallback(() => {
-		if (readOnly) {
-			console.warn("onAdd: state is readOnly");
-			return;
-		}
-		const edited = getDefaultBallot(ids, entities, state.ballots[0]);
-		setState({
-			action: "add",
-			edited,
-			saved: undefined,
-			ballots: state.ballots,
-		});
-	}, [ids, entities, state]);
-
-	const onDelete = useCallback(async () => {
-		if (readOnly) {
-			console.warn("onDelete: state is readOnly");
-			return;
-		}
-		if (state.action !== "update") {
-			console.warn("onDelete: bad state");
-			return;
-		}
-		const list = state.ballots.map(getBallotId).join(", ");
-		const ids = state.ballots.map((b) => b.id);
-		const ok = await ConfirmModal.show(
-			`Are you sure you want to delete ${list}?`,
-		);
-		if (ok) await dispatch(deleteBallots(ids));
-		dispatch(setSelected([]));
-	}, [dispatch, readOnly, state]);
-
-	useEffect(() => {
-		if (state.action === "add") {
-			if (selected.length > 0) {
-				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?",
-				).then((ok) => {
-					if (ok) resetState();
-					else dispatch(setSelected([]));
-				});
-			}
-		} else if (state.action === "update") {
-			if (state.edited === state.saved) {
-				resetState();
-				return;
-			}
-			const ids = state.ballots.map((s) => s.id);
-			if (!isEqual(selected, ids)) {
-				ConfirmModal.show(
-					"Changes not applied! Do you want to discard changes?",
-				).then((ok) => {
-					if (ok) resetState();
-					else dispatch(setSelected(ids));
-				});
-			}
-		} else {
-			resetState();
-		}
-	}, [selected, resetState]);
-
-	return {
-		state,
-		setState,
-		resetState,
-		onAdd,
-		onDelete,
-	};
+	return useReducer(reducer, undefined, initState);
 }
 
 export function useBallotsUpdate(
 	readOnly: boolean,
 	state: BallotsEditState,
-	setState: Dispatch<SetStateAction<BallotsEditState>>,
-	resetState: () => void,
+	dispatchStateAction: React.Dispatch<BallotsEditAction>,
 ) {
 	const dispatch = useAppDispatch();
 
@@ -334,33 +312,23 @@ export function useBallotsUpdate(
 
 	const onChange = useCallback(
 		(changes: BallotChange) => {
-			setState((state) => {
-				if (readOnly) {
-					console.warn("onChange: state is readOnly");
-					return state;
-				}
-				if (state.action === "add") {
-					const edited = { ...state.edited, ...changes };
-					return { ...state, edited };
-				} else if (state.action === "update") {
-					let edited = { ...state.edited, ...changes };
-					if (isEqual(edited, state.saved)) edited = state.saved;
-					return { ...state, edited };
-				}
+			if (readOnly || state.action === null) {
 				console.warn("onChange: bad state");
 				return state;
-			});
+			}
+			dispatchStateAction(CHANGE(changes));
 		},
-		[readOnly, setState],
+		[readOnly, state.action, dispatchStateAction],
 	);
 
 	const submit = useCallback(async () => {
-		if (readOnly) {
-			console.warn("submit: state is readOnly");
+		if (readOnly || state.action === null) {
+			console.warn("submit: bad state");
 			return;
 		}
 		if (state.action === "add") {
 			const ballot = await dispatch(addBallot(state.edited));
+			dispatchStateAction(SUBMIT);
 			if (ballot) dispatch(setSelected([ballot.id]));
 		} else if (state.action === "update") {
 			const updates: BallotUpdate[] = [];
@@ -375,29 +343,85 @@ export function useBallotsUpdate(
 					updates.push({ id: ballot.id, changes });
 			}
 			await dispatch(updateBallots(updates));
-			setState({
-				...state,
-				saved: state.edited,
-			});
+			dispatchStateAction(SUBMIT);
 		}
-	}, [state, resetState, dispatch]);
+	}, [readOnly, state, dispatchStateAction]);
+
+	const cancel = useCallback(() => {
+		dispatchStateAction(INIT);
+	}, [dispatchStateAction]);
 
 	return {
-		onChange,
 		hasChanges,
+		onChange,
 		submit,
+		cancel,
 	};
 }
 
 export function useBallotsEdit(readOnly: boolean) {
-	const { state, setState, resetState, onAdd, onDelete } =
-		useBallotsInitState(readOnly);
+	const dispatch = useAppDispatch();
+	const { selected } = useAppSelector(selectBallotsState);
+	const [state, dispatchStateAction] = useBallotsEditReducer();
 
-	const { onChange, hasChanges, submit } = useBallotsUpdate(
+	useEffect(() => {
+		if (state.action === "add") {
+			if (selected.length > 0) {
+				ConfirmModal.show(
+					"Changes not applied! Do you want to discard changes?",
+				).then((ok) => {
+					if (ok) dispatchStateAction(INIT);
+					else dispatch(setSelected([]));
+				});
+			}
+		} else if (state.action === "update") {
+			if (state.edited === state.saved) {
+				dispatchStateAction(INIT);
+				return;
+			}
+			const ids = state.ballots.map((s) => s.id);
+			if (!isEqual(selected, ids)) {
+				ConfirmModal.show(
+					"Changes not applied! Do you want to discard changes?",
+				).then((ok) => {
+					if (ok) dispatchStateAction(INIT);
+					else dispatch(setSelected(ids));
+				});
+			}
+		} else {
+			dispatchStateAction(INIT);
+		}
+	}, [selected]);
+
+	const onAdd = useCallback(() => {
+		if (readOnly) {
+			console.warn("onAdd: readOnly");
+			return;
+		}
+		dispatchStateAction(CREATE);
+	}, [readOnly]);
+
+	const onDelete = useCallback(async () => {
+		if (readOnly || state.action !== "update") {
+			console.warn("onDelete: bad state");
+			return;
+		}
+		const list = state.ballots.map(getBallotId).join(", ");
+		const ids = state.ballots.map((b) => b.id);
+		const ok = await ConfirmModal.show(
+			`Are you sure you want to delete ${list}?`,
+		);
+		if (ok) {
+			dispatchStateAction(SUBMIT);
+			await dispatch(deleteBallots(ids));
+			dispatch(setSelected([]));
+		}
+	}, [readOnly, state]);
+
+	const { hasChanges, onChange, submit, cancel } = useBallotsUpdate(
 		readOnly,
 		state,
-		setState,
-		resetState,
+		dispatchStateAction,
 	);
 
 	return {
@@ -407,6 +431,6 @@ export function useBallotsEdit(readOnly: boolean) {
 		onChange,
 		hasChanges,
 		submit,
-		cancel: resetState,
+		cancel,
 	};
 }
