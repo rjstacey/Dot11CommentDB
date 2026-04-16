@@ -18,8 +18,17 @@ export function VotersDetail() {
 	const readOnly = access <= AccessLevel.ro;
 	const isOnline = useAppSelector(selectIsOnline);
 
-	const { state, hasChanges, onChange, submit, cancel, onAdd, onDelete } =
-		useVotersEdit(readOnly);
+	const {
+		state,
+		hasChanges,
+		onChange,
+		submit,
+		cancel,
+		addDisabled,
+		onAdd,
+		deleteDisabled,
+		onDelete,
+	} = useVotersEdit(readOnly);
 
 	let title = "Voter";
 	let content: React.ReactNode;
@@ -47,7 +56,7 @@ export function VotersDetail() {
 				variant="outline-primary"
 				className="bi-plus-lg"
 				title="Add ballot"
-				disabled={!isOnline}
+				disabled={addDisabled || !isOnline}
 				active={state.action === "add"}
 				onClick={onAdd}
 			>
@@ -57,7 +66,7 @@ export function VotersDetail() {
 				variant="outline-primary"
 				className="bi-trash"
 				title="Delete ballot"
-				disabled={state.action !== "update" || !isOnline}
+				disabled={deleteDisabled || !isOnline}
 				onClick={onDelete}
 			>
 				{" Delete"}
