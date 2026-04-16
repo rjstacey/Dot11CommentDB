@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import isEqual from "lodash.isequal";
 import { ConfirmModal, shallowDiff } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -27,8 +27,20 @@ type ResultsEditState = (
 	results: ResultExtended[];
 };
 
-function useResultsInitState() {
-	const dispatch = useAppDispatch();
+type ResultsEditAction =
+	| {
+			type: "INIT" | "SUBMIT";
+	  }
+	| {
+			type: "CHANGE";
+			changes: ResultChange;
+	  };
+const INIT = { type: "INIT" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (changes: ResultChange) =>
+	({ type: "CHANGE", changes }) as const;
+
+function useResultsEditReducer() {
 	const { selected, loading, valid, ballot_id } =
 		useAppSelector(selectResultsState);
 	const entities = useAppSelector(selectResultExtendedEntities);
@@ -60,17 +72,43 @@ function useResultsInitState() {
 		};
 	}, [selected, entities, loading, valid]);
 
-	const [state, setState] = useState<ResultsEditState>(initState);
-
-	const resetState = useCallback(
-		() => setState(initState),
-		[setState, initState],
+	const reducer = useCallback(
+		(
+			state: ResultsEditState,
+			action: ResultsEditAction,
+		): ResultsEditState => {
+			if (action.type === "INIT") {
+				return initState();
+			} else if (action.type === "CHANGE") {
+				if (state.action === "update") {
+					let edited = { ...state.edited, ...action.changes };
+					if (isEqual(edited, state.saved)) edited = state.saved;
+					return { ...state, edited };
+				}
+				return state;
+			} else if (action.type === "SUBMIT") {
+				if (state.action === "update") {
+					return { ...state, saved: state.edited };
+				}
+				return state;
+			}
+			throw new Error("Unknown action: " + action);
+		},
+		[initState],
 	);
+
+	return useReducer(reducer, undefined, initState);
+}
+
+export function useResultsEdit(readOnly: boolean) {
+	const dispatch = useAppDispatch();
+	const [state, dispatchStateAction] = useResultsEditReducer();
+	const { selected } = useAppSelector(selectResultsState);
 
 	useEffect(() => {
 		if (state.action === "update") {
 			if (state.edited === state.saved) {
-				resetState();
+				dispatchStateAction(INIT);
 				return;
 			}
 			const ids = state.results.map((r) => r.id);
@@ -78,26 +116,14 @@ function useResultsInitState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected(ids));
 				});
 			}
 		} else {
-			resetState();
+			dispatchStateAction(INIT);
 		}
-	}, [selected, resetState]);
-
-	return {
-		state,
-		setState,
-		resetState,
-	};
-}
-
-export function useResultsEdit(readOnly: boolean) {
-	const dispatch = useAppDispatch();
-
-	const { state, setState, resetState } = useResultsInitState();
+	}, [selected]);
 
 	const hasChanges = useCallback(
 		() => state.action === "update" && state.edited !== state.saved,
@@ -106,59 +132,61 @@ export function useResultsEdit(readOnly: boolean) {
 
 	const onChange = useCallback(
 		(changes: ResultChange) => {
-			setState((state) => {
-				if (readOnly) {
-					console.warn("onChange: state is readOnly");
-					return state;
-				}
-				if (state.action === "update") {
-					let edited = { ...state.edited, ...changes };
-					if (isEqual(edited, state.saved)) edited = state.saved;
-					return { ...state, edited };
-				}
+			if (readOnly || state.action === null) {
 				console.warn("onChange: bad state");
 				return state;
-			});
+			}
+			dispatchStateAction(CHANGE(changes));
 		},
-		[readOnly, setState],
+		[readOnly],
 	);
 
 	const submit = useCallback(async () => {
-		if (readOnly) {
-			console.warn("submit: state is readOnly");
-		} else if (state.action === "update") {
-			const id = state.edited.id;
-			const changes = shallowDiff(state.saved, state.edited);
-			if (
-				state.edited.ballot_id !== state.edited.lastBallotId &&
-				!changes.vote
-			) {
-				// Carry over the vote if the last vote was not for this ballot
-				changes.vote = state.edited.vote;
-			}
-			await dispatch(updateResults(state.ballot_id!, [{ id, changes }]));
-			setState({ ...state, saved: state.edited });
-		} else {
+		if (readOnly || state.action === null) {
 			console.warn("submit: bad state");
+			return;
 		}
-	}, [state, dispatch, setState, readOnly]);
+		const id = state.edited.id;
+		const changes = shallowDiff(state.saved, state.edited);
+		if (
+			state.edited.ballot_id !== state.edited.lastBallotId &&
+			!changes.vote
+		) {
+			// Carry over the vote if the last vote was not for this ballot
+			changes.vote = state.edited.vote;
+		}
+		await dispatch(updateResults(state.ballot_id!, [{ id, changes }]));
+		dispatchStateAction(SUBMIT);
+	}, [readOnly, state]);
 
+	const cancel = useCallback(async () => {
+		dispatchStateAction(INIT);
+	}, []);
+
+	const deleteDisabled = readOnly || state.action !== "update";
 	const onDelete = useCallback(async () => {
+		if (deleteDisabled) {
+			console.warn("onDelete: bad state");
+			return;
+		}
 		const list = state.results.map((v) => v.SAPIN).join(", ");
 		const ids = state.results.map((v) => v.id);
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ${list}?`,
 		);
-		if (!ok) return;
-		await dispatch(deleteResultsMany(ids));
-	}, [dispatch, state]);
+		if (ok) {
+			dispatchStateAction(SUBMIT);
+			await dispatch(deleteResultsMany(ids));
+		}
+	}, [state, deleteDisabled]);
 
 	return {
 		state,
 		hasChanges,
 		onChange,
 		submit,
-		cancel: resetState,
+		cancel,
+		deleteDisabled,
 		onDelete,
 	};
 }

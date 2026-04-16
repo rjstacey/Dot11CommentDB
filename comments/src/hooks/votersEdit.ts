@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import isEqual from "lodash.isequal";
 import { ConfirmModal, shallowDiff } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -39,8 +39,20 @@ type VotersEditState = (
 	voters: Voter[];
 };
 
-function useVotersInitState() {
-	const dispatch = useAppDispatch();
+type VotersEditAction =
+	| {
+			type: "INIT" | "CREATE" | "SUBMIT";
+	  }
+	| {
+			type: "CHANGE";
+			changes: VoterChange;
+	  };
+const INIT = { type: "INIT" } as const;
+const CREATE = { type: "CREATE" } as const;
+const SUBMIT = { type: "SUBMIT" } as const;
+const CHANGE = (changes: VoterChange) => ({ type: "CHANGE", changes }) as const;
+
+function useVotersEditReducer() {
 	const { selected, entities, loading, valid, ballot_id } =
 		useAppSelector(selectVotersState);
 
@@ -69,12 +81,56 @@ function useVotersInitState() {
 		};
 	}, [selected, entities, loading, valid]);
 
-	const [state, setState] = useState<VotersEditState>(initState);
-
-	const resetState = useCallback(
-		() => setState(initState),
-		[setState, initState],
+	const reducer = useCallback(
+		(state: VotersEditState, action: VotersEditAction): VotersEditState => {
+			if (action.type === "INIT") {
+				return initState();
+			} else if (action.type === "CREATE") {
+				if (!ballot_id) {
+					console.warn("CREATE: ballot_id not set");
+					return state;
+				}
+				return {
+					...state,
+					action: "add",
+					edited: getDefaultVoter(ballot_id),
+				};
+			} else if (action.type === "CHANGE") {
+				if (state.action === "add") {
+					return {
+						...state,
+						edited: { ...state.edited, ...action.changes },
+					};
+				} else if (state.action === "update") {
+					let edited = { ...state.edited, ...action.changes };
+					if (isEqual(edited, state.saved)) edited = state.saved;
+					return { ...state, edited };
+				}
+				return state;
+			} else if (action.type === "SUBMIT") {
+				if (state.action === "add") {
+					return {
+						...state,
+						action: null,
+						message: "Added",
+					};
+				} else if (state.action === "update") {
+					return { ...state, saved: state.edited };
+				}
+				return state;
+			}
+			throw new Error("Unknown action: " + action);
+		},
+		[initState],
 	);
+
+	return useReducer(reducer, undefined, initState);
+}
+
+export function useVotersEdit(readOnly: boolean) {
+	const dispatch = useAppDispatch();
+	const { selected } = useAppSelector(selectVotersState);
+	const [state, dispatchStateAction] = useVotersEditReducer();
 
 	useEffect(() => {
 		if (state.action === "add") {
@@ -82,13 +138,13 @@ function useVotersInitState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected([]));
 				});
 			}
 		} else if (state.action === "update") {
 			if (state.edited === state.saved) {
-				resetState();
+				dispatchStateAction(INIT);
 				return;
 			}
 			const ids = state.voters.map((v) => v.id);
@@ -96,42 +152,14 @@ function useVotersInitState() {
 				ConfirmModal.show(
 					"Changes not applied! Do you want to discard changes?",
 				).then((ok) => {
-					if (ok) resetState();
+					if (ok) dispatchStateAction(INIT);
 					else dispatch(setSelected(ids));
 				});
 			}
 		} else {
-			resetState();
+			dispatchStateAction(INIT);
 		}
-	}, [selected, resetState]);
-
-	const onAdd = useCallback(() => {
-		setState((state) => {
-			if (!ballot_id) {
-				console.warn("onAdd: ballot_id not set");
-				return state;
-			}
-			return {
-				...state,
-				action: "add",
-				edited: getDefaultVoter(ballot_id),
-			};
-		});
-		dispatch(setSelected([]));
-	}, [dispatch, ballot_id]);
-
-	return {
-		state,
-		setState,
-		resetState,
-		onAdd,
-	};
-}
-
-export function useVotersEdit(readOnly: boolean) {
-	const dispatch = useAppDispatch();
-
-	const { state, setState, resetState, onAdd } = useVotersInitState();
+	}, [selected]);
 
 	const hasChanges = useCallback(
 		() =>
@@ -142,61 +170,72 @@ export function useVotersEdit(readOnly: boolean) {
 
 	const onChange = useCallback(
 		(changes: VoterChange) => {
-			setState((state) => {
-				if (readOnly) {
-					console.warn("onChange: state is readOnly");
-					return state;
-				}
-				if (state.action === "add") {
-					return {
-						...state,
-						edited: { ...state.edited, ...changes },
-					};
-				} else if (state.action === "update") {
-					let edited = { ...state.edited, ...changes };
-					if (isEqual(edited, state.saved)) edited = state.saved;
-					return { ...state, edited };
-				}
+			if (readOnly || state.action === null) {
 				console.warn("onChange: bad state");
-				return state;
-			});
+				return;
+			}
+			dispatchStateAction(CHANGE(changes));
 		},
-		[readOnly, setState],
+		[readOnly, state.action],
 	);
 
 	const submit = useCallback(async () => {
-		if (readOnly) {
-			console.warn("submit: state is readOnly");
+		if (readOnly || state.action === null) {
+			console.warn("submit: bad state");
 		} else if (state.action === "add") {
 			const voter = await dispatch(addVoter(state.edited));
-			if (voter) dispatch(setSelected([voter.id]));
+			if (voter) {
+				dispatchStateAction(SUBMIT);
+				dispatch(setSelected([voter.id]));
+			}
 		} else if (state.action === "update") {
 			const id = state.edited.id;
 			const changes = shallowDiff(state.saved, state.edited);
 			await dispatch(updateVoter(id, changes));
-			setState({ ...state, saved: state.edited });
-		} else {
-			console.warn("submit: bad state");
+			dispatchStateAction(SUBMIT);
 		}
-	}, [state, dispatch, setState, readOnly]);
+	}, [readOnly, state]);
 
+	const cancel = useCallback(async () => {
+		dispatchStateAction(INIT);
+	}, []);
+
+	const addDisabled = readOnly || hasChanges();
+	const onAdd = useCallback(() => {
+		if (addDisabled) {
+			console.warn("onAdd: bad state");
+			return;
+		}
+		dispatchStateAction(CREATE);
+		dispatch(setSelected([]));
+	}, [addDisabled]);
+
+	const deleteDisabled = readOnly || state.action !== "update";
 	const onDelete = useCallback(async () => {
+		if (deleteDisabled) {
+			console.warn("onDelete: bad state");
+			return;
+		}
 		const list = state.voters.map((v) => v.SAPIN).join(", ");
 		const ids = state.voters.map((v) => v.id);
 		const ok = await ConfirmModal.show(
 			`Are you sure you want to delete ${list}?`,
 		);
-		if (!ok) return;
-		await dispatch(deleteVoters(ids));
-	}, [dispatch, state]);
+		if (ok) {
+			dispatchStateAction(SUBMIT);
+			await dispatch(deleteVoters(ids));
+		}
+	}, [state, deleteDisabled]);
 
 	return {
 		state,
 		hasChanges,
 		onChange,
 		submit,
-		cancel: resetState,
+		cancel,
+		addDisabled,
 		onAdd,
+		deleteDisabled,
 		onDelete,
 	};
 }

@@ -18,8 +18,15 @@ export function ResultsDetail() {
 	const readOnly = access < AccessLevel.admin;
 	const isOnline = useAppSelector(selectIsOnline);
 
-	const { state, onChange, hasChanges, submit, cancel, onDelete } =
-		useResultsEdit(readOnly);
+	const {
+		state,
+		onChange,
+		hasChanges,
+		submit,
+		cancel,
+		deleteDisabled,
+		onDelete,
+	} = useResultsEdit(readOnly);
 	const onAdd = () => {};
 
 	let title = "Result";
@@ -59,7 +66,7 @@ export function ResultsDetail() {
 				variant="outline-primary"
 				className="bi-trash"
 				title="Delete result"
-				disabled={state.action !== "update" || !isOnline}
+				disabled={deleteDisabled || !isOnline}
 				onClick={onDelete}
 			>
 				{" Delete"}
