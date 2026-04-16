@@ -393,16 +393,24 @@ export function useBallotsEdit(readOnly: boolean) {
 		}
 	}, [selected]);
 
+	const { hasChanges, onChange, submit, cancel } = useBallotsUpdate(
+		readOnly,
+		state,
+		dispatchStateAction,
+	);
+
+	const addDisabled = readOnly || hasChanges();
 	const onAdd = useCallback(() => {
-		if (readOnly) {
-			console.warn("onAdd: readOnly");
+		if (addDisabled) {
+			console.warn("onAdd: bad state");
 			return;
 		}
 		dispatchStateAction(CREATE);
-	}, [readOnly]);
+	}, [addDisabled]);
 
+	const deleteDisabled = readOnly || state.action !== "update";
 	const onDelete = useCallback(async () => {
-		if (readOnly || state.action !== "update") {
+		if (deleteDisabled) {
 			console.warn("onDelete: bad state");
 			return;
 		}
@@ -416,21 +424,17 @@ export function useBallotsEdit(readOnly: boolean) {
 			await dispatch(deleteBallots(ids));
 			dispatch(setSelected([]));
 		}
-	}, [readOnly, state]);
-
-	const { hasChanges, onChange, submit, cancel } = useBallotsUpdate(
-		readOnly,
-		state,
-		dispatchStateAction,
-	);
+	}, [deleteDisabled, state]);
 
 	return {
 		state,
-		onAdd,
-		onDelete,
 		onChange,
 		hasChanges,
 		submit,
 		cancel,
+		addDisabled,
+		onAdd,
+		deleteDisabled,
+		onDelete,
 	};
 }

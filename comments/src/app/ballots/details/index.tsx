@@ -25,8 +25,17 @@ export function BallotsDetail({
 	readOnly?: boolean;
 }) {
 	const isOnline = useAppSelector(selectIsOnline);
-	const { state, onAdd, onDelete, onChange, hasChanges, submit, cancel } =
-		useBallotsEdit(readOnly || false);
+	const {
+		state,
+		onChange,
+		hasChanges,
+		submit,
+		cancel,
+		addDisabled,
+		onAdd,
+		deleteDisabled,
+		onDelete,
+	} = useBallotsEdit(readOnly || false);
 
 	const actionButtons = readOnly ? null : (
 		<>
@@ -34,7 +43,7 @@ export function BallotsDetail({
 				variant="outline-primary"
 				className="bi-plus-lg"
 				title="Add ballot"
-				disabled={!isOnline}
+				disabled={addDisabled || !isOnline}
 				active={state.action === "add"}
 				onClick={onAdd}
 			>
@@ -44,7 +53,7 @@ export function BallotsDetail({
 				variant="outline-primary"
 				className="bi-trash"
 				title="Delete ballot"
-				disabled={state.ballots.length === 0 || !isOnline}
+				disabled={deleteDisabled || !isOnline}
 				onClick={onDelete}
 			>
 				{" Delete"}
