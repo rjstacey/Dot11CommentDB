@@ -1,59 +1,33 @@
-import { forwardRef, useState } from "react";
 import { Dropdown } from "react-bootstrap";
-
+import clsx from "clsx";
 import { useAppSelector } from "@/store/hooks";
 import { selectOfflineStatus, selectOfflineOutbox } from "@/store/offline";
 
-import styles from "./OnlineIndicator.module.css";
+import "./OnlineIndicator.css";
 
-const Selector = forwardRef<
-	HTMLDivElement,
-	{
-		show: boolean;
-		setShow: (show: boolean) => void;
-	}
->(function SelectorWithRef(props, ref) {
-	const { show, setShow } = props;
+export function OnlineIndicator() {
 	const status = useAppSelector(selectOfflineStatus);
-	let color = "#ff4e4e";
-	if (status === "online") color = "#bbff4e";
-	if (status === "unreachable") color = "#ffb04e";
-	const background = `radial-gradient(circle at 5px 5px, ${color}, #000000b0)`;
-
-	let onClick: React.MouseEventHandler | undefined;
-	if (status !== "online") onClick = () => setShow(!show);
-
-	return (
-		<div ref={ref} className={styles.container} onClick={onClick}>
-			<div
-				className={styles.indicator}
-				style={{ background }}
-				title={status}
-			/>
-			{status}
-		</div>
-	);
-});
-
-function Outbox() {
 	const outbox = useAppSelector(selectOfflineOutbox);
-	const entries = outbox.length
-		? outbox.map((o, i) => <span key={i}>{JSON.stringify(o.effect)}</span>)
-		: "Empty";
 
-	return <div>{entries}</div>;
-}
-
-function SyncIndicator() {
-	const [show, setShow] = useState(false);
 	return (
-		<Dropdown show={show}>
-			<Dropdown.Toggle as={Selector} show={show} setShow={setShow} />
+		<Dropdown className="online-indicator">
+			<Dropdown.Toggle
+				className={clsx(status, outbox.length === 0 && "empty")}
+				title={status}
+				disabled={outbox.length === 0}
+			>
+				<div className="toggle-content">
+					<i className="indicator-sphere" />
+					{status}
+				</div>
+			</Dropdown.Toggle>
 			<Dropdown.Menu>
-				<Outbox />
+				{outbox.map((o, i) => (
+					<Dropdown.Item key={i}>
+						{JSON.stringify(o.effect)}
+					</Dropdown.Item>
+				))}
 			</Dropdown.Menu>
 		</Dropdown>
 	);
 }
-
-export default SyncIndicator;

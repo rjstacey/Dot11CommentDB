@@ -12,6 +12,16 @@ div#root {
 	align-items: center;
 }
 
+.breadcrumb {
+	margin-bottom: 0;
+	font-size: 1.25rem;
+
+	a {
+		text-decoration: none;
+		color: #008080;
+	}
+}
+
 .main {
 	flex: 1;
 	width: 100%;

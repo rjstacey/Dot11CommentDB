@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { NavLink, useParams } from "react-router";
-import { Navbar, Nav } from "react-bootstrap";
+import { Navbar, Nav, Breadcrumb } from "react-bootstrap";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectWorkingGroup, AccessLevel } from "@/store/groups";
@@ -93,8 +93,31 @@ const appName = "Membership";
 export function Menu() {
 	const { groupName } = useParams();
 
-	const title = (groupName ? groupName + " " : "") + appName;
+	const title = groupName ? `${groupName} | ${appName}` : appName;
 	if (document.title !== title) document.title = title;
+
+	const breadcrumbItems = [];
+	breadcrumbItems.push(
+		<Breadcrumb.Item key="home" href="/">
+			<i className="bi-house" />
+		</Breadcrumb.Item>,
+	);
+	breadcrumbItems.push(
+		<Breadcrumb.Item key="app" linkAs={NavLink} linkProps={{ to: "/" }}>
+			{appName}
+		</Breadcrumb.Item>,
+	);
+	if (groupName) {
+		breadcrumbItems.push(
+			<Breadcrumb.Item
+				key="group"
+				linkAs={NavLink}
+				linkProps={{ to: `/${groupName}` }}
+			>
+				{groupName}
+			</Breadcrumb.Item>,
+		);
+	}
 
 	const menu = useMenuLinks();
 	const menuItems = menu.map((item) => (
@@ -105,9 +128,9 @@ export function Menu() {
 
 	return (
 		<Navbar expand="xl" className="justify-content-between">
-			<Navbar.Brand as={NavLink} to="/">
-				{title}
-			</Navbar.Brand>
+			<Breadcrumb className="d-flex align-items-center mb-0 me-2">
+				{breadcrumbItems}
+			</Breadcrumb>
 			<Navbar.Toggle aria-controls="basic-navbar-nav" />
 			<Navbar.Collapse id="basic-navbar-nav">
 				<Nav variant="underline" className="me-auto">

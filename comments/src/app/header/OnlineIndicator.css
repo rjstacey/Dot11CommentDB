@@ -1,0 +1,38 @@
+.online-indicator {
+	.dropdown-toggle.btn {
+		all: unset;
+		display: flex;
+		align-items: center;
+	}
+	.dropdown-toggle {
+		.toggle-content {
+			display: flex;
+			align-items: center;
+			flex-direction: column;
+		}
+
+		--indicator-sphere-color: #ff4e4e;
+		&.online {
+			--indicator-sphere-color: #bbff4e;
+		}
+		&.unreachable {
+			--indicator-sphere-color: #ffb04e;
+		}
+
+		.indicator-sphere {
+			display: block;
+			content: "";
+			border-radius: 50%;
+			height: 1rem;
+			width: 1rem;
+			background: radial-gradient(
+				circle at 0.3125rem 0.3125rem,
+				var(--indicator-sphere-color),
+				#000000b0
+			);
+		}
+	}
+	.dropdown-toggle.empty::after {
+		visibility: hidden;
+	}
+}

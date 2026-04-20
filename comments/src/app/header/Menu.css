@@ -1,0 +1,11 @@
+.menu-main {
+	display: flex;
+	flex-wrap: nowrap;
+	overflow: hidden;
+	position: relative;
+	flex: 1;
+
+	& > .nav-link.overflow {
+		visibility: hidden;
+	}
+}

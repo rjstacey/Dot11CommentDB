@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { NavLink, useParams, useMatch } from "react-router";
-import { Navbar, Nav } from "react-bootstrap";
+import { useParams } from "react-router";
 import { useAppSelector } from "@/store/hooks";
 import { selectTopLevelGroupByName, AccessLevel } from "@/store/groups";
 import { selectCurrentBallotID } from "@/store/ballots";
@@ -12,7 +11,7 @@ type MenuItem = {
 	label: string;
 };
 
-function useMenuLinks() {
+export function useMenu() {
 	const { groupName } = useParams();
 	const group = useAppSelector((state) =>
 		groupName ? selectTopLevelGroupByName(state, groupName) : undefined,
@@ -81,99 +80,3 @@ function useMenuLinks() {
 		return menu;
 	}, [group, ballotId, commentsSearch]);
 }
-
-function AppNavLink({
-	to,
-	eventKey,
-	children,
-}: {
-	to: MenuPath;
-	eventKey?: string;
-	children?: React.ReactNode;
-}) {
-	const active = useMatch(to.pathname);
-	return (
-		<Nav.Link
-			as={NavLink}
-			eventKey={eventKey} // collapseOnSelect wont fire unless eventKey is provided
-			to={to}
-			active={Boolean(active)}
-		>
-			{children}
-		</Nav.Link>
-	);
-}
-
-function AppNavLinkActive({
-	to,
-	children,
-}: {
-	to: MenuPath;
-	children?: React.ReactNode;
-}) {
-	const active = useMatch(to.pathname);
-	if (!active) return null;
-	return (
-		<Nav.Link as={NavLink} to={to}>
-			{children}
-		</Nav.Link>
-	);
-}
-
-const style = `
-	.navbar-active-item {
-		display: block;
-	}
-	@media (min-width: 992px) {
-		.navbar-active-item {
-			display: none;
-		}
-	}
-`;
-
-const appName = "Comments";
-export function Menu() {
-	const { groupName } = useParams();
-
-	const title = (groupName ? groupName + " " : "") + appName;
-	if (document.title !== title) document.title = title;
-
-	const menu = useMenuLinks();
-	const menuItems = menu.map((item, i) => (
-		<AppNavLink key={i} to={item.to} eventKey={i.toString()}>
-			{item.label}
-		</AppNavLink>
-	));
-
-	const activeMenuItem = menu.map((item, i) => (
-		<AppNavLinkActive key={i} to={item.to}>
-			{item.label}
-		</AppNavLinkActive>
-	));
-
-	return (
-		<>
-			<style>{style}</style>
-			<Navbar
-				collapseOnSelect
-				expand="lg"
-				style={{
-					maxWidth: 275,
-				}}
-			>
-				<Navbar.Brand as={NavLink} to="/">
-					{title}
-				</Navbar.Brand>
-				<Navbar.Toggle aria-controls="basic-navbar-nav" />
-				<Navbar.Collapse id="basic-navbar-nav">
-					<Nav variant="underline" className="me-auto">
-						{menuItems}
-					</Nav>
-				</Navbar.Collapse>
-				<div className="navbar-active-item w-100">{activeMenuItem}</div>
-			</Navbar>
-		</>
-	);
-}
-
-export default Menu;
