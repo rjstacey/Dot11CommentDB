@@ -2,7 +2,7 @@ import { Outlet, useLocation, Link } from "react-router";
 
 import { Container, Nav, NavLink } from "react-bootstrap";
 
-import styles from "./reports.module.css";
+import "./navLayout.css";
 
 const charts = ["sessionAttendance", "teleconAttendance"] as const;
 type Action = (typeof charts)[number];
@@ -27,7 +27,7 @@ function ReportsNav() {
 
 export function ReportsNavLayout() {
 	return (
-		<Container className={styles.main}>
+		<Container className="nav-layout">
 			<ReportsNav />
 			<Outlet />
 		</Container>

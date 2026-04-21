@@ -10,10 +10,10 @@ import {
 	displaySessionType,
 } from "@/store/sessions";
 
-import styles from "./SessionSelector.module.css";
+import "./SessionSelector.css";
 
 const renderSession = ({ item: session }: { item: Session }) => (
-	<div className={styles.item}>
+	<div className="session-item">
 		<span>
 			{session.number +
 				" " +

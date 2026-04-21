@@ -1,0 +1,30 @@
+.nav-layout {
+	width: 80vw;
+	flex: 1;
+	padding: 20px;
+	display: flex;
+	overflow: hidden;
+
+	& .chart-select {
+		display: flex;
+		flex-direction: column;
+		padding: 10px;
+	}
+
+	& .chart-select button {
+		margin: 10px;
+	}
+
+	& .chart-draw {
+		flex: 1;
+
+		& svg {
+			opacity: 1;
+			transition: opacity 0.1s ease-out;
+		}
+
+		& svg.blink {
+			opacity: 0.5;
+		}
+	}
+}

@@ -1,5 +1,5 @@
 import { useLoaderData } from "react-router";
-import styles from "./Calendar.module.css";
+import "./Calendar.css";
 
 import { LoaderData } from "./route";
 
@@ -22,7 +22,7 @@ function Calendar() {
 		new URLSearchParams(params);
 	return (
 		<iframe
-			className={styles.main}
+			className="calendar-iframe"
 			title="Google calendar"
 			src={calendarLink}
 		/>

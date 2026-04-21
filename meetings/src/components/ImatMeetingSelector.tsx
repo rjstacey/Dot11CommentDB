@@ -5,10 +5,8 @@ import { Select, displayDateRange } from "@common";
 import { useAppSelector } from "@/store/hooks";
 import { selectImatMeetingsState, ImatMeeting } from "@/store/imatMeetings";
 
-import styles from "./SessionSelector.module.css";
-
 const renderItem = ({ item: session }: { item: ImatMeeting }) => (
-	<div className={styles.item}>
+	<div className="session-item">
 		<span>
 			{session.type + ", " + displayDateRange(session.start, session.end)}
 		</span>
