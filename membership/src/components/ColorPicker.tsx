@@ -1,4 +1,4 @@
-import css from "./ColorPicker.module.css";
+import "./ColorPicker.css";
 
 const colors = [
 	"#f44336",
@@ -37,11 +37,11 @@ function ColorCircle({
 	readOnly?: boolean;
 }) {
 	const boxShadow = `${color} 0 0 0 ${isSelected ? "3px" : "12px"} inset`;
-	let cn = css["outside"];
-	if (readOnly) cn += ` ${css["readonly"]}`;
+	let cn = "outside";
+	if (readOnly) cn += " readonly";
 	return (
 		<div className={cn} onClick={readOnly ? undefined : onClick}>
-			<div className={css["inside"]} style={{ boxShadow }} />
+			<div className="inside" style={{ boxShadow }} />
 		</div>
 	);
 }
@@ -58,23 +58,17 @@ export function ColorPicker({
 	readOnly?: boolean;
 }) {
 	return (
-		<>
-			<div
-				className={css["color-picker"]}
-				aria-label="Color picker"
-				id={id}
-			>
-				{colors.map((color) => (
-					<ColorCircle
-						key={color}
-						color={color}
-						isSelected={value === color}
-						onClick={() => onChange(color)}
-						readOnly={readOnly}
-					/>
-				))}
-			</div>
-		</>
+		<div className="color-picker" aria-label="Color picker" id={id}>
+			{colors.map((color) => (
+				<ColorCircle
+					key={color}
+					color={color}
+					isSelected={value === color}
+					onClick={() => onChange(color)}
+					readOnly={readOnly}
+				/>
+			))}
+		</div>
 	);
 }
 
