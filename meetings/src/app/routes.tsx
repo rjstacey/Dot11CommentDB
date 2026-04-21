@@ -12,10 +12,10 @@ import { loadMembers } from "@/store/members";
 import { loadOfficers } from "@/store/officers";
 import { loadTimeZones } from "@/store/timeZones";
 
-import AppLayout from "./layout";
-import ErrorPage from "./errorPage";
+import { AppLayout } from "./layout";
+import { AppErrorPage } from "./errorPage";
 import RootMain from "./root";
-import Fallback from "./fallback";
+import { AppFallback } from "./fallback";
 import accountsRoute from "./accounts/route";
 import sessionsRoute from "./sessions/route";
 import reportsRoute from "./reports/route";
@@ -60,8 +60,8 @@ export const routes: RouteObject[] = [
 	{
 		path: "/",
 		element: <AppLayout />,
-		errorElement: <ErrorPage />,
-		hydrateFallbackElement: <Fallback />,
+		errorElement: <AppErrorPage />,
+		hydrateFallbackElement: <AppFallback />,
 		loader: rootLoader,
 		children: [
 			{
@@ -76,7 +76,7 @@ export const routes: RouteObject[] = [
 			{
 				path: ":groupName",
 				loader: groupLoader,
-				errorElement: <ErrorPage />,
+				errorElement: <AppErrorPage />,
 				children: [
 					{
 						index: true,

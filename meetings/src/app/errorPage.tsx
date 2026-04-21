@@ -1,6 +1,6 @@
 import { useRouteError } from "react-router";
 
-function AppErrorPage() {
+export function AppErrorPage() {
 	const error = useRouteError();
 	let message: string;
 	if (typeof error === "string") {
@@ -25,5 +25,3 @@ function AppErrorPage() {
 		</div>
 	);
 }
-
-export default AppErrorPage;

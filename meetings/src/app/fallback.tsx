@@ -1,12 +1,15 @@
-import { Navbar, Nav, Button, Container, Placeholder } from "react-bootstrap";
-import { useParams } from "react-router";
+import { Nav, Container, Button, Placeholder } from "react-bootstrap";
+import { Menu } from "./header/Menu";
 
-const appName = "Membership";
-export default function AppFallback() {
-	const { groupName } = useParams();
-	const title = (groupName ? groupName + " " : "") + appName;
-	if (document.title !== title) document.title = title;
+function AccountDropdown() {
+	return (
+		<Button variant="outline-secondary" disabled>
+			Loading...
+		</Button>
+	);
+}
 
+export function AppFallback() {
 	const menuItems = Array.from({ length: 8 }).map((_, idx) => (
 		<Nav.Item key={idx}>
 			<Placeholder
@@ -22,19 +25,10 @@ export default function AppFallback() {
 			<Container
 				as="header"
 				fluid
-				className="d-flex flex-row justify-content-between align-items-center bg-body-tertiary "
+				className="d-flex flex-row justify-content-between align-items-center gap-2 bg-body-tertiary"
 			>
-				<Navbar expand="xl" className="justify-content-between">
-					<Navbar.Brand href="/">{title}</Navbar.Brand>
-					<Navbar.Toggle aria-controls="basic-navbar-nav" />
-					<Navbar.Collapse id="basic-navbar-nav">
-						<Nav variant="underline" className="me-auto">
-							{menuItems}
-						</Nav>
-					</Navbar.Collapse>
-				</Navbar>
-
-				<Placeholder as={Button} style={{ width: 180 }} />
+				<Menu>{menuItems}</Menu>
+				<AccountDropdown />
 			</Container>
 			<Placeholder as="main" className="main" animation="glow" />
 		</>

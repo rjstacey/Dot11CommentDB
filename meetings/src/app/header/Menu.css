@@ -1,0 +1,37 @@
+.menu-navbar {
+	min-width: 0;
+}
+
+.menu-main-nav {
+	display: flex;
+	flex-wrap: nowrap;
+	overflow: hidden;
+	position: relative;
+	flex: 1;
+	min-width: 0;
+
+	& > .nav-link {
+		visibility: visible;
+		&.overflow {
+			visibility: hidden;
+		}
+	}
+}
+
+.menu-overflow-dropdown {
+	visibility: hidden;
+	&:has(.nav-link.overflow) {
+		visibility: visible;
+	}
+}
+
+.menu-overflow-nav {
+	flex-wrap: wrap;
+	flex-direction: column !important;
+	& > .nav-link {
+		display: none;
+		&.overflow {
+			display: block;
+		}
+	}
+}

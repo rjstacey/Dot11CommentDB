@@ -1,7 +1,7 @@
 import { NavLink, useParams } from "react-router";
 import { Breadcrumb } from "react-bootstrap";
 
-const appName = "Membership";
+const appName = "Meetings";
 
 export function Breadcrumbs() {
 	const { groupName } = useParams();

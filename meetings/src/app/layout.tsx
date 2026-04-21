@@ -1,13 +1,12 @@
 import { Outlet } from "react-router";
 import { ErrorModal, ConfirmModal } from "@common";
 import Header from "./header";
-import styles from "./app.module.css";
 
-function AppLayout() {
+export function AppLayout() {
 	return (
 		<>
 			<Header />
-			<main className={styles.main}>
+			<main className="main">
 				<Outlet />
 			</main>
 			<ErrorModal />
@@ -15,5 +14,3 @@ function AppLayout() {
 		</>
 	);
 }
-
-export default AppLayout;
