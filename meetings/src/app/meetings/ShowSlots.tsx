@@ -1,26 +1,20 @@
-import React, {
-	useMemo,
-	type CSSProperties,
-	type MouseEventHandler,
-	type ReactNode,
-} from "react";
+import { useMemo } from "react";
 import { DateTime } from "luxon";
+import clsx from "clsx";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fromSlotId, selectCurrentSession } from "@/store/sessions";
 import { selectSelectedSlots, toggleSelectedSlots } from "@/store/meetings";
 
-import styles from "./meetings.module.css";
-
 const Slot = ({
 	children,
 	remove,
 }: {
-	remove?: MouseEventHandler;
-	children?: ReactNode;
+	remove?: React.MouseEventHandler;
+	children?: React.ReactNode;
 }) => (
-	<div className={styles.slot} role="listitem">
-		{children && <span className={styles["slot-item"]}>{children}</span>}
+	<div className="slot" role="listitem">
+		{children && <span className="slot-item">{children}</span>}
 		<i className="bi-x icon action" onClick={remove} />
 	</div>
 );
@@ -29,7 +23,7 @@ function ShowSelectedSlots({
 	style,
 	className,
 }: {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	className?: string;
 }) {
 	const dispatch = useAppDispatch();
@@ -55,12 +49,7 @@ function ShowSelectedSlots({
 	}, [slots, session, dispatch]);
 
 	return (
-		<div
-			style={style}
-			className={
-				styles["show-slots"] + (className ? " " + className : "")
-			}
-		>
+		<div style={style} className={clsx("show-slots", className)}>
 			<div className="label">
 				<span>Slots:</span>
 				<span>{elements.length}</span>

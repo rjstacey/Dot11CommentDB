@@ -27,8 +27,6 @@ import {
 } from "@/store/meetings";
 import { selectGroupEntities } from "@/store/groups";
 
-import styles from "./meetings.module.css";
-
 function SelectAllMeetings({ style }: { style?: CSSProperties }) {
 	const dispatch = useAppDispatch();
 
@@ -426,7 +424,7 @@ function MeetingsCalendar({ nDays }: { nDays: number }) {
 	const shownDates = dates.slice(day, day + nDays);
 
 	return (
-		<div className={styles.calendar}>
+		<div className="meetings-calendar">
 			<div
 				style={{
 					display: "grid",

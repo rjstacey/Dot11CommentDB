@@ -23,6 +23,8 @@ import ShowSlots from "./ShowSlots";
 
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
+import "./meetings.css";
+
 /*
  * Don't display date and time if it is the same as previous line
  */

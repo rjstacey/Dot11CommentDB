@@ -12,8 +12,6 @@ import {
 import { useEmailHostKey } from "@/hooks/emailHostKeys";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
-import styles from "./meetings.module.css";
-
 /** Helper functions to maintain a list of IDs */
 function useSelectIds() {
 	const [ids, setIds] = useState<string[]>([]);
@@ -40,7 +38,6 @@ function EmailHostKeysForm({ close }: { close: () => void }) {
 	const { groupIds, getGroupEmailBody, getGroupLabel, sendGroupEmails } =
 		useEmailHostKey();
 	const [busy, setBusy] = useState(false);
-	console.log(groupIds);
 
 	function onChangeGroupId(e: React.ChangeEvent<HTMLInputElement>) {
 		if (e.target.checked) addGroupId(e.target.value);
@@ -73,7 +70,7 @@ function EmailHostKeysForm({ close }: { close: () => void }) {
 		<Form
 			onSubmit={onSubmit}
 			style={{ minWidth: "900px", maxHeight: "80vh", overflow: "auto" }}
-			className={styles["meetings-email"] + " p-3"}
+			className="meetings-email p-3"
 		>
 			<Row className="mb-3">
 				<Col>

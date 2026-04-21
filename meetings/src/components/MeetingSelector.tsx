@@ -11,13 +11,13 @@ import {
 	SyncedMeeting,
 } from "@/store/meetings";
 
-import styles from "./MeetingSelector.module.css";
+import "./MeetingSelector.css";
 
 const renderItem = ({ item }: SelectItemRendererProps<SyncedMeeting>) => {
 	let summary = item.summary;
 	if (item.isCancelled) summary = "🚫 " + summary;
 	return (
-		<div className={styles.item}>
+		<div className="meeting-selector-item">
 			<span>{summary}</span>
 			<span
 				style={{

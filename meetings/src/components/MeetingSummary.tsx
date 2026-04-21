@@ -1,7 +1,7 @@
 import { useAppSelector } from "@/store/hooks";
 import { selectSyncedMeetingEntities, getField } from "@/store/meetings";
 
-import styles from "./MeetingSummary.module.css";
+import "./MeetingSummary.css";
 
 function MeetingSummary({ meetingId }: { meetingId?: number | null }) {
 	const meetingEntities = useAppSelector(selectSyncedMeetingEntities);
@@ -19,7 +19,7 @@ function MeetingSummary({ meetingId }: { meetingId?: number | null }) {
 			</>
 		);
 	}
-	return <div className={styles.main}>{content}</div>;
+	return <div className="meeting-summary">{content}</div>;
 }
 
 export default MeetingSummary;

@@ -1,0 +1,7 @@
+.meeting-summary {
+	display: flex;
+	flex-wrap: wrap;
+	& > span {
+		margin-right: 1em;
+	}
+}
