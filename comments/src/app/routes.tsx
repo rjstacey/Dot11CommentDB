@@ -2,7 +2,7 @@ import { RouteObject } from "react-router";
 
 import AppLayout from "./layout";
 import AppErrorPage from "./errorPage";
-import AppFallback from "./fallback";
+import { AppFallback } from "./fallback";
 import RootMain from "./root";
 import ballotsRoute from "./ballots/route";
 import epollsRoute from "./epolls/route";

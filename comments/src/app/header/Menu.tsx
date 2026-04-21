@@ -1,97 +1,92 @@
-import {
+import React, {
 	useEffect,
 	useRef,
-	useState,
 	useMemo,
-	cloneElement,
-	isValidElement,
-	useCallback,
 	Children,
+	isValidElement,
+	cloneElement,
+	useState,
 } from "react";
 import { Navbar, Nav, NavDropdown } from "react-bootstrap";
-import { Breadcrumbs } from "./Breadcrumbs";
 import clsx from "clsx";
+import { Breadcrumbs } from "./Breadcrumbs";
 
 import "./Menu.css";
 
-export function Menu({ children }: { children?: React.ReactNode }) {
+export function Menu({ children }: { children?: React.ReactElement[] }) {
 	const navRef = useRef<HTMLDivElement>(null);
-	const [visibilityMap, setVisibilityMap] = useState<Record<string, boolean>>(
-		{},
-	);
-
-	const handleIntersection: IntersectionObserverCallback = useCallback(
-		(entries) => {
-			const update: Record<string, boolean> = {};
-			entries.forEach((entry) => {
-				if (entry.target instanceof HTMLElement) {
-					const index = entry.target.dataset["index"];
-					if (index) update[index] = entry.isIntersecting;
-				}
-			});
-			setVisibilityMap((prev) => ({
-				...prev,
-				...update,
-			}));
-		},
-		[],
-	);
+	const [visMap, setVisMap] = useState<boolean[]>([]);
+	const [dropdownOpen, setDropdownOpen] = useState(false);
 
 	useEffect(() => {
+		function handleIntersection(entries: IntersectionObserverEntry[]) {
+			entries.forEach((entry) => {
+				const target = entry.target;
+				if (target instanceof HTMLElement) {
+					const index = Array.from(
+						target.parentNode!.children,
+					).indexOf(target);
+					setVisMap((state) => {
+						const newState = [...state];
+						newState[index] = entry.isIntersecting;
+						return newState;
+					});
+				}
+			});
+		}
+		const root = navRef.current!;
+		const children = Array.from(root.children);
+		setVisMap(children.map(() => true));
 		const observer = new IntersectionObserver(handleIntersection, {
-			root: navRef.current!,
+			root,
 			threshold: 1,
 		});
-		Array.from(navRef.current!.children).forEach((child) => {
+		children.forEach((child) => {
 			observer.observe(child);
 		});
 		return () => {
 			observer.disconnect();
 		};
-	}, [handleIntersection, children]);
+	}, [children]);
 
-	const [mainMenu, overflowMenu] = useMemo(() => {
-		const mainMenu: React.ReactElement[] = [];
-		const overflowMenu: React.ReactElement[] = [];
+	const items = useMemo(() => {
+		const items: React.ReactElement[] = [];
 		Children.forEach(children, (child, index) => {
-			if (
-				!isValidElement<{
-					className?: string;
-					"data-index": string;
-				}>(child)
-			) {
+			if (!isValidElement<{ className?: string }>(child)) {
 				return;
 			}
-			const overflow = !visibilityMap[index.toString()];
-			const className = clsx(
-				child.props.className,
-				overflow && "overflow",
-			);
-			const el = cloneElement(child, {
-				"data-index": index.toString(),
-				className,
+			const className = clsx(child.props.className, {
+				["overflow"]: !visMap[index],
 			});
-			mainMenu.push(el);
-			if (overflow) overflowMenu.push(el);
+			const el = cloneElement(child, { className });
+			items.push(el);
 		});
-		return [mainMenu, overflowMenu] as const;
-	}, [children, visibilityMap]);
+		return items;
+	}, [children, visMap]);
 
 	return (
-		<Navbar>
+		<Navbar className="menu-navbar">
 			<Breadcrumbs />
-			<Nav variant="underline" ref={navRef} className="menu-main">
-				{mainMenu}
+			<Nav variant="underline" ref={navRef} className="menu-main-nav">
+				{items}
 			</Nav>
-			{overflowMenu.length > 0 && (
-				<NavDropdown
-					title={<i className="bi-three-dots" />}
-					id="overflow-menu-dropdown"
-					align="end"
+			<NavDropdown
+				title={<i className="bi-three-dots" />}
+				id="menu-overflow-dropdown"
+				align="end"
+				className="menu-overflow-dropdown"
+				renderMenuOnMount
+				show={dropdownOpen}
+				onToggle={setDropdownOpen}
+			>
+				<Nav
+					variant="underline"
+					className="menu-overflow-nav"
+					onClick={() => setDropdownOpen(false)}
 				>
-					<Nav variant="underline">{overflowMenu}</Nav>
-				</NavDropdown>
-			)}
+					{items}
+				</Nav>
+			</NavDropdown>
 		</Navbar>
 	);
 }

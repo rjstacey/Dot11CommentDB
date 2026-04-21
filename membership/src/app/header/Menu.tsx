@@ -1,142 +1,92 @@
-import { useMemo } from "react";
-import { NavLink, useParams } from "react-router";
-import { Navbar, Nav, Breadcrumb } from "react-bootstrap";
+import React, {
+	useEffect,
+	useRef,
+	useMemo,
+	Children,
+	isValidElement,
+	cloneElement,
+	useState,
+} from "react";
+import { Navbar, Nav, NavDropdown } from "react-bootstrap";
+import clsx from "clsx";
+import { Breadcrumbs } from "./Breadcrumbs";
 
-import { useAppSelector } from "@/store/hooks";
-import { selectWorkingGroup, AccessLevel } from "@/store/groups";
-import {
-	selectImatAttendanceSummaryState,
-	selectImatAttendanceSummarySession,
-} from "@/store/imatAttendanceSummary";
+import "./Menu.css";
 
-type MenuItem = {
-	link: string;
-	label: string;
-};
+export function Menu({ children }: { children?: React.ReactElement[] }) {
+	const navRef = useRef<HTMLDivElement>(null);
+	const [visMap, setVisMap] = useState<boolean[]>([]);
+	const [dropdownOpen, setDropdownOpen] = useState(false);
 
-function useMenuLinks() {
-	//const groupName = useParams().groupName || "";
-	const group = useAppSelector(selectWorkingGroup);
-	const session = useAppSelector(selectImatAttendanceSummarySession);
-	const { useDaily } = useAppSelector(selectImatAttendanceSummaryState);
-	let sessionAttendanceLink = "sessionAttendance";
-	if (session?.number) {
-		sessionAttendanceLink += `/${session.number}`;
-		if (useDaily) sessionAttendanceLink += "?useDaily=true";
-	}
-
-	// Only display links for which the user has permissions
-	// Replace params with the current setting
-	return useMemo(() => {
-		const menu: MenuItem[] = [];
-
-		// No menu items if there is no group
-		if (!group) return menu;
-
-		// Groups link for "root" (/groups) or committee/working group ("/:groupName/groups")
-		const groupsAccess = group.permissions.groups || AccessLevel.none;
-		if (groupsAccess >= AccessLevel.ro) {
-			menu.push({
-				link: `/${group.name}/groups`,
-				label: "Groups",
+	useEffect(() => {
+		function handleIntersection(entries: IntersectionObserverEntry[]) {
+			entries.forEach((entry) => {
+				const target = entry.target;
+				if (target instanceof HTMLElement) {
+					const index = Array.from(
+						target.parentNode!.children,
+					).indexOf(target);
+					setVisMap((state) => {
+						const newState = [...state];
+						newState[index] = entry.isIntersecting;
+						return newState;
+					});
+				}
 			});
 		}
+		const root = navRef.current!;
+		const children = Array.from(root.children);
+		setVisMap(children.map(() => true));
+		const observer = new IntersectionObserver(handleIntersection, {
+			root,
+			threshold: 1,
+		});
+		children.forEach((child) => {
+			observer.observe(child);
+		});
+		return () => {
+			observer.disconnect();
+		};
+	}, [children]);
 
-		const membersAccess = group.permissions.members || AccessLevel.none;
-
-		if (membersAccess >= AccessLevel.ro) {
-			menu.push({
-				link: `/${group.name}/members`,
-				label: "Members",
+	const items = useMemo(() => {
+		const items: React.ReactElement[] = [];
+		Children.forEach(children, (child, index) => {
+			if (!isValidElement<{ className?: string }>(child)) {
+				return;
+			}
+			const className = clsx(child.props.className, {
+				["overflow"]: !visMap[index],
 			});
-		}
-
-		if (membersAccess >= AccessLevel.admin) {
-			menu.push({
-				link: `/${group.name}/sessionParticipation`,
-				label: "Session participation",
-			});
-			menu.push({
-				link: `/${group.name}/ballotParticipation`,
-				label: "Ballot participation",
-			});
-			menu.push({
-				link: `/${group.name}/${sessionAttendanceLink}`,
-				label: "Session attendance",
-			});
-			menu.push({
-				link: `/${group.name}/notification`,
-				label: "Notification",
-			});
-		}
-
-		if (membersAccess >= AccessLevel.ro) {
-			menu.push({
-				link: `/${group.name}/affiliationMap`,
-				label: "Affiliation map",
-			});
-			menu.push({
-				link: `/${group.name}/membershipOverTime`,
-				label: "Membership over time",
-			});
-			menu.push({
-				link: `/${group.name}/reports`,
-				label: "Reports",
-			});
-		}
-
-		return menu;
-	}, [group, session]);
-}
-
-const appName = "Membership";
-export function Menu() {
-	const { groupName } = useParams();
-
-	const title = groupName ? `${groupName} | ${appName}` : appName;
-	if (document.title !== title) document.title = title;
-
-	const breadcrumbItems = [];
-	breadcrumbItems.push(
-		<Breadcrumb.Item key="home" href="/">
-			<i className="bi-house" />
-		</Breadcrumb.Item>,
-	);
-	breadcrumbItems.push(
-		<Breadcrumb.Item key="app" linkAs={NavLink} linkProps={{ to: "/" }}>
-			{appName}
-		</Breadcrumb.Item>,
-	);
-	if (groupName) {
-		breadcrumbItems.push(
-			<Breadcrumb.Item
-				key="group"
-				linkAs={NavLink}
-				linkProps={{ to: `/${groupName}` }}
-			>
-				{groupName}
-			</Breadcrumb.Item>,
-		);
-	}
-
-	const menu = useMenuLinks();
-	const menuItems = menu.map((item) => (
-		<Nav.Link as={NavLink} key={item.link} to={item.link}>
-			{item.label}
-		</Nav.Link>
-	));
+			const el = cloneElement(child, { className });
+			items.push(el);
+		});
+		return items;
+	}, [children, visMap]);
 
 	return (
-		<Navbar expand="xl" className="justify-content-between">
-			<Breadcrumb className="d-flex align-items-center mb-0 me-2">
-				{breadcrumbItems}
-			</Breadcrumb>
-			<Navbar.Toggle aria-controls="basic-navbar-nav" />
-			<Navbar.Collapse id="basic-navbar-nav">
-				<Nav variant="underline" className="me-auto">
-					{menuItems}
+		<Navbar className="menu-navbar">
+			<Breadcrumbs />
+			<Nav variant="underline" ref={navRef} className="menu-main-nav">
+				{items}
+			</Nav>
+			<NavDropdown
+				title={<i className="bi-three-dots" />}
+				id="menu-overflow-dropdown"
+				align="end"
+				className="menu-overflow-dropdown"
+				renderMenuOnMount
+				show={dropdownOpen}
+				onToggle={setDropdownOpen}
+			>
+				<Nav
+					variant="underline"
+					className="menu-overflow-nav"
+					onClick={() => setDropdownOpen(false)}
+				>
+					{items}
 				</Nav>
-			</Navbar.Collapse>
+			</NavDropdown>
 		</Navbar>
 	);
 }

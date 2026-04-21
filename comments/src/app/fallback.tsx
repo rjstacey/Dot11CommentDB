@@ -1,15 +1,16 @@
-import { Navbar, Nav, Button, Container, Placeholder } from "react-bootstrap";
-import { useParams } from "react-router";
-import { Breadcrumbs } from "./header/Breadcrumbs";
+import { Nav, Container, Button, Placeholder } from "react-bootstrap";
 import { Menu } from "./header/Menu";
 
-const appName = "Comments";
-export default function AppFallback() {
-	const { groupName } = useParams();
-	const title = groupName ? `${groupName} | ${appName}` : appName;
-	if (document.title !== title) document.title = title;
+function AccountDropdown() {
+	return (
+		<Button variant="outline-secondary" disabled>
+			Loading...
+		</Button>
+	);
+}
 
-	const menuItems = Array.from({ length: 4 }).map((_, idx) => (
+export function AppFallback() {
+	const menuItems = Array.from({ length: 2 }).map((_, idx) => (
 		<Nav.Item key={idx}>
 			<Placeholder
 				as={Nav.Link}
@@ -24,14 +25,10 @@ export default function AppFallback() {
 			<Container
 				as="header"
 				fluid
-				className="d-flex flex-row justify-content-between align-items-center bg-body-tertiary "
+				className="d-flex flex-row justify-content-between align-items-center gap-2 bg-body-tertiary"
 			>
-				<Navbar>
-					<Breadcrumbs />
-					<Menu>{menuItems}</Menu>
-				</Navbar>
-
-				<Placeholder as={Button} style={{ width: 180 }} />
+				<Menu>{menuItems}</Menu>
+				<AccountDropdown />
 			</Container>
 			<Placeholder as="main" className="main" animation="glow" />
 		</>
