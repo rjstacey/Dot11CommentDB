@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Form, Row, Col } from "react-bootstrap";
-import { TextArea } from "@common";
 
 import type { ResultExtended, ResultChange } from "@/store/results";
 import { SelectVote } from "./SelectVote";
@@ -94,8 +93,8 @@ export function ResultEditForm({
 					Notes:
 				</Form.Label>
 				<Col xs={12}>
-					<TextArea
-						style={{ width: "100%" }}
+					<Form.Control
+						as="textarea"
 						id="results-notes"
 						rows={2}
 						value={edited.notes || ""}
