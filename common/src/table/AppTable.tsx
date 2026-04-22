@@ -1,13 +1,4 @@
-import {
-	useRef,
-	useCallback,
-	useEffect,
-	useState,
-	useMemo,
-	type ReactNode,
-	type HTMLAttributes,
-	type UIEvent,
-} from "react";
+import { useRef, useCallback, useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { Action, EntityId } from "@reduxjs/toolkit";
 import {
@@ -30,12 +21,12 @@ import type {
 	AppTableDataSelectors,
 } from "../store/appTableData";
 
-import styles from "./AppTable.module.css";
+import "./AppTable.css";
 
 export type { GetEntityField, AppTableDataSelectors, AppTableDataActions };
 
 export type HeaderCellRendererProps = {
-	label?: ReactNode; // Column label
+	label?: React.ReactNode; // Column label
 	dataKey: string; // Identifies the data element in the row object
 	column: ColumnProperties & ChangeableColumnProperties;
 	anchorEl: HTMLElement | null;
@@ -53,14 +44,14 @@ export type CellRendererProps<T = any> = {
 
 export type ColumnProperties = {
 	key: string;
-	label?: ReactNode;
+	label?: React.ReactNode;
 	width?: number;
 	flexGrow?: number;
 	flexShrink?: number;
 	dropdownWidth?: number;
 	dataRenderer?: (value: any) => any;
-	headerRenderer?: (p: HeaderCellRendererProps) => ReactNode;
-	cellRenderer?: (p: CellRendererProps) => ReactNode;
+	headerRenderer?: (p: HeaderCellRendererProps) => React.ReactNode;
+	cellRenderer?: (p: CellRendererProps) => React.ReactNode;
 };
 
 export type { ChangeableColumnProperties, TablesConfig, TableConfig };
@@ -90,19 +81,22 @@ export type AppTableProps = {
 
 const scrollbarSize = getScrollbarSize();
 
-const Table = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
+const Table = ({
+	className,
+	...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
 	<div
-		className={styles["table"] + (className ? " " + className : "")}
+		className={"app-table" + (className ? " " + className : "")}
 		{...props}
 	/>
 );
 
-const Placeholder = ({
+const TableBodyPlaceholder = ({
 	children,
 	...props
-}: HTMLAttributes<HTMLDivElement>) => (
+}: React.HTMLAttributes<HTMLDivElement>) => (
 	<div {...props}>
-		<div className={styles["placeholder"]}>{children}</div>
+		<div className="table-body-placeholder">{children}</div>
 	</div>
 );
 
@@ -334,7 +328,7 @@ export function AppTable({
 	);
 
 	// Sync the table header scroll position with that of the table body
-	const onScroll = useCallback((e: UIEvent<HTMLDivElement>) => {
+	const onScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
 		if (headerRef.current)
 			headerRef.current.scrollLeft = e.currentTarget.scrollLeft;
 	}, []);
@@ -407,9 +401,9 @@ export function AppTable({
 					onScroll={onScroll}
 				/>
 			) : (
-				<Placeholder className="table-body">
+				<TableBodyPlaceholder className="table-body">
 					{loading ? "Loading..." : "Empty"}
-				</Placeholder>
+				</TableBodyPlaceholder>
 			)}
 			<TableHeader
 				headerRef={headerRef}

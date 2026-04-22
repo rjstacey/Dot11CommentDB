@@ -1,0 +1,12 @@
+.control-column {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+
+	& .selector {
+		display: flex;
+		flex-direction: row;
+		border-radius: 3px;
+		align-items: center;
+	}
+}

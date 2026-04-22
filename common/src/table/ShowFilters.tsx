@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties, type MouseEventHandler } from "react";
+import { useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
@@ -12,17 +12,17 @@ import {
 	FilterComp,
 } from "../store/appTableData";
 
-import styles from "./ShowFilters.module.css";
+import "./ShowFilters.css";
 
 const ActiveFilter = ({
 	remove,
 	children,
 }: {
-	remove: MouseEventHandler;
+	remove: React.MouseEventHandler;
 	children?: React.ReactNode;
 }) => (
-	<div className={styles["filter-container"]} role="listitem">
-		{children && <span className={styles["filter-item"]}>{children}</span>}
+	<div className="filter-container" role="listitem">
+		{children && <span className="filter-item">{children}</span>}
 		<i className="icon action bi-x" onClick={remove} />
 	</div>
 );
@@ -70,7 +70,7 @@ function renderActiveFilters({
 		const { comps, options } = filter;
 		if (comps.length > 0) {
 			elements.push(
-				<span key={dataKey} className={styles["filter-label"]}>
+				<span key={dataKey} className="filter-label">
 					{label + ":"}
 				</span>,
 			);
@@ -94,7 +94,7 @@ function renderActiveFilters({
 	}
 	if (elements.length > 2) {
 		elements.push(
-			<span key="clear_all_label" className={styles["filter-label"]}>
+			<span key="clear_all_label" className="filter-label">
 				Clear All:
 			</span>,
 		);
@@ -113,7 +113,7 @@ function ShowFilters({
 	actions,
 }: {
 	className?: string;
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	fields: Fields;
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
@@ -142,18 +142,20 @@ function ShowFilters({
 
 	return (
 		<div
-			className={styles["container"] + (className ? " " + className : "")}
+			className={"show-filters" + (className ? " " + className : "")}
 			style={style}
 		>
-			<div className={styles["label-block"]}>
+			<div className="label-block">
 				<span className="label">Filters:</span>
 				<span>{`Showing ${shownRows} of ${totalRows}`}</span>
 			</div>
-			<div className={styles["content-block"]}>
+			<div className="content-block">
 				{activeFilterElements.length ? (
 					activeFilterElements
 				) : (
-					<span className={styles["placeholder"]}>No filters</span>
+					<span className="content-block-placeholder">
+						No filters
+					</span>
 				)}
 			</div>
 		</div>

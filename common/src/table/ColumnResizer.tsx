@@ -1,9 +1,9 @@
-import { useRef, useState, type CSSProperties } from "react";
+import { useRef, useState } from "react";
 import { DraggableCore, DraggableEventHandler } from "react-draggable";
-import styles from "./ColumnResizer.module.css";
+import "./ColumnResizer.css";
 
 export type ColumnResizerProps = {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	className?: string;
 	onDrag: DraggableEventHandler;
 };
@@ -32,8 +32,7 @@ export function ColumnResizer({
 				ref={nodeRef}
 				style={style}
 				className={
-					styles["column-resizer-handle"] +
-					(className ? " " + className : "")
+					"column-resizer-handle" + (className ? " " + className : "")
 				}
 			/>
 		</DraggableCore>

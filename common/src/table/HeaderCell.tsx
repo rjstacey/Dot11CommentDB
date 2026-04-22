@@ -32,7 +32,7 @@ import {
 
 import type { HeaderCellRendererProps } from "./AppTable";
 
-import styles from "./HeaderCell.module.css";
+import "./HeaderCell.css";
 
 const Item = ({
 	isSelected,
@@ -459,7 +459,7 @@ function FilterComponent({
 
 const Header = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
 	<div
-		className={styles["header"] + (className ? " " + className : "")}
+		className={"header-cell" + (className ? " " + className : "")}
 		{...props}
 	/>
 );
@@ -501,10 +501,7 @@ function AppTableHeaderCell({
 		);
 
 	const dropdownToggle = (
-		<Dropdown.Toggle
-			variant="secondary-outline"
-			className={styles["header"]}
-		>
+		<Dropdown.Toggle variant="secondary-outline" className="header-cell">
 			<span className="label">{label || dataKey}</span>
 			<div className="filter-sort-icons">
 				{isFiltered && (
@@ -523,7 +520,7 @@ function AppTableHeaderCell({
 
 	const dropdownMenu = (
 		<Dropdown.Menu
-			className={styles["header-dropdown"]}
+			className="header-cell-dropdown-menu"
 			style={{ width: column.dropdownWidth || "unset" }}
 		>
 			<Form className="p-3">

@@ -1,4 +1,3 @@
-import { type ReactNode } from "react";
 import { Dropdown, Form, Row, Col } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -8,7 +7,7 @@ import type {
 } from "../store/appTableData";
 import type { ColumnProperties, ChangeableColumnProperties } from "./AppTable";
 
-import styles from "./TableColumnSelector.module.css";
+import "./TableColumnSelector.css";
 
 export type ColumnSelectorProps = {
 	columns: Array<ColumnProperties>;
@@ -39,7 +38,7 @@ function ColumnSelectorDropdown({
 
 	/* Build an array of 'selectable' column config that includes a column label */
 	const selectableColumns: Array<
-		ChangeableColumnProperties & { key: string; label: ReactNode }
+		ChangeableColumnProperties & { key: string; label: React.ReactNode }
 	> = [];
 	for (const [key, config] of Object.entries<ChangeableColumnProperties>(
 		tableConfig.columns,
@@ -83,7 +82,7 @@ function ColumnSelectorDropdown({
 						/>
 					</Col>
 				</Form.Group>
-				<div className={styles.list}>
+				<div className="column-list">
 					{selectableColumns.map((col) => (
 						<Dropdown.Item
 							as={Form.Check}

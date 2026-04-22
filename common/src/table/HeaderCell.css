@@ -1,4 +1,4 @@
-.header {
+.header-cell {
 	display: flex !important;
 	align-items: center;
 	user-select: none;
@@ -8,7 +8,7 @@
 	white-space: normal !important;
 	padding: 0 !important;
 
-	& :global(.label) {
+	& .label {
 		max-width: 100%;
 		font-weight: bold;
 		overflow: hidden;
@@ -16,19 +16,19 @@
 		flex-grow: 1;
 	}
 
-	& :global(.filter-sort-icons) {
+	& .filter-sort-icons {
 		display: flex;
 		flex-wrap: nowrap;
 		align-items: center;
 	}
 
-	&:global(.dropdown-toggle):hover {
+	&.dropdown-toggle:hover {
 		color: tomato;
 	}
 }
 
-.header-dropdown {
-	& :global(.filter-list) {
+.header-cell-dropdown-menu {
+	& .filter-list {
 		min-height: 35px;
 		max-height: 250px;
 		border: 1px solid #ccc;
@@ -37,31 +37,31 @@
 		box-sizing: unset;
 	}
 
-	& :global(.item) {
+	& .item {
 		display: flex;
 		align-items: center;
-	}
 
-	& :global(.item.disabled) {
-		text-decoration: line-through;
-	}
+		&.disabled {
+			text-decoration: line-through;
+		}
 
-	& :global(.item.selected) {
-		background: #0074d9;
-	}
+		&.selected {
+			background: #0074d9;
+		}
 
-	& :global(.item.selected):hover {
-		background: #ccc;
-	}
+		&.selected:hover {
+			background: #ccc;
+		}
 
-	& :global(.item) > div {
-		margin: 5px 5px;
-		overflow: hidden;
-		white-space: nowrap;
-		text-overflow: ellipsis;
-	}
+		& > div {
+			margin: 5px 5px;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+		}
 
-	& :global(.item.selected) > div {
-		color: #fff;
+		&.selected > div {
+			color: #fff;
+		}
 	}
 }

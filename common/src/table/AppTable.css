@@ -1,4 +1,4 @@
-.table {
+.app-table {
 	position: relative;
 	display: flex;
 	flex-direction: column-reverse;
@@ -10,56 +10,56 @@
 		box-sizing: border-box;
 	}
 
-	& :global .table-body {
+	& .table-body {
 		width: 100%;
 		flex: 1;
 	}
 
-	& :global .table-header {
+	& .table-header {
 		position: relative;
 		width: 100%;
 
-		& :global .header-container {
+		& .header-container {
 			overflow: hidden;
 			max-width: 100%;
 
-			& :global .header-row {
+			& .header-row {
 				height: 100%;
 				background-color: #efefef;
 			}
 		}
 	}
 
-	& :global .header-row,
-	& :global .data-row {
+	& .header-row,
+	& .data-row {
 		display: flex;
 		flex-direction: row;
 		flex-wrap: nowrap;
 		align-items: stretch;
 	}
 
-	& :global .header-cell-content {
+	& .header-cell-content {
 		height: 100%;
 		width: calc(100% - 12px);
 	}
 
-	& :global .data-row {
+	& .data-row {
 		overflow: hidden;
 	}
 
-	& :global .data-row-even {
+	& .data-row-even {
 		background-color: #fafafa;
 	}
 
-	& :global .data-row-odd {
+	& .data-row-odd {
 		background-color: #f6f6f6;
 	}
 
-	& :global .data-row-selected {
+	& .data-row-selected {
 		background-color: #b9b9f7;
 	}
 
-	& :global .data-row-inner {
+	& .data-row-inner {
 		display: flex;
 		position: relative;
 		box-sizing: unset;
@@ -67,11 +67,11 @@
 		height: fit-content;
 	}
 
-	& :global .data-cell {
+	& .data-cell {
 		padding-right: 10px;
 	}
 
-	& .placeholder {
+	& .table-body-placeholder {
 		display: flex;
 		align-items: center;
 		justify-content: center;

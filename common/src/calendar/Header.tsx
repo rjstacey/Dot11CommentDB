@@ -1,10 +1,9 @@
-import type { MouseEvent } from "react";
 import { monthLabels } from "./utils";
 import styles from "./calendar.module.css";
 
 type HeaderProps = {
-	onClickPrev: (e: MouseEvent<HTMLButtonElement>) => void;
-	onClickNext: (e: MouseEvent<HTMLButtonElement>) => void;
+	onClickPrev: (e: React.MouseEvent<HTMLButtonElement>) => void;
+	onClickNext: (e: React.MouseEvent<HTMLButtonElement>) => void;
 	viewDate: { year: number; month: number };
 	options: { dual: boolean };
 };

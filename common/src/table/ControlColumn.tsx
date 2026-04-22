@@ -11,7 +11,7 @@ import type {
 } from "./AppTable";
 
 import "../icons/icons.css";
-import styles from "./ControlColumn.module.css";
+import "./ControlColumn.css";
 
 type ControlHeaderCellProps = HeaderCellRendererProps & {
 	customSelectorElement?: JSX.Element; //React.ReactNode;
@@ -57,8 +57,8 @@ function ControlHeaderCell({
 	if (!anchorEl) return null;
 
 	return (
-		<div className={styles.container}>
-			<div className={styles.selector}>
+		<div className="control-column">
+			<div className="selector">
 				<FormCheck
 					id="control-column-selector"
 					title={
@@ -133,7 +133,7 @@ function ControlCell({
 	const isExpanded = expanded.includes(rowId);
 
 	return (
-		<div className={styles.container} onClick={(e) => e.stopPropagation()}>
+		<div className="control-column" onClick={(e) => e.stopPropagation()}>
 			<FormCheck
 				id={"select-row-" + rowId}
 				title={"Select row " + rowId}
