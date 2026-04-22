@@ -104,6 +104,7 @@ export function useResultsEdit(readOnly: boolean) {
 	const dispatch = useAppDispatch();
 	const [state, dispatchStateAction] = useResultsEditReducer();
 	const { selected } = useAppSelector(selectResultsState);
+	console.log(readOnly, state);
 
 	useEffect(() => {
 		if (state.action === "update") {
@@ -134,11 +135,11 @@ export function useResultsEdit(readOnly: boolean) {
 		(changes: ResultChange) => {
 			if (readOnly || state.action === null) {
 				console.warn("onChange: bad state");
-				return state;
+				return;
 			}
 			dispatchStateAction(CHANGE(changes));
 		},
-		[readOnly],
+		[readOnly, state.action],
 	);
 
 	const submit = useCallback(async () => {
