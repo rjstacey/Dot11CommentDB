@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { Row, Col, Form } from "react-bootstrap";
-import { isMultiple, TextArea, Select } from "@common";
+import { isMultiple, Select } from "@common";
 
 import TimeZoneSelector from "@/components/TimeZoneSelector";
 import ImatMeetingSelector from "@/components/ImatMeetingSelector";
@@ -132,7 +132,8 @@ export function SessionBasicsEdit({
 					</Form.Label>
 				</Col>
 				<Col>
-					<TextArea
+					<Form.Control
+						as="textarea"
 						id="session-name"
 						name="Name"
 						value={isMultiple(session.name) ? "" : session.name}
@@ -140,6 +141,7 @@ export function SessionBasicsEdit({
 							isMultiple(session.name) ? MULTIPLE_STR : BLANK_STR
 						}
 						onChange={(e) => handleChange({ name: e.target.value })}
+						rows={1}
 						autoComplete="none"
 						readOnly={readOnly}
 						tabIndex={readOnly ? -1 : undefined}
