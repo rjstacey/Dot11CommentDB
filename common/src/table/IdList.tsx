@@ -4,12 +4,11 @@ import {
 	useLayoutEffect,
 	useState,
 	useCallback,
-	type CSSProperties,
 } from "react";
+import ExpadingTextArea from "react-expanding-textarea";
 import { useDispatch, useSelector } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
 
-import { TextArea } from "../form";
 import {
 	AppTableDataSelectors,
 	AppTableDataActions,
@@ -17,7 +16,7 @@ import {
 	CompOp,
 } from "../store/appTableData";
 
-import styles from "./IdList.module.css";
+import "./IdList.css";
 
 const idRegex = /[^\s,]+/g;
 
@@ -30,7 +29,7 @@ function IdList({
 	onChange,
 	focusOnMount,
 }: {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	className?: string;
 	ids: EntityId[];
 	isValid: (id: EntityId) => boolean;
@@ -119,7 +118,7 @@ function IdList({
 
 	return (
 		<div
-			className={styles.main + (className ? " " + className : "")}
+			className={"id-list" + (className ? " " + className : "")}
 			style={style}
 		>
 			<div
@@ -127,7 +126,7 @@ function IdList({
 				className="mirror"
 				dangerouslySetInnerHTML={{ __html: markInvalid(value) }}
 			/>
-			<TextArea
+			<ExpadingTextArea
 				id="id-list"
 				ref={textAreaRef}
 				className="input"
@@ -152,7 +151,7 @@ export function IdFilter({
 	...props
 }: {
 	dataKey?: string;
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	className?: string;
 	focusOnMount?: boolean;
 	selectors: AppTableDataSelectors;
@@ -211,7 +210,7 @@ export function IdSelector({
 	dataKey?: string;
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	className?: string;
 	focusOnMount?: boolean;
 }) {

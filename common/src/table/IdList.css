@@ -1,4 +1,4 @@
-.main {
+.id-list {
 	position: relative;
 	display: flex;
 	flex-direction: row;
@@ -18,7 +18,7 @@
 		box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 	}
 
-	& > :global(.mirror) {
+	& > .mirror {
 		position: absolute;
 		overflow: hidden;
 		z-index: +1;
@@ -33,7 +33,7 @@
 		}
 	}
 
-	& > :global(.input) {
+	& > .input {
 		margin: 5px;
 		background: transparent;
 		border: none;
@@ -49,7 +49,7 @@
 		}
 	}
 
-	& > :global(.clear) {
+	& > .clear {
 		font-size: larger;
 
 		&:hover {

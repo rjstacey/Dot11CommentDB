@@ -1,0 +1,49 @@
+.input-dates {
+	&.form-control {
+		display: flex;
+		align-items: center;
+	}
+
+	& .dropdown-toggle:after {
+		all: unset;
+	}
+
+	&.disabled .clear,
+	&.disabled .calendar {
+		visibility: hidden;
+	}
+
+	&:not(.disabled):hover .clear.active,
+	&:focus-within .clear.active {
+		visibility: visible;
+	}
+
+	&:focus-within {
+		outline: 0;
+		box-shadow: 0 0 0 3px rgba(0, 116, 217, 0.2);
+	}
+
+	&:focus-within,
+	&:not(.disabled):hover {
+		border-color: #0074d9;
+	}
+
+	& .textarea {
+		font-family: inherit;
+		border: none;
+		resize: none;
+	}
+
+	& .textarea.invalid {
+		color: red;
+	}
+
+	& .textarea:focus-visible {
+		outline: none;
+		box-shadow: none;
+	}
+
+	& .textarea::placeholder {
+		font-style: italic;
+	}
+}

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import Calendar from "../calendar";
-import { TextArea } from "./TextArea";
 import { Dropdown } from "react-bootstrap";
+import ExpandingTextArea from "react-expanding-textarea";
+import Calendar from "../calendar";
 
-import styles from "./form.module.css";
+import "./InputDates.css";
 
 const months = [
 	"Jan",
@@ -48,7 +48,7 @@ function toDatesStr(dates: Array<string>) {
 	return list.join(", ");
 }
 
-function InputDates({
+export function InputDates({
 	id,
 	className,
 	style,
@@ -142,7 +142,7 @@ function InputDates({
 		setDates(dates);
 	}
 
-	let cn = styles["input-dates"] + " form-control";
+	let cn = "input-dates form-control";
 	if (disabled) cn += " disabled";
 	if (readOnly) cn += " read-only";
 	if (isInvalid) cn += " is-invalid";
@@ -150,7 +150,7 @@ function InputDates({
 
 	return (
 		<div className={cn} style={style}>
-			<TextArea
+			<ExpandingTextArea
 				id={id}
 				className={"textarea" + (dates.length === 0 ? " invalid" : "")}
 				value={datesStr}
@@ -185,5 +185,3 @@ function InputDates({
 		</div>
 	);
 }
-
-export default InputDates;

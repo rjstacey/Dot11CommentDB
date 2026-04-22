@@ -1,15 +1,10 @@
-import {
-	useState,
-	useEffect,
-	type ComponentProps,
-	type ChangeEvent,
-} from "react";
-import { FormControl as Input } from "react-bootstrap";
+import { useState, useEffect } from "react";
+import { FormControl } from "react-bootstrap";
 
 const toTimeStr = (hour: number, min: number) =>
 	("0" + hour).slice(-2) + ":" + ("0" + min).slice(-2);
 
-function InputTime({
+export function InputTime({
 	style,
 	value,
 	onChange,
@@ -18,7 +13,7 @@ function InputTime({
 }: {
 	value: string;
 	onChange: (value: string) => void;
-} & Omit<ComponentProps<typeof Input>, "value" | "onChange">) {
+} & Omit<React.ComponentProps<typeof FormControl>, "value" | "onChange">) {
 	const [rawValue, setRawValue] = useState(value);
 	const [valid, setValid] = useState(true);
 	const [hasFocus, setHasFocus] = useState(false);
@@ -34,7 +29,7 @@ function InputTime({
 
 	placeholder = placeholder || "HH:MM";
 
-	const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const rawValue = e.target.value;
 		let isValid = false;
 		let value = "";
@@ -59,7 +54,7 @@ function InputTime({
 
 	const newStyle = { ...style, color: valid ? "inherit" : "red" };
 	return (
-		<Input
+		<FormControl
 			style={newStyle}
 			type="search"
 			value={rawValue}
@@ -83,5 +78,3 @@ function isValidTime(value: string) {
 	}
 	return false;
 }
-
-export default InputTime;
