@@ -1,5 +1,4 @@
 import { monthLabels } from "./utils";
-import styles from "./calendar.module.css";
 
 type HeaderProps = {
 	onClickPrev: (e: React.MouseEvent<HTMLButtonElement>) => void;
@@ -18,7 +17,7 @@ function Header({ onClickPrev, onClickNext, viewDate, options }: HeaderProps) {
 			years.push(date.getFullYear());
 	}
 	return (
-		<div className={styles["header"]}>
+		<div className="header">
 			<button
 				type="button"
 				className="arrow-left"

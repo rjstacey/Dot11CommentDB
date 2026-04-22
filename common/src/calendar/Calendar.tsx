@@ -3,7 +3,7 @@ import { useState, type CSSProperties } from "react";
 import Header from "./Header";
 import Month from "./Month";
 
-import styles from "./calendar.module.css";
+import "./calendar.css";
 
 export type ViewDate = {
 	year: number;
@@ -85,7 +85,7 @@ function Calendar({
 	return (
 		<div
 			style={style}
-			className={styles["calendar"] + (className ? " " + className : "")}
+			className={"app-calendar" + (className ? " " + className : "")}
 		>
 			<Header
 				onClickPrev={onPrevClick}

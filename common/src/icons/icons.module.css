@@ -1,9 +1,0 @@
-:global .action-icon:hover:not([disabled]) {
-	cursor: pointer;
-	color: tomato;
-}
-
-.svg-icon {
-	display: inline-block;
-	height: 1em;
-}

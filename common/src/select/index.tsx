@@ -17,7 +17,7 @@ import Input from "./Input";
 
 import debounce from "lodash.debounce";
 
-import styles from "./select.module.css";
+import "./select.css";
 
 const Content = (props: ComponentProps<"button">) => (
 	<button className="content" type="button" {...props} />
@@ -32,7 +32,7 @@ const Separator = (props: ComponentProps<"div">) => (
 	<div className="separator" {...props} />
 );
 const Placeholder = (props: ComponentProps<"div">) => (
-	<div className={styles.placeholder} {...props} />
+	<div className="placeholder" {...props} />
 );
 const NoData = ({ label }: { label: string }) => (
 	<div className="no-data">{label}</div>
@@ -593,7 +593,7 @@ class SelectInternal<T extends ItemType> extends Component<
 			width: props.dropdownWidth || selectBounds.width,
 		};
 
-		let className = styles["dropdown"];
+		let className = "app-select-dropdown";
 		if (props.dropdownClassName) className += ` ${props.dropdownClassName}`;
 
 		const dropdownEl = (
@@ -647,7 +647,7 @@ class SelectInternal<T extends ItemType> extends Component<
 	render() {
 		const { props, state, methods } = this;
 
-		let cn = styles["select"];
+		let cn = "app-select";
 		if (props.handle) cn += " handle";
 		if (props.disabled) cn += " disabled";
 		if (props.readOnly) cn += " read-only";

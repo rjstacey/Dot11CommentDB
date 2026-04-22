@@ -1,10 +1,9 @@
-import type { CSSProperties } from "react";
 import type {
 	ItemType,
 	SelectInternalProps,
 	SelectState,
 	SelectMethods,
-} from "./index";
+} from ".";
 
 function Item<T extends ItemType>({
 	style,
@@ -15,7 +14,7 @@ function Item<T extends ItemType>({
 	state,
 	methods,
 }: {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	className?: string;
 	index: number;
 	item: T;

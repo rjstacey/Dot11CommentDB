@@ -1,6 +1,6 @@
 import type { ComponentProps, HTMLProps, SVGProps } from "react";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import styles from "./icons.module.css";
+import "./icons.css";
 
 export const IconCollapse = ({
 	isCollapsed,
@@ -18,7 +18,7 @@ export const IconCollapse = ({
 
 const SvgCaretRight = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
 	<svg
-		className={styles["svg-icon"] + (className ? " " + className : "")}
+		className={"svg-icon" + (className ? " " + className : "")}
 		role="img"
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 40 40"
@@ -45,7 +45,7 @@ const SvgDoubleCaretRight = ({
 	...props
 }: SVGProps<SVGSVGElement>) => (
 	<svg
-		className={styles["svg-icon"] + (className ? " " + className : "")}
+		className={"svg-icon" + (className ? " " + className : "")}
 		role="img"
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 40 40"
@@ -69,7 +69,7 @@ const SvgDoubleCaretDown = ({ style, ...props }: SVGProps<SVGSVGElement>) => (
 
 const SvgObjectGroup = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
 	<svg
-		className={styles["svg-icon"] + (className ? " " + className : "")}
+		className={"svg-icon" + (className ? " " + className : "")}
 		role="img"
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 512 512"
@@ -89,7 +89,7 @@ const SvgVoteYes = ({
 }: SVGProps<SVGSVGElement>) => (
 	<svg
 		style={{ ...style, transform: "translate(0, 3px)" }}
-		className={styles["svg-icon"] + (className ? " " + className : "")}
+		className={"svg-icon" + (className ? " " + className : "")}
 		role="img"
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 600 600"
@@ -105,7 +105,7 @@ const SvgVoteYes = ({
 const SvgVoteNo = ({ style, className, ...props }: SVGProps<SVGSVGElement>) => (
 	<svg
 		style={{ ...style, transform: "translate(0, 3px)" }}
-		className={styles["svg-icon"] + (className ? " " + className : "")}
+		className={"svg-icon" + (className ? " " + className : "")}
 		role="img"
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 525 600"
@@ -120,7 +120,7 @@ const SvgVoteNo = ({ style, className, ...props }: SVGProps<SVGSVGElement>) => (
 
 const SvgPeopleSlash = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
 	<svg
-		className={styles["svg-icon"] + (className ? " " + className : "")}
+		className={"svg-icon" + (className ? " " + className : "")}
 		role="img"
 		xmlns="http://www.w3.org/2000/svg"
 		fill="currentColor"
