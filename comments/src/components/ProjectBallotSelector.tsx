@@ -23,7 +23,7 @@ import {
 } from "@/store/ballots";
 import { selectIsOnline } from "@/store/offline";
 
-import styles from "./ProjectBallotSelector.module.css";
+import "./ProjectBallotSelector.css";
 
 function ActiveGroupsCheck() {
 	const dispatch = useAppDispatch();
@@ -159,8 +159,8 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 	};
 
 	return (
-		<div className={styles.main}>
-			<div className={styles.selector}>
+		<div className="project-ballot-selector">
+			<div className="selector">
 				<label htmlFor="project-select">Project:</label>
 				<ProjectSelect
 					id="project-select"
@@ -171,7 +171,7 @@ function BallotSelector({ readOnly }: { readOnly?: boolean }) {
 					readOnly={readOnly}
 				/>
 			</div>
-			<div className={styles.selector}>
+			<div className="selector">
 				<label htmlFor="ballot-select">Ballot:</label>
 				<BallotSelect
 					id="ballot-select"

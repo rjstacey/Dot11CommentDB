@@ -9,8 +9,6 @@ import Editor from "@/components/editor";
 import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 import type { ResolutionEditable } from "./ResolutionEdit";
 
-import styles from "./comments.module.css";
-
 function ResnStatus({
 	className,
 	value,
@@ -26,7 +24,7 @@ function ResnStatus({
 		onChange(e.target.checked ? (e.target.value as ResnStatusType) : null);
 
 	return (
-		<Form.Group className={cx(styles.resolutionStatus, className)}>
+		<Form.Group className={cx("resolution-status", className)}>
 			<Form.Check
 				id="accepted-checkbox"
 				name="ResnStatus"
@@ -38,7 +36,7 @@ function ResnStatus({
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="ACCEPTED"
-				className={cx(styles.acceptedCheckbox, readOnly && "pe-none")}
+				className={cx("accepted-checkbox", readOnly && "pe-none")}
 				tabIndex={readOnly ? -1 : undefined}
 			/>
 			<Form.Check
@@ -52,7 +50,7 @@ function ResnStatus({
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="REVISED"
-				className={cx(styles.revisedCheckbox, readOnly && "pe-none")}
+				className={cx("revised-checkbox", readOnly && "pe-none")}
 				tabIndex={readOnly ? -1 : undefined}
 			/>
 			<Form.Check
@@ -66,11 +64,11 @@ function ResnStatus({
 				onChange={handleChange}
 				readOnly={readOnly}
 				label="REJECTED"
-				className={cx(styles.rejectedCheckbox, readOnly && "pe-none")}
+				className={cx("rejected-checkbox", readOnly && "pe-none")}
 				tabIndex={readOnly ? -1 : undefined}
 			/>
-			<div className={styles.shadow} />
-			<div className={styles.block} />
+			<div className="shadow" />
+			<div className="block" />
 		</Form.Group>
 	);
 }
@@ -84,7 +82,7 @@ export function ResolutionRow({
 	updateResolution?: (changes: Partial<Resolution>) => void;
 	readOnly?: boolean;
 }) {
-	let className = styles.resolutionEditContainer;
+	let className = "resolution-edit-container";
 	if (!isMultiple(resolution.ResnStatus)) {
 		if (resolution.ResnStatus === "A") className += " accepted";
 		else if (resolution.ResnStatus === "V") className += " revised";
@@ -105,7 +103,7 @@ export function ResolutionRow({
 
 	return (
 		<Row className="mt-3 mb-2">
-			<Col className={styles.resolutionField}>
+			<Col className="resolution-field">
 				<Form.Label as="span">Resolution:</Form.Label>
 				<div className={className}>
 					<ResnStatus
@@ -114,7 +112,7 @@ export function ResolutionRow({
 						readOnly={readOnly}
 					/>
 					<Editor
-						className={styles.resolutionEditor}
+						className="resolution-editor"
 						value={
 							isMultiple(resolution.Resolution)
 								? ""

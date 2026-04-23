@@ -16,8 +16,6 @@ import Editor from "@/components/editor";
 import { BLANK_STR, MULTIPLE_STR } from "@/components/constants";
 import type { MultipleComment } from "@/hooks/commentsEdit";
 
-import styles from "./comments.module.css";
-
 export const CommentAdHoc = ({
 	comment,
 	updateComment = () => {},
@@ -181,7 +179,7 @@ function CommentNotesInternal({
 	readOnly?: boolean;
 }) {
 	return (
-		<div className={styles.editingContainer}>
+		<div className="editing-container">
 			<CommentAdHocStatus
 				comment={comment}
 				updateComment={updateComment}
@@ -228,7 +226,7 @@ export function CommentNotesRowCollapsable(props: {
 	return (
 		<Accordion
 			flush
-			className={styles.notesField + " mb-2"}
+			className="notes-field mb-2"
 			defaultActiveKey={showNotes ? key : undefined}
 			activeKey={showNotes ? key : undefined}
 			onSelect={(eventKey) =>

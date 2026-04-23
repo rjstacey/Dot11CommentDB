@@ -1,0 +1,33 @@
+.text-block-container {
+	overflow-wrap: break-word;
+	& p {
+		margin: 8px 0;
+	}
+	& p:first-of-type {
+		margin: 0;
+	}
+}
+
+.multiple {
+	color: GrayText;
+	font-style: italic;
+}
+
+.resolution-edit-container,
+.resolution-container {
+	--bg-color-accepted: #d3ecd3;
+	--bg-color-revised: #f9ecb9;
+	--bg-color-rejected: #f3c0c0;
+}
+
+.resolution-container {
+	&.accepted {
+		background-color: var(--bg-color-accepted);
+	}
+	&.revised {
+		background-color: var(--bg-color-revised);
+	}
+	&.rejected {
+		background-color: var(--bg-color-rejected);
+	}
+}

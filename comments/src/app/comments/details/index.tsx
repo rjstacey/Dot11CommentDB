@@ -27,6 +27,8 @@ import { EditingNotesRowCollapsable } from "./EditingNotes";
 import { RoleSelect } from "./RoleSelect";
 import { ShowAccess } from "@/components/ShowAccess";
 
+import "./details.css";
+
 function renderCommentsStatus(commentResolutions: CommentResolution[]) {
 	let status: string | typeof MULTIPLE = "";
 	commentResolutions.forEach((c) => {

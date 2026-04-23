@@ -11,8 +11,6 @@ import {
 	type Resolution,
 } from "@/store/comments";
 
-import styles from "./comments.module.css";
-
 const BLANK_STR = "(Blank)";
 const MULTIPLE_STR = "(Multiple)";
 
@@ -136,7 +134,7 @@ function EditingNotesInternal({
 	readOnly?: boolean;
 }) {
 	return (
-		<div className={styles.editingContainer}>
+		<div className="editing-container">
 			<EditingStatus
 				resolution={resolution}
 				updateResolution={updateResolution}
@@ -187,7 +185,7 @@ export function EditingNotesRowCollapsable(props: {
 		<Row className="mt-3 mb-2">
 			<Accordion
 				flush
-				className={styles.notesField}
+				className="notes-field"
 				activeKey={showEditingNotes ? key : undefined}
 				onSelect={(eventKey) =>
 					dispatch(

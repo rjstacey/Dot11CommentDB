@@ -23,7 +23,7 @@ import { ResolutionApprovalRow } from "./ResolutionApprovalRow";
 import { ResolutionRow } from "./ResolutionRow";
 import { EditingNotesRow } from "./EditingNotes";
 
-import styles from "./CommentHistory.module.css";
+import "./CommentHistory.css";
 
 const BLANK_STR = "(Blank)";
 
@@ -261,7 +261,7 @@ function CommentHistoryDisplay() {
 	}, [comment_id]);
 
 	return (
-		<div className={styles.container}>
+		<div className="comment-history">
 			{commentsHistory.length > 0 ? (
 				commentsHistory.map((props) => (
 					<ChangeEntry key={props.id} {...props} />

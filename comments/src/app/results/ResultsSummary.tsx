@@ -9,7 +9,7 @@ import {
 	BallotType,
 } from "@/store/ballots";
 
-import styles from "./ResultsSummary.module.css";
+import "./ResultsSummary.css";
 
 const passColor = "#d3ecd3";
 const failColor = "#f3c0c0";
@@ -322,7 +322,7 @@ function LongSummary({ ballots }: { ballots: Ballot[] }) {
 	const html = longSummaryHtml(ballots);
 
 	return (
-		<Container className={styles.container}>
+		<Container className="results-summary">
 			<Row>
 				<Col className="d-flex justify-content-end">
 					<Button
@@ -333,7 +333,7 @@ function LongSummary({ ballots }: { ballots: Ballot[] }) {
 				</Col>
 			</Row>
 			<div
-				className={styles.grid}
+				className="results-summary-grid"
 				style={{
 					gridTemplateColumns: `220px repeat(${valueCols.length}, 100px)`,
 				}}

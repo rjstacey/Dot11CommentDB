@@ -3,7 +3,7 @@ import { UndoRedo } from "./UndoRedo";
 import { TextBlockGroup } from "./TextBlockGroup";
 import { TextFormatGroup } from "./TextFormatGroup";
 
-import styles from "../editor.module.css";
+import "./toolbar.css";
 
 type Size = "sm" | "md" | "lg";
 const breakpointSmall = 525;
@@ -32,7 +32,7 @@ export function Toolbar() {
 	return (
 		<div
 			ref={containerRef}
-			className={styles.toolbar}
+			className="editor-toolbar"
 			onMouseDown={(e) => {
 				e.preventDefault();
 			}}

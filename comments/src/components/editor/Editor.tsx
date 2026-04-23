@@ -1,9 +1,4 @@
-import {
-	useCallback,
-	type ComponentProps,
-	type CSSProperties,
-	type MouseEvent,
-} from "react";
+import { useCallback } from "react";
 import cx from "clsx";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -17,17 +12,11 @@ import { AutoLink } from "./AutoLink";
 import { useImportExport } from "./useImportExport";
 import { usePaste } from "./usePaste";
 
-import styles from "./editor.module.css";
+import "./editor.css";
 import "./editor-style.css";
 
-const Placeholder = (props: ComponentProps<"i">) => (
-	<div
-		className={cx(
-			styles.placeholder,
-			styles.innerContainer,
-			"editor-style",
-		)}
-	>
+const Placeholder = (props: React.ComponentProps<"i">) => (
+	<div className={cx("placeholder", "innerContainer", "editor-style")}>
 		<p>
 			<i {...props} />
 		</p>
@@ -51,7 +40,7 @@ export function Editor({
 	submission?: string | null;
 	id?: string;
 	className?: string;
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	placeholder?: string;
 	readOnly?: boolean;
 }) {
@@ -61,7 +50,7 @@ export function Editor({
 	usePaste(onChangeResnStatus);
 
 	const onClear = useCallback(
-		(event: MouseEvent) => {
+		(event: React.MouseEvent) => {
 			event.preventDefault();
 			editor.update(() => {
 				const node = $createParagraphNode();
@@ -74,19 +63,19 @@ export function Editor({
 	return (
 		<div
 			id={id}
-			className={cx(styles.container, readOnly && "readonly", className)}
+			className={cx("editor", readOnly && "readonly", className)}
 			style={style}
 		>
 			<Toolbar />
-			<div className={styles.outerContainer}>
+			<div className="outerContainer">
 				<ContentEditable
-					className={cx(styles.innerContainer, "editor-style")}
+					className={cx("innerContainer", "editor-style")}
 					aria-placeholder={placeholder || ""}
 					placeholder={<Placeholder>{placeholder}</Placeholder>}
 				/>
 			</div>
 
-			{!readOnly && <i className={styles.clear} onMouseDown={onClear} />}
+			{!readOnly && <i className="clear" onMouseDown={onClear} />}
 			<LinkEditor />
 			<AutoLink submission={submission} />
 		</div>

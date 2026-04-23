@@ -1,0 +1,104 @@
+.notes-field,
+.resolution-field {
+	position: relative; /* position toolbar */
+}
+
+/* For ad-hoc notes and editing notes accordions */
+.notes-field {
+	& .accordion-button {
+		--bs-accordion-btn-padding-y: 0;
+		--bs-accordion-btn-padding-x: 0;
+		--bs-accordion-active-bg: transparent;
+		--bs-accordion-btn-focus-box-shadow: none;
+
+		&:not(.collapsed) {
+			box-shadow: none;
+		}
+	}
+
+	& .accordion-body {
+		--bs-accordion-body-padding-y: 0;
+		--bs-accordion-body-padding-x: 0;
+	}
+}
+
+.resolution-edit-container {
+	& .resolution-status,
+	& .resolution-editor {
+		background-color: var(--bs-body-bg);
+	}
+
+	&.accepted .resolution-status,
+	&.accepted .resolution-editor {
+		background-color: var(--bg-color-accepted);
+	}
+	&.revised .resolution-status,
+	&.revised .resolution-editor {
+		background-color: var(--bg-color-revised);
+	}
+
+	&.rejected .resolution-status,
+	&.rejected .resolution-editor {
+		background-color: var(--bg-color-rejected);
+	}
+
+	&:hover:not(.readonly) .resolution-status,
+	&:hover:not(.readonly) .resolution-editor {
+		border-color: #0074d9;
+	}
+}
+
+.resolution-status {
+	position: relative;
+	width: fit-content;
+	bottom: -1px;
+	border: var(--bs-border-width) solid var(--bs-border-color);
+	border-bottom: none;
+	border-radius: 5px 5px 0 0;
+	display: flex;
+	padding: 5px 10px;
+
+	& .shadow {
+		position: absolute;
+		width: 100%;
+		height: calc(100% - 0.5rem - 1px);
+		top: 0;
+		left: 0;
+		z-index: -1;
+		border: var(--bs-border-width) solid var(--bs-border-color);
+		border-radius: inherit;
+	}
+
+	.resolution-edit-container:focus-within & .shadow {
+		border-color: #86b7fe;
+		outline: 0;
+		box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+		z-index: -2;
+	}
+
+	& .block {
+		position: absolute;
+		width: 100%;
+		height: calc(0.25rem + 1px);
+		top: calc(100% - 0.25rem - 1px);
+		left: 0;
+		background-color: inherit;
+		z-index: 1;
+	}
+
+	& .accepted-checkbox,
+	& .revised-checkbox {
+		margin-right: 1rem;
+	}
+}
+
+.resolution-editor {
+	border-radius: 0 5px 5px 5px !important;
+
+	.resolution-edit-container:focus-within & {
+		border-color: #86b7fe;
+		outline: 0;
+		box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+		z-index: -2;
+	}
+}

@@ -28,10 +28,10 @@ import {
 	type ResnStatusType,
 } from "@/store/comments";
 
-import styles from "./details/comments.module.css";
+import "./tableColumns.css";
 
 const FlexRow = (props: React.ComponentProps<"div">) => (
-	<div className={styles.row} {...props} />
+	<div className="d-flex" {...props} />
 );
 
 const renderPage = (page: string | number | null) =>
@@ -40,7 +40,7 @@ const renderPage = (page: string | number | null) =>
 const renderTextBlock = (value: string) => {
 	if (!value) return "";
 	return (
-		<div className={styles.textBlockContainer}>
+		<div className="text-block-container">
 			{value.split("\n").map((line, i) => (
 				<p key={i}>{line}</p>
 			))}
@@ -84,7 +84,7 @@ const renderDataCellEditing = ({ rowData }: { rowData: CommentResolution }) => (
 		{rowData.EditStatus === "N" && <span>No change</span>}
 		{rowData.EditNotes && (
 			<div
-				className={styles.editor}
+				className="editor-style"
 				dangerouslySetInnerHTML={{ __html: rowData.EditNotes }}
 			/>
 		)}
@@ -97,7 +97,7 @@ const resnStatusRenderer = (resnStatus: ResnStatusType | null) =>
 function renderDataCellResolution({ rowData }: { rowData: CommentResolution }) {
 	const resnStatus = rowData["ResnStatus"];
 
-	let className = styles.resolutionContainer + " editor-style";
+	let className = "resolution-container" + " editor-style";
 	if (resnStatus === "A") className += " accepted";
 	else if (resnStatus === "V") className += " revised";
 	else if (resnStatus === "J") className += " rejected";
@@ -119,7 +119,7 @@ const DataSubcomponent = ({
 	...props
 }: { width: number | string } & React.ComponentProps<"div">) => (
 	<div
-		className={styles.subcomponent}
+		className="column-subcomponent"
 		style={{
 			flex: `1 1 ${
 				width && typeof width === "string" ? width : width + "px"
@@ -136,7 +136,7 @@ const HeaderSubcomponent = ({
 	typeof TableColumnHeader
 >) => (
 	<TableColumnHeader
-		className={styles.subcomponent}
+		className="column-subcomponent"
 		style={{
 			flex: `1 1 ${
 				width && typeof width === "string" ? width : width + "px"
@@ -433,7 +433,7 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 		cellRenderer: ({ rowData }: { rowData: CommentResolution }) =>
 			rowData.Notes && (
 				<div
-					className={styles.editor}
+					className="editor-style"
 					dangerouslySetInnerHTML={{ __html: rowData.Notes }}
 				/>
 			),

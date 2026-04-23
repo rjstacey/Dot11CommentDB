@@ -24,6 +24,8 @@ import {
 } from "./tableColumns";
 import { CommentsDetail } from "./details";
 
+import "./comments.css";
+
 export function CommentsMain() {
 	const [search, setSearch] = useSearchParams();
 	const navigation = useNavigation();

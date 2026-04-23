@@ -11,10 +11,8 @@ import { categoryMap, type Comment } from "@/store/comments";
 import { MULTIPLE_STR } from "@/components/constants";
 import type { MultipleComment } from "@/hooks/commentsEdit";
 
-import styles from "./comments.module.css";
-
 const ShowMultiple = (props: React.ComponentProps<"span">) => (
-	<span className={styles.multiple} {...props}>
+	<span className="multiple" {...props}>
 		{MULTIPLE_STR}
 	</span>
 );
@@ -76,7 +74,7 @@ const renderTextBlock = (value: string) => {
 	if (!value) return "";
 	if (isMultiple(value)) return <ShowMultiple />;
 	return (
-		<div className={styles.textBlockContainer}>
+		<div className="text-block-container">
 			{value.split("\n").map((line, i) => (
 				<p key={i}>{line}</p>
 			))}

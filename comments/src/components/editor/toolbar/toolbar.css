@@ -1,0 +1,45 @@
+.editor-toolbar {
+	position: absolute;
+	top: -16px;
+	right: 16px;
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	justify-content: flex-end;
+	z-index: 2;
+
+	& .button-group {
+		display: flex;
+		flex-wrap: nowrap;
+		box-sizing: border-box;
+	}
+
+	& .vertical-divider {
+		width: 1px;
+		background-color: #ccc;
+		margin: 0 5px;
+	}
+
+	& .btn {
+		--bs-btn-color: #000;
+		--bs-btn-bg: #fdfdfd;
+		--bs-btn-border-color: #999;
+		--bs-btn-active-color: #000;
+		--bs-btn-active-bg: rgba(223, 232, 250);
+		--bs-btn-hover-color: #000;
+		--bs-btn-hover-bg: #eee;
+		--bs-btn-disabled-color: #bbb;
+		--bs-btn-disabled-bg: #f9f9f9;
+		--bs-btn-disabled-border-color: var(--bs-border-color);
+		--bs-btn-disabled-opacity: 1;
+		--bs-btn-padding-x: 3px;
+		--bs-btn-padding-y: 3px;
+		display: flex;
+		align-items: center;
+		margin: 0 5px;
+	}
+
+	& .dropdown-menu {
+		--bs-dropdown-min-width: unset;
+	}
+}

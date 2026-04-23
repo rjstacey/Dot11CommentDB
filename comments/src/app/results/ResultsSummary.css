@@ -1,0 +1,10 @@
+.results-summary {
+	max-height: calc(100vh - 180px);
+	overflow: auto;
+}
+
+.results-summary-grid {
+	display: grid;
+	gap: 10px;
+	padding: 10px;
+}

@@ -2,7 +2,7 @@ import { useParams } from "react-router";
 import { Container } from "react-bootstrap";
 import { Counts, useReportData } from "./reportData";
 
-import styles from "./reports.module.css";
+import "./reports.css";
 
 function renderTable(data: Counts[]) {
 	if (data.length === 0) return <span>Empty</span>;
@@ -28,7 +28,7 @@ function renderTable(data: Counts[]) {
 	);
 	return (
 		<table
-			className={styles.table}
+			className="reports-table"
 			style={{
 				gridTemplateColumns: `repeat(${nCol}, auto)`,
 				borderCollapse: "collapse",
