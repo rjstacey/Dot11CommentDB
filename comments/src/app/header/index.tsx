@@ -8,11 +8,7 @@ import { useMenuItems } from "./useMenuItems";
 function Header() {
 	const menuItems = useMenuItems();
 	return (
-		<Container
-			as="header"
-			fluid
-			className="d-flex flex-row justify-content-between align-items-start bg-body-tertiary "
-		>
+		<Container as="header" fluid className="bg-body-tertiary">
 			<Menu>{menuItems}</Menu>
 			<div className="d-flex justify-content-end align-items-center gap-2 p-2">
 				<OnlineIndicator />

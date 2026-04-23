@@ -12,14 +12,11 @@ div#root {
 	align-items: center;
 }
 
-.breadcrumb {
-	margin-bottom: 0;
-	font-size: 1.25rem;
-
-	a {
-		text-decoration: none;
-		color: #008080;
-	}
+header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: flex-start;
 }
 
 main {
