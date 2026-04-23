@@ -1,17 +1,18 @@
 import { useRouteError } from "react-router";
 
-function AppErrorPage() {
+export function AppErrorPage() {
 	const error = useRouteError();
-	console.error(error);
-	let m: string;
+	let message: string;
 	if (typeof error === "string") {
-		m = error;
+		message = error;
 	} else if (error instanceof Error) {
-		m = error.message;
-		if ("statusText" in error && typeof error.statusText === "string")
-			m = error.statusText;
+		message = error.name + ": " + error.message;
 	} else {
-		m = "Unrecognized error type";
+		try {
+			message = (error as object).toString();
+		} catch {
+			message = JSON.stringify(error);
+		}
 	}
 
 	return (
@@ -19,10 +20,8 @@ function AppErrorPage() {
 			<h1>Oops!</h1>
 			<p>Sorry, an unexpected error has occurred.</p>
 			<p>
-				<i>{m}</i>
+				<i>{message}</i>
 			</p>
 		</div>
 	);
 }
-
-export default AppErrorPage;
