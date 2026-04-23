@@ -22,11 +22,7 @@ export function AppFallback() {
 
 	return (
 		<>
-			<Container
-				as="header"
-				fluid
-				className="d-flex flex-row justify-content-between align-items-center gap-2 bg-body-tertiary"
-			>
+			<Container as="header" fluid className="bg-body-tertiary">
 				<Menu>{menuItems}</Menu>
 				<AccountDropdown />
 			</Container>

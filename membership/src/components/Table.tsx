@@ -1,7 +1,8 @@
-import styles from "./Table.module.css";
+import cx from "clsx";
+import "./Table.css";
 
 const Table = ({ className, ...props }: React.ComponentProps<"table">) => (
-	<table className={styles.table} {...props} />
+	<table className={cx("grid-table", className)} {...props} />
 );
 
 const tableEmpty = (
@@ -84,7 +85,7 @@ export function EditTable({
 
 	return (
 		<table
-			className={styles.table + (className ? " " + className : "")}
+			className={cx("grid-table", className)}
 			style={{ gridTemplateColumns, ...style }}
 			{...props}
 		>

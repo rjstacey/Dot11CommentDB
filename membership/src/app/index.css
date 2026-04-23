@@ -12,17 +12,15 @@ div#root {
 	align-items: center;
 }
 
-.breadcrumb {
-	margin-bottom: 0;
-	font-size: 1.25rem;
-
-	a {
-		text-decoration: none;
-		color: #008080;
-	}
+header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.5rem;
 }
 
-.main {
+main {
 	flex: 1;
 	width: 100%;
 	margin: 0 auto;
@@ -112,5 +110,17 @@ div#root {
 		&:valid ~ .form-check-label {
 			color: unset;
 		}
+	}
+}
+
+.icon {
+	all: unset;
+	display: inline-block;
+}
+
+.icon.action {
+	cursor: pointer;
+	&:hover {
+		color: tomato;
 	}
 }
