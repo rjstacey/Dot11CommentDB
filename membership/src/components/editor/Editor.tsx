@@ -8,13 +8,13 @@ import { Toolbar } from "./toolbar";
 import { LinkEditor } from "./LinkEditor";
 import { emailStylesObj, htmlWithInlineStyle } from "./utils";
 
-import css from "./editor.module.css";
+import "./editor.css";
 import "./editor-style.css";
 
 import { useImportExport } from "./useImportExport";
 
 const emailStylesText = Object.entries(emailStylesObj)
-	.map(([key, value]) => `.${css.body} .${key} {${value}}`)
+	.map(([key, value]) => `.body .${key} {${value}}`)
 	.join("\n");
 const emailStyles = new CSSStyleSheet();
 emailStyles.replaceSync(emailStylesText);
@@ -31,7 +31,7 @@ function TreeViewPlugin() {
 
 const PLACEHOLDER_TEXT = "Email body here...";
 const PLACEHOLDER = (
-	<div className={cx(css.body, css.placeholder)}>
+	<div className={cx("body", "placeholder")}>
 		<p className="paragraph">{PLACEHOLDER_TEXT}</p>
 	</div>
 );
@@ -72,12 +72,12 @@ export function Editor({
 
 	return (
 		<>
-			<div className={css.content}>
+			<div className="app-editor">
 				{readOnly ? (
-					<ContentPreview className={css.body}>{body}</ContentPreview>
+					<ContentPreview className="body">{body}</ContentPreview>
 				) : (
 					<ContentEditable
-						className={cx(css.body, "editor-style")}
+						className={cx("body", "editor-style")}
 						aria-placeholder={PLACEHOLDER_TEXT}
 						placeholder={PLACEHOLDER}
 					/>

@@ -11,9 +11,9 @@ import { TextFormatGroup } from "./TextFormatGroup";
 import { SelectAlignment } from "./SelectAlignment";
 import { SelectSubstituteTag } from "./SelectSubstituteTag";
 
-import css from "../editor.module.css";
+import "./toolbar.css";
 
-const Divider = () => <div className={css.divider} />;
+const Divider = () => <div className="divider" />;
 
 export function Toolbar({ tags }: { tags: string[] }) {
 	const [editor] = useLexicalComposerContext();
@@ -46,7 +46,7 @@ export function Toolbar({ tags }: { tags: string[] }) {
 
 	return (
 		<div
-			className={css.toolbar}
+			className="editor-toolbar"
 			onMouseDown={(event) => event.preventDefault()}
 		>
 			<UndoRedo disabled={disabled} />

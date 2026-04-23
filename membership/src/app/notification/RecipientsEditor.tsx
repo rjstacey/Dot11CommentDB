@@ -4,7 +4,7 @@ import { useAppSelector } from "@/store/hooks";
 import { selectActiveMembers } from "@/store/members";
 import { EmailTemplate } from "@/store/emailTemplates";
 
-import css from "./notification.module.css";
+import "./RecipientsEditor.css";
 
 type EntryOption = {
 	Name: string | null;
@@ -22,11 +22,11 @@ function selectItemRenderer({
 }: SelectItemRendererProps<EntryOption>) {
 	const title = item.Name ? `${item.Name} <${item.Email}>` : item.Email;
 	return (
-		<div className={css.recipientItemSelected} title={title}>
+		<div className="recipient-item-selected" title={title}>
 			<span>{item.Name || item.Email}</span>
 			{!props.readOnly && (
 				<div
-					className={css.close}
+					className="close"
 					onClick={() => methods.removeItem(item)}
 				/>
 			)}
@@ -89,8 +89,8 @@ function MemberEmailSelector({
 
 	return (
 		<Select
-			className={css.recipientSelect}
-			dropdownClassName={css.recipientSelectDropdown}
+			className="recipient-select"
+			dropdownClassName="recipient-select-dropdown"
 			values={values}
 			options={options}
 			onChange={handleChange}
@@ -122,7 +122,7 @@ function RecipientsEditor({
 	let ccLine: React.ReactElement | undefined;
 	if (showCc || email.cc) {
 		ccLine = (
-			<div className={css.recipientsContainer}>
+			<div className="recipients-container">
 				<span>Cc:</span>
 				<MemberEmailSelector
 					id="email-cc-selector"
@@ -137,7 +137,7 @@ function RecipientsEditor({
 	let bccLine: React.ReactElement | undefined;
 	if (showBcc || email.bcc) {
 		bccLine = (
-			<div className={css.recipientsContainer}>
+			<div className="recipients-container">
 				<span>Bcc:</span>
 				<MemberEmailSelector
 					id="email-bcc-selector"
@@ -160,7 +160,7 @@ function RecipientsEditor({
 				})
 		: [];
 	const toLine = (
-		<div className={css.recipientsContainer}>
+		<div className="recipients-container">
 			<span>To:</span>
 			{toAddresses.map((item) => {
 				const title = item.Name
@@ -169,7 +169,7 @@ function RecipientsEditor({
 				return (
 					<div
 						key={item.Email}
-						className={css.recipientItemSelected}
+						className="recipient-item-selected"
 						title={title}
 					>
 						<span>{item.Name || item.Email}</span>
@@ -198,15 +198,15 @@ function RecipientsEditor({
 
 	return (
 		<div
-			className={css.recipients}
+			className="recipients"
 			onBlur={() => {
 				setShowCc(false);
 				setShowBcc(false);
 			}}
 		>
-			<div className={css.rowWithExtra}>
+			<div className="row-with-extra">
 				{toLine}
-				<div className={css.recipientsExtra}>
+				<div className="recipients-extra">
 					{ccButton}
 					{bccButton}
 				</div>

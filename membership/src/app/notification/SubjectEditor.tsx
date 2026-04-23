@@ -1,4 +1,4 @@
-import css from "./notification.module.css";
+import "./SubjectEditor.css";
 
 function SubjectEditor({
 	value,
@@ -11,7 +11,7 @@ function SubjectEditor({
 }) {
 	const placeholder = readOnly ? "(Blank)" : "Subject";
 	return (
-		<div className={css.subjectContainer}>
+		<div className="subject-container">
 			<input
 				id="subject-editor"
 				type="text"

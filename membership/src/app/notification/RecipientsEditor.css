@@ -1,0 +1,61 @@
+.row-with-extra {
+	display: flex;
+	justify-content: space-between;
+}
+
+.recipients-container {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	padding: 5px 10px;
+	box-shadow: inset 0 -1px 0 0 #eee;
+}
+
+.recipient-select {
+	border: unset;
+	background-color: unset;
+	border-radius: unset;
+	min-width: 200px;
+
+	&:focus-within {
+		box-shadow: unset;
+	}
+
+	& .input {
+		display: flex;
+		flex: 1;
+	}
+}
+
+.recipient-select-dropdown {
+	max-width: 200px;
+}
+
+.recipient-item-selected {
+	padding: 2px 5px;
+	border: solid 2px #eee;
+	border-radius: 10px;
+	display: flex;
+	align-items: center;
+	margin: 0 3px;
+
+	& .close:after {
+		content: "×";
+		margin-left: 5px;
+	}
+
+	& .close:hover {
+		color: tomato;
+	}
+}
+
+.recipients-extra {
+	display: flex;
+	justify-content: center;
+
+	& button {
+		all: unset;
+		padding: 3px;
+		cursor: pointer;
+	}
+}

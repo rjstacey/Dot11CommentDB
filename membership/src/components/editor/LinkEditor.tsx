@@ -22,7 +22,7 @@ import {
 
 import { getSelectedNode, sanitizeUrl } from "./utils";
 
-import styles from "./editor.module.css";
+import "./LinkEditor.css";
 
 const VERTICAL_GAP = 10;
 const HORIZONTAL_OFFSET = 5;
@@ -228,7 +228,7 @@ function FloatingLinkEditor({
 	};
 
 	return (
-		<div ref={editorRef} className={styles["link-editor"]}>
+		<div ref={editorRef} className="link-editor">
 			{!isLink ? null : isLinkEditMode ? (
 				<>
 					<input

@@ -20,7 +20,7 @@ import SelectEmailTemplate from "./SelectEmailTemplate";
 import RecipientsEditor from "./RecipientsEditor";
 import SubjectEditor from "./SubjectEditor";
 
-import css from "./notification.module.css";
+import "./NotificationEmail.css";
 
 /** Generate email from template adding "Reply To:" and "To:" addresses if needed  */
 function genEmail(email: EmailTemplate, user: User, member: Member) {
@@ -141,7 +141,7 @@ export function NotificationEmail() {
 				</Col>
 			</Row>
 			{email && (
-				<div className={css.emailContainer}>
+				<div className="email-container">
 					<RecipientsEditor
 						email={email}
 						onChange={changeEmailTemplate}

@@ -1,0 +1,42 @@
+.app-editor {
+	position: relative;
+	overflow: auto;
+
+	& .body {
+		min-height: 150px;
+		resize: none;
+		caret-color: rgb(5, 5, 5);
+		tab-size: 1;
+		outline: 0;
+		padding: 15px 10px;
+		caret-color: #444;
+		margin: 4px 0 4px 0;
+	}
+
+	& .placeholder {
+		all: unset;
+		color: #999;
+		user-select: none;
+		pointer-events: none;
+		position: absolute;
+		top: 0;
+	}
+
+	&:not(:focus-within) {
+		& .link-editor {
+			display: none;
+		}
+
+		& ~ .editor-toolbar {
+			opacity: 0.5;
+			pointer-events: none;
+		}
+	}
+}
+
+.treeView {
+	display: flex;
+	flex-direction: column;
+	max-height: 300px;
+	overflow: auto;
+}
