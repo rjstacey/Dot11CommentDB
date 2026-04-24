@@ -1,13 +1,4 @@
-import {
-	useCallback,
-	useRef,
-	useState,
-	useMemo,
-	useEffect,
-	type CSSProperties,
-	type HTMLAttributes,
-	type ReactNode,
-} from "react";
+import { useCallback, useRef, useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Form, Row, Col, Button, Dropdown } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
@@ -41,7 +32,7 @@ const Item = ({
 }: {
 	isSelected: boolean;
 	disabled?: boolean;
-} & HTMLAttributes<HTMLDivElement>) => (
+} & React.HTMLAttributes<HTMLDivElement>) => (
 	<div
 		className={
 			"item" +
@@ -57,7 +48,7 @@ function IconSort({
 	type,
 	direction,
 }: {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	type: FieldTypeValue;
 	direction: SortDirectionValue;
 }) {
@@ -140,7 +131,7 @@ function FilterComponent({
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
 	dataRenderer?: (value: any) => string;
-	customFilterElement?: ReactNode;
+	customFilterElement?: React.ReactNode;
 }) {
 	const [search, setSearch] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -457,7 +448,10 @@ function FilterComponent({
 	);
 }
 
-const Header = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
+const Header = ({
+	className,
+	...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
 	<div
 		className={"header-cell" + (className ? " " + className : "")}
 		{...props}
@@ -466,8 +460,8 @@ const Header = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
 
 type AppTableHeaderCellProps = HeaderCellRendererProps & {
 	className?: string;
-	style?: CSSProperties;
-	customFilterElement?: ReactNode;
+	style?: React.CSSProperties;
+	customFilterElement?: React.ReactNode;
 };
 
 function AppTableHeaderCell({

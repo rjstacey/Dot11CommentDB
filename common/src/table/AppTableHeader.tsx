@@ -1,11 +1,4 @@
-import {
-	forwardRef,
-	useEffect,
-	useRef,
-	useState,
-	type CSSProperties,
-	type ReactNode,
-} from "react";
+import { useRef } from "react";
 
 import { ColumnResizer, DraggableEventHandler } from "./ColumnResizer";
 
@@ -24,7 +17,9 @@ type HeaderCellProps = {
 	actions: AppTableDataActions;
 	fixed: boolean;
 	adjustColumnWidth: (key: string, deltaX: number) => void;
-	defaultHeaderCellRenderer: (props: HeaderCellRendererProps) => ReactNode;
+	defaultHeaderCellRenderer: (
+		props: HeaderCellRendererProps,
+	) => React.ReactNode;
 };
 
 function HeaderCell({

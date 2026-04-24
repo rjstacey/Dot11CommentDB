@@ -1,8 +1,8 @@
-import { Component, type ComponentProps } from "react";
+import { Component } from "react";
 import { Modal, Button } from "react-bootstrap";
 
 class ConfirmModal extends Component<
-	ComponentProps<typeof Modal>,
+	React.ComponentProps<typeof Modal>,
 	{
 		show: boolean;
 		message: string;
@@ -12,7 +12,7 @@ class ConfirmModal extends Component<
 	private static instance: ConfirmModal | undefined;
 	private static resolve: (value: unknown) => void;
 
-	constructor(props: ComponentProps<typeof Modal>) {
+	constructor(props: React.ComponentProps<typeof Modal>) {
 		super(props);
 		ConfirmModal.instance = this;
 

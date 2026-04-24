@@ -1,11 +1,4 @@
-import {
-	cloneElement,
-	useRef,
-	type CSSProperties,
-	type ReactElement,
-	type ReactNode,
-	type HTMLProps,
-} from "react";
+import { cloneElement, useRef } from "react";
 import { Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -43,8 +36,8 @@ export function SplitPanelButton({
 	);
 }
 
-interface PanelProps extends HTMLProps<HTMLDivElement> {
-	children?: ReactNode;
+interface PanelProps extends React.HTMLProps<HTMLDivElement> {
+	children?: React.ReactNode;
 }
 
 export const Panel = ({ children, ...otherProps }: PanelProps) => (
@@ -58,11 +51,11 @@ export function SplitPanel({
 	children,
 	...otherProps
 }: {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	className?: string;
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
-	children: [ReactElement<PanelProps>, ReactElement<PanelProps>];
+	children: [React.ReactElement<PanelProps>, React.ReactElement<PanelProps>];
 }) {
 	const dispatch = useDispatch();
 	const ref = useRef<HTMLDivElement>(null);

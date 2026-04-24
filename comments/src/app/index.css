@@ -147,7 +147,7 @@ main {
 	}
 }
 
-.icon:not(class^="bi-"):before {
+.icon:before {
 	display: block;
 	width: 1rem;
 	height: 1rem;

@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 
 import Header from "./Header";
 import Month from "./Month";
@@ -24,7 +24,7 @@ export type CalendarOptions = {
 };
 
 export type CalendarProps = {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	className?: string;
 	value: Array<string>;
 	onChange: (dates: Array<string>) => void;

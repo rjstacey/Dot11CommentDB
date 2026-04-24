@@ -1,10 +1,4 @@
-import {
-	CSSProperties,
-	useEffect,
-	useMemo,
-	useRef,
-	type MouseEvent,
-} from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { EntityId } from "@reduxjs/toolkit";
 
 import type { GetEntityField, ColumnProperties, RowGetter } from "./AppTable";
@@ -45,7 +39,7 @@ function TableRow({
 	getField: GetEntityField;
 	estimatedRowHeight: number;
 	onRowHeightChange: (rowIndex: number, height: number) => void;
-	onClick?: (event: MouseEvent) => void;
+	onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }) {
 	const rowRef = useRef<HTMLDivElement>(null);
 
@@ -140,7 +134,7 @@ export type AppTableRowData = {
 		event,
 		rowIndex,
 	}: {
-		event: MouseEvent;
+		event: React.MouseEvent<HTMLDivElement>;
 		rowIndex: number;
 	}) => void;
 };
@@ -158,7 +152,7 @@ export function AppTableRow({
 	...otherProps
 }: {
 	index: number;
-	style: CSSProperties;
+	style: React.CSSProperties;
 } & AppTableRowData) {
 	const { rowId, rowData, prevRowId } = useMemo(() => {
 		const rowId = ids[rowIndex];
@@ -176,7 +170,8 @@ export function AppTableRow({
 	const onClick = useMemo(
 		() =>
 			onRowClick
-				? (event: MouseEvent) => onRowClick({ event, rowIndex })
+				? (event: React.MouseEvent<HTMLDivElement>) =>
+						onRowClick({ event, rowIndex })
 				: undefined,
 		[onRowClick, rowIndex],
 	);
