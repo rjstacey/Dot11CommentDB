@@ -21,18 +21,14 @@ export function refreshCalendarAccounts() {
 	const { dispatch, getState } = store;
 	const groupName = selectCalendarAccountsGroupName(getState());
 	dispatch(
-		groupName
-			? loadCalendarAccounts(groupName, true)
-			: clearCalendarAccounts()
+		groupName ? loadCalendarAccounts(groupName) : clearCalendarAccounts(),
 	);
 }
 
 export function refreshWebexAccounts() {
 	const { dispatch, getState } = store;
 	const groupName = selectWebexAccountsGroupName(getState());
-	dispatch(
-		groupName ? loadWebexAccounts(groupName, true) : clearWebexAccounts()
-	);
+	dispatch(groupName ? loadWebexAccounts(groupName) : clearWebexAccounts());
 }
 
 export const loader: LoaderFunction = async ({ params }) => {
