@@ -1,11 +1,11 @@
 {
-	"name": "@802tools/root",
+	"name": "@802tools/home",
 	"version": "1.0.1",
 	"private": true,
 	"homepage": "root",
 	"type": "module",
 	"scripts": {
-		"start": "vite --force",
+		"start": "vite",
 		"build": "vite --emptyOutDir build",
 		"test": "vite test",
 		"check": "tsc --noEmit && eslint",

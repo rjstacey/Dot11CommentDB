@@ -1,21 +1,19 @@
 {
 	"compilerOptions": {
 		"target": "es2022",
-		"lib": ["es2023"],
 		"module": "NodeNext",
+		"lib": ["es2023"],
+		"moduleResolution": "nodenext",
 		"strict": true,
+		"skipLibCheck": true,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
-		"skipLibCheck": true,
-		"checkJs": false,
+		"resolveJsonModule": true,
 		"allowJs": true,
 		"allowSyntheticDefaultImports": true,
 		"noImplicitAny": false,
-		"noImplicitThis": false,
 		"sourceMap": true,
-		"moduleResolution": "nodenext",
 		"noEmit": true,
-		"resolveJsonModule": true,
 
 		"paths": {
 			"@/*": ["./src/*"],

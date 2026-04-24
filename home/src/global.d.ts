@@ -1,2 +1,3 @@
-declare module "*.module.css"
-declare module "*.css"
+/// <reference types="vite/client" />
+declare module "*.module.css";
+declare module "*.css";

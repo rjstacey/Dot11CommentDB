@@ -3,16 +3,15 @@
 		"target": "es2022",
 		"module": "esnext",
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
-		"skipLibCheck": true,
 		"moduleResolution": "bundler",
+		"strict": true,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,
 		"allowJs": true,
-		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
-		"strict": true,
-		"forceConsistentCasingInFileNames": true,
 		"noFallthroughCasesInSwitch": true,
-		"isolatedModules": true,
 		"noEmit": true,
 		"jsx": "react-jsx",
 
@@ -21,6 +20,6 @@
 			"@common": ["./common/src"]
 		}
 	},
-	"include": ["../schemas", "../common/src"],
-	"exclude": ["../common/src/stories", "../common/**/*.test.*"]
+	"include": ["./schemas", "./common/src"],
+	"exclude": ["./common/src/stories", "./common/**/*.test.*"]
 }

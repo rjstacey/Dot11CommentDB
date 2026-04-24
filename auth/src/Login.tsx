@@ -22,7 +22,7 @@ async function errHandler(res: Response) {
 	return Promise.reject(error);
 }
 
-async function post(url: string, params: any) {
+async function post(url: string, params: object) {
 	const options: RequestInit = { method: "POST" };
 	if (params) options.body = JSON.stringify(params);
 
@@ -41,7 +41,9 @@ const LOGIN_STORAGE = "User";
 async function login(username: string, password: string) {
 	try {
 		localStorage.removeItem(LOGIN_STORAGE);
-	} catch (err) {}
+	} catch {
+		/* ignore */
+	}
 	let user;
 	try {
 		const response = await post("/auth/login", { username, password });

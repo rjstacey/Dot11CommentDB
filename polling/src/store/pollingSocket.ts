@@ -105,7 +105,7 @@ function isErrorResponse(response: unknown): response is PollingError {
 
 export function okResponse<T extends z.ZodTypeAny>(
 	response: unknown,
-	schema?: T
+	schema?: T,
 ): z.infer<T> | undefined {
 	if (isOkResponse(response)) {
 		return schema ? schema.parse(response.data) : undefined;
@@ -119,17 +119,17 @@ export function okResponse<T extends z.ZodTypeAny>(
 
 export function pollingSocketEmit(
 	message: string,
-	data?: unknown
+	data?: unknown,
 ): Promise<undefined>;
 export function pollingSocketEmit<T extends z.ZodTypeAny>(
 	message: string,
 	data?: unknown,
-	schema?: T
+	schema?: T,
 ): Promise<z.infer<T>>;
 export function pollingSocketEmit<T extends z.ZodTypeAny>(
 	message: string,
 	data?: unknown,
-	schema?: T
+	schema?: T,
 ): Promise<z.infer<T> | undefined> {
 	return new Promise((resolve, reject) => {
 		try {
@@ -165,7 +165,7 @@ export const pollingSocketConnect =
 		const user = selectUser(getState());
 		socket = openSocket(user.Token!);
 
-		if (process.env.NODE_ENV === "development") {
+		if (import.meta.env.DEV) {
 			socket
 				.onAny((event, ...args) => {
 					console.log("in", event, args);
@@ -185,7 +185,7 @@ export const pollingSocketConnect =
 			dispatch(
 				groupId
 					? pollingSocketJoinGroup(groupId)
-					: pollingSocketLeaveGroup()
+					: pollingSocketLeaveGroup(),
 			);
 			dispatch(setConnected());
 		});
@@ -209,7 +209,7 @@ export const pollingSocketJoinGroup =
 				await pollingSocketEmit(
 					"group:join",
 					{ groupId } satisfies GroupJoinReq,
-					groupJoinResSchema
+					groupJoinResSchema,
 				);
 			const group = selectGroup(getState(), groupId);
 			const access = group?.permissions.polling || AccessLevel.none;
@@ -219,7 +219,7 @@ export const pollingSocketJoinGroup =
 				dispatch(pollingAdminSetEvents(events));
 				dispatch(pollingAdminSetPolls(polls));
 				dispatch(
-					pollingAdminSetSelectedEventId(activeEvent?.id || null)
+					pollingAdminSetSelectedEventId(activeEvent?.id || null),
 				);
 				dispatch(pollingAdminSetSelectedPollId(activePoll?.id || null));
 			}

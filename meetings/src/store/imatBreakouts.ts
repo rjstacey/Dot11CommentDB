@@ -1,9 +1,4 @@
-import {
-	createSelector,
-	createAction,
-	EntityId,
-	PayloadAction,
-} from "@reduxjs/toolkit";
+import { createSelector, createAction, PayloadAction } from "@reduxjs/toolkit";
 import { DateTime } from "luxon";
 
 import {
@@ -12,7 +7,6 @@ import {
 	FieldType,
 	getAppTableDataSelectors,
 	Fields,
-	AppTableDataState,
 } from "@common";
 
 import type { AppThunk, RootState } from ".";
@@ -121,14 +115,11 @@ const dataSet = "imatBreakouts";
 const slice = createAppTableDataSlice({
 	name: dataSet,
 	fields,
-	selectId: (breakout) => breakout.id,
+	selectId: (breakout: Breakout) => breakout.id,
 	sortComparer,
 	initialState,
 	reducers: {
-		setDetails(
-			state: ExtraState & AppTableDataState<Breakout, number>,
-			action: PayloadAction<Partial<ExtraState>>,
-		) {
+		setDetails(state, action: PayloadAction<Partial<ExtraState>>) {
 			return { ...state, ...action.payload };
 		},
 	},
@@ -230,14 +221,15 @@ export const selectSyncedBreakoutEntities = createSelector(
 	selectBreakoutEntities,
 	selectMeetingEntities,
 	(imatMeetingId, breakoutEntities, meetingEntities) => {
-		const newEntities: Record<EntityId, SyncedBreakout> = {};
-		for (const [key, breakout] of Object.entries(breakoutEntities)) {
+		const newEntities: Record<number, SyncedBreakout> = {};
+		for (const breakout of Object.values(breakoutEntities)) {
+			const id = breakout!.id;
 			const meeting = Object.values(meetingEntities).find(
 				(m) =>
 					m!.imatMeetingId === imatMeetingId &&
-					m!.imatBreakoutId === breakout!.id,
+					m!.imatBreakoutId === id,
 			);
-			newEntities[key] = {
+			newEntities[id] = {
 				...breakout!,
 				imatMeetingId,
 				meetingId: meeting?.id || null,

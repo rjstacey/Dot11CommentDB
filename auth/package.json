@@ -3,10 +3,11 @@
 	"version": "0.1.0",
 	"homepage": "/login",
 	"private": true,
-	"proxy": "http://localhost:8080",
+	"type": "module",
 	"scripts": {
 		"start": "vite",
 		"build": "vite build --emptyOutDir",
+		"check": "tsc --noEmit && eslint",
 		"test": "vite test"
 	}
 }

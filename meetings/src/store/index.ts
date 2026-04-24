@@ -73,7 +73,7 @@ const transformState = createTransform(
 	(state: GenericObject) => {
 		return { ...state, loading: false };
 	},
-	{ whitelist: dataAppSliceNames }
+	{ whitelist: dataAppSliceNames },
 );
 
 const appReducer = combineReducers({
@@ -98,14 +98,14 @@ const appReducer = combineReducers({
 
 const rootReducer = (
 	state: ReturnType<typeof appReducer> | undefined,
-	action: AnyAction
+	action: AnyAction,
 ) => {
 	if (action.type === RESET_STORE_ACTION) state = undefined;
 	return appReducer(state, action);
 };
 
 const middleware: Middleware[] = [];
-if (process.env.NODE_ENV !== "production")
+if (import.meta.env.DEV)
 	middleware.push(createLogger({ collapsed: true }) as Middleware);
 
 const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
