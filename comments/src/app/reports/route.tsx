@@ -1,6 +1,6 @@
 import { RouteObject } from "react-router";
 import { indexLoader, ballotIdLoader } from "../comments/loader";
-import AppError from "../errorPage";
+import { AppErrorPage } from "../errorPage";
 import { ReportsRootLayout } from "./layout";
 import { ReportsMainLayout } from "./main";
 import { Report } from "./Report";
@@ -17,7 +17,7 @@ const route: RouteObject = {
 			path: ":ballotId",
 			loader: ballotIdLoader,
 			element: <ReportsMainLayout />,
-			errorElement: <AppError />,
+			errorElement: <AppErrorPage />,
 			children: [
 				{
 					path: ":report",
