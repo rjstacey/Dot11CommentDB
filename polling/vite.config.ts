@@ -1,7 +1,9 @@
 import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
-import { ProxyAgent } from "proxy-agent";
+//import { ProxyAgent } from "proxy-agent";
+import type { Agent } from "node:https";
+import { HttpsProxyAgent } from "https-proxy-agent";
 
 export default defineConfig(({ command, mode }) => {
 	const __dirname = process.cwd();
@@ -9,11 +11,13 @@ export default defineConfig(({ command, mode }) => {
 	if (command === "build" && !env.BUILD_PATH)
 		throw Error("BUILD_PATH not set");
 	let target = "http://localhost:8080";
-	let agent: ProxyAgent | undefined = undefined;
+	let agent: Agent | undefined = undefined;
 	if (mode === "remote") {
+		console.log("Using remote server");
 		if (!env.REMOTE_SERVER) throw Error("REMOTE_SERVER not set");
 		target = env.REMOTE_SERVER;
-		agent = new ProxyAgent();
+		//agent = new ProxyAgent();
+		agent = new HttpsProxyAgent("http://proxy-dmz.intel.com:912/");
 	}
 	if (!env.BASE_URL) throw Error("BASE_URL not set");
 	return {
