@@ -54,7 +54,7 @@ function MultipleErrorForm({ errors }: { errors: ErrorMsg[] }) {
 
 	const detail = error.detail.split("\n").map((s, i) => (
 		<Fragment key={i}>
-			<span>{s.replace(/ /g, "\u00A0")}</span>
+			<span>{s /*s.replace(/ /g, "\u00A0")*/}</span>
 			<br />
 		</Fragment>
 	));
