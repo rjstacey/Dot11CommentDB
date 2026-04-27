@@ -1,4 +1,4 @@
-import { Container } from "react-bootstrap";
+import { Container, Navbar } from "react-bootstrap";
 import { GroupSelector, SubgroupSelector } from "./GroupSelector";
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -20,9 +20,11 @@ function Header() {
 
 	return (
 		<Container as="header" fluid className="bg-body-tertiary">
-			<Breadcrumbs />
-			<GroupSelector />
-			{group && <SubgroupSelector />}
+			<Navbar className="menu-navbar">
+				<Breadcrumbs />
+				<GroupSelector />
+				{group && <SubgroupSelector />}
+			</Navbar>
 			{access >= AccessLevel.rw && (
 				<>
 					<MemberCount />
