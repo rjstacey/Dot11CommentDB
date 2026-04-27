@@ -63,7 +63,7 @@
 	}
 
 	&:not(:focus-within) {
-		& .toolbar,
+		& .editor-toolbar,
 		& .link-editor {
 			display: none;
 		}

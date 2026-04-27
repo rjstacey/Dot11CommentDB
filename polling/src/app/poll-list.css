@@ -26,14 +26,8 @@
 		}
 
 		& .accordion-button {
-			background-color: transparent;
 			align-items: flex-start;
-		}
-
-		& .accordion-button:not(.collapsed) {
-			width: unset;
-			justify-self: flex-end;
-			z-index: 10;
+			padding: 0.75rem;
 		}
 	}
 
