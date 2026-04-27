@@ -8,10 +8,14 @@ header {
 	padding-right: 1rem;
 	box-sizing: border-box;
 
-	& .title {
-		color: #008080;
-		font-style: italic;
-		cursor: pointer;
+	.breadcrumb {
+		margin-bottom: 0;
+		font-size: 1.25rem;
+
+		a {
+			text-decoration: none;
+			color: #008080;
+		}
 	}
 
 	.title {
