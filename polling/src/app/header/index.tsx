@@ -14,7 +14,8 @@ import {
 } from "@/store/groups";
 import { selectPollingAdminVoted } from "@/store/pollingAdmin";
 import { AccountDropdown } from "./AccountDropdown";
-import React from "react";
+
+import "./header.css";
 
 function ToggleAdminView() {
 	const location = useLocation();
@@ -78,11 +79,7 @@ function Header() {
 	const access = subgroup?.permissions.polling || AccessLevel.none;
 
 	return (
-		<Container
-			as="header"
-			fluid
-			className="d-flex flex-row justify-content-between align-items-center bg-body-tertiary "
-		>
+		<Container as="header" fluid className="bg-body-tertiary ">
 			<h3 className="title">{title}</h3>
 			<GroupSelector />
 			{group && <SubgroupSelector />}

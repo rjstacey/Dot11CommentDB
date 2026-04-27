@@ -7,8 +7,6 @@ import { PollVotersSelect } from "./PollVotersSelect";
 import { PollRecordSelect } from "./PollRecordSelect";
 import { PollState } from "./PollState";
 
-import css from "@/components/poll-layout.module.css";
-
 export function VotersCount() {
 	const voted = useAppSelector(selectPollingAdminVoted);
 
@@ -32,8 +30,8 @@ export function PollTypeStatusRow({
 	disabled?: boolean;
 }) {
 	return (
-		<div className={css["poll-action-row"]}>
-			<div className={css["poll-action-group"]}>
+		<div className="poll-action-row">
+			<div className="poll-action-group">
 				<PollTypeSelect
 					value={poll.type}
 					onChange={(type) => changePoll({ type })}
@@ -53,7 +51,7 @@ export function PollTypeStatusRow({
 					readOnly={readOnly}
 				/>
 			</div>
-			<div className={css["poll-action-group"]}>
+			<div className="poll-action-group">
 				<span>This poll is:</span>
 				<PollState poll={poll} />
 			</div>

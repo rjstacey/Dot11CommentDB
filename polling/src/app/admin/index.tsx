@@ -1,11 +1,11 @@
 import EventTabs from "./eventTabs";
 import EventPanel from "./eventPanel";
 
-import css from "./admin.module.css";
+import "./admin.css";
 
 function PollAdmin() {
 	return (
-		<div className={css["admin-content"]}>
+		<div className="admin-content">
 			<EventTabs />
 			<EventPanel />
 		</div>

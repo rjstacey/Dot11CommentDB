@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import {
 	pollingAdminPollUpdate,
@@ -13,9 +13,9 @@ import {
 
 export function usePollEdit(poll: Poll, readOnly?: boolean) {
 	const dispatch = useAppDispatch();
-	const [edited, setEdited] = React.useState(poll);
+	const [edited, setEdited] = useState(poll);
 
-	const onChange = React.useCallback(
+	const onChange = useCallback(
 		(changes: Partial<Poll>) => {
 			if (readOnly) {
 				console.warn("pollEdit: onChange while readOnly");
@@ -46,25 +46,25 @@ export function usePollEdit(poll: Poll, readOnly?: boolean) {
 			setEdited((edited) => ({ ...edited, ...changes }));
 			dispatch(pollingAdminPollUpdate({ id: poll.id, changes }));
 		},
-		[edited, poll.id]
+		[edited, poll.id],
 	);
 
-	const onAction = React.useCallback(
+	const onAction = useCallback(
 		async (action: PollAction) => {
 			const state = await dispatch(
-				pollingAdminPollAction(poll.id, action)
+				pollingAdminPollAction(poll.id, action),
 			);
 			setEdited((edited) => ({ ...edited, state }));
 		},
-		[edited, poll.id]
+		[edited, poll.id],
 	);
 
-	const onDelete = React.useCallback(async () => {
+	const onDelete = useCallback(async () => {
 		dispatch(setSelectedPollId(null));
 		await dispatch(pollingAdminPollDelete(poll.id));
 	}, [poll.id]);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		setEdited(poll);
 	}, [poll.id]);
 

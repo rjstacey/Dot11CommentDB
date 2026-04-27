@@ -1,7 +1,6 @@
 import { Form, Row, Col } from "react-bootstrap";
 import type { Poll } from "@/store/pollingAdmin";
 import MemberSelector from "@/components/MemberSelector";
-import css from "@/components/poll-layout.module.css";
 
 export function PollMovedRow({
 	poll,
@@ -13,8 +12,8 @@ export function PollMovedRow({
 	readOnly?: boolean;
 }) {
 	return (
-		<Row className={css["poll-moved-row"]}>
-			<Form.Group as={Col} className={css["poll-moved-col"]}>
+		<Row className="poll-moved-row">
+			<Form.Group as={Col} className="poll-moved-col">
 				<Form.Label htmlFor="poll-moved">Moved:</Form.Label>
 				<MemberSelector
 					id="poll-moved"
@@ -28,7 +27,7 @@ export function PollMovedRow({
 					Select member as mover
 				</Form.Control.Feedback>
 			</Form.Group>
-			<Form.Group as={Col} className={css["poll-moved-col"]}>
+			<Form.Group as={Col} className="poll-moved-col">
 				<Form.Label htmlFor="poll-seconded">Second:</Form.Label>
 				<div className="d-flex flex-column">
 					<MemberSelector

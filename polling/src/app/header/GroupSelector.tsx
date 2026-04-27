@@ -1,4 +1,3 @@
-import React from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Select } from "@common";
 import { useAppSelector } from "@/store/hooks";
@@ -11,13 +10,13 @@ import {
 	Group,
 } from "@/store/groups";
 
-import css from "../app.module.css";
+import "./GroupSelector.css";
 
 export function GroupSelector(
 	props: Pick<
 		React.ComponentProps<typeof Select>,
 		"id" | "className" | "style" | "readOnly" | "disabled"
-	>
+	>,
 ) {
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -40,8 +39,8 @@ export function GroupSelector(
 
 	return (
 		<Select
-			className={css["group-select"]}
-			dropdownClassName={css["group-select-dropdown"]}
+			className="group-select"
+			dropdownClassName="group-select-dropdown"
 			values={values}
 			onChange={handleChange}
 			options={options}
@@ -57,7 +56,7 @@ export function GroupSelector(
 
 function renderGroupName(
 	group: Group,
-	entities: ReturnType<typeof selectGroupEntities>
+	entities: ReturnType<typeof selectGroupEntities>,
 ) {
 	let label: string;
 	if (group.type === "wg") {
@@ -79,7 +78,7 @@ export function SubgroupSelector(
 	props: Pick<
 		React.ComponentProps<typeof Select>,
 		"id" | "className" | "style" | "readOnly" | "disabled"
-	>
+	>,
 ) {
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -110,8 +109,8 @@ export function SubgroupSelector(
 
 	return (
 		<Select
-			className={css["group-select"]}
-			dropdownClassName={css["group-select-dropdown"]}
+			className="group-select"
+			dropdownClassName="group-select-dropdown"
 			values={values}
 			onChange={handleChange}
 			options={options}

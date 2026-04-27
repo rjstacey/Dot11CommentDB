@@ -10,15 +10,13 @@ import {
 } from "@/store/pollingAdmin";
 import { EventCreateButton } from "./eventCreate";
 
-import css from "./admin.module.css";
-
 function displayTime(d: string) {
 	return DateTime.fromISO(d).toFormat("HH:mm");
 }
 
 function EventDescription({ event }: { event: Event }) {
 	return (
-		<div className={css["event-description"]}>
+		<div className="event-description">
 			<span>{event.name || <i>(Blank)</i>}</span>
 			<span>{displayDate(event.datetime)}</span>
 			<span>{displayTime(event.datetime)}</span>
@@ -38,7 +36,7 @@ function EventTabs() {
 			variant="tabs"
 			onSelect={setSelectedEventId}
 			activeKey={selectedEventId || undefined}
-			className={css["event-tabs"]}
+			className="event-tabs"
 		>
 			{events.map((event) => (
 				<Nav.Item key={event.id}>
@@ -50,7 +48,7 @@ function EventTabs() {
 					</Nav.Link>
 				</Nav.Item>
 			))}
-			<div className={css["event-create"]}>
+			<div className="event-create">
 				<EventCreateButton />
 			</div>
 		</Nav>

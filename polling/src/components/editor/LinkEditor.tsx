@@ -24,7 +24,7 @@ import {
 	TextNode,
 } from "lexical";
 
-import styles from "./editor.module.css";
+import "./LinkEditor.css";
 
 function getSelectedNode(selection: RangeSelection): TextNode | ElementNode {
 	const anchor = selection.anchor;
@@ -265,7 +265,7 @@ function FloatingLinkEditor({
 	};
 
 	return (
-		<div ref={editorRef} className={styles["link-editor"]}>
+		<div ref={editorRef} className="link-editor">
 			{!isLink ? null : isLinkEditMode ? (
 				<>
 					<input

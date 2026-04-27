@@ -6,14 +6,12 @@ import {
 	Poll,
 } from "@/store/pollingAdmin";
 
-import css from "@/components/poll-list.module.css";
-
 import { PollEditForm } from "./pollEdit";
 import { PollSummary } from "./pollSummary";
 
 function PollEntry({ poll, isSelected }: { poll: Poll; isSelected: boolean }) {
 	return (
-		<Accordion.Item eventKey={poll.id.toString()} className={css.item}>
+		<Accordion.Item eventKey={poll.id.toString()} className="poll-item">
 			<Accordion.Header>
 				{!isSelected && <PollSummary poll={poll} />}
 			</Accordion.Header>
@@ -30,13 +28,15 @@ export function PollsList({ polls }: { polls: Poll[] }) {
 
 	return (
 		<Accordion
-			className={css["poll-list"]}
+			className="poll-list"
 			activeKey={selectedPollId?.toString()}
 			onSelect={(eventKey) =>
 				dispatch(
 					setSelectedPollId(
-						typeof eventKey === "string" ? parseInt(eventKey) : null
-					)
+						typeof eventKey === "string"
+							? parseInt(eventKey)
+							: null,
+					),
 				)
 			}
 		>

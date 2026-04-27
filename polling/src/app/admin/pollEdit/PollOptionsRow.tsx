@@ -4,8 +4,6 @@ import cx from "clsx";
 import type { Poll } from "@/store/pollingAdmin";
 import { PollVotingChoiceSelect } from "./PollVotingChoiceSelect";
 
-import css from "@/components/poll-layout.module.css";
-
 function PollOptionEdit({
 	index,
 	value,
@@ -30,9 +28,7 @@ function PollOptionEdit({
 	}
 	const id = `poll-option-${index}`;
 	return (
-		<div
-			className={cx(css["poll-option"], readOnly && "pe-none", css.edit)}
-		>
+		<div className={cx("poll-option", readOnly && "pe-none", "edit")}>
 			<Form.Check id={id} className="me-2 pe-none" />
 			<Form.Control
 				type="text"
@@ -103,7 +99,7 @@ export function PollOptionsEdit({
 	let addOptionRow: React.ReactNode = null;
 	if (!readOnly) {
 		addOptionRow = (
-			<div className={css["poll-option"]}>
+			<div className="poll-option">
 				<Button
 					type="button"
 					variant="light"
@@ -153,8 +149,8 @@ export function PollOptionsRow({
 	disabled?: boolean;
 }) {
 	return (
-		<div className={css["poll-options-row"]}>
-			<div className={css["poll-options-col1"]}>
+		<div className="poll-options-row">
+			<div className="poll-options-col1">
 				<PollOptionsEdit
 					poll={poll}
 					changePoll={changePoll}
@@ -162,7 +158,7 @@ export function PollOptionsRow({
 					readOnly={poll.type === "m"}
 				/>
 			</div>
-			<div className={css["poll-options-col2"]}>
+			<div className="poll-options-col2">
 				<PollVotingChoiceSelect
 					className={cx(
 						"mt-3",

@@ -1,5 +1,3 @@
-import css from "@/components/poll-layout.module.css";
-
 export function PollTitleRow({
 	value,
 	onChange,
@@ -12,8 +10,8 @@ export function PollTitleRow({
 	readOnly?: boolean;
 }) {
 	return (
-		<div className={css["poll-title-row"]}>
-			<div className={css["poll-title"]}>
+		<div className="poll-title-row">
+			<div className="poll-title">
 				<input
 					className={readOnly ? "pe-none" : undefined}
 					id="poll-title"

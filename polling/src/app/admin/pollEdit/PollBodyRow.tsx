@@ -1,6 +1,5 @@
 import { Poll } from "@/store/pollingAdmin";
 import Editor from "@/components/editor";
-import css from "@/components/poll-layout.module.css";
 
 export function PollBodyRow({
 	poll,
@@ -12,7 +11,7 @@ export function PollBodyRow({
 	readOnly?: boolean;
 }) {
 	return (
-		<div className={css["poll-body-row"]}>
+		<div className="poll-body-row">
 			<Editor
 				style={{ width: "100%" }}
 				value={poll.body}

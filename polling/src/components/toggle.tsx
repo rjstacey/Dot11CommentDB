@@ -1,4 +1,5 @@
-import css from "./toggle.module.css";
+import cx from "clsx";
+import "./toggle.css";
 
 function LabeledToggle<V = string>({
 	className,
@@ -19,7 +20,7 @@ function LabeledToggle<V = string>({
 }) {
 	const widestLabel = options.reduce(
 		(w, o) => (o.label.length > w.length ? o.label : w),
-		""
+		"",
 	);
 	const i = options.findIndex((o) => o.value === value);
 	const selectedLabel = i >= 0 ? options[i].label : "(Blank)";
@@ -33,7 +34,7 @@ function LabeledToggle<V = string>({
 	const id = `toggle-${label}`;
 
 	return (
-		<div className={css.toggle + (className ? " " + className : "")}>
+		<div className={cx("toggle", className)}>
 			<label htmlFor={id}>{label}</label>
 			<button
 				id={id}

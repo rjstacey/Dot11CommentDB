@@ -5,19 +5,19 @@ import { PollsList } from "./pollsList";
 import { CurrentPoll } from "./currentPoll";
 import { selectPollingUserActivePoll } from "@/store/pollingUser";
 import cx from "clsx";
-import css from "./user.module.css";
+import "./user.css";
 
 function PollUser() {
 	const hasActivePoll = Boolean(useAppSelector(selectPollingUserActivePoll));
 
 	const currentPollTitle = (
-		<span className={cx(hasActivePoll && css["active-poll"])}>
+		<span className={cx(hasActivePoll && "active-poll")}>
 			{"Current Poll"}
 		</span>
 	);
 
 	return (
-		<div className={css["user-content"]}>
+		<div className="user-content">
 			<Tabs id="user-tabs" defaultActiveKey="0">
 				<Tab eventKey="0" title={currentPollTitle}>
 					<CurrentPoll />

@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useEffect, useCallback } from "react";
 import isEqual from "lodash.isequal";
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -11,18 +11,18 @@ import {
 export function usePollVote(
 	poll: Poll,
 	pollVotes: PollResult | null,
-	readOnly?: boolean
+	readOnly?: boolean,
 ) {
 	const dispatch = useAppDispatch();
-	const [busy, setBusy] = React.useState(false);
-	const [votes, setVotes] = React.useState<number[]>([]);
+	const [busy, setBusy] = useState(false);
+	const [votes, setVotes] = useState<number[]>([]);
 	const successful = pollVotes && isEqual(pollVotes.votes, votes);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		setVotes(pollVotes?.votes || []);
 	}, [pollVotes, poll]);
 
-	const toggleVote = React.useCallback(
+	const toggleVote = useCallback(
 		(index: number) => {
 			if (readOnly) {
 				console.warn("toggleVote while readOnly");
@@ -38,10 +38,10 @@ export function usePollVote(
 			}
 			setVotes(newVotes);
 		},
-		[votes, poll.choice, readOnly]
+		[votes, poll.choice, readOnly],
 	);
 
-	const submitVote = React.useCallback(async () => {
+	const submitVote = useCallback(async () => {
 		if (readOnly) {
 			console.warn("submitVote while readOnly");
 			return;

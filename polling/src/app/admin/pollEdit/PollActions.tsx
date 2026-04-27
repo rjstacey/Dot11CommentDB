@@ -7,11 +7,9 @@ import {
 } from "@/store/pollingAdmin";
 import { PollResult } from "@/components/poll";
 
-import css from "@/components/poll-layout.module.css";
-
 function PollReturns({ poll }: { poll: Poll }) {
 	const { pollId, numVotes, numVoters } = useAppSelector(
-		selectPollingAdminVoted
+		selectPollingAdminVoted,
 	);
 	if (
 		pollId !== poll.id ||
@@ -64,8 +62,8 @@ export function PollActions({
 	}
 
 	return (
-		<div className={css["poll-action-row"]}>
-			<div className={css["poll-action-group"]}>
+		<div className="poll-action-row">
+			<div className="poll-action-group">
 				<Button
 					variant="outline-primary"
 					active={Boolean(poll.state)}
@@ -98,7 +96,7 @@ export function PollActions({
 				<PollReturns poll={poll} />
 				<PollResult poll={poll} />
 			</div>
-			<div className={css["poll-action-group"]}>
+			<div className="poll-action-group">
 				<Button
 					name="reset"
 					variant="outline-warning"

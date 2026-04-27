@@ -14,8 +14,6 @@ import {
 
 import { PollsList } from "./pollsList";
 
-import css from "./admin.module.css";
-
 function EventShow({
 	value,
 	onChange,
@@ -87,7 +85,7 @@ function EventPanel() {
 	if (!event) return null;
 
 	return (
-		<div className={css["event-panel"]}>
+		<div className="event-panel">
 			<EventActions event={event} polls={polls} />
 			<PollsList polls={polls} />
 		</div>

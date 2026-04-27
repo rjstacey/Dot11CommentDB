@@ -1,7 +1,8 @@
 import type { Poll } from "@/store/pollingAdmin";
 import { PollState } from "./PollState";
 import cx from "clsx";
-import css from "./PollSummary.module.css";
+
+import "./pollSummary.css";
 
 export function PollSummary({
 	poll,
@@ -11,11 +12,11 @@ export function PollSummary({
 	className?: string;
 }) {
 	return (
-		<div className={cx(css.summary, className)}>
+		<div className={cx("poll-summary", className)}>
 			<div>
-				<div className={css.title}>{poll.title}</div>
+				<div className="title">{poll.title}</div>
 				<div
-					className={css.body}
+					className="body"
 					dangerouslySetInnerHTML={{ __html: poll.body }}
 				/>
 			</div>

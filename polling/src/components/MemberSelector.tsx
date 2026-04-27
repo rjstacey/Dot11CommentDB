@@ -1,4 +1,4 @@
-import React from "react";
+import { useMemo } from "react";
 import { Select } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -17,13 +17,13 @@ function MemberSelector({
 >) {
 	const { loading } = useAppSelector(selectMembersState);
 	const members = useAppSelector(selectMembers);
-	const options = React.useMemo(
+	const options = useMemo(
 		() =>
 			members.map((m) => ({
 				value: m.SAPIN,
 				label: `${m.SAPIN} ${m.Name} (${m.Status})`,
 			})),
-		[members]
+		[members],
 	);
 
 	const values = options.filter((o) => o.value === value);

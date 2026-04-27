@@ -6,12 +6,12 @@
 	padding: 1rem;
 	overflow: hidden;
 
-	& :global(.nav-link.published) {
+	& .nav-link.published {
 		background-color: #19875420;
 		color: var(--bs-nav-link-color);
 	}
 
-	& :global(.nav-link.active.published) {
+	& .nav-link.active.published {
 		background-color: #198754ff;
 		color: #fff;
 	}
@@ -27,16 +27,16 @@
 		border-top: none;
 		overflow: auto;
 	}
-}
 
-.event-create {
-	flex: 1;
-	display: flex;
-	justify-content: flex-end;
-	align-items: center;
+	.event-create {
+		flex: 1;
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
 
-	& > div {
-		margin-right: 0.5rem;
+		& > div {
+			margin-right: 0.5rem;
+		}
 	}
 }
 

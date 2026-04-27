@@ -3,7 +3,6 @@ import { Form, Button } from "react-bootstrap";
 import { useAppSelector } from "@/store/hooks";
 import cx from "clsx";
 import { type Poll, selectPollingUserPollVotes } from "@/store/pollingUser";
-import css from "@/components/poll-layout.module.css";
 import { usePollVote } from "@/hooks/pollVote";
 
 export function PollOptionsRow({
@@ -17,23 +16,20 @@ export function PollOptionsRow({
 	const { busy, successful, votes, toggleVote, submitVote } = usePollVote(
 		poll,
 		pollVotes,
-		readOnly
+		readOnly,
 	);
 
 	readOnly = readOnly || poll.state !== "opened";
 
 	return (
-		<div className={css["poll-options-row"]}>
-			<div className={css["poll-options-col1"]}>
+		<div className="poll-options-row">
+			<div className="poll-options-col1">
 				{poll.options.map((o, i) => {
 					const id = `poll-option-${i}`;
 					return (
 						<div
 							key={id}
-							className={cx(
-								css["poll-option"],
-								readOnly && "pe-none"
-							)}
+							className={cx("poll-option", readOnly && "pe-none")}
 						>
 							<Form.Check
 								id={id}
@@ -47,7 +43,7 @@ export function PollOptionsRow({
 					);
 				})}
 			</div>
-			<div className={css["poll-options-col2"]}>
+			<div className="poll-options-col2">
 				{readOnly ? (
 					pollVotes && <span>You voted</span>
 				) : (

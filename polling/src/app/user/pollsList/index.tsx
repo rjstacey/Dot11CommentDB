@@ -7,14 +7,12 @@ import {
 	Poll,
 } from "@/store/pollingUser";
 
-import css from "@/components/poll-list.module.css";
-
 import { PollDetail } from "./PollDetail";
 import { PollSummary } from "../../admin/pollSummary";
 
 function PollEntry({ poll, isSelected }: { poll: Poll; isSelected: boolean }) {
 	return (
-		<Accordion.Item eventKey={poll.id.toString()} className={css.item}>
+		<Accordion.Item eventKey={poll.id.toString()} className="poll-item">
 			<Accordion.Header>
 				{!isSelected && <PollSummary poll={poll} className="summary" />}
 			</Accordion.Header>
@@ -29,14 +27,14 @@ export function PollsList() {
 	const dispatch = useAppDispatch();
 	const polls = useAppSelector(selectPollingUserPolls);
 	const pollId = useAppSelector(selectPollingUserSelectedPollId);
-	const setAciveKey = (eventKey?: string | string[] | null) =>
+	const setActiveKey = (eventKey?: string | string[] | null) =>
 		dispatch(setSelectedPollId(eventKey ? Number(eventKey) : null));
 
 	return (
 		<Accordion
-			className={css["poll-list"]}
+			className="poll-list"
 			activeKey={pollId?.toString()}
-			onSelect={setAciveKey}
+			onSelect={setActiveKey}
 		>
 			{polls.map((poll) => (
 				<PollEntry

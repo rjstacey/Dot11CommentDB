@@ -1,0 +1,77 @@
+header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	width: 100%;
+	padding-left: 1rem;
+	padding-right: 1rem;
+	box-sizing: border-box;
+
+	& .title {
+		color: #008080;
+		font-style: italic;
+		cursor: pointer;
+	}
+
+	.title {
+		display: inline-block;
+		margin: 0;
+		padding: 0;
+		color: #008080;
+		text-align: center;
+	}
+
+	& .nav-menu-container {
+		flex: 1;
+		padding: 0 1em;
+		max-width: 900px;
+		display: flex;
+		align-items: flex-start;
+	}
+
+	& .nav-small-menu {
+		display: flex;
+		flex-direction: row;
+	}
+
+	& .nav-menu {
+		display: flex;
+		align-items: flex-start;
+	}
+
+	& .nav-small-menu i {
+		font-size: 20px;
+	}
+
+	& .nav-menu-horizontal {
+		flex-direction: row;
+		justify-content: space-between;
+		padding: 0 5px;
+	}
+
+	& .nav-menu-vertical {
+		flex-direction: column;
+		width: 150px;
+	}
+
+	& .nav-link {
+		display: inline-block;
+		margin: 0 20px;
+		text-align: center;
+		color: #005979;
+		font-size: 18px;
+		font-weight: 600;
+		text-decoration: none;
+		cursor: pointer;
+	}
+
+	& .nav-link.active,
+	& .nav-link:hover {
+		color: black;
+	}
+
+	& .account {
+		padding: 0 5px;
+	}
+}

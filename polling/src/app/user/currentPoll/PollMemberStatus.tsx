@@ -4,7 +4,6 @@ import {
 	PollVotersType,
 	selectPollingUserStatus,
 } from "@/store/pollingUser";
-import css from "@/components/poll-layout.module.css";
 
 export function PollMemberStatus({ poll }: { poll: Poll }) {
 	const status = useAppSelector(selectPollingUserStatus);
@@ -26,7 +25,7 @@ export function PollMemberStatus({ poll }: { poll: Poll }) {
 			votersStr += " You can vote.";
 	}
 	return (
-		<div className={css["poll-title-row"]}>
+		<div className="poll-title-row">
 			<span>Your status: {status}</span>
 			<br />
 			<span>{votersStr}</span>

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect, useMemo } from "react";
 
 import { Select } from "@common";
 
@@ -19,13 +19,13 @@ function TimeZoneSelector({
 	const dispatch = useAppDispatch();
 	const { valid, loading, timeZones } = useAppSelector(selectTimeZonesState);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (!valid && !loading) dispatch(loadTimeZones());
 	}, []);
 
-	const options = React.useMemo(
+	const options = useMemo(
 		() => timeZones.map((tz: string) => ({ value: tz, label: tz })),
-		[timeZones]
+		[timeZones],
 	);
 
 	function handleChange(values: typeof options) {

@@ -6,7 +6,6 @@ import {
 	PollVotersType,
 	selectPollingAdminVoted,
 } from "@/store/pollingAdmin";
-import React from "react";
 
 export function PollVotersSelect({
 	poll,
@@ -35,7 +34,7 @@ export function PollVotersSelect({
 			className={cx(
 				"d-flex align-items-center gap-2",
 				readOnly && "pe-none",
-				className
+				className,
 			)}
 		>
 			<div className="d-flex flex-column align-items-center">
