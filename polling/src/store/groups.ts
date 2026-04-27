@@ -77,7 +77,7 @@ const dataAdapter = createEntityAdapter<Group>();
 const initialState: {
 	topLevelGroupId: string | null;
 	selectedGroupId: string | null;
-	lastLoad: Record<string, string | null>;
+	lastLoad: Record<string, string | undefined>;
 	loading: boolean;
 	valid: boolean;
 } = {
@@ -97,16 +97,18 @@ const slice = createSlice({
 		setSelectedGroupId(state, action: PayloadAction<string | null>) {
 			state.selectedGroupId = action.payload;
 		},
-		getPending(state, action: PayloadAction<{ groupName: string }>) {
-			const { groupName } = action.payload;
+		getPending(state) {
 			state.loading = true;
-			state.lastLoad[groupName] = new Date().toISOString();
 		},
 		getFailure(state) {
 			state.loading = false;
 		},
-		getSuccess(state, action: PayloadAction<Group[]>) {
-			const groups = action.payload;
+		getSuccess(
+			state,
+			action: PayloadAction<{ groupName: string; groups: Group[] }>,
+		) {
+			const { groupName, groups } = action.payload;
+			state.lastLoad[groupName] = new Date().toISOString();
 			dataAdapter.setMany(state, groups); // add or replace
 			state.loading = false;
 			state.valid = true;
@@ -274,13 +276,13 @@ export const loadGroups =
 		const age = selectGroupsAge(getState(), groupName);
 		if (age && age < AGE_STALE) return;
 
-		dispatch(getPending({ groupName }));
+		dispatch(getPending());
 		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
 		loadingPromise[groupName] = fetcher
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
 			.then((response: unknown) => {
 				const groups = groupsSchema.parse(response);
-				dispatch(getSuccess(groups));
+				dispatch(getSuccess({ groupName, groups }));
 			})
 			.catch((error: unknown) => {
 				dispatch(getFailure());
