@@ -38,6 +38,7 @@ function MeetingSelector({
 	readOnly,
 	fromDate,
 	toDate,
+	timezone,
 	...props
 }: {
 	value: number | null;
@@ -45,6 +46,7 @@ function MeetingSelector({
 	readOnly?: boolean;
 	fromDate?: string;
 	toDate?: string;
+	timezone?: string;
 } & Pick<
 	React.ComponentProps<typeof Select>,
 	"readOnly" | "disabled" | "id" | "placeholder" | "className" | "style"
@@ -55,15 +57,17 @@ function MeetingSelector({
 	const options = useMemo(() => {
 		let options = ids.map((id) => entities[id]!);
 		if (fromDate) {
-			const date = DateTime.fromISO(fromDate);
+			const date = DateTime.fromISO(fromDate, { zone: timezone });
 			options = options.filter((o) => DateTime.fromISO(o.start) >= date);
 		}
 		if (toDate) {
-			const date = DateTime.fromISO(toDate);
+			const date = DateTime.fromISO(toDate, { zone: timezone }).plus({
+				days: 1,
+			});
 			options = options.filter((o) => DateTime.fromISO(o.end) <= date);
 		}
 		return options;
-	}, [entities, ids, fromDate, toDate]);
+	}, [entities, ids, fromDate, toDate, timezone]);
 
 	const values = options.filter((o) => o.id === value);
 	const handleChange = (values: typeof options) =>

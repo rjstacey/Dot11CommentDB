@@ -664,14 +664,9 @@ function AssociatedMeetingSelector({
 	onChange: (value: number | null) => void;
 } & Omit<
 	React.ComponentProps<typeof MeetingSelector>,
-	"value" | "onChange" | "fromDate" | "toDate"
+	"value" | "onChange" | "fromDate" | "toDate" | "timezone"
 >) {
 	const session = useAppSelector(selectCurrentSession);
-	let fromDate, toDate;
-	if (session) {
-		fromDate = session.startDate;
-		toDate = session.endDate;
-	}
 
 	function handleChange(v: number | null) {
 		if (v !== value) onChange(v);
@@ -681,8 +676,9 @@ function AssociatedMeetingSelector({
 		<MeetingSelector
 			value={value}
 			onChange={handleChange}
-			fromDate={fromDate}
-			toDate={toDate}
+			fromDate={session?.startDate}
+			toDate={session?.endDate}
+			timezone={session?.timezone}
 			{...otherProps}
 		/>
 	);

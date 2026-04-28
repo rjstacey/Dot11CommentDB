@@ -86,7 +86,7 @@ function convertBreakoutToMeetingEntry(
 		date: start.toISODate()!,
 		dates: [start.toISODate()!],
 		slots: [],
-		isSessionMeeting: true,
+		isSessionMeeting: session.type === "p" || session.type === "i",
 		startTime: breakout.startTime,
 		endTime: breakout.endTime,
 		startSlotId: null,
@@ -380,7 +380,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 			}
 			dispatchStateAction(CHANGE_MEETING(changes));
 		},
-		[readOnly, dispatchStateAction],
+		[readOnly, state.action, dispatchStateAction],
 	);
 
 	const onChangeBreakout = useCallback(
@@ -420,6 +420,7 @@ export function useImatBreakoutsEdit(readOnly: boolean) {
 				),
 			);
 			await dispatch(addMeetings(meetings));
+			dispatchStateAction(INIT);
 		} else if (state.action === "add") {
 			const entry = state.edited;
 			const imatMeetingId = state.imatMeetingId;

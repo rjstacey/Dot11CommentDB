@@ -173,6 +173,7 @@ function AssociatedMeetingSelector({
 			onChange={handleChange}
 			fromDate={imatMeeting?.start}
 			toDate={imatMeeting?.end}
+			timezone={imatMeeting?.timezone}
 			{...otherProps}
 		/>
 	);

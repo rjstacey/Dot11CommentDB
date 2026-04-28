@@ -654,6 +654,58 @@ const breakoutCredit = {
 	Other: 4,
 };
 
+function pageBreakoutToBreakout(
+	imatMeeting: ImatMeeting,
+	timeslots: ImatTimeslot[],
+	pageCommittees: PageCommittee[],
+	pageBreakout: PageBreakout,
+): Breakout {
+	const { startSlotName, endSlotName, groupShortName, ...rest } =
+		pageBreakout;
+	const startSlot = timeslots.find((t) => t.name === startSlotName);
+	if (!startSlot) throw new Error("Can't find startSlot " + startSlotName);
+	const endSlot = timeslots.find((t) => t.name === endSlotName);
+	if (!endSlot) throw new Error("Can't find endSlot " + endSlotName);
+	// The committee symbolName is something like "C/LM/WG802.11/802.11ax Standard...", where the short name follows
+	// the last slash and is followed by a space.
+	const re = new RegExp(`(.*/${groupShortName}) `);
+	const committee = pageCommittees.find((c) => re.test(c.symbolName));
+	if (!committee)
+		throw new Error("Can't find committee for " + groupShortName);
+	const symbol = re.exec(committee.symbolName)![1];
+
+	// Set start and end
+	const startTime = pageBreakout.startTime || startSlot.startTime;
+	const endTime = pageBreakout.endTime || endSlot.endTime;
+	const start =
+		DateTime.fromISO(imatMeeting.start, { zone: imatMeeting.timezone })
+			.plus({ days: pageBreakout.day })
+			.set({
+				hour: Number(startTime?.substring(0, 2)),
+				minute: Number(startTime?.substring(3)),
+			})
+			.toISO() || "";
+	const end =
+		DateTime.fromISO(imatMeeting.start, { zone: imatMeeting.timezone })
+			.plus({ days: pageBreakout.day })
+			.set({
+				hour: Number(endTime?.substring(0, 2)),
+				minute: Number(endTime?.substring(3)),
+			})
+			.toISO() || "";
+
+	return {
+		...rest,
+		startSlotId: startSlot.id,
+		start,
+		endSlotId: endSlot.id,
+		end,
+		groupId: committee.id,
+		symbol,
+		facilitator: "",
+	};
+}
+
 async function addImatBreakout(
 	user: UserContext,
 	imatMeeting: ImatMeeting,
@@ -697,7 +749,7 @@ async function addImatBreakout(
 	/* Override the timeslots from session detail page; the user may not have permission to modify the timeslots
 	 * and thus might not get the slot ID. */
 	const breakouts: Breakout[] = pageBreakouts.map((b) =>
-		pageBreakoutToBreakout(b, timeslots, pageCommittees),
+		pageBreakoutToBreakout(imatMeeting, timeslots, pageCommittees, b),
 	);
 
 	const b = breakouts.find(
@@ -714,34 +766,6 @@ async function addImatBreakout(
 	}
 
 	return b;
-}
-
-function pageBreakoutToBreakout(
-	pageBreakout: PageBreakout,
-	timeslots: ImatTimeslot[],
-	pageCommittees: PageCommittee[],
-): Breakout {
-	const { startSlotName, endSlotName, groupShortName, ...rest } =
-		pageBreakout;
-	const startSlot = timeslots.find((t) => t.name === startSlotName);
-	if (!startSlot) throw new Error("Can't find startSlot " + startSlotName);
-	const endSlot = timeslots.find((t) => t.name === endSlotName);
-	if (!endSlot) throw new Error("Can't find endSlot " + endSlotName);
-	// The committee symbolName is something like "C/LM/WG802.11/802.11ax Standard...", where the short name follows
-	// the last slash and is followed by a space.
-	const re = new RegExp(`(.*/${groupShortName}) `);
-	const committee = pageCommittees.find((c) => re.test(c.symbolName));
-	if (!committee)
-		throw new Error("Can't find committee for " + groupShortName);
-	const symbol = re.exec(committee.symbolName)![1];
-	return {
-		...rest,
-		startSlotId: startSlot.id,
-		endSlotId: endSlot.id,
-		groupId: committee.id,
-		symbol,
-		facilitator: "",
-	};
 }
 
 export async function addImatBreakouts(
@@ -811,6 +835,8 @@ export async function deleteImatBreakouts(
 async function updateImatBreakout(
 	user: UserContext,
 	imatMeeting: ImatMeeting,
+	timeslots: ImatTimeslot[],
+	pageCommittees: PageCommittee[],
 	breakout: BreakoutUpdate,
 ) {
 	const ieeeClient = getIeeeClientOrThrow(user);
@@ -853,7 +879,7 @@ async function updateImatBreakout(
 	const b = pageBreakouts.find((b) => breakout.id === b.id);
 	if (!b) throw new NotFoundError("Unable to find updated breakout");
 
-	return b;
+	return pageBreakoutToBreakout(imatMeeting, timeslots, pageCommittees, b);
 }
 
 export async function updateImatBreakouts(
@@ -870,18 +896,19 @@ export async function updateImatBreakouts(
 	const data = await ieeeClient.getHtml(url);
 	const { timeslots, pageCommittees } = parseAddMeetingPage(data);
 
-	const pageBreakouts = await Promise.all(
+	const breakoutsOut = await Promise.all(
 		breakouts.map((breakout) =>
-			updateImatBreakout(user, imatMeeting, breakout),
+			updateImatBreakout(
+				user,
+				imatMeeting,
+				timeslots,
+				pageCommittees,
+				breakout,
+			),
 		),
 	);
 
-	// Correct the timeslots and committee from session detail page
-	breakouts = pageBreakouts.map((b) =>
-		pageBreakoutToBreakout(b, timeslots, pageCommittees),
-	);
-
-	return breakouts;
+	return breakoutsOut;
 }
 
 function slotDateTime(date: DateTime, slot: ImatTimeslot) {
@@ -1211,7 +1238,13 @@ export async function addImatBreakoutFromMeeting(
 		breakoutOut.creditOverrideNumerator = breakout.creditOverrideNumerator;
 		breakoutOut.creditOverrideDenominator =
 			breakout.creditOverrideDenominator;
-		await updateImatBreakout(user, imatMeeting, breakoutOut);
+		await updateImatBreakout(
+			user,
+			imatMeeting,
+			timeslots,
+			pageCommittees,
+			breakoutOut,
+		);
 	}
 
 	return breakoutOut;
@@ -1229,8 +1262,8 @@ export async function updateImatBreakoutFromMeeting(
 	if (typeof imatBreakoutId !== "number")
 		throw new TypeError("IMAT breakout ID not specified");
 
-	const { imatMeeting, breakouts, timeslots, committees } =
-		await getImatBreakouts(user, imatMeetingId);
+	const { imatMeeting, breakouts, timeslots, committees, pageCommittees } =
+		await getImatBreakoutsInternal(user, imatMeetingId);
 
 	let breakout = breakouts.find((b) => b.id === imatBreakoutId);
 	if (!breakout)
@@ -1291,12 +1324,13 @@ export async function updateImatBreakoutFromMeeting(
 	console.log("IMAT breakout update " + (doUpdate ? "needed" : "not needed"));
 	if (doUpdate) {
 		console.log(breakout, updatedBreakout);
-		await updateImatBreakout(user, imatMeeting, updatedBreakout);
-		breakout = {
-			...updatedBreakout,
-			start: "", // Fix!
-			end: "",
-		};
+		breakout = await updateImatBreakout(
+			user,
+			imatMeeting,
+			timeslots,
+			pageCommittees,
+			updatedBreakout,
+		);
 	}
 
 	return breakout;
