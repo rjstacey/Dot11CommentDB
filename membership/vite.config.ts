@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv, type UserConfig } from "vite";
+//import { analyzer } from "vite-bundle-analyzer";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
@@ -22,25 +23,53 @@ export default defineConfig(({ command, mode }) => {
 			rollupOptions: {
 				output: {
 					manualChunks: {
-						react: ["react", "react-dom"],
-						boostrap: ["react-bootstrap"],
+						"react-dom": ["react-dom/client"],
+						boostrap: [
+							"react-bootstrap",
+							"bootstrap/dist/css/bootstrap.min.css",
+							"bootstrap-icons/font/bootstrap-icons.css",
+						],
+						router: ["react-router"],
 						redux: [
 							"@reduxjs/toolkit",
 							"react-redux",
 							"redux-persist",
 							"redux-logger",
+							"@piotr-cz/redux-persist-idb-storage",
 						],
-						d3: ["d3"],
+						lexical: [
+							"lexical",
+							"@lexical/history",
+							"@lexical/list",
+							"@lexical/link",
+							"@lexical/extension",
+							"@lexical/rich-text",
+							"@lexical/code",
+							"@lexical/selection",
+							"@lexical/utils",
+							"@lexical/html",
+							"@lexical/react/LexicalContentEditable",
+							"@lexical/react/LexicalExtensionComposer",
+							"@lexical/react/LexicalComposerContext",
+						],
+						utils: [
+							"clsx",
+							"react-window",
+							//"react-draggable",
+							"file-saver",
+							"lodash.isequal",
+							"lodash.debounce",
+						],
+						zod: ["zod"],
 						luxon: ["luxon"],
-						editor: ["./src/components/editor"],
-						store: ["./src/store"],
-						app: ["./src/app"],
+						d3: ["d3"],
 					},
 				},
 			},
 		},
 		plugins: [
 			react(),
+			//analyzer(),
 			VitePWA({
 				registerType: "autoUpdate",
 				devOptions: {
