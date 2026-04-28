@@ -1,12 +1,12 @@
-import { lazy } from "react";
+//import { lazy } from "react";
 import type { RouteObject } from "react-router";
 
 import { AppLayout } from "./layout";
 import { AppErrorPage } from "./errorPage";
-//import PollAdmin from "./admin";
-const PollAdmin = lazy(() => import("./admin"));
-//import PollUser from "./user";
-const PollUser = lazy(() => import("./user"));
+import PollAdmin from "./admin";
+//const PollAdmin = lazy(() => import("./admin"));
+import PollUser from "./user";
+//const PollUser = lazy(() => import("./user"));
 
 import {
 	rootLoader,

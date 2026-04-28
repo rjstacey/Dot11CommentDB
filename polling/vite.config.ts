@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
+//import { analyzer } from "vite-bundle-analyzer";
 import path from "node:path";
 //import { ProxyAgent } from "proxy-agent";
 import type { Agent } from "node:https";
@@ -27,22 +28,51 @@ export default defineConfig(({ command, mode }) => {
 			rollupOptions: {
 				output: {
 					manualChunks: {
-						react: ["react", "react-dom"],
+						"react-dom": ["react-dom/client"],
+						boostrap: [
+							"react-bootstrap",
+							"bootstrap/dist/css/bootstrap.min.css",
+							"bootstrap-icons/font/bootstrap-icons.css",
+						],
 						router: ["react-router"],
-						boostrap: ["react-bootstrap"],
 						redux: [
 							"@reduxjs/toolkit",
 							"react-redux",
 							"redux-persist",
 							"redux-logger",
+							"@piotr-cz/redux-persist-idb-storage",
 						],
-						common: ["@common"],
-						store: ["./src/store"],
+						lexical: [
+							"lexical",
+							"@lexical/history",
+							"@lexical/list",
+							"@lexical/link",
+							"@lexical/extension",
+							"@lexical/rich-text",
+							"@lexical/code",
+							"@lexical/selection",
+							"@lexical/utils",
+							"@lexical/html",
+							"@lexical/react/LexicalContentEditable",
+							"@lexical/react/LexicalExtensionComposer",
+							"@lexical/react/LexicalComposerContext",
+						],
+						utils: [
+							"clsx",
+							"react-window",
+							//"react-draggable",
+							"file-saver",
+							"lodash.isequal",
+							"lodash.debounce",
+						],
+						zod: ["zod"],
+						socket: ["socket.io-client"],
+						luxon: ["luxon"],
 					},
 				},
 			},
 		},
-		plugins: [react()],
+		plugins: [react() /*, analyzer()*/],
 		resolve: {
 			alias: {
 				"@": "/src",
