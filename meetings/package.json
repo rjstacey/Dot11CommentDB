@@ -14,7 +14,7 @@
 		"assets": "scripts/convert.sh"
 	},
 	"dependencies": {
-		"react-virtualized-auto-sizer": "^1.0.20"
+		"react-virtualized-auto-sizer": "^1.0.26"
 	},
 	"devDependencies": {
 		"@types/react-virtualized-auto-sizer": "^1.0.4",
