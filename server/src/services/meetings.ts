@@ -595,11 +595,11 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 		const webexMeetingParams = meetingToWebexMeeting(meeting);
 		if (meetingToAdd.webexMeetingId === "$add") {
 			webexMeeting = await addWebexMeeting(webexMeetingParams);
-			meeting.webexMeetingId = webexMeeting.id;
 		} else {
 			// Meeting created with a link to existing webex meeting
 			webexMeeting = await updateWebexMeeting(webexMeetingParams);
 		}
+		meeting.webexMeetingId = webexMeeting.id;
 	}
 
 	session = await session!; // do webex update while we wait for session
@@ -613,15 +613,15 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 				meeting,
 				webexMeeting,
 			);
-			meeting.imatBreakoutId = breakout.id!;
 		} else {
 			breakout = await updateImatBreakoutFromMeeting(
 				user,
 				session,
-				meeting,
+				meetingToAdd,
 				webexMeeting,
 			);
 		}
+		meeting.imatBreakoutId = breakout.id;
 
 		/* Update the IMAT entries for meetings that might be affected by the grace period */
 		const affectedMeetings = await meetingsAffectedByGracePeriod(meeting);
