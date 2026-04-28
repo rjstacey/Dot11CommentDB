@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv, type UserConfig } from "vite";
+//import { analyzer } from "vite-bundle-analyzer";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 
@@ -17,20 +18,34 @@ export default defineConfig(({ command, mode }) => {
 			rollupOptions: {
 				output: {
 					manualChunks: {
-						react: ["react", "react-dom"],
-						boostrap: ["react-bootstrap"],
+						"react-dom": ["react-dom/client"],
+						boostrap: [
+							"react-bootstrap",
+							"bootstrap/dist/css/bootstrap.min.css",
+							"bootstrap-icons/font/bootstrap-icons.css",
+						],
 						router: ["react-router"],
 						redux: [
 							"@reduxjs/toolkit",
 							"react-redux",
 							"redux-persist",
 							"redux-logger",
+							"@piotr-cz/redux-persist-idb-storage",
 						],
+						utils: [
+							"clsx",
+							"react-window",
+							//"react-draggable",
+							"file-saver",
+							"lodash.isequal",
+							"lodash.debounce",
+						],
+						zod: ["zod"],
 					},
 				},
 			},
 		},
-		plugins: [react()],
+		plugins: [react() /*, analyzer()*/],
 		resolve: {
 			alias: {
 				"@": "/src",
