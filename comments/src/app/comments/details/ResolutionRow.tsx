@@ -67,8 +67,8 @@ function ResnStatus({
 				className={cx("rejected-checkbox", readOnly && "pe-none")}
 				tabIndex={readOnly ? -1 : undefined}
 			/>
-			<div className="shadow" />
-			<div className="block" />
+			<div className="resolution-status-shadow" />
+			<div className="resolution-status-block" />
 		</Form.Group>
 	);
 }
