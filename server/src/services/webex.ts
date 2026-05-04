@@ -495,8 +495,7 @@ export async function getWebexMeetings({
 			const i = m.integrationTags?.find((tag) =>
 				tag.startsWith("sessionId"),
 			);
-			const sId = i ? Number(i.match(/\d*/)?.[0]) : null;
-			if (sId && sId !== sessionId) return false;
+			if (i && Number(i.match(/\d+/)) !== sessionId) return false;
 			return true; // Keep if there is no sessionId tag or if the sessionId tag matches the sessionId
 		});
 	}
