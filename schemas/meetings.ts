@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { errorSchema, errorsSchema } from "./error.js";
 import {
 	webexMeetingCreateSchema,
 	webexMeetingChangeSchema,
@@ -39,8 +40,8 @@ export const meetingsQuerySchema = z
 		id: z.union([z.coerce.number(), z.coerce.number().array()]),
 		groupId: groupIdSchema,
 		sessionId: z.coerce.number(),
-		fromDate: z.string().date(),
-		toDate: z.string().date(),
+		fromDate: z.iso.date(),
+		toDate: z.iso.date(),
 		timezone: z.string(),
 		organizationId: z.union([z.string(), z.string().array()]),
 		imatMeetingId: z.number(),
@@ -54,16 +55,6 @@ export const meetingCreateWebexParamsSchema = webexMeetingCreateSchema.omit({
 	title: true,
 	integrationTags: true,
 });
-
-export const meetingCreateSchema = meetingSchema
-	.omit({ id: true, roomName: true })
-	.extend({
-		webexMeetingId: z.union([z.string(), z.null(), z.literal("$add")]),
-		imatBreakoutId: z.union([z.number(), z.null(), z.literal("$add")]),
-		webexMeeting: meetingCreateWebexParamsSchema.optional(),
-	});
-export const meetingCreatesSchema = meetingCreateSchema.array();
-
 export const meetingChangeWebexParamsSchema = webexMeetingChangeSchema.omit({
 	start: true,
 	end: true,
@@ -71,12 +62,22 @@ export const meetingChangeWebexParamsSchema = webexMeetingChangeSchema.omit({
 	title: true,
 	integrationTags: true,
 });
-export const meetingChangeSchema = meetingCreateSchema
-	.omit({ webexMeeting: true })
+
+export const meetingCreateSchema = meetingSchema
+	.omit({ id: true, roomName: true })
 	.extend({
-		webexMeeting: meetingChangeWebexParamsSchema.optional(),
-	})
-	.partial();
+		imatBreakoutId: z.union([z.number(), z.null(), z.literal("$add")]),
+		webexMeetingId: z.union([z.string(), z.null(), z.literal("$add")]),
+		webexMeeting: z
+			.union([
+				meetingCreateWebexParamsSchema,
+				meetingChangeWebexParamsSchema,
+			])
+			.optional(),
+	});
+export const meetingCreatesSchema = meetingCreateSchema.array();
+
+export const meetingChangeSchema = meetingCreateSchema.partial();
 
 export const meetingUpdateSchema = z.object({
 	id: z.number(),
@@ -93,6 +94,7 @@ export const meetingsUpdateResponse = z.object({
 	meetings: meetingsSchema,
 	webexMeetings: webexMeetingsSchema,
 	breakouts: breakoutsSchema,
+	errors: errorsSchema.optional(),
 });
 
 export type Meeting = z.infer<typeof meetingSchema>;

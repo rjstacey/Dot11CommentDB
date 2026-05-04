@@ -7,7 +7,6 @@ import type {
 	MeetingEntryPartial,
 } from "@/hooks/meetingsEdit";
 import { MULTIPLE_STR } from "@/components/constants";
-import TimeZoneSelector from "@/components/TimeZoneSelector";
 
 function SessionDateSelector({
 	value,
@@ -195,7 +194,6 @@ function SessionMeetingTime({
 }
 
 type TeleconTime = {
-	timezone: string;
 	dates: string[];
 	startTime: string;
 	duration: string;
@@ -214,33 +212,6 @@ function TeleconMeetingTime({
 }) {
 	return (
 		<>
-			<Form.Group as={Row} className="mb-3">
-				<Form.Label htmlFor="meeting-timezone" column>
-					Time zone:
-				</Form.Label>
-				<Col xs="auto">
-					<TimeZoneSelector
-						id="meeting-timezone"
-						style={{ width: 250 }}
-						value={
-							isMultiple(entry.timezone)
-								? ""
-								: entry.timezone || ""
-						}
-						onChange={(timezone) => changeEntry({ timezone })}
-						placeholder={
-							isMultiple(entry.timezone)
-								? MULTIPLE_STR
-								: undefined
-						}
-						readOnly={readOnly}
-						isInvalid={!entry.timezone}
-					/>
-					<Form.Control.Feedback type="invalid">
-						{"Enter time zone"}
-					</Form.Control.Feedback>
-				</Col>
-			</Form.Group>
 			<Form.Group as={Row} className="mb-3">
 				<Col>
 					<Form.Label htmlFor="meeting-dates">

@@ -1,3 +1,5 @@
+import type { ErrorObject } from "@schemas/error.js";
+
 /** Bad request; return 400 to client. */
 export class BadRequestError extends Error {
 	name = "BadRequestError";
@@ -23,10 +25,19 @@ export class ForbiddenError extends Error {
 	}
 }
 
-/** Resouce not found error; return 404 to client. */
+/** Resource not found error; return 404 to client. */
 export class NotFoundError extends Error {
 	name = "NotFoundError";
 	constructor(msg = "Not found") {
 		super(msg);
+	}
+}
+
+export { ErrorObject };
+export function createErrorObject(error: unknown): ErrorObject {
+	if (error instanceof Error) {
+		return { name: error.name, message: error.message };
+	} else {
+		return { name: "Error", message: String(error) };
 	}
 }

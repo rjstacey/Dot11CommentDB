@@ -34,14 +34,32 @@ export const errorsSlice = createSlice({
 
 export const { clearOne, clearAll } = errorsSlice.actions;
 
+type ErrorObject = {
+	name: string;
+	message: string;
+};
+
+function isErrorObject(error: unknown): error is ErrorObject {
+	return (
+		typeof error === "object" &&
+		error !== null &&
+		"name" in error &&
+		"message" in error &&
+		typeof error.name === "string" &&
+		typeof error.message === "string"
+	);
+}
+
 export function setError(summary: string, error: any) {
 	let detail: string;
 	if (typeof error === "string") {
 		detail = error;
 	} else if (error instanceof Error) {
 		detail = error.name + "\n" + error.message;
+	} else if (isErrorObject(error)) {
+		detail = error.name + "\n" + error.message;
 	} else {
-		detail = error.toString();
+		detail = JSON.stringify(error);
 	}
 	return errorsSlice.actions.setError({ summary, detail });
 }

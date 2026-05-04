@@ -80,7 +80,7 @@ function endTimeFromDuration(startTime: string, duration: string) {
 	const dt = Duration.fromObject(
 		m
 			? { hours: m[1] ? Number(m[1]) : 0, minutes: Number(m[2]) }
-			: { hours: Number(d) }
+			: { hours: Number(d) },
 	);
 	return DateTime.fromFormat(startTime, "HH:mm").plus(dt).toFormat("HH:mm");
 }
@@ -100,18 +100,18 @@ export function startSlotBestMatch(session: Session, start: DateTime) {
 			}
 			return current;
 		},
-		null as (typeof session.timeslots)[number] | null
+		null as (typeof session.timeslots)[number] | null,
 	);
 }
 
 export function convertMeetingToEntry(
 	meeting: SyncedMeeting,
-	session: Session
+	session: Session,
 ): MeetingEntry {
 	const { start: startIn, end: endIn, webexMeeting, ...rest } = meeting;
 
 	const isSessionMeeting = getIsSessionMeeting(session);
-	const zone = isSessionMeeting ? session.timezone : meeting.timezone;
+	const zone = session.timezone;
 	const start = DateTime.fromISO(startIn, { zone });
 	const end = DateTime.fromISO(endIn, { zone });
 	const date = start.toISODate()!;
@@ -154,18 +154,17 @@ export function convertMeetingToEntry(
 
 export function convertEntryToMeeting(
 	entry: MeetingEntry,
-	session: Session
+	session: Session,
 ): MeetingCreate {
 	const { isSessionMeeting, date, startTime, ...rest } = entry;
 
-	let zone, endTime;
+	let endTime;
 	if (entry.isSessionMeeting) {
-		zone = session.timezone;
 		endTime = entry.endTime;
 	} else {
-		zone = entry.timezone;
 		endTime = endTimeFromDuration(startTime, entry.duration);
 	}
+	const zone = session.timezone;
 	const start = DateTime.fromISO(date, { zone }).set(fromTimeStr(startTime));
 	let end = DateTime.fromISO(date, { zone }).set(fromTimeStr(endTime));
 	if (end < start) end = end.plus({ days: 1 });
@@ -175,5 +174,6 @@ export function convertEntryToMeeting(
 		timezone: zone,
 		start: start.toISO()!,
 		end: end.toISO()!,
+		sessionId: session.id,
 	};
 }

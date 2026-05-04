@@ -489,6 +489,17 @@ export async function getWebexMeetings({
 		webexMeetings = webexMeetings.concat(meetings);
 	}
 
+	if (sessionId) {
+		// Filter meetings to those that have some overlap with the session
+		webexMeetings = webexMeetings.filter((m) => {
+			const i = m.integrationTags?.find((tag) =>
+				tag.startsWith("sessionId"),
+			);
+			if (i && Number(i.match(/\d*/)) !== sessionId) return false;
+			return true; // Keep if there is no sessionId tag or if the sessionId tag matches the sessionId
+		});
+	}
+
 	// Looking for specific meetings
 	if (ids) webexMeetings = webexMeetings.filter((m) => ids.includes(m.id));
 	webexMeetings = webexMeetings.sort(

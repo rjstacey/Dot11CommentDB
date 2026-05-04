@@ -72,7 +72,7 @@ type PageCommittee = {
 	symbolName: string; // Committee symbol concatenated with the committee name
 };
 
-/** Committees as listed in CVS file */
+/** Committees as listed in CSV file */
 type CsvCommittee = Omit<ImatCommittee, "id"> & {
 	/** The CSV file uses a different identifier from the web page */
 	id: string;
@@ -570,31 +570,85 @@ async function parseImatTimeslotCsv(buffer: Buffer) {
 	}));
 }*/
 
+function pageBreakoutToBreakout(
+	imatMeeting: ImatMeeting,
+	timeslots: ImatTimeslot[],
+	pageCommittees: PageCommittee[],
+	pageBreakout: PageBreakout,
+): Breakout {
+	const { startSlotName, endSlotName, groupShortName, ...rest } =
+		pageBreakout;
+	const startSlot = timeslots.find((t) => t.name === startSlotName);
+	if (!startSlot) throw new Error("Can't find startSlot " + startSlotName);
+	const endSlot = timeslots.find((t) => t.name === endSlotName);
+	if (!endSlot) throw new Error("Can't find endSlot " + endSlotName);
+	// The committee symbolName is something like "C/LM/WG802.11/802.11ax Standard...", where the short name follows
+	// the last slash and is followed by a space.
+	const re = new RegExp(`(.*/${groupShortName}) `);
+	const committee = pageCommittees.find((c) => re.test(c.symbolName));
+	if (!committee)
+		throw new Error("Can't find committee for " + groupShortName);
+	const symbol = re.exec(committee.symbolName)![1];
+
+	// Set start and end
+	/*const startTime = pageBreakout.startTime || startSlot.startTime;
+	const endTime = pageBreakout.endTime || endSlot.endTime;
+	const start =
+		DateTime.fromISO(imatMeeting.start, { zone: imatMeeting.timezone })
+			.plus({ days: pageBreakout.day })
+			.set({
+				hour: Number(startTime?.substring(0, 2)),
+				minute: Number(startTime?.substring(3)),
+			})
+			.toISO() || "";
+	const end =
+		DateTime.fromISO(imatMeeting.start, { zone: imatMeeting.timezone })
+			.plus({ days: pageBreakout.day })
+			.set({
+				hour: Number(endTime?.substring(0, 2)),
+				minute: Number(endTime?.substring(3)),
+			})
+			.toISO() || "";*/
+
+	return {
+		...rest,
+		startSlotId: startSlot.id,
+		//start,
+		endSlotId: endSlot.id,
+		//end,
+		groupId: committee.id,
+		symbol,
+		facilitator: "",
+	};
+}
+
 /**
  * Get breakouts for an IMAT meeting
  * @param user The user executing the get
  * @param imatMeetingId The IMAT meeting number
  */
-export async function getImatBreakoutsInternal(
+async function getImatBreakoutsInternal(
 	user: UserContext,
 	imatMeetingId: number,
 ) {
 	const ieeeClient = getIeeeClientOrThrow(user);
 
 	const imatMeeting = await getImatMeeting(user, imatMeetingId);
-	//console.log(imatMeeting);
 
 	const url1 = `/${imatMeeting.organizerId}/meeting-detail?p=${imatMeetingId}`;
 	const page1 = await ieeeClient.getHtml(url1);
 	const { pageBreakouts } = parseSessionDetailPage(page1);
 
-	const buffer = await ieeeClient.getCsv(`/802.11/committees.csv`);
-	const csvCommittees = await parseImatCommitteesCsv(buffer);
-
 	const url2 = `/${imatMeeting.organizerId}/breakout?p=${imatMeetingId}`;
 	const page2 = await ieeeClient.getHtml(url2);
 	const { timeslots, pageCommittees } = parseAddMeetingPage(page2);
 
+	const breakouts = pageBreakouts.map((b) =>
+		pageBreakoutToBreakout(imatMeeting, timeslots, pageCommittees, b),
+	);
+
+	const buffer = await ieeeClient.getCsv(`/802.11/committees.csv`);
+	const csvCommittees = await parseImatCommitteesCsv(buffer);
 	/* The committees in the committees.csv file do not have the same ID as that used
 	 * for the committee options in the "Add a new meeting" form. The committee options
 	 * label is symbol + ' ' + name trucated at around 62 characters. Use the committee
@@ -614,7 +668,7 @@ export async function getImatBreakoutsInternal(
 
 	/* Override the timeslots from session detail page; the user may not have permission to modify the timeslots
 	 * and thus might not get the slot ID. */
-	const breakouts: Breakout[] = pageBreakouts.map((b) => {
+	/*const breakouts: Breakout[] = pageBreakouts.map((b) => {
 		const { startSlotName, endSlotName, groupShortName, ...rest } = b;
 		const startSlot = timeslots.find((t) => t.name === startSlotName)!;
 		const endSlot = timeslots.find((t) => t.name === endSlotName)!;
@@ -629,7 +683,7 @@ export async function getImatBreakoutsInternal(
 			symbol: committee.symbol,
 			facilitator: "",
 		};
-	});
+	});*/
 
 	return {
 		imatMeeting,
@@ -654,58 +708,6 @@ const breakoutCredit = {
 	Other: 4,
 };
 
-function pageBreakoutToBreakout(
-	imatMeeting: ImatMeeting,
-	timeslots: ImatTimeslot[],
-	pageCommittees: PageCommittee[],
-	pageBreakout: PageBreakout,
-): Breakout {
-	const { startSlotName, endSlotName, groupShortName, ...rest } =
-		pageBreakout;
-	const startSlot = timeslots.find((t) => t.name === startSlotName);
-	if (!startSlot) throw new Error("Can't find startSlot " + startSlotName);
-	const endSlot = timeslots.find((t) => t.name === endSlotName);
-	if (!endSlot) throw new Error("Can't find endSlot " + endSlotName);
-	// The committee symbolName is something like "C/LM/WG802.11/802.11ax Standard...", where the short name follows
-	// the last slash and is followed by a space.
-	const re = new RegExp(`(.*/${groupShortName}) `);
-	const committee = pageCommittees.find((c) => re.test(c.symbolName));
-	if (!committee)
-		throw new Error("Can't find committee for " + groupShortName);
-	const symbol = re.exec(committee.symbolName)![1];
-
-	// Set start and end
-	const startTime = pageBreakout.startTime || startSlot.startTime;
-	const endTime = pageBreakout.endTime || endSlot.endTime;
-	const start =
-		DateTime.fromISO(imatMeeting.start, { zone: imatMeeting.timezone })
-			.plus({ days: pageBreakout.day })
-			.set({
-				hour: Number(startTime?.substring(0, 2)),
-				minute: Number(startTime?.substring(3)),
-			})
-			.toISO() || "";
-	const end =
-		DateTime.fromISO(imatMeeting.start, { zone: imatMeeting.timezone })
-			.plus({ days: pageBreakout.day })
-			.set({
-				hour: Number(endTime?.substring(0, 2)),
-				minute: Number(endTime?.substring(3)),
-			})
-			.toISO() || "";
-
-	return {
-		...rest,
-		startSlotId: startSlot.id,
-		start,
-		endSlotId: endSlot.id,
-		end,
-		groupId: committee.id,
-		symbol,
-		facilitator: "",
-	};
-}
-
 async function addImatBreakout(
 	user: UserContext,
 	imatMeeting: ImatMeeting,
@@ -713,7 +715,7 @@ async function addImatBreakout(
 	pageCommittees: PageCommittee[],
 	breakout: BreakoutCreate,
 ): Promise<Breakout> {
-	const { ieeeClient } = user;
+	const ieeeClient = user.ieeeClient!;
 
 	const params = {
 		v: 1,
@@ -731,8 +733,7 @@ async function addImatBreakout(
 	};
 
 	const url = `/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`;
-	const page = await ieeeClient!.postForm(url, params);
-	//console.log(response)
+	const page = await ieeeClient.postForm(url, params);
 
 	if (
 		page.search(
@@ -748,7 +749,7 @@ async function addImatBreakout(
 
 	/* Override the timeslots from session detail page; the user may not have permission to modify the timeslots
 	 * and thus might not get the slot ID. */
-	const breakouts: Breakout[] = pageBreakouts.map((b) =>
+	const breakouts = pageBreakouts.map((b) =>
 		pageBreakoutToBreakout(imatMeeting, timeslots, pageCommittees, b),
 	);
 
@@ -776,7 +777,6 @@ export async function addImatBreakouts(
 	const ieeeClient = getIeeeClientOrThrow(user);
 
 	const imatMeeting = await getImatMeeting(user, imatMeetingId);
-	//console.log(imatMeeting);
 
 	const url = `/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`;
 	const page = await ieeeClient.getHtml(url);
@@ -874,7 +874,6 @@ async function updateImatBreakout(
 
 	/* From the response, find the breakout we just updated */
 	const { pageBreakouts } = parseSessionDetailPage(data);
-	//console.log(breakouts);
 
 	const b = pageBreakouts.find((b) => breakout.id === b.id);
 	if (!b) throw new NotFoundError("Unable to find updated breakout");
@@ -890,7 +889,6 @@ export async function updateImatBreakouts(
 	const ieeeClient = getIeeeClientOrThrow(user);
 
 	const imatMeeting = await getImatMeeting(user, imatMeetingId);
-	//console.log(imatMeeting);
 
 	const url = `/${imatMeeting.organizerId}/breakout?p=${imatMeeting.id}`;
 	const data = await ieeeClient.getHtml(url);
@@ -1349,8 +1347,7 @@ export async function getImatBreakoutAttendance(
 	imatMeetingId: number,
 	breakoutId: number,
 ): Promise<ImatBreakoutAttendance[]> {
-	const { ieeeClient } = user;
-	if (!ieeeClient) throw new AuthError("Not logged in");
+	const ieeeClient = getIeeeClientOrThrow(user);
 
 	const url = `/802.11/breakout-members?t=${breakoutId}&p=${imatMeetingId}`;
 	const page = await ieeeClient.getHtml(url);
@@ -1429,8 +1426,7 @@ export async function getImatMeetingAttendance(
 	user: UserContext,
 	imatMeetingId: number,
 ): Promise<ImatMeetingAttendance[]> {
-	const { ieeeClient } = user;
-	if (!ieeeClient) throw new AuthError("Not logged in");
+	const ieeeClient = getIeeeClientOrThrow(user);
 
 	const imatMeeting = await getImatMeeting(user, imatMeetingId);
 
@@ -1492,8 +1488,7 @@ async function getImatMeetingAttendanceSummaryByDate(
 	start: string,
 	end: string,
 ) {
-	const { ieeeClient } = user;
-	if (!ieeeClient) throw new AuthError("Not logged in");
+	const ieeeClient = getIeeeClientOrThrow(user);
 
 	const url = `/${groupName}/attendance-summary.csv?b=${start}&d=${end}`;
 	const data = await ieeeClient.getCsv(url);
@@ -1559,7 +1554,7 @@ export async function getImatMeetingAttendanceSummary(
 	end = DateTime.fromISO(imatMeeting.end, { zone });
 	if (!end.isValid)
 		throw new TypeError(
-			`Invalid session end (${imatMeeting.end}) or timezone (${imatMeeting.timezone})`,
+			`Invalid IMAT meeting end (${imatMeeting.end}) or timezone (${imatMeeting.timezone})`,
 		);
 	end = end.toFormat("MM/dd/yyyy");
 
@@ -1660,8 +1655,7 @@ export async function getImatMeetingDailyAttendance(
 	group: Group,
 	imatMeetingId: number,
 ): Promise<ImatDailyAttendanceSummary[]> {
-	const { ieeeClient } = user;
-	if (!ieeeClient) throw new AuthError("Not logged in");
+	const ieeeClient = getIeeeClientOrThrow(user);
 
 	const url = `/${group.name}/daily-attendance.csv?p=${imatMeetingId}`;
 	const data = await ieeeClient.getCsv(url);

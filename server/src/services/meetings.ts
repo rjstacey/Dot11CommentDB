@@ -1,6 +1,10 @@
 import { DateTime } from "luxon";
 import isEqual from "lodash.isequal";
-import { NotFoundError } from "../utils/index.js";
+import {
+	type ErrorObject,
+	createErrorObject,
+	NotFoundError,
+} from "../utils/index.js";
 
 import db from "../utils/database.js";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
@@ -276,6 +280,7 @@ function meetingToWebexMeeting(meeting: MeetingCreate) {
 	const timezone = meeting.timezone || "America/New_York";
 	const webexMeeting: WebexMeetingCreate & WebexMeetingChange = {
 		accountId: meeting.webexAccountId!,
+		id: meeting.webexMeetingId || "",
 		password: "wireless",
 		enabledAutoRecordMeeting: false,
 		...meeting.webexMeeting,
@@ -284,8 +289,7 @@ function meetingToWebexMeeting(meeting: MeetingCreate) {
 			DateTime.fromISO(meeting.start, { zone: timezone }).toISO() || "",
 		end: DateTime.fromISO(meeting.end, { zone: timezone }).toISO() || "",
 		timezone,
-		integrationTags: [meeting.organizationId],
-		id: meeting.webexMeetingId || "",
+		integrationTags: [`sessionId: ${meeting.sessionId}`],
 		sendEmail: false,
 	};
 	//console.log('to webex meeting', meeting, webexMeeting)
@@ -574,8 +578,8 @@ async function meetingsAffectedByGracePeriod(meeting: Meeting | MeetingCreate) {
 async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 	let webexMeeting: WebexMeeting | undefined,
 		breakout: Breakout | undefined,
-		session: Promise<Session | undefined> | Session | undefined,
 		workingGroup: Promise<Group | undefined> | Group | undefined;
+	const errors: ErrorObject[] = [];
 
 	//console.log(meetingToAdd);
 
@@ -585,7 +589,11 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 		imatBreakoutId: null,
 	};
 
-	if (meetingToAdd.sessionId) session = getSession(meetingToAdd.sessionId); // returns a promise
+	const session = await getSession(meetingToAdd.sessionId);
+	if (!session)
+		throw new NotFoundError(
+			`Session with id=${meetingToAdd.sessionId} not found`,
+		);
 
 	if (meetingToAdd.organizationId)
 		workingGroup = getWorkingGroup(user, meetingToAdd.organizationId); // returns a promise
@@ -593,35 +601,41 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 	/* If a webex account is given and the webexMeeting object exists then add a webex meeting */
 	if (meetingToAdd.webexAccountId && meetingToAdd.webexMeetingId) {
 		const webexMeetingParams = meetingToWebexMeeting(meeting);
-		if (meetingToAdd.webexMeetingId === "$add") {
-			webexMeeting = await addWebexMeeting(webexMeetingParams);
-		} else {
-			// Meeting created with a link to existing webex meeting
-			webexMeeting = await updateWebexMeeting(webexMeetingParams);
+		try {
+			if (meetingToAdd.webexMeetingId === "$add") {
+				webexMeeting = await addWebexMeeting(webexMeetingParams);
+			} else {
+				// Meeting created with a link to existing webex meeting
+				webexMeeting = await updateWebexMeeting(webexMeetingParams);
+			}
+			meeting.webexMeetingId = webexMeeting.id;
+		} catch (error) {
+			errors.push(createErrorObject(error));
 		}
-		meeting.webexMeetingId = webexMeeting.id;
 	}
-
-	session = await session!; // do webex update while we wait for session
 
 	/* If meetingId is given then add a breakout for this meeting */
 	if (meetingToAdd.imatMeetingId) {
-		if (meetingToAdd.imatBreakoutId === "$add") {
-			breakout = await addImatBreakoutFromMeeting(
-				user,
-				session,
-				meeting,
-				webexMeeting,
-			);
-		} else {
-			breakout = await updateImatBreakoutFromMeeting(
-				user,
-				session,
-				meetingToAdd,
-				webexMeeting,
-			);
+		try {
+			if (meetingToAdd.imatBreakoutId === "$add") {
+				breakout = await addImatBreakoutFromMeeting(
+					user,
+					session,
+					meeting,
+					webexMeeting,
+				);
+			} else {
+				breakout = await updateImatBreakoutFromMeeting(
+					user,
+					session,
+					meetingToAdd,
+					webexMeeting,
+				);
+			}
+			meeting.imatBreakoutId = breakout.id;
+		} catch (error) {
+			errors.push(createErrorObject(error));
 		}
-		meeting.imatBreakoutId = breakout.id;
 
 		/* Update the IMAT entries for meetings that might be affected by the grace period */
 		const affectedMeetings = await meetingsAffectedByGracePeriod(meeting);
@@ -653,22 +667,22 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 			webexMeeting,
 			breakout,
 		);
-		if (!meetingToAdd.calendarEventId) {
-			try {
+		try {
+			if (!meetingToAdd.calendarEventId) {
 				calendarEvent = await addCalendarEvent(
 					meetingToAdd.calendarAccountId,
 					calendarEvent,
 				);
 				meeting.calendarEventId = calendarEvent?.id || null;
-			} catch {
-				meeting.calendarEventId = null;
+			} else {
+				await updateCalendarEvent(
+					meetingToAdd.calendarAccountId,
+					meetingToAdd.calendarEventId,
+					calendarEvent,
+				);
 			}
-		} else {
-			await updateCalendarEvent(
-				meetingToAdd.calendarAccountId,
-				meetingToAdd.calendarEventId,
-				calendarEvent,
-			);
+		} catch (error) {
+			errors.push(createErrorObject(error));
 		}
 	}
 
@@ -676,7 +690,7 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 	const { insertId } = await db.query<ResultSetHeader>(sql);
 	const [meetingOut] = await selectMeetings({ id: insertId });
 
-	return { meeting: meetingOut, webexMeeting, breakout };
+	return { meeting: meetingOut, webexMeeting, breakout, errors };
 }
 
 /**
@@ -689,7 +703,7 @@ async function addMeeting(user: UserContext, meetingToAdd: MeetingCreate) {
 export async function addMeetings(
 	user: UserContext,
 	meetingsIn: MeetingCreate[],
-) {
+): Promise<MeetingsUpdateResponse> {
 	getIeeeClientOrThrow(user);
 
 	const entries = await Promise.all(
@@ -698,15 +712,17 @@ export async function addMeetings(
 
 	const meetings: Meeting[] = [],
 		webexMeetings: WebexMeeting[] = [],
-		breakouts: Breakout[] = [];
+		breakouts: Breakout[] = [],
+		errors: ErrorObject[] = [];
 
 	entries.forEach((entry) => {
 		meetings.push(entry.meeting);
 		if (entry.webexMeeting) webexMeetings.push(entry.webexMeeting);
 		if (entry.breakout) breakouts.push(entry.breakout);
+		if (entry.errors.length > 0) errors.push(...entry.errors);
 	});
 
-	return { meetings, webexMeetings, breakouts };
+	return { meetings, webexMeetings, breakouts, errors };
 }
 
 /**
@@ -1072,9 +1088,10 @@ export async function updateMeeting(
 	if (!meeting)
 		throw new NotFoundError(`Meeting with id=${id} does not exist`);
 
-	let session: Promise<Session | undefined> | Session | undefined;
-	const sessionId = changes.sessionId || meeting.sessionId;
-	if (sessionId) session = getSession(sessionId); // returns a promise
+	const sessionId = changesIn.sessionId || meeting.sessionId;
+	const session = await getSession(sessionId);
+	if (!session)
+		throw new NotFoundError(`Session with id=${sessionId} not found`);
 
 	let workingGroup: Promise<Group | undefined> | Group | undefined;
 	const organizationId = changes.organizationId || meeting.organizationId;
@@ -1085,8 +1102,6 @@ export async function updateMeeting(
 	if (webexMeeting && meeting.webexMeetingId !== webexMeeting.id)
 		changes.webexMeetingId = webexMeeting.id;
 	if (!webexMeeting && meeting.webexMeetingId) changes.webexMeetingId = null;
-
-	session = await session; // do webex update while we wait for session
 
 	/* Make IMAT breakout changes */
 	const { breakout, affectedBreakouts } =

@@ -260,6 +260,7 @@ function useMeetingsEditReducer() {
 					startTime: "",
 					endTime: "",
 					duration: "",
+					sessionId: session.id,
 					isSessionMeeting:
 						session.type === "p" || session.type === "i",
 					organizationId: groupId,
@@ -416,6 +417,8 @@ export function useMeetingsEdit(readOnly: boolean) {
 				entry = { ...entry, webexMeetingId: "$add" };
 				if (entry.webexMeeting)
 					entry.webexMeeting.publicMeeting = false;
+			} else {
+				delete entry.webexMeeting;
 			}
 
 			// If an IMAT meeting ID is given then create a breakout

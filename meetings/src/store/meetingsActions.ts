@@ -106,10 +106,13 @@ export const updateMeetings =
 			dispatch(setError("PATCH " + url, error));
 			return;
 		}
-		const { meetings, webexMeetings, breakouts } = r;
+		const { meetings, webexMeetings, breakouts, errors } = r;
 		dispatch(setMany(meetings));
 		dispatch(upsertWebexMeetings(webexMeetings));
 		dispatch(upsertBreakouts(breakouts));
+		if (errors) {
+			errors.forEach((e) => dispatch(setError("PATCH " + url, e)));
+		}
 	};
 
 export const addMeetings =
@@ -125,10 +128,13 @@ export const addMeetings =
 			dispatch(setError("POST " + url, error));
 			return [];
 		}
-		const { meetings, webexMeetings, breakouts } = r;
+		const { meetings, webexMeetings, breakouts, errors } = r;
 		dispatch(addMany(meetings));
 		if (webexMeetings) dispatch(upsertWebexMeetings(webexMeetings));
 		if (breakouts) dispatch(upsertBreakouts(breakouts));
+		if (errors) {
+			errors.forEach((e) => dispatch(setError("POST " + url, e)));
+		}
 		return meetings.map((e) => e.id);
 	};
 
