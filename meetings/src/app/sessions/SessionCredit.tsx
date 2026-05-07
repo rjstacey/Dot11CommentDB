@@ -1,11 +1,4 @@
 import { useEffect } from "react";
-import type {
-	FC,
-	HTMLAttributes,
-	CSSProperties,
-	MouseEvent,
-	ReactNode,
-} from "react";
 import { DateTime } from "luxon";
 import { EntityId } from "@reduxjs/toolkit";
 
@@ -24,7 +17,7 @@ const CreditGrid = ({
 	nCol,
 	nRow,
 	...props
-}: { nCol: number; nRow: number } & HTMLAttributes<HTMLDivElement>) => (
+}: { nCol: number; nRow: number } & React.HTMLAttributes<HTMLDivElement>) => (
 	<div
 		style={{
 			display: "grid",
@@ -39,7 +32,7 @@ function GridColumnLabel({
 	style,
 	date,
 }: {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	colIndex: number;
 	date: string;
 }) {
@@ -67,7 +60,7 @@ const GridRowLabel = ({
 	label,
 	...otherProps
 }: {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	rowIndex: number;
 	label: string;
 }) => (
@@ -79,11 +72,11 @@ const GridRowLabel = ({
 	</div>
 );
 
-const GridCell: FC<{
-	style?: CSSProperties;
+const GridCell: React.FC<{
+	style?: React.CSSProperties;
 	rowIndex: number;
 	colIndex: number;
-	children: ReactNode;
+	children: React.ReactNode;
 }> = ({ style, rowIndex, colIndex, ...otherProps }) => (
 	<div
 		style={{
@@ -147,10 +140,10 @@ const gridCellBackground: { [K: string]: string } = {
 	"Other 2/1": "#ddddff",
 };
 
-const CreditButton: FC<{
+const CreditButton: React.FC<{
 	credit: string;
-	style?: CSSProperties;
-	onClick: (e: MouseEvent) => void;
+	style?: React.CSSProperties;
+	onClick: (e: React.MouseEvent) => void;
 	disabled?: boolean;
 }> = function ({ credit, style, ...otherProps }) {
 	return (
