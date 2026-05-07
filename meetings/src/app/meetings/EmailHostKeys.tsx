@@ -12,6 +12,8 @@ import {
 import { useEmailHostKey } from "@/hooks/emailHostKeys";
 import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
+import "./EmailHostKeys.css";
+
 /** Helper functions to maintain a list of IDs */
 function useSelectIds() {
 	const [ids, setIds] = useState<string[]>([]);

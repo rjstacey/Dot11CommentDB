@@ -1,0 +1,34 @@
+.meetings-calendar {
+	flex: 1;
+	overflow: auto;
+
+	& .column {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		border-right: #dadce0 1px solid;
+		box-sizing: border-box;
+		overflow: hidden;
+	}
+
+	& .slot {
+		position: absolute;
+		width: calc(100%);
+		padding: 4px;
+		border: gray 1px dashed;
+		border-radius: 5px;
+		box-sizing: border-box;
+		display: flex;
+		justify-content: space-between;
+	}
+
+	& .border-cell {
+		border-right: #dadce0 1px solid;
+		&::after {
+			content: "";
+			border-bottom: #dadce0 1px solid;
+			position: absolute;
+			width: 100%;
+		}
+	}
+}

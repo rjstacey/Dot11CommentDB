@@ -1,9 +1,4 @@
-import {
-	useMemo,
-	useState,
-	type CSSProperties,
-	type ComponentProps,
-} from "react";
+import { useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { Button, FormCheck } from "react-bootstrap";
 
@@ -27,7 +22,9 @@ import {
 } from "@/store/meetings";
 import { selectGroupEntities } from "@/store/groups";
 
-function SelectAllMeetings({ style }: { style?: CSSProperties }) {
+import "./MeetingsCalendar.css";
+
+function SelectAllMeetings({ style }: { style?: React.CSSProperties }) {
 	const dispatch = useAppDispatch();
 
 	const selectedMeetings = useAppSelector(selectSelectedMeetings);
@@ -108,7 +105,7 @@ const time = [
 	"11 PM",
 ];
 
-function TimeColumn({ style }: { style?: CSSProperties }) {
+function TimeColumn({ style }: { style?: React.CSSProperties }) {
 	function timeEntry(s: string, i: number) {
 		const display = i === 0 ? "none" : undefined;
 		return (
@@ -300,7 +297,7 @@ const SessionDayContainer = ({
 	style,
 	n,
 	...props
-}: { n: number } & ComponentProps<"div">) => (
+}: { n: number } & React.ComponentProps<"div">) => (
 	<div
 		style={{
 			...style,
@@ -319,7 +316,7 @@ function SessionDayHead({
 	sessionDate,
 	rooms,
 }: {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	date: string;
 	sessionDate: string;
 	rooms: Room[];
@@ -361,7 +358,7 @@ function SessionDayHead({
 	);
 }
 
-const LeftMarginAndRowLines = ({ style }: { style?: CSSProperties }) => (
+const LeftMarginAndRowLines = ({ style }: { style?: React.CSSProperties }) => (
 	<div style={style}>
 		{time.map((t) => (
 			<div key={t} className="border-cell" style={{ height: 48 }} />
@@ -377,7 +374,7 @@ function SessionDayBody({
 	sessionDate,
 	rooms,
 }: {
-	style?: CSSProperties;
+	style?: React.CSSProperties;
 	date: string;
 	sessionDate: string;
 	rooms: Room[];

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import cx from "clsx";
 
 import {
 	globalFilterKey,
@@ -23,7 +24,7 @@ const ActiveFilter = ({
 }) => (
 	<div className="filter-container" role="listitem">
 		{children && <span className="filter-item">{children}</span>}
-		<i className="icon action bi-x" onClick={remove} />
+		<button type="button" className="icon action bi-x" onClick={remove} />
 	</div>
 );
 
@@ -141,10 +142,7 @@ function ShowFilters({
 	}, [actions, fields, filters, dispatch]);
 
 	return (
-		<div
-			className={"show-filters" + (className ? " " + className : "")}
-			style={style}
-		>
+		<div style={style} className={cx("show-filters", className)}>
 			<div className="label-block">
 				<span className="label">Filters:</span>
 				<span>{`Showing ${shownRows} of ${totalRows}`}</span>

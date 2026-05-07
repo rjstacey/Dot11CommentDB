@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { DateTime } from "luxon";
-import clsx from "clsx";
+import cx from "clsx";
+import "./ShowSlots.css";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fromSlotId, selectCurrentSession } from "@/store/sessions";
@@ -13,9 +14,9 @@ const Slot = ({
 	remove?: React.MouseEventHandler;
 	children?: React.ReactNode;
 }) => (
-	<div className="slot" role="listitem">
+	<div className="slot-container" role="listitem">
 		{children && <span className="slot-item">{children}</span>}
-		<i className="bi-x icon action" onClick={remove} />
+		<button type="button" className="icon action bi-x" onClick={remove} />
 	</div>
 );
 
@@ -49,16 +50,18 @@ function ShowSelectedSlots({
 	}, [slots, session, dispatch]);
 
 	return (
-		<div style={style} className={clsx("show-slots", className)}>
-			<div className="label">
-				<span>Slots:</span>
+		<div style={style} className={cx("show-slots", className)}>
+			<div className="label-block">
+				<span className="label">Slots:</span>
 				<span>{elements.length}</span>
 			</div>
-			<div className="content">
+			<div className="content-block">
 				{elements.length ? (
 					elements
 				) : (
-					<span className="placeholder">No slots selected</span>
+					<span className="content-block-placeholder">
+						No slots selected
+					</span>
 				)}
 			</div>
 		</div>

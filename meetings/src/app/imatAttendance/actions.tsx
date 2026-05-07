@@ -36,9 +36,10 @@ export function ImatAttendanceActions() {
 					title="Refresh"
 					onClick={() => refresh(meetingNumber, breakoutNumber)}
 				/>
-				<Link to={`../imatBreakouts/${meetingNumber}`}>
-					<Button className="bi-x" />
-				</Link>
+				<Link
+					to={`../imatBreakouts/${meetingNumber}`}
+					className="btn btn-outline-primary bi-x"
+				/>
 			</Col>
 		</Row>
 	);

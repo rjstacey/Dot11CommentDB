@@ -23,8 +23,6 @@ import ShowSlots from "./ShowSlots";
 
 import { tableColumns, defaultTablesConfig } from "./tableColumns";
 
-import "./meetings.css";
-
 /*
  * Don't display date and time if it is the same as previous line
  */
@@ -59,26 +57,23 @@ export function MeetingsMain() {
 	return (
 		<>
 			<Row className="w-100">
-				<ShowFilters
-					selectors={meetingsSelectors}
-					actions={meetingsActions}
-					fields={fields}
-				/>
+				{showDays > 0 ? (
+					<ShowSlots />
+				) : (
+					<ShowFilters
+						selectors={meetingsSelectors}
+						actions={meetingsActions}
+						fields={fields}
+					/>
+				)}
 			</Row>
 			<SplitPanel selectors={meetingsSelectors} actions={meetingsActions}>
 				{showDays > 0 ? (
-					<Panel style={{ display: "flex", flexDirection: "column" }}>
-						<ShowSlots />
+					<Panel className="d-flex flex-column">
 						<MeetingsCalendar nDays={showDays} />
 					</Panel>
 				) : (
-					<Panel
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							margin: "10px 0 10px 10px",
-						}}
-					>
+					<Panel>
 						<AppTable
 							defaultTablesConfig={defaultTablesConfig}
 							columns={tableColumns}
