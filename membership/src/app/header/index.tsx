@@ -1,15 +1,14 @@
-import { Container } from "react-bootstrap";
 import { Menu } from "./Menu";
 import { AccountDropdown } from "./AccountDropdown";
 import { useMenuItems } from "./useMenuItems";
 
-function Header() {
+function Header(props: React.ComponentProps<"header">) {
 	const menuItems = useMenuItems();
 	return (
-		<Container as="header" fluid className="bg-body-tertiary">
+		<header {...props}>
 			<Menu>{menuItems}</Menu>
 			<AccountDropdown />
-		</Container>
+		</header>
 	);
 }
 
