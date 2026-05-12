@@ -41,9 +41,11 @@ export async function parseRegistrationSpreadsheet(
 	if (emailIndex < 0) throw new TypeError("Can't find Email Address column");
 	const sapinIndex = rows[0].findIndex((v) => /SA PIN|SAPIN/i.test(v));
 	if (sapinIndex < 0) throw new TypeError("Can't find SA PIN column");
-	const regTypeIndex = rows[0].findIndex((v) =>
-		/registration|reg type/i.test(v),
+	let regTypeIndex = rows[0].findIndex((v) =>
+		/registration type|reg type/i.test(v),
 	);
+	if (regTypeIndex < 0)
+		regTypeIndex = rows[0].findIndex((v) => /registration/i.test(v));
 	if (regTypeIndex < 0)
 		throw new TypeError("Can't find registration type column");
 	const fullNameIndex = rows[0].findIndex((v) => /full name/i.test(v));
