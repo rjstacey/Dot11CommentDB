@@ -355,11 +355,12 @@ async function addAttendance(
 	attendanceIn: SessionAttendanceSummaryCreate,
 ) {
 	const changes = attendanceSummaryChanges(attendanceIn);
+	const sql =
+		db.format("INSERT attendanceSummary SET groupId=UUID_TO_BIN(?), ", [
+			groupId,
+		]) + db.escape(changes);
 
-	const { insertId } = await db.query<ResultSetHeader>(
-		"INSERT attendanceSummary SET groupId=UUID_TO_BIN(?), ?",
-		[groupId, changes],
-	);
+	const { insertId } = await db.query<ResultSetHeader>(sql);
 
 	const [attendance] = await getAttendances({ id: insertId });
 	return attendance;
