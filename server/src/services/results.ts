@@ -413,7 +413,7 @@ export async function deleteResults(ballot_id: number) {
 }
 
 async function insertResults(ballot: Ballot, results: Partial<Result>[]) {
-	let sql = db.format("DELETE FROM results WHERE ballot_id=?;", ballot.id);
+	let sql = `DELETE FROM results WHERE ballot_id=${db.escape(ballot.id)};`;
 	if (results.length) {
 		sql +=
 			`INSERT INTO results (ballot_id, ${Object.keys(

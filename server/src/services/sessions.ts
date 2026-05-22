@@ -76,7 +76,7 @@ export function getCredit(creditStr: string): {
 		m = /Other\s*(\d+)\s*\/\s*(\d+)/.exec(creditStr);
 		if (!m)
 			throw new Error(
-				`Unexpected format for "Other" credit: ${creditStr}`
+				`Unexpected format for "Other" credit: ${creditStr}`,
 			);
 		creditOverrideNumerator = Number(m[1]);
 		creditOverrideDenominator = Number(m[2]);
@@ -97,7 +97,7 @@ export function getCredit(creditStr: string): {
  * @returns an array of session objects
  */
 export function getSessions(
-	constraints: SessionsQuery = {}
+	constraints: SessionsQuery = {},
 ): Promise<Session[]> {
 	const { limit, ...query } = constraints;
 	let sql = getSessionsSQL(constraints?.groupId);
@@ -110,12 +110,12 @@ export function getSessions(
 						Array.isArray(value)
 							? "BIN_TO_UUID(??) IN (?)"
 							: "BIN_TO_UUID(??)=?",
-						[key, value]
+						[key, value],
 					)
 				: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
 						key,
 						value,
-					])
+					]),
 		);
 	});
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
@@ -177,7 +177,7 @@ function sessionEntrySetSql(s: Partial<Session>) {
 	if (typeof s.defaultCredits !== "undefined") {
 		if (!Array.isArray(s.defaultCredits))
 			throw new TypeError(
-				"Invlid parameter defaultCredits: " + s.defaultCredits
+				"Invlid parameter defaultCredits: " + s.defaultCredits,
 			);
 		entry.defaultCredits = JSON.stringify(s.defaultCredits);
 	}
@@ -204,11 +204,12 @@ function sessionEntrySetSql(s: Partial<Session>) {
 }
 
 function replaceSessionRooms(sessionId: number, rooms: Room[]) {
-	let sql = db.format("DELETE FROM rooms WHERE sessionId=?;", [sessionId]);
+	let sql = `DELETE FROM rooms WHERE sessionId=${db.escape(sessionId)};`;
 	if (rooms.length > 0)
 		sql += rooms
-			.map((room) =>
-				db.format("INSERT INTO rooms SET ?;", [{ sessionId, ...room }])
+			.map(
+				(room) =>
+					`INSERT INTO rooms SET ${db.escape({ sessionId, ...room })};`,
 			)
 			.join("");
 	//console.log(sql)
@@ -238,12 +239,11 @@ export async function updateSession(id: number, changes: SessionChanges) {
 }
 
 export async function deleteSessions(ids: number[]) {
+	const e_ids = db.escape(ids);
 	const sql =
-		db.format("DELETE FROM sessions WHERE id IN (?);", [ids]) +
-		db.format("DELETE FROM rooms WHERE sessionId IN (?);", [ids]) +
-		db.format("DELETE FROM attendance_summary WHERE session_id IN (?);", [
-			ids,
-		]);
+		`DELETE FROM sessions WHERE id IN (${e_ids}); ` +
+		`DELETE FROM rooms WHERE sessionId IN (${e_ids}); ` +
+		`DELETE FROM attendance_summary WHERE session_id IN (${e_ids});`;
 	const results = await db.query<ResultSetHeader[]>(sql);
 	return results[0].affectedRows;
 }
@@ -254,14 +254,14 @@ export async function fixSessions() {
 		if (!Array.isArray(session.defaultCredits)) {
 			console.log(
 				`session ${session.number} (id=${session.id}):`,
-				session.defaultCredits
+				session.defaultCredits,
 			);
 			continue;
 		}
 		if (!session.defaultCredits.every((row) => Array.isArray(row))) {
 			console.log(
 				`session ${session.number} (id=${session.id}):`,
-				session.defaultCredits
+				session.defaultCredits,
 			);
 			const newDefaultCredits = session.defaultCredits
 				.map((row) => Object.values(row))

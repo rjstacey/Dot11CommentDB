@@ -252,15 +252,10 @@ type AttendingMember = {
 };
 
 function registeredVotersSQL(session_id: number, status: MemberStatus[]) {
-	// prettier-ignore
-	return db.format(
-		"SELECT " +
-			"FirstName, " +
-			"LastName, " +
-			"Email " +
+	return (
+		"SELECT FirstName, LastName, Email " +
 		"FROM memberAttendanceSummary " +
-		"WHERE session_id=? AND Status IN (?) AND IsRegistered=1",
-		[session_id, status]
+		`WHERE session_id=${db.escape(session_id)} AND Status IN (${db.escape(status)}) AND IsRegistered=1`
 	);
 }
 
@@ -330,10 +325,7 @@ async function updateAttendance(
 ) {
 	changes = attendanceSummaryChanges(changes);
 	if (Object.keys(changes).length > 0) {
-		const sql = db.format(
-			"UPDATE attendanceSummary SET ? WHERE id=? AND groupId=UUID_TO_BIN(?)",
-			[changes, id, groupId],
-		);
+		const sql = `UPDATE attendanceSummary SET ${db.escape(changes)} WHERE id=${db.escape(id)} AND groupId=UUID_TO_BIN(${db.escape(groupId)})`;
 		await db.query(sql);
 	}
 	const [attendance] = await getAttendances({ id });
@@ -355,10 +347,7 @@ async function addAttendance(
 	attendanceIn: SessionAttendanceSummaryCreate,
 ) {
 	const changes = attendanceSummaryChanges(attendanceIn);
-	const sql =
-		db.format("INSERT attendanceSummary SET groupId=UUID_TO_BIN(?), ", [
-			groupId,
-		]) + db.escape(changes);
+	const sql = `INSERT INTO attendanceSummary SET groupId=UUID_TO_BIN(${db.escape(groupId)}), ${db.escape(changes)}`;
 
 	const { insertId } = await db.query<ResultSetHeader>(sql);
 
@@ -378,10 +367,7 @@ export async function addAttendances(
 
 export async function deleteAttendances(groupId: string, ids: number[]) {
 	if (ids.length === 0) return 0;
-	const sql = db.format(
-		"DELETE FROM attendanceSummary WHERE groupId=UUID_TO_BIN(?) AND ID IN (?)",
-		[groupId, ids],
-	);
+	const sql = `DELETE FROM attendanceSummary WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND ID IN (${db.escape(ids)})`;
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }
@@ -390,10 +376,7 @@ export async function deleteAllSessionAttendances(
 	groupId: string,
 	sessionId: number,
 ) {
-	const sql = db.format(
-		"DELETE FROM attendanceSummary WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
-		[groupId, sessionId],
-	);
+	const sql = `DELETE FROM attendanceSummary WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND session_id=${db.escape(sessionId)}`;
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }
