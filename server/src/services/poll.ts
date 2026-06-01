@@ -217,11 +217,19 @@ type PollResultsQuery = {
 };
 export async function pollResults({ pollId, SAPIN }: PollResultsQuery) {
 	const wheres: string[] = [];
-	if (pollId !== undefined) {
-		wheres.push(db.format("pollId IN (?)", [pollId]));
+	if (
+		(Array.isArray(pollId) && pollId.length > 0) ||
+		typeof pollId === "number"
+	) {
+		const s = `pollId IN (${db.escape(pollId)})`;
+		wheres.push(s);
 	}
-	if (SAPIN !== undefined) {
-		wheres.push(db.format("SAPIN IN (?)", [SAPIN]));
+	if (
+		(Array.isArray(SAPIN) && SAPIN.length > 0) ||
+		typeof SAPIN === "number"
+	) {
+		const s = `SAPIN IN (${db.escape(SAPIN)})`;
+		wheres.push(s);
 	}
 
 	let sql = "SELECT pollId, SAPIN, votes FROM pollVotes";
