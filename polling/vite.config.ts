@@ -18,7 +18,7 @@ export default defineConfig(({ command, mode }) => {
 		if (!env.REMOTE_SERVER) throw Error("REMOTE_SERVER not set");
 		target = env.REMOTE_SERVER;
 		//agent = new ProxyAgent();
-		agent = new HttpsProxyAgent("http://proxy-dmz.intel.com:912/");
+		if (env.https_proxy) agent = new HttpsProxyAgent(env.https_proxy);
 	}
 	if (!env.BASE_URL) throw Error("BASE_URL not set");
 	return {
