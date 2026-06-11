@@ -8,14 +8,12 @@ export function Breadcrumbs() {
 	const title = groupName ? `${groupName} | ${appName}` : appName;
 	if (document.title !== title) document.title = title;
 
-	const breadcrumbItems = [];
-
-	breadcrumbItems.push(
-		<Breadcrumb.Item key="app" linkAs={NavLink} linkProps={{ to: "/" }}>
-			{appName}
-		</Breadcrumb.Item>,
+	return (
+		<Breadcrumb>
+			<Breadcrumb.Item linkAs={NavLink} linkProps={{ to: "/" }}>
+				{appName}
+			</Breadcrumb.Item>
+			<Breadcrumb.Item />
+		</Breadcrumb>
 	);
-	breadcrumbItems.push(<Breadcrumb.Item key="active" />);
-
-	return <Breadcrumb>{breadcrumbItems}</Breadcrumb>;
 }

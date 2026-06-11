@@ -1,3 +1,4 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import db from "../utils/database.js";
 import {
 	Event,
@@ -13,7 +14,6 @@ import {
 	PollChoice,
 	PollVotersType,
 } from "@schemas/poll.js";
-import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Member } from "@schemas/members.js";
 
 export async function init() {}
@@ -161,7 +161,7 @@ export async function deletePoll(id: number) {
 
 /** Record a users vote
  * @param user - The user for which the vote is recorded.
- * @param poll - The poll being voted on.
+ * @param poll -The poll being voted on.
  * @param votes - An array of option indices.
  * For PollChoice.SINGLE, the array has one entry, which is the index of the option selected.
  * For PollChoice.MULTIPLE, then arrays has one or more entries, each being the index of an option selected.

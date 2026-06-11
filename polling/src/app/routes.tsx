@@ -1,12 +1,9 @@
-//import { lazy } from "react";
 import type { RouteObject } from "react-router";
 
 import { AppLayout } from "./layout";
 import { AppErrorPage } from "./errorPage";
-import PollAdmin from "./admin";
-//const PollAdmin = lazy(() => import("./admin"));
+import adminRoutes from "./admin/routes";
 import PollUser from "./user";
-//const PollUser = lazy(() => import("./user"));
 
 import {
 	rootLoader,
@@ -54,7 +51,7 @@ export const routes: RouteObject[] = [
 							},
 							{
 								path: "admin",
-								element: <PollAdmin />,
+								...adminRoutes,
 							},
 						],
 					},

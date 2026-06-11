@@ -1,4 +1,4 @@
-import EventTabs from "./eventTabs";
+import EventTabs from "./eventsList";
 import EventPanel from "./eventPanel";
 
 import "./admin.css";
