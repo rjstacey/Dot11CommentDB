@@ -127,13 +127,17 @@ function summarizeSAResults(results: Result[]) {
 	const summary = { ...zeroResultsSummary };
 
 	results.forEach((r) => {
-		if (/^Approve/.test(r.vote)) {
+		if (/^Approve/i.test(r.vote)) {
 			summary.Approve++;
-		} else if (/^Disapprove/.test(r.vote)) {
+		} else if (/^Do Not Approve/i.test(r.vote)) {
 			if (r.totalCommentCount) summary.Disapprove++;
 			else summary.InvalidDisapprove++;
-		} else if (/^Abstain/.test(r.vote)) {
+		} else if (/^Abstain/i.test(r.vote)) {
 			summary.Abstain++;
+		}
+
+		if (!/None/i.test(r.vote)) {
+			summary.BallotReturns++;
 		}
 
 		if (r.commentCount) {
@@ -143,7 +147,6 @@ function summarizeSAResults(results: Result[]) {
 		}
 	});
 
-	summary.BallotReturns = results.length;
 	summary.ReturnsPoolSize = results.length;
 	summary.VotingPoolSize = results.length;
 
