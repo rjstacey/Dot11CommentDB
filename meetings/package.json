@@ -17,7 +17,6 @@
 		"react-virtualized-auto-sizer": "^1.0.26"
 	},
 	"devDependencies": {
-		"@types/react-virtualized-auto-sizer": "^1.0.4",
-		"@vite-pwa/assets-generator": "^0.2.6"
+		"@types/react-virtualized-auto-sizer": "^1.0.4"
 	}
 }

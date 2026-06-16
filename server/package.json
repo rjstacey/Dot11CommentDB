@@ -16,9 +16,9 @@
 		"eslint": "eslint"
 	},
 	"dependencies": {
-		"@aws-sdk/client-ses": "^3.1069.0",
-		"@aws-sdk/config": "^3.1069.0",
-		"@aws-sdk/credential-providers": "^3.1030.0",
+		"@aws-sdk/client-ses": "^3.1070.0",
+		"@aws-sdk/config": "^3.1070.0",
+		"@aws-sdk/credential-providers": "^3.1070.0",
 		"@aws-sdk/fetch-http-handler": "^3.370.0",
 		"@aws-sdk/node-http-handler": "^3.370.0",
 		"cheerio": "^1.2.0",
@@ -43,7 +43,6 @@
 		"@types/express": "^5.0.6",
 		"@types/jsonwebtoken": "^9.0.10",
 		"@types/lodash.isempty": "^4.4.9",
-		"esbuild": "^0.28.1",
-		"typescript": "^5.9.3"
+		"esbuild": "^0.28.1"
 	}
 }
