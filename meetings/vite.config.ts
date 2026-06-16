@@ -22,32 +22,22 @@ export default defineConfig(({ command, mode }) => {
 			outDir: env.BUILD_PATH,
 			rollupOptions: {
 				output: {
-					manualChunks: {
-						"react-dom": ["react-dom/client"],
-						boostrap: [
-							"react-bootstrap",
-							"bootstrap/dist/css/bootstrap.min.css",
-							"bootstrap-icons/font/bootstrap-icons.css",
-						],
-						router: ["react-router"],
-						redux: [
-							"@reduxjs/toolkit",
-							"react-redux",
-							"redux-persist",
-							"redux-logger",
-							"@piotr-cz/redux-persist-idb-storage",
-						],
-						utils: [
-							"clsx",
-							"react-window",
-							//"react-draggable",
-							"file-saver",
-							"lodash.isequal",
-							"lodash.debounce",
-						],
-						zod: ["zod"],
-						luxon: ["luxon"],
-						d3: ["d3"],
+					manualChunks(id) {
+						if (id.includes("react-dom/client")) return "react-dom";
+						if (id.includes("bootstrap")) return "boostrap";
+						if (id.includes("react-router")) return "router";
+						if (id.includes("redux")) return "redux";
+						if (id.includes("lexical")) return "lexical";
+						if (id.includes("zod")) return "zod";
+						if (id.includes("socket.io-client")) return "socket";
+						if (id.includes("luxon")) return "luxon";
+						if (id.includes("d3")) return "d3";
+						if (id.includes("zod")) return "zod";
+						if (id.includes("react-window")) return "utils";
+						if (id.includes("clsx")) return "utils";
+						if (id.includes("file-saver")) return "utils";
+						if (id.includes("lodash.isequal")) return "utils";
+						if (id.includes("lodash.debounce")) return "utils";
 					},
 				},
 			},

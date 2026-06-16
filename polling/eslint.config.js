@@ -13,6 +13,7 @@ export default [
 			parser: "@typescript-eslint/parser",
 			parserOptions: {
 				sourceType: "module",
+				tsconfigRootDir: import.meta.dirname,
 			},
 			globals: globals.browser,
 		},
