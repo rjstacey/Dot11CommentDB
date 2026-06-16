@@ -3,7 +3,8 @@ import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
-import { ProxyAgent } from "proxy-agent";
+import type { Agent } from "node:https";
+import { HttpsProxyAgent } from "https-proxy-agent";
 
 export default defineConfig(({ command, mode }) => {
 	const __dirname = process.cwd();
@@ -11,9 +12,11 @@ export default defineConfig(({ command, mode }) => {
 	if (command === "build" && !env.BUILD_PATH)
 		throw Error("BUILD_PATH not set");
 	let target = "http://localhost:8080";
+	let agent: Agent | undefined = undefined;
 	if (mode === "remote") {
 		if (!env.REMOTE_SERVER) throw Error("REMOTE_SERVER not set");
 		target = env.REMOTE_SERVER;
+		if (env.https_proxy) agent = new HttpsProxyAgent(env.https_proxy);
 	}
 	if (!env.BASE_URL) throw Error("BASE_URL not set");
 	return {
@@ -85,13 +88,13 @@ export default defineConfig(({ command, mode }) => {
 				"^(/api|/auth|/oauth2|/login|/logout)": {
 					target,
 					changeOrigin: true,
-					agent: new ProxyAgent(),
+					agent,
 				},
 				"/socket.io": {
 					target,
 					changeOrigin: true,
 					ws: true,
-					agent: new ProxyAgent(),
+					agent,
 				},
 			},
 		},

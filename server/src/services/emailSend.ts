@@ -6,11 +6,16 @@ import {
 	SendEmailCommandInput,
 	SendEmailCommandOutput,
 } from "@aws-sdk/client-ses";
-import { FetchHttpHandler } from "@aws-sdk/fetch-http-handler";
-
+import { NodeHttpHandler } from "@smithy/node-http-handler";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import type { Email } from "@schemas/email.js";
 
-const requestHandler = new FetchHttpHandler();
+let requestHandler: NodeHttpHandler | undefined;
+if (process.env.https_proxy) {
+	requestHandler = new NodeHttpHandler({
+		httpsAgent: new HttpsProxyAgent(process.env.https_proxy),
+	});
+}
 
 const region = "us-west-2";
 let credentials: ReturnType<typeof fromIni>;
