@@ -497,19 +497,16 @@ export async function exportResults(
 	forBallotSeries: boolean,
 	res: Response,
 ) {
-	let fileNamePrefix: string;
-	let resultsArr: Result[][];
-	const ballots = await getBallotSeries(ballot.id);
-	if (ballots.length === 0)
-		throw new NotFoundError(`No such ballot: ${ballot.id}`);
-
 	if (forBallotSeries) {
-		resultsArr = await Promise.all(ballots.map(getResultsCoalesced));
-		fileNamePrefix = ballot.Project;
+		const ballots = await getBallotSeries(ballot.id);
+		if (ballots.length === 0)
+			throw new NotFoundError(`No such ballot: ${ballot.id}`);
+		const resultsArr = await Promise.all(ballots.map(getResultsCoalesced));
+		res.attachment(sanitize(ballot.Project) + "_results.xlsx");
+		return genResultsSpreadsheet(user, ballots, resultsArr, res);
 	} else {
-		resultsArr = [await getResultsCoalesced(ballot)];
-		fileNamePrefix = getBallotId(ballot);
+		const results = await getResultsCoalesced(ballot);
+		res.attachment(sanitize(getBallotId(ballot)) + "_results.xlsx");
+		return genResultsSpreadsheet(user, [ballot], [results], res);
 	}
-	res.attachment(sanitize(fileNamePrefix) + "_results.xlsx");
-	return genResultsSpreadsheet(user, ballots, resultsArr, res);
 }
