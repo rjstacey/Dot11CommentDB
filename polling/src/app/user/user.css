@@ -13,13 +13,13 @@
 		animation: pulse 2s infinite;
 	}
 
-	& :global(.tab-pane) {
+	& .tab-pane {
 		flex-direction: column;
 		padding: 1rem;
 		border: 1px solid var(--bs-border-color);
 		border-top: none;
 
-		&:global(.active) {
+		&.active {
 			display: flex;
 		}
 	}
