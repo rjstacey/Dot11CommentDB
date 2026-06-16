@@ -1,9 +1,10 @@
-import { OAuth2Client, Credentials } from "google-auth-library";
+//import type { OAuth2Client, Credentials } from "google-auth-library";
 // Google Calendar: https://developers.google.com/calendar/api/v3/reference/calendars
-import { google, calendar_v3 } from "googleapis";
+import { google, calendar_v3, Auth } from "googleapis";
+import { OAuth2Client } from "googleapis-common";
 import qs from "node:querystring";
-import { Request } from "express";
-import { UserContext } from "./users.js";
+import type { Request } from "express";
+import type { UserContext } from "./users.js";
 
 import {
 	genOAuthState,
@@ -14,8 +15,11 @@ import {
 	deleteOAuthAccount,
 	updateAuthParams,
 } from "./oauthAccounts.js";
-import { OAuthAccount, OAuthAccountCreate } from "@schemas/oauthAccounts.js";
-import {
+import type {
+	OAuthAccount,
+	OAuthAccountCreate,
+} from "@schemas/oauthAccounts.js";
+import type {
 	CalendarAccount,
 	CalendarAccountCreate,
 	CalendarAccountChange,
@@ -30,7 +34,7 @@ type CalendarAccountLocal = Omit<
 > & {
 	calendar?: calendar_v3.Calendar;
 	auth: OAuth2Client;
-	authParams: Credentials | null;
+	authParams: Auth.Credentials | null;
 };
 
 const calendarRevokeUrl = "https://oauth2.googleapis.com/revoke";
@@ -58,7 +62,7 @@ export async function init() {
 		googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 	else
 		console.warn(
-			"Calendar API: Missing .env variable GOOGLE_CLIENT_SECRET"
+			"Calendar API: Missing .env variable GOOGLE_CLIENT_SECRET",
 		);
 }
 
@@ -88,7 +92,7 @@ function createCalendarApi(auth: OAuth2Client) {
 function createAuth(id: number) {
 	const auth = new google.auth.OAuth2(
 		googleClientId,
-		googleClientSecret
+		googleClientSecret,
 		//calendarAuthRedirectUri
 	).on("tokens", (tokens) => {
 		console.log(`updateAuthParams for ${id}:`, tokens);
@@ -109,13 +113,16 @@ function createCalendarAccount(account: OAuthAccount) {
 	return calendarAccounts[id];
 }
 
-async function activateCalendarAccount(id: number, authParams: Credentials) {
+async function activateCalendarAccount(
+	id: number,
+	authParams: Auth.Credentials,
+) {
 	const account = calendarAccounts[id];
 	account.authParams = authParams;
 	account.auth.setCredentials(authParams);
 	account.calendar = createCalendarApi(account.auth);
 	account.primaryCalendar = (await getPrimaryCalendar(
-		account.id
+		account.id,
 	)) as GoogleCalendar;
 	let calendarList = await getCalendarList(account.id);
 	if (calendarList) {
@@ -154,7 +161,7 @@ function getCalendarApi(account: CalendarAccountLocal) {
 function getAuthUrl(
 	user: UserContext,
 	host: string,
-	account: CalendarAccountLocal
+	account: CalendarAccountLocal,
 ) {
 	return account.auth.generateAuthUrl({
 		access_type: "offline",
@@ -250,7 +257,7 @@ async function getActiveCalendarAccount(id: number) {
 export async function getCalendarAccounts(
 	req: Request,
 	user: UserContext,
-	query?: CalendarAccountsQuery
+	query?: CalendarAccountsQuery,
 ) {
 	const proxyHost = req.headers["x-forwarded-host"] as string;
 	const m = /(http[s]?:\/\/[^/]+)\//.exec(req.headers["referer"] || "");
@@ -312,7 +319,7 @@ export async function addCalendarAccount(
 	req: Request,
 	user: UserContext,
 	groupId: string,
-	accountIn: CalendarAccountCreate
+	accountIn: CalendarAccountCreate,
 ) {
 	const oauthAccountIn: OAuthAccountCreate = {
 		...accountIn,
@@ -337,7 +344,7 @@ export async function updateCalendarAccount(
 	user: UserContext,
 	groupId: string,
 	id: number,
-	changes: CalendarAccountChange
+	changes: CalendarAccountChange,
 ) {
 	const [oauthAccount] = await getOAuthAccounts({
 		id,
@@ -373,7 +380,7 @@ export async function revokeAuthCalendarAccount(
 	req: Request,
 	user: UserContext,
 	groupId: string,
-	id: number
+	id: number,
 ) {
 	const [oauthAccount] = await getOAuthAccounts({
 		id,
@@ -426,7 +433,7 @@ function touchAccount(account: CalendarAccountLocal) {
 }
 
 export async function getPrimaryCalendar(
-	id: number
+	id: number,
 ): Promise<calendar_v3.Schema$Calendar | void> {
 	const account = await getActiveCalendarAccount(id);
 	const calendar = getCalendarApi(account);
@@ -440,7 +447,7 @@ export async function getPrimaryCalendar(
 }
 
 export async function getCalendarList(
-	id: number
+	id: number,
 ): Promise<calendar_v3.Schema$CalendarListEntry[] | void> {
 	const account = await getActiveCalendarAccount(id);
 	const calendar = getCalendarApi(account);
@@ -459,7 +466,7 @@ const calendarId = "802.11calendar@gmail.com"; // 'primary'
 
 export async function getCalendarEvent(
 	id: number,
-	eventId: string
+	eventId: string,
 ): Promise<CalendarEvent | void> {
 	const account = await getActiveCalendarAccount(id);
 	const calendar = getCalendarApi(account);
@@ -474,7 +481,7 @@ export async function getCalendarEvent(
 
 export async function addCalendarEvent(
 	id: number,
-	params: object
+	params: object,
 ): Promise<CalendarEvent | void> {
 	const account = await getActiveCalendarAccount(id);
 	const calendar = getCalendarApi(account);
@@ -489,7 +496,7 @@ export async function addCalendarEvent(
 
 export async function deleteCalendarEvent(
 	id: number,
-	eventId: string
+	eventId: string,
 ): Promise<CalendarEvent | void> {
 	const account = await getActiveCalendarAccount(id);
 	const calendar = getCalendarApi(account);
@@ -505,7 +512,7 @@ export async function deleteCalendarEvent(
 export async function updateCalendarEvent(
 	id: number,
 	eventId: string,
-	changes: object
+	changes: object,
 ): Promise<CalendarEvent | void> {
 	const account = await getActiveCalendarAccount(id);
 	const calendar = getCalendarApi(account);

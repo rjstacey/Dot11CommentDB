@@ -19,7 +19,7 @@ import {
 async function get(req: Request, res: Response, next: NextFunction) {
 	try {
 		const { user } = req;
-		const { parentName } = req.params;
+		const parentName = req.params.parentName as string | undefined;
 		let query = groupsQuerySchema.parse(req.query);
 		query = { ...query, parentName };
 		const data = await getGroups(user, query);

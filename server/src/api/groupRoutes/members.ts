@@ -138,7 +138,7 @@ async function removeMany(req: Request, res: Response, next: NextFunction) {
 async function statusChangeHistory_addMany(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { body, params } = req;
@@ -154,7 +154,7 @@ async function statusChangeHistory_addMany(
 async function statusChangeHistory_updateMany(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { body, params } = req;
@@ -170,7 +170,7 @@ async function statusChangeHistory_updateMany(
 async function statusChangeHistory_removeMany(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { body, params } = req;
@@ -186,7 +186,7 @@ async function statusChangeHistory_removeMany(
 async function contactEmails_addOne(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { body, params } = req;
@@ -194,7 +194,7 @@ async function contactEmails_addOne(
 		const id = Number(params.id);
 		if (typeof body !== "object")
 			throw new BadRequestError(
-				"Missing or bad ContactEmails row object"
+				"Missing or bad ContactEmails row object",
 			);
 		const data = await addMemberContactEmail(group.id, id, body);
 		res.json(data);
@@ -206,7 +206,7 @@ async function contactEmails_addOne(
 async function contactEmails_updateOne(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	const group = req.group!;
 	const id = Number(req.params.id);
@@ -218,7 +218,7 @@ async function contactEmails_updateOne(
 	try {
 		if (typeof entry !== "object")
 			throw new BadRequestError(
-				"Missing or bad ContactEmails row object"
+				"Missing or bad ContactEmails row object",
 			);
 		const data = await updateMemberContactEmail(group.id, id, entry);
 		res.json(data);
@@ -230,7 +230,7 @@ async function contactEmails_updateOne(
 async function contactEmails_removeOne(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const group = req.group!;
@@ -238,7 +238,7 @@ async function contactEmails_removeOne(
 		const entry = req.body;
 		if (typeof entry !== "object")
 			throw new BadRequestError(
-				"Missing or bad ContactEmails row object"
+				"Missing or bad ContactEmails row object",
 			);
 		const data = await deleteMemberContactEmail(group.id, id, entry);
 		res.json(data);
@@ -261,7 +261,7 @@ async function getUser(req: Request, res: Response, next: NextFunction) {
 async function postUpload(req: Request, res: Response, next: NextFunction) {
 	try {
 		const group = req.group!;
-		const { format } = req.params;
+		const format = req.params.format as string;
 		const { filename, buffer } = fileBufferOrThrow(req);
 		const data = await uploadMembers(group.id, format, filename, buffer);
 		res.json(data);
@@ -273,7 +273,7 @@ async function postUpload(req: Request, res: Response, next: NextFunction) {
 async function postMyProjectRoster(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const group = req.group!;
@@ -288,7 +288,7 @@ async function postMyProjectRoster(
 async function patchMyProjectRoster(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { user, query } = req;
@@ -303,7 +303,7 @@ async function patchMyProjectRoster(
 			options,
 			filename,
 			buffer,
-			res
+			res,
 		);
 		res.end();
 	} catch (error) {
@@ -314,7 +314,7 @@ async function patchMyProjectRoster(
 async function getMyProjectRoster(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const { user } = req;
@@ -369,7 +369,7 @@ async function getSnapshot(req: Request, res: Response, next: NextFunction) {
 async function getExportMembers(
 	req: Request,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) {
 	try {
 		const group = req.group!;
