@@ -1,12 +1,9 @@
-import {
-	combineReducers,
-	configureStore as configureReduxStore,
-} from "@reduxjs/toolkit";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import type {
 	Action,
+	UnknownAction,
 	ThunkAction,
 	Middleware,
-	UnknownAction,
 } from "@reduxjs/toolkit";
 import { createLogger } from "redux-logger";
 import {
@@ -15,7 +12,7 @@ import {
 	createTransform,
 	type PersistConfig,
 } from "redux-persist";
-import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
+//import stateReconciler from "redux-persist/lib/stateReconciler/autoMergeLevel1";
 import createIdbStorage from "@piotr-cz/redux-persist-idb-storage";
 
 import groupsSlice from "./groups";
@@ -106,7 +103,7 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 		affliationMapSlice.name,
 		membershipOverTimeSlice.name,
 	],
-	stateReconciler: autoMergeLevel2,
+	//stateReconciler,
 	transforms: [transformState],
 	migrate: (state) => {
 		if (
@@ -123,7 +120,7 @@ const middleware: Middleware[] = [];
 if (import.meta.env.DEV)
 	middleware.push(createLogger({ collapsed: true }) as Middleware);
 
-export const store = configureReduxStore({
+export const store = configureStore({
 	reducer: persistReducer(persistConfig, rootReducer),
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({

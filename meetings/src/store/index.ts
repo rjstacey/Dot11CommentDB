@@ -4,7 +4,7 @@ import {
 } from "@reduxjs/toolkit";
 import type {
 	Action,
-	AnyAction,
+	UnknownAction,
 	ThunkAction,
 	Middleware,
 } from "@reduxjs/toolkit";
@@ -16,8 +16,7 @@ import {
 	PersistConfig,
 } from "redux-persist";
 import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
-import storage from "redux-persist/lib/storage";
-//import { get, set, del } from "idb-keyval";
+import createIdbStorage from "@piotr-cz/redux-persist-idb-storage";
 
 import { errorsSlice, userSlice, createPersistReady } from "@common";
 
@@ -41,6 +40,11 @@ export { setError, setUser, selectUser, type User } from "@common";
 
 // Change the version number with a breaking change in the store structure
 const version = 4;
+
+const storage = createIdbStorage({
+	name: "802tools",
+	storeName: "meetings",
+});
 
 const RESET_STORE_ACTION = "root/RESET_STORE";
 
@@ -98,7 +102,7 @@ const appReducer = combineReducers({
 
 const rootReducer = (
 	state: ReturnType<typeof appReducer> | undefined,
-	action: AnyAction,
+	action: UnknownAction,
 ) => {
 	if (action.type === RESET_STORE_ACTION) state = undefined;
 	return appReducer(state, action);

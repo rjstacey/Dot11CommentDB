@@ -160,21 +160,19 @@ export const selectSession = (state: RootState, id: number) =>
 
 /** Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-let loading = false;
-let loadingPromise: Promise<void>;
+let loadingPromise: Promise<void> | undefined;
 export const loadSessions =
 	(groupName: string, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const currentGroupName = selectSessionsState(state).groupName;
 		if (currentGroupName === groupName) {
-			if (loading) return loadingPromise;
+			if (loadingPromise) return loadingPromise;
 			const age = selectSessionsAge(state);
-			if (!force && age && age < AGE_STALE) return loadingPromise;
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/sessions`;
-		loading = true;
 		loadingPromise = fetcher
 			.get(url, { type: ["p", "i"], limit: 20 })
 			.then((response) => {
@@ -186,7 +184,7 @@ export const loadSessions =
 				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
-				loading = false;
+				loadingPromise = undefined;
 			});
 		return loadingPromise;
 	};

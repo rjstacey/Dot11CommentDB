@@ -96,22 +96,20 @@ export const selectMembershipOverTime = createSelector(
 /** Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loading = false;
-let loadingPromise: Promise<void> = Promise.resolve();
+let loadingPromise: Promise<void> | undefined;
 export const loadMembershipOverTime =
 	(groupName: string, force = false): AppThunk<void> =>
 	(dispatch, getState) => {
 		const state = getState();
 		const currentGroupName = selectMembershipOverTimeState(state).groupName;
 		if (currentGroupName === groupName) {
-			if (loading) return loadingPromise;
+			if (loadingPromise) return loadingPromise;
 			const age = selectMembershipOverTimeAge(state);
-			if (!force && age && age < AGE_STALE) return loadingPromise;
+			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/membershipOverTime`;
-		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response) => {
@@ -124,7 +122,7 @@ export const loadMembershipOverTime =
 				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
-				loading = false;
+				loadingPromise = undefined;
 			});
 
 		return loadingPromise;

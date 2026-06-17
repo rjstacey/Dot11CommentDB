@@ -48,7 +48,7 @@ const slice = createAppTableDataSlice({
 			(action: Action) => action.type === dataSet + "/getPending",
 			(state) => {
 				state.lastLoad = new Date().toISOString();
-			}
+			},
 		);
 		builder.addMatcher(
 			(action: Action) => action.type === clearUsers.toString(),
@@ -56,7 +56,7 @@ const slice = createAppTableDataSlice({
 				state.lastLoad = null;
 				state.valid = false;
 				dataAdapter.removeAll(state);
-			}
+			},
 		);
 	},
 });
@@ -95,7 +95,7 @@ export const selectIeeeMembers = createSelector(
 				let n = m1.LastName.localeCompare(m2.LastName);
 				if (n === 0) n = m1.FirstName.localeCompare(m2.FirstName);
 				return n;
-			})
+			}),
 );
 
 /* Thunk actions */
@@ -116,17 +116,15 @@ const url = "/api/root/members";
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-let loading = false;
-let loadingPromise: Promise<void> = Promise.resolve();
+let loadingPromise: Promise<void> | undefined;
 export const loadIeeeMembers =
 	(force = false): AppThunk<void> =>
 	(dispatch, getState) => {
+		if (loadingPromise) return loadingPromise;
 		const age = selectIeeeMembersAge(getState());
-		if (loading || (!force && age && age < AGE_STALE))
-			return loadingPromise;
+		if (!force && age && age < AGE_STALE) return Promise.resolve();
 
 		dispatch(getPending());
-		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response) => {
@@ -139,7 +137,7 @@ export const loadIeeeMembers =
 				dispatch(setError("Unable to get users list", error));
 			})
 			.finally(() => {
-				loading = false;
+				loadingPromise = undefined;
 			});
 		return loadingPromise;
 	};

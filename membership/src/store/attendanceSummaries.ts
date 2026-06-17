@@ -66,7 +66,6 @@ export function isNullAttendanceSummary(a: SessionAttendanceSummary) {
 type ExtraState = {
 	groupName: string | null;
 	sessionIds: EntityId[];
-	loading: Record<number, boolean>;
 	lastLoad: Record<number, string | null>;
 };
 
@@ -76,7 +75,6 @@ const dataAdapter = createEntityAdapter({ selectId });
 const initialState = dataAdapter.getInitialState<ExtraState>({
 	groupName: null,
 	sessionIds: [],
-	loading: {},
 	lastLoad: {},
 });
 const dataSet = "attendanceSummaries";
@@ -89,7 +87,6 @@ const slice = createSlice({
 			action: PayloadAction<{ groupName: string; session_id: number }>,
 		) {
 			const { groupName, session_id } = action.payload;
-			state.loading[session_id] = true;
 			state.lastLoad[session_id] = new Date().toISOString();
 			if (state.groupName !== groupName) {
 				state.groupName = groupName;
@@ -105,7 +102,6 @@ const slice = createSlice({
 			}>,
 		) {
 			const { session_id, attendanceSummaries } = action.payload;
-			state.loading[session_id] = false;
 			if (!state.sessionIds.includes(session_id)) {
 				state.sessionIds.push(session_id);
 			}
@@ -117,7 +113,6 @@ const slice = createSlice({
 		},
 		getFailure(state, action: PayloadAction<{ session_id: number }>) {
 			const { session_id } = action.payload;
-			state.loading[session_id] = false;
 			state.lastLoad[session_id] = null;
 		},
 		setMany: dataAdapter.setMany,
@@ -143,10 +138,6 @@ const selectAttendanceSummariesAge = (state: RootState, session_id: number) => {
 	if (!lastLoad) return NaN;
 	return new Date().valueOf() - new Date(lastLoad).valueOf();
 };
-const selectAttendanceSummariesLoading = (
-	state: RootState,
-	session_id: number,
-) => selectAttendanceSummariesState(state).loading[session_id];
 export const selectAttendanceSummariesIds = (state: RootState) =>
 	selectAttendanceSummariesState(state).ids;
 export const selectAttendanceSummariesEntities = (state: RootState) =>
@@ -227,7 +218,7 @@ export const selectMemberAttendances = createSelector(
 /** Thunk actions */
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
 
-const loadingPromise: Record<number, Promise<void>> = {};
+const loadingPromise: Record<number, Promise<void> | undefined> = {};
 export const loadAttendanceSummary =
 	(groupName: string, session_id: number, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
@@ -235,8 +226,9 @@ export const loadAttendanceSummary =
 		const { groupName: currentGroupName } =
 			selectAttendanceSummariesState(state);
 		if (currentGroupName === groupName) {
-			const loading = selectAttendanceSummariesLoading(state, session_id);
-			if (loading) return loadingPromise[session_id];
+			// if already loading, return existing promise
+			if (loadingPromise[session_id]) return loadingPromise[session_id];
+
 			const age = selectAttendanceSummariesAge(state, session_id);
 			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
@@ -252,6 +244,9 @@ export const loadAttendanceSummary =
 			.catch((error) => {
 				dispatch(getFailure({ session_id }));
 				dispatch(setError("GET " + url, error));
+			})
+			.finally(() => {
+				delete loadingPromise[session_id];
 			});
 		return loadingPromise[session_id];
 	};
