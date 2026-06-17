@@ -1,7 +1,4 @@
-import {
-	combineReducers,
-	configureStore as configureReduxStore,
-} from "@reduxjs/toolkit";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import type {
 	Action,
 	UnknownAction,
@@ -13,9 +10,9 @@ import {
 	persistStore,
 	persistReducer,
 	createTransform,
-	PersistConfig,
+	type PersistConfig,
 } from "redux-persist";
-import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
+//import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import createIdbStorage from "@piotr-cz/redux-persist-idb-storage";
 
 import { errorsSlice, userSlice, createPersistReady } from "@common";
@@ -133,7 +130,7 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 		ieee802WorldSlice.name,
 	],
 	transforms: [transformState],
-	stateReconciler: autoMergeLevel2,
+	//stateReconciler: autoMergeLevel2,
 	migrate: (state) => {
 		if (state && state._persist && state._persist.version !== version)
 			return Promise.reject("Discard old version");
@@ -141,7 +138,7 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	},
 };
 
-export const store = configureReduxStore({
+export const store = configureStore({
 	reducer: persistReducer(persistConfig, rootReducer),
 	middleware: (getDefaultMiddleware) =>
 		getDefaultMiddleware({
