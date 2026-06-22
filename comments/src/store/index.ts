@@ -16,7 +16,7 @@ import {
 	createTransform,
 	PersistConfig,
 } from "redux-persist";
-import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
+//import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
 import createIdbStorage from "@piotr-cz/redux-persist-idb-storage";
 import {
 	errorsSlice,
@@ -118,7 +118,7 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 		votersSlice.name,
 	],
 	transforms: [transformState],
-	stateReconciler: autoMergeLevel2,
+	//stateReconciler: autoMergeLevel2,
 	migrate: (state) => {
 		if (state?._persist.version !== STORE_FORMAT_VERSION)
 			return Promise.reject("Discard old version");

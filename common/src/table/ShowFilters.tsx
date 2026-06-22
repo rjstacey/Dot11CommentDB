@@ -13,6 +13,7 @@ import {
 	FilterComp,
 } from "../store/appTableData";
 
+import "../styles/index.css";
 import "./ShowFilters.css";
 
 const ActiveFilter = ({

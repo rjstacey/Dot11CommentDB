@@ -10,6 +10,7 @@ import type {
 	AppTableDataActions,
 } from "./AppTable";
 
+import "../styles/index.css";
 import "./ControlColumn.css";
 
 type ControlHeaderCellProps = HeaderCellRendererProps & {

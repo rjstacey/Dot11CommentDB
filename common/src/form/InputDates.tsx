@@ -3,6 +3,7 @@ import { Dropdown } from "react-bootstrap";
 import ExpandingTextArea from "react-expanding-textarea";
 import Calendar from "../calendar";
 
+import "../styles/index.css";
 import "./InputDates.css";
 
 const months = [

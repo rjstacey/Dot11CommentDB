@@ -1,0 +1,22 @@
+.icon {
+	&::before {
+		display: block;
+		width: 1rem;
+		height: 1rem;
+		line-height: 1;
+		fill: currentColor;
+		overflow: hidden;
+	}
+
+	&.action {
+		cursor: pointer;
+		&:hover {
+			color: tomato;
+		}
+	}
+}
+
+button.icon {
+	all: unset;
+	display: inline-block;
+}

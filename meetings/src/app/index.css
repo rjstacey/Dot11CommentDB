@@ -137,15 +137,3 @@ main {
 .form-control.has-changes:focus {
 	background-color: rgb(255, 255, 126);
 }
-
-.icon {
-	all: unset;
-	display: inline-block;
-}
-
-.icon.action {
-	cursor: pointer;
-	&:hover {
-		color: tomato;
-	}
-}
