@@ -116,15 +116,3 @@ main {
 		}
 	}
 }
-
-.icon {
-	all: unset;
-	display: inline-block;
-}
-
-.icon.action {
-	cursor: pointer;
-	&:hover {
-		color: tomato;
-	}
-}
