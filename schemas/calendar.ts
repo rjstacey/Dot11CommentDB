@@ -8,7 +8,7 @@ export const googleCalendarSchema = z.object({
 	etag: z.string(), // ETag of the resource.
 	id: z.string(), // Identifier of the calendar.
 	summary: z.string(), // Title of the calendar.
-	description: z.string(), // Description of the calendar.
+	description: z.string().optional(), // Description of the calendar.
 	location: z.string().optional(), // Geographic location of the calendar as free-form text.
 	timeZone: z.string(), // The time zone of the calendar. (Formatted as an IANA Time Zone Database name, e.g. "Europe/Zurich".)
 });
