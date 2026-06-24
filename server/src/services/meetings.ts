@@ -875,6 +875,7 @@ async function meetingMakeImatBreakoutUpdates(
 	webexMeeting: WebexMeeting | undefined,
 ) {
 	let breakout: Breakout | undefined;
+	const errors: ErrorObject[] = [];
 
 	const { webexMeetingId, imatBreakoutId, ...meetingChanges } = changes;
 	const updatedMeeting: Meeting = { ...meeting, ...meetingChanges };
@@ -893,7 +894,8 @@ async function meetingMakeImatBreakoutUpdates(
 					meeting.imatBreakoutId,
 				]);
 			} catch (error) {
-				if (!(error instanceof NotFoundError)) throw error;
+				// if (!(error instanceof NotFoundError)) throw error;
+				errors.push(createErrorObject(error));
 			}
 			if (changes.imatBreakoutId === "$add") {
 				// Different session
@@ -916,7 +918,6 @@ async function meetingMakeImatBreakoutUpdates(
 			}
 		} else {
 			// Update previously created breakout
-			console.log("update breakout");
 			try {
 				breakout = await updateImatBreakoutFromMeeting(
 					user,
@@ -925,9 +926,10 @@ async function meetingMakeImatBreakoutUpdates(
 					webexMeeting,
 				);
 			} catch (error) {
-				if (!(error instanceof NotFoundError)) throw error;
+				// if (!(error instanceof NotFoundError)) throw error;
 				// IMAT breakout no longer exists
 				//changes.imatBreakoutId = null;
+				errors.push(createErrorObject(error));
 			}
 		}
 	} else {
@@ -974,7 +976,7 @@ async function meetingMakeImatBreakoutUpdates(
 		}
 	}
 
-	return { breakout, affectedBreakouts };
+	return { breakout, affectedBreakouts, errors };
 }
 
 async function meetingMakeCalendarUpdates(
@@ -986,6 +988,7 @@ async function meetingMakeCalendarUpdates(
 	breakout: Breakout | undefined,
 ) {
 	let calendarEvent: CalendarEvent | void = undefined;
+	const errors: ErrorObject[] = [];
 
 	const updatedMeeting = { ...meeting, ...changes };
 
@@ -1009,7 +1012,7 @@ async function meetingMakeCalendarUpdates(
 					meeting.calendarEventId,
 				);
 			} catch (error) {
-				console.warn("Unable to delete calendar event", error);
+				errors.push(createErrorObject(error));
 			}
 			//changes.calendarEventId = null;
 			if (changes.calendarAccountId) {
@@ -1020,7 +1023,7 @@ async function meetingMakeCalendarUpdates(
 					);
 					//changes.calendarEventId = calendarEvent?.id || null;
 				} catch (error) {
-					console.warn("Unable to add calendar event", error);
+					errors.push(createErrorObject(error));
 				}
 			}
 		} else {
@@ -1033,7 +1036,7 @@ async function meetingMakeCalendarUpdates(
 					calendarEventParams,
 				);
 			} catch (error) {
-				console.warn("Unable to update calendar event", error);
+				errors.push(createErrorObject(error));
 			}
 		}
 	} else {
@@ -1046,12 +1049,12 @@ async function meetingMakeCalendarUpdates(
 				);
 				//changes.calendarEventId = calendarEvent?.id || null;
 			} catch (error) {
-				console.warn("Unable to add calendar event", error);
+				errors.push(createErrorObject(error));
 			}
 		}
 	}
 
-	return calendarEvent;
+	return { calendarEvent, errors };
 }
 
 /*async function updateMeetingDB(id: number, changes: MeetingChange) {
@@ -1078,6 +1081,7 @@ export async function updateMeeting(
 	id: number,
 	changesIn: MeetingChange,
 ) {
+	const errors: ErrorObject[] = [];
 	const changes: MeetingChange = {
 		...changesIn,
 		webexMeetingId: undefined,
@@ -1104,31 +1108,37 @@ export async function updateMeeting(
 	if (!webexMeeting && meeting.webexMeetingId) changes.webexMeetingId = null;
 
 	/* Make IMAT breakout changes */
-	const { breakout, affectedBreakouts } =
-		await meetingMakeImatBreakoutUpdates(
-			user,
-			meeting,
-			changesIn,
-			session,
-			webexMeeting,
-		);
+	const {
+		breakout,
+		affectedBreakouts,
+		errors: breakoutErrors,
+	} = await meetingMakeImatBreakoutUpdates(
+		user,
+		meeting,
+		changesIn,
+		session,
+		webexMeeting,
+	);
 	if (breakout && meeting.imatBreakoutId !== breakout.id)
 		changes.imatBreakoutId = breakout.id;
 	if (!breakout && meeting.imatBreakoutId) changes.imatBreakoutId = null;
+	if (breakoutErrors.length > 0) errors.push(...breakoutErrors);
 
 	workingGroup = await workingGroup; // do other updates while we wait for group
 
 	/* Make calendar changes */
-	const calendarEvent = await meetingMakeCalendarUpdates(
-		meeting,
-		changes,
-		session,
-		workingGroup,
-		webexMeeting,
-		breakout,
-	);
+	const { calendarEvent, errors: calendarErrors } =
+		await meetingMakeCalendarUpdates(
+			meeting,
+			changes,
+			session,
+			workingGroup,
+			webexMeeting,
+			breakout,
+		);
 	if (calendarEvent && meeting.calendarEventId !== calendarEvent.id)
 		changes.calendarEventId = calendarEvent.id;
+	if (calendarErrors.length > 0) errors.push(...calendarErrors);
 
 	const setSql = meetingToSetSql(changes);
 	if (setSql) {
@@ -1140,7 +1150,7 @@ export async function updateMeeting(
 		[meeting] = await selectMeetings({ id });
 	}
 
-	return { meeting, webexMeeting, breakout, affectedBreakouts };
+	return { meeting, webexMeeting, breakout, affectedBreakouts, errors };
 }
 
 /**
@@ -1155,6 +1165,8 @@ export async function updateMeetings(
 	updates: MeetingUpdate[],
 ): Promise<MeetingsUpdateResponse> {
 	getIeeeClientOrThrow(user);
+
+	const errors: ErrorObject[] = [];
 
 	const entries = await Promise.all(
 		updates.map((u) => updateMeeting(user, u.id, u.changes)),
@@ -1172,10 +1184,11 @@ export async function updateMeetings(
 		for (const b of entry.affectedBreakouts) {
 			breakoutEntities[b.id] = b;
 		}
+		if (entry.errors.length > 0) errors.push(...entry.errors);
 	});
 	const breakouts = Object.values(breakoutEntities);
 
-	return { meetings, webexMeetings, breakouts };
+	return { meetings, webexMeetings, breakouts, errors };
 }
 
 /**
