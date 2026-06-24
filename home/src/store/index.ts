@@ -16,8 +16,9 @@ import {
 	createTransform,
 	PersistConfig,
 } from "redux-persist";
-import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
-import storage from "redux-persist/lib/storage"; // defaults to localStorage for web
+//import autoMergeLevel2 from "redux-persist/lib/stateReconciler/autoMergeLevel2";
+//import storage from "redux-persist/lib/storage"; // defaults to localStorage for web
+import createIdbStorage from "@piotr-cz/redux-persist-idb-storage";
 
 import {
 	errorsSlice,
@@ -31,6 +32,11 @@ export { resetStore, setUser, selectUser } from "@common";
 
 // Change the version number with a breaking change in the store structure
 const version = 1;
+
+const storage = createIdbStorage({
+	name: "802tools",
+	storeName: "home",
+});
 
 const dataAppSliceNames = [groupsSlice.name];
 
@@ -76,7 +82,7 @@ const persistConfig: PersistConfig<ReturnType<typeof appReducer>> = {
 	storage,
 	whitelist: [userSlice.name, groupsSlice.name],
 	transforms: [transformState],
-	stateReconciler: autoMergeLevel2,
+	//stateReconciler: autoMergeLevel2,
 	migrate: (state) => {
 		if (state && state._persist && state._persist.version !== version)
 			return Promise.reject("Discard old version");

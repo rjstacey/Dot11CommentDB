@@ -2,20 +2,23 @@ import {
 	createSlice,
 	createEntityAdapter,
 	createSelector,
-	type PayloadAction,
+	PayloadAction,
 } from "@reduxjs/toolkit";
 
 import { fetcher, setError } from "@common";
 
 import type { RootState, AppThunk } from ".";
-import { groupsSchema, groupTypesOrdered } from "@schemas/groups";
-import type {
+import {
 	GroupType,
 	Group,
 	GroupCreate,
 	GroupUpdate,
+	groupsSchema,
+	groupTypesOrdered,
 } from "@schemas/groups";
+import { AccessLevel } from "@schemas/access";
 export type { GroupType, Group, GroupCreate, GroupUpdate };
+export { AccessLevel };
 
 function arrangeIdsHeirarchically(
 	ids: string[],
@@ -66,7 +69,7 @@ function arrangeIdsHeirarchically(
 	return sortedIds.join() !== ids.join() ? sortedIds : ids;
 }
 
-/* Create slice */
+/** Create slice */
 const dataSet = "groups";
 const dataAdapter = createEntityAdapter<Group>();
 const initialState: {
@@ -87,17 +90,19 @@ const slice = createSlice({
 		setTopLevelGroupId(state, action: PayloadAction<string | null>) {
 			state.topLevelGroupId = action.payload;
 		},
-		getPending(state, action: PayloadAction<{ groupName: string }>) {
-			const { groupName } = action.payload;
+		getPending(state) {
 			state.loading = true;
-			state.lastLoad[groupName] = new Date().toISOString();
 		},
 		getFailure(state) {
 			state.loading = false;
 		},
-		getSuccess(state, action: PayloadAction<Group[]>) {
-			const groups = action.payload;
+		getSuccess(
+			state,
+			action: PayloadAction<{ groupName: string; groups: Group[] }>,
+		) {
+			const { groupName, groups } = action.payload;
 			dataAdapter.setMany(state, groups); // add or replace
+			state.lastLoad[groupName] = new Date().toISOString();
 			state.loading = false;
 			state.valid = true;
 			state.ids = arrangeIdsHeirarchically(state.ids, state.entities);
@@ -127,11 +132,10 @@ const selectGroupsAge = (state: RootState, groupName: string) => {
 export const selectTopLevelGroups = createSelector(
 	selectGroupIds,
 	selectGroupEntities,
-	(ids, entities) => {
-		return ids
+	(ids, entities) =>
+		ids
 			.map((id) => entities[id]!)
-			.filter((g) => ["r", "c", "wg"].includes(g.type!));
-	},
+			.filter((g) => ["r", "c", "wg"].includes(g.type!)),
 );
 
 /** Select top level group by name. Only for root ("r"), committee (c) and working group (wg). Root is selected with groupName = "". */
@@ -209,6 +213,29 @@ export const selectGroupParents = createSelector(
 	},
 );
 
+export const selectGroupHeirarchy = createSelector(
+	(state: RootState, groupId: string) => groupId,
+	selectGroupEntities,
+	(groupId, entities) => {
+		const hierarchy: Group[] = [];
+		const group = entities[groupId];
+		if (group) {
+			for (const g of Object.values(entities)) {
+				if (g && g.status > 0 && g.parent_id === groupId)
+					hierarchy.push(g);
+			}
+			hierarchy.push(group);
+			let parentId = group.parent_id;
+			while (parentId) {
+				const parent = entities[parentId];
+				if (parent) hierarchy.push(parent);
+				parentId = parent ? parent.parent_id : null;
+			}
+		}
+		return hierarchy;
+	},
+);
+
 export const selectGroup = (state: RootState, groupId: string) =>
 	selectGroupsState(state).entities[groupId];
 
@@ -234,15 +261,15 @@ export const loadGroups =
 		const age = selectGroupsAge(getState(), groupName);
 		if (age && age < AGE_STALE) return;
 
-		dispatch(getPending({ groupName }));
+		dispatch(getPending());
 		const url = groupName ? `${baseUrl}/${groupName}` : baseUrl;
 		loadingPromise[groupName] = fetcher
 			.get(url, groupName ? undefined : { type: ["c", "wg"] })
-			.then((response: unknown) => {
+			.then((response) => {
 				const groups = groupsSchema.parse(response);
-				dispatch(getSuccess(groups));
+				dispatch(getSuccess({ groupName, groups }));
 			})
-			.catch((error: unknown) => {
+			.catch((error) => {
 				dispatch(getFailure());
 				dispatch(setError("GET " + url, error));
 			})

@@ -3,7 +3,7 @@ import { createBrowserRouter, RouterProvider } from "react-router";
 import { Provider } from "react-redux";
 import { store } from "@/store";
 
-import { routes } from "./routes";
+import routes from "./routes";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
