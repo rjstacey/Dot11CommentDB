@@ -48,10 +48,7 @@ export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 
 export async function addPollEvent(event: EventAdd) {
 	const { groupId, ...rest } = event;
-	const sql = db.format(
-		"INSERT INTO pollEvents SET groupId=UUID_TO_BIN(?), ?",
-		[groupId, rest],
-	);
+	const sql = `INSERT INTO pollEvents SET groupId=UUID_TO_BIN(${db.escape(groupId)}), ${db.escape(rest)}`;
 	const { insertId: id } = await db.query<ResultSetHeader>(sql);
 	const [eventOut] = await getPollEvents({ id });
 	return eventOut;
