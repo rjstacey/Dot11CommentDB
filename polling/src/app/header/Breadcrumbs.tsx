@@ -10,7 +10,9 @@ export function Breadcrumbs() {
 
 	return (
 		<Breadcrumb>
-			<Breadcrumb.Item href={"/"}>
+			<Breadcrumb.Item
+				href={"/home" + (groupName ? `/${groupName}` : "")}
+			>
 				<i className="bi bi-house" />
 			</Breadcrumb.Item>
 			<Breadcrumb.Item linkAs={NavLink} linkProps={{ to: "/" }}>
