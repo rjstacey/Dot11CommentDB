@@ -93,25 +93,22 @@ function selectMeetingsSql(constraints: MeetingsQuery) {
 	if (groupId) {
 		sql += " LEFT JOIN organization o ON o.id=m.organizationId";
 		wheres.push(
-			db.format("(o.parent_id=UUID_TO_BIN(?) OR o.id=UUID_TO_BIN(?))", [
-				groupId,
-				groupId,
-			]),
+			`(o.parent_id=UUID_TO_BIN(${db.escape(groupId)}) OR o.id=UUID_TO_BIN(${db.escape(groupId)}))`,
 		);
 	}
 
 	if (sessionId) {
-		wheres.push(db.format("m.sessionId=?", [sessionId]));
+		wheres.push(`m.sessionId=${db.escape(sessionId)}`);
 	} else if (Object.keys(rest).length === 0 && !fromDate) {
 		/* Without other constraints, default fromDate is now */
 		const date = DateTime.now().toUTC();
-		wheres.push(db.format("end > ?", date.toFormat("yyyy-MM-dd HH:mm:ss")));
+		wheres.push(`end > ${db.escape(date.toFormat("yyyy-MM-dd HH:mm:ss"))}`);
 	}
 
 	if (fromDate) {
 		const zone = timezone || "America/New_York";
 		const date = DateTime.fromISO(fromDate, { zone }).toUTC();
-		wheres.push(db.format("end > ?", date.toFormat("yyyy-MM-dd HH:mm:ss")));
+		wheres.push(`end > ${db.escape(date.toFormat("yyyy-MM-dd HH:mm:ss"))}`);
 	}
 
 	if (toDate) {
@@ -120,17 +117,16 @@ function selectMeetingsSql(constraints: MeetingsQuery) {
 			.plus({ days: 1 })
 			.toUTC();
 		wheres.push(
-			db.format("start <= ?", date.toFormat("yyyy-MM-dd HH:mm:ss")),
+			`start <= ${db.escape(date.toFormat("yyyy-MM-dd HH:mm:ss"))}`,
 		);
 	}
 
 	if (Object.entries(rest).length) {
 		wheres = wheres.concat(
 			Object.entries(rest).map(([key, value]) =>
-				db.format(Array.isArray(value) ? "m.?? IN (?)" : "m.??=?", [
-					key,
-					value,
-				]),
+				Array.isArray(value)
+					? `m.\`${key}\` IN (${db.escape(value)})`
+					: `m.\`${key}\` = ${db.escape(value)}`,
 			),
 		);
 	}
@@ -262,8 +258,8 @@ function meetingToSetSql(e: MeetingChange) {
 	for (const [key, value] of Object.entries(entry)) {
 		let sql: string;
 		if (key === "organizationId")
-			sql = db.format("??=UUID_TO_BIN(?)", [key, value]);
-		else sql = db.format("??=?", [key, value]);
+			sql = `\`${key}\`=UUID_TO_BIN(${db.escape(value)})`;
+		else sql = `\`${key}\`=${db.escape(value)}`;
 		sets.push(sql);
 	}
 
@@ -1057,17 +1053,6 @@ async function meetingMakeCalendarUpdates(
 	return { calendarEvent, errors };
 }
 
-/*async function updateMeetingDB(id: number, changes: MeetingChange) {
-	const setSql = meetingToSetSql(changes);
-	if (setSql) {
-		const sql = db.format(
-			"UPDATE meetings SET " + setSql + " WHERE id=?;",
-			[id]
-		);
-		await db.query(sql);
-	}
-}*/
-
 /**
  * Update meeting, including changes to webex, calendar and imat.
  *
@@ -1142,10 +1127,7 @@ export async function updateMeeting(
 
 	const setSql = meetingToSetSql(changes);
 	if (setSql) {
-		const sql = db.format(
-			"UPDATE meetings SET " + setSql + " WHERE id=?;",
-			[id],
-		);
+		const sql = `UPDATE meetings SET ${setSql} WHERE id=${db.escape(id)}`;
 		await db.query(sql);
 		[meeting] = await selectMeetings({ id });
 	}
@@ -1214,18 +1196,16 @@ export async function deleteMeetings(
 		| "imatBreakoutId"
 	>;
 
-	// prettier-ignore
-	let sql = db.format(
-		"SELECT " + 
-			"webexAccountId, " + 
-			"webexMeetingId, " + 
-			"calendarAccountId, " + 
-			"calendarEventId, " +
-			"imatMeetingId, " + 
-			"imatBreakoutId " + 
-		"FROM meetings WHERE id IN (?);",
-		[ids]
-	);
+	let sql = `
+		SELECT  
+			webexAccountId,
+			webexMeetingId, 
+			calendarAccountId, 
+			calendarEventId,
+			imatMeetingId, 
+			imatBreakoutId 
+		FROM meetings WHERE id IN (${db.escape(ids)})
+	`;
 	const entries =
 		await db.query<(RowDataPacket & DeleteMeetingSelect)[]>(sql);
 	for (const entry of entries) {
@@ -1261,7 +1241,7 @@ export async function deleteMeetings(
 		}
 	}
 
-	sql = db.format("DELETE FROM meetings WHERE id IN (?);", [ids]);
+	sql = `DELETE FROM meetings WHERE id IN (${db.escape(ids)})`;
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }

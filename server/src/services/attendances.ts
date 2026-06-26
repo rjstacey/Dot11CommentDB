@@ -65,38 +65,39 @@ export async function init() {
 }
 
 function getAttendancesSql(query: SessionAttendanceSummaryQuery = {}) {
-	// prettier-ignore
-	let sql = 
-		"SELECT " +
-			"id, " +
-			"BIN_TO_UUID(groupId) as groupId, " +
-			"session_id, " +
-			"SAPIN, " +
-			"CurrentSAPIN, " +
-			"AttendancePercentage, " +
-			"IsRegistered, " +
-			"InPerson, " +
-			"DidAttend, " +
-			"DidNotAttend, " +
-			"Notes " +
-		"FROM memberAttendanceSummary";
+	let sql = `
+		SELECT
+			id,
+			BIN_TO_UUID(groupId) as groupId,
+			session_id,
+			SAPIN,
+			CurrentSAPIN,
+			AttendancePercentage,
+			IsRegistered,
+			InPerson,
+			DidAttend,
+			DidNotAttend,
+			Notes
+		FROM memberAttendanceSummary
+	`;
 
-	const wheres = Object.entries(query).map(([key, value]) => {
+	const wheres: string[] = [];
+	Object.entries(query).forEach(([key, value]) => {
 		if (key === "groupId") {
-			return db.format(
+			wheres.push(
 				Array.isArray(value)
-					? "BIN_TO_UUID(??) IN (?)"
-					: "??=UUID_TO_BIN(?)",
-				[key, value],
+					? `BIN_TO_UUID(${key}) IN (${db.escape(value)})`
+					: `${key} = UUID_TO_BIN(${db.escape(value)})`,
+			);
+		} else if (key === "withAttendance") {
+			if (value) wheres.push("AttendancePercentage > 0");
+		} else {
+			wheres.push(
+				Array.isArray(value)
+					? `${key} IN (${db.escape(value)})`
+					: `${key} = ${db.escape(value)}`,
 			);
 		}
-		if (key === "withAttendance") {
-			return db.format("AttendancePercentage > 0");
-		}
-		return db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
-			key,
-			value,
-		]);
 	});
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 
@@ -151,25 +152,24 @@ export async function importAttendances(
 	let sql: string;
 
 	// Clear AttendancePercentage for current entries
-	sql = db.format(
-		"UPDATE attendanceSummary SET AttendancePercentage=NULL WHERE groupId=UUID_TO_BIN(?) AND session_id=?",
-		[group.id, session.id],
-	);
+	sql = `
+		UPDATE attendanceSummary
+		SET AttendancePercentage=NULL
+		WHERE groupId=UUID_TO_BIN(${db.escape(group.id)}) AND session_id=${db.escape(session.id)}
+	`;
 	await db.query(sql);
 
 	const queries: Promise<ResultSetHeader>[] = [];
 	for (const a of imatAttendances) {
-		sql =
-			db.format(
-				"INSERT INTO attendanceSummary (groupId, session_id, SAPIN, AttendancePercentage) VALUES ",
-			) +
-			db.format("(UUID_TO_BIN(?), ?, ?, ?)", [
-				group.id,
-				session.id,
-				a.SAPIN,
-				a.AttendancePercentage,
-			]) +
-			" ON DUPLICATE KEY UPDATE AttendancePercentage=VALUES(AttendancePercentage)";
+		sql = `
+			INSERT INTO attendanceSummary (groupId, session_id, SAPIN, AttendancePercentage)
+			VALUES (
+				UUID_TO_BIN(${db.escape(group.id)}),
+				${db.escape(session.id)},
+				${db.escape(a.SAPIN)},
+				${db.escape(a.AttendancePercentage)}
+			) ON DUPLICATE KEY UPDATE AttendancePercentage=VALUES(AttendancePercentage)
+		`;
 		queries.push(db.query(sql));
 	}
 	await Promise.all(queries);
@@ -252,11 +252,11 @@ type AttendingMember = {
 };
 
 function registeredVotersSQL(session_id: number, status: MemberStatus[]) {
-	return (
-		"SELECT FirstName, LastName, Email " +
-		"FROM memberAttendanceSummary " +
-		`WHERE session_id=${db.escape(session_id)} AND Status IN (${db.escape(status)}) AND IsRegistered=1`
-	);
+	return `
+		SELECT FirstName, LastName, Email
+		FROM memberAttendanceSummary
+		WHERE session_id=${db.escape(session_id)} AND Status IN (${db.escape(status)}) AND IsRegistered=1
+	`;
 }
 
 export async function exportAttendeesForDVL(
@@ -325,7 +325,11 @@ async function updateAttendance(
 ) {
 	changes = attendanceSummaryChanges(changes);
 	if (Object.keys(changes).length > 0) {
-		const sql = `UPDATE attendanceSummary SET ${db.escape(changes)} WHERE id=${db.escape(id)} AND groupId=UUID_TO_BIN(${db.escape(groupId)})`;
+		const sql = `
+			UPDATE attendanceSummary 
+			SET ${db.escape(changes)} 
+			WHERE id=${db.escape(id)} AND groupId=UUID_TO_BIN(${db.escape(groupId)})
+		`;
 		await db.query(sql);
 	}
 	const [attendance] = await getAttendances({ id });
@@ -347,7 +351,10 @@ async function addAttendance(
 	attendanceIn: SessionAttendanceSummaryCreate,
 ) {
 	const changes = attendanceSummaryChanges(attendanceIn);
-	const sql = `INSERT INTO attendanceSummary SET groupId=UUID_TO_BIN(${db.escape(groupId)}), ${db.escape(changes)}`;
+	const sql = `
+		INSERT INTO attendanceSummary
+		SET groupId=UUID_TO_BIN(${db.escape(groupId)}), ${db.escape(changes)}
+	`;
 
 	const { insertId } = await db.query<ResultSetHeader>(sql);
 
@@ -367,7 +374,10 @@ export async function addAttendances(
 
 export async function deleteAttendances(groupId: string, ids: number[]) {
 	if (ids.length === 0) return 0;
-	const sql = `DELETE FROM attendanceSummary WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND ID IN (${db.escape(ids)})`;
+	const sql = `
+		DELETE FROM attendanceSummary
+		WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND id IN (${db.escape(ids)})
+	`;
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }
@@ -376,7 +386,10 @@ export async function deleteAllSessionAttendances(
 	groupId: string,
 	sessionId: number,
 ) {
-	const sql = `DELETE FROM attendanceSummary WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND session_id=${db.escape(sessionId)}`;
+	const sql = `
+		DELETE FROM attendanceSummary
+		WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND session_id=${db.escape(sessionId)}
+	`;
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }

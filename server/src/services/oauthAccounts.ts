@@ -52,32 +52,29 @@ export function parseOAuthState(state: string): AuthState | undefined {
 export function updateAuthParams(
 	id: number,
 	authParams: object | null,
-	userId?: number
+	userId?: number,
 ): Promise<ResultSetHeader> {
 	const sets: string[] = [];
 
 	sets.push(
 		"authParams=" +
 			(authParams
-				? db.format(
-						'JSON_MERGE_PATCH(COALESCE(authParams, "{}"), ?)',
-						JSON.stringify(authParams)
-					)
-				: "NULL")
+				? `JSON_MERGE_PATCH(COALESCE(authParams, "{}"), ${db.escape(JSON.stringify(authParams))})`
+				: "NULL"),
 	);
 
 	if (userId) {
-		sets.push(db.format("authUserId=?", [userId]));
+		sets.push(`authUserId=${db.escape(userId)}`);
 	}
 
 	sets.push("authDate=UTC_TIMESTAMP()");
 
-	const setsSql = sets.join(", ");
-
-	return db.query<ResultSetHeader>(
-		"UPDATE oauth_accounts SET " + setsSql + " WHERE id=?",
-		[id]
-	);
+	const sql = `
+		UPDATE oauth_accounts 
+		SET ${sets.join(", ")} 
+		WHERE id=${db.escape(id)}
+	`;
+	return db.query<ResultSetHeader>(sql);
 }
 
 function getConstraintsWhereSql(constraints?: OAuthAccountsQuery) {
@@ -97,55 +94,49 @@ function getConstraintsWhereSql(constraints?: OAuthAccountsQuery) {
 			.map((key) => {
 				const value = constraints[key];
 				if (key === "groupId")
-					return db.format(
-						Array.isArray(value)
-							? "BIN_TO_UUID(??) IN (?)"
-							: "??=UUID_TO_BIN(?)",
-						[key, value]
-					);
+					return Array.isArray(value)
+						? `BIN_TO_UUID(\`${key}\`) IN (${db.escape(value)})`
+						: `BIN_TO_UUID(\`${key}\`) = ${db.escape(value)}`;
 				else
-					return db.format(
-						Array.isArray(value) ? "?? IN (?)" : "??=?",
-						[key, value]
-					);
+					return Array.isArray(value)
+						? `\`${key}\` IN (${db.escape(value)})`
+						: `\`${key}\` = ${db.escape(value)}`;
 			})
 			.join(" AND ")
 	);
 }
 
 export function getOAuthAccounts(
-	constraints?: OAuthAccountsQuery
+	constraints?: OAuthAccountsQuery,
 ): Promise<OAuthAccount[]> {
-	// prettier-ignore
 	const sql =
-		"SELECT " +
-			"id, " +
-			"name, " +
-			"type, " +
-			"BIN_TO_UUID(groupId) as groupId, " +
-			'DATE_FORMAT(authDate, "%Y-%m-%dT%TZ") AS authDate, ' +
-			"authUserId, " +
-			"authParams " +
-		"FROM oauth_accounts " +
-		getConstraintsWhereSql(constraints);
+		`
+		SELECT
+			id,
+			name,
+			type,
+			BIN_TO_UUID(groupId) as groupId,
+			DATE_FORMAT(authDate, "%Y-%m-%dT%TZ") AS authDate,
+			authUserId,
+			authParams
+		FROM oauth_accounts ` + getConstraintsWhereSql(constraints);
 	return db.query<(RowDataPacket & OAuthAccount)[]>(sql);
 }
 
 export function getOAuthParams(
-	constraints?: OAuthAccountsQuery
+	constraints?: OAuthAccountsQuery,
 ): Promise<OAuthParams[]> {
 	// prettier-ignore
-	const sql =
-		"SELECT " +
-			"id, " +
-			"authParams " +
-		"FROM oauth_accounts " +
-		getConstraintsWhereSql(constraints);
+	const sql = `
+		SELECT
+			id,
+			authParams
+		FROM oauth_accounts ` + getConstraintsWhereSql(constraints);
 	return db.query<(RowDataPacket & OAuthParams)[]>(sql);
 }
 
 export function validOAuthAccountCreate(
-	account: unknown
+	account: unknown,
 ): account is OAuthAccountCreate {
 	return (
 		isPlainObject(account) &&
@@ -156,7 +147,7 @@ export function validOAuthAccountCreate(
 }
 
 export function validOAuthAccountChanges(
-	account: unknown
+	account: unknown,
 ): account is OAuthAccountChange {
 	return (
 		isPlainObject(account) &&
@@ -175,13 +166,14 @@ export function validOAuthAccountChanges(
  * @returns OAuth account object as added
  */
 export async function addOAuthAccount(account: OAuthAccountCreate) {
-	const sql = db.format(
-		"INSERT INTO oauth_accounts SET " +
-			"`name`=?, " +
-			"`type`=?, " +
-			"`groupId`=UUID_TO_BIN(?)",
-		[account.name || "", account.type, account.groupId]
-	);
+	// prettier-ignore
+	const sql = `
+		INSERT INTO oauth_accounts
+		SET
+			\`name\`=${db.escape(account.name || "")},
+			\`type\`=${db.escape(account.type)},
+			\`groupId\`=UUID_TO_BIN(${db.escape(account.groupId)})
+	`;
 
 	const { insertId } = await db.query<ResultSetHeader>(sql);
 	return insertId;
@@ -196,16 +188,18 @@ export async function addOAuthAccount(account: OAuthAccountCreate) {
 export async function updateOAuthAccount(
 	groupId: string,
 	id: number,
-	changes: OAuthAccountChange
+	changes: OAuthAccountChange,
 ) {
 	if (!id) throw new TypeError("Must provide id with update");
 	if (!validOAuthAccountChanges(changes))
 		throw new TypeError("Bad OAuth account changes object");
-	if (Object.keys(changes).length)
-		await db.query(
-			"UPDATE oauth_accounts SET ? WHERE id=? AND groupId=UUID_TO_BIN(?);",
-			[changes, id, groupId]
-		);
+	if (Object.keys(changes).length) {
+		const sql = `
+			UPDATE oauth_accounts SET ${db.escape(changes)}
+			WHERE id=${db.escape(id)} AND groupId=UUID_TO_BIN(${db.escape(groupId)})
+		`;
+		await db.query(sql);
+	}
 	const [account] = await getOAuthAccounts({ id });
 	return account;
 }
@@ -216,9 +210,10 @@ export async function updateOAuthAccount(
  */
 export async function deleteOAuthAccount(groupId: string, id: number) {
 	if (!id) throw new TypeError("Must provide id with delete");
-	const { affectedRows } = await db.query<ResultSetHeader>(
-		"DELETE FROM oauth_accounts WHERE id=? AND groupId=UUID_TO_BIN(?)",
-		[id, groupId]
-	);
+	const sql = `
+		DELETE FROM oauth_accounts
+		WHERE id=${db.escape(id)} AND groupId=UUID_TO_BIN(${db.escape(groupId)})
+	`;
+	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }

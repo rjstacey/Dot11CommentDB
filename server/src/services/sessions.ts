@@ -105,24 +105,17 @@ export function getSessions(
 	const wheres: string[] = [];
 	Object.entries(query).forEach(([key, value]) => {
 		wheres.push(
-			key === "groupId"
-				? db.format(
-						Array.isArray(value)
-							? "BIN_TO_UUID(??) IN (?)"
-							: "BIN_TO_UUID(??)=?",
-						[key, value],
-					)
-				: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
-						key,
-						value,
-					]),
+			(key === "groupId" ? `BIN_TO_UUID(${key})` : key) +
+				(Array.isArray(value)
+					? ` IN (${db.escape(value)})`
+					: ` = ${db.escape(value)}`),
 		);
 	});
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
 
 	sql += " ORDER BY startDate DESC";
 
-	if (typeof limit === "number") sql += db.format(" LIMIT ?", [limit]);
+	if (typeof limit === "number") sql += ` LIMIT ${limit}`;
 
 	//console.log(sql)
 	return db.query<(RowDataPacket & Session)[]>(sql);
@@ -195,8 +188,8 @@ function sessionEntrySetSql(s: Partial<Session>) {
 	for (const [key, value] of Object.entries(entry)) {
 		const sql =
 			key === "groupId"
-				? db.format("??=UUID_TO_BIN(?)", [key, value])
-				: db.format("??=?", [key, value]);
+				? `${key}=UUID_TO_BIN(${db.escape(value)})`
+				: `${key}=${db.escape(value)}`;
 		sets.push(sql);
 	}
 
@@ -240,10 +233,11 @@ export async function updateSession(id: number, changes: SessionChanges) {
 
 export async function deleteSessions(ids: number[]) {
 	const e_ids = db.escape(ids);
-	const sql =
-		`DELETE FROM sessions WHERE id IN (${e_ids}); ` +
-		`DELETE FROM rooms WHERE sessionId IN (${e_ids}); ` +
-		`DELETE FROM attendance_summary WHERE session_id IN (${e_ids});`;
+	const sql = `
+		DELETE FROM sessions WHERE id IN (${e_ids});
+		DELETE FROM rooms WHERE sessionId IN (${e_ids});
+		DELETE FROM attendance_summary WHERE session_id IN (${e_ids});
+	`;
 	const results = await db.query<ResultSetHeader[]>(sql);
 	return results[0].affectedRows;
 }

@@ -82,26 +82,27 @@ async function parseVoters(filename: string, buffer: Buffer) {
 
 export function getVoters(constraints?: VoterQuery): Promise<Voter[]> {
 	// prettier-ignore
-	let sql =
-		"SELECT " +
-			"BIN_TO_UUID(id) AS id, " +
-			"SAPIN, " + 
-			"CurrentSAPIN, Name, LastName, FirstName, MI, Email, Affiliation, " +
-			"BIN_TO_UUID(groupId) as groupId, " +
-			"Status, " +
-			"Excused, " +
-			"ballot_id, " +
-			"initial_id " +
-		"FROM votersCurrent";
+	let sql = `
+		SELECT
+			BIN_TO_UUID(id) AS id,
+			SAPIN,
+			CurrentSAPIN, Name, LastName, FirstName, MI, Email, Affiliation,
+			BIN_TO_UUID(groupId) as groupId,
+			Status,
+			Excused,
+			ballot_id,
+			initial_id
+		FROM votersCurrent
+	`;
 
 	if (constraints) {
 		const wheres: string[] = [];
 		if (constraints.ballot_id)
-			wheres.push(db.format("ballot_id IN (?)", [constraints.ballot_id]));
+			wheres.push(`ballot_id IN (${db.escape(constraints.ballot_id)})`);
 		if (constraints.sapin)
-			wheres.push(db.format("SAPIN IN (?)", [constraints.sapin]));
+			wheres.push(`SAPIN IN (${db.escape(constraints.sapin)})`);
 		if (constraints.id)
-			wheres.push(db.format("BIN_TO_UUID(id) IN (?)", [constraints.id]));
+			wheres.push(`BIN_TO_UUID(id) IN (${db.escape(constraints.id)})`);
 		if (wheres.length) sql += " WHERE " + wheres.join(" AND ");
 	}
 
@@ -124,24 +125,26 @@ export function getVotersForBallots(
 	ballot_ids: number[],
 ): Promise<VotersForBallots[]> {
 	const e_ballot_ids = db.escape(ballot_ids);
-	// prettier-ignore
-	const sql =
-		'SELECT ' +
-			'm.SAPIN, v.byBallots ' +
-		'FROM ' +
-			'(SELECT ' +
-				'COALESCE(o.ReplacedBySAPIN, voters.SAPIN) as SAPIN, ' +	// current SAPIN
-				'JSON_ARRAYAGG(JSON_OBJECT( ' +
-					'"ballot_id", voters.ballot_id, ' +
-					'"SAPIN", voters.SAPIN, ' +		// SAPIN in voting pool
-					'"voter_id", BIN_TO_UUID(voters.id), ' +
-					'"Excused", voters.Excused' +
-				')) as byBallots ' +
-			'FROM wgVoters voters ' + 
-				'LEFT JOIN members o ON o.Status = "Obsolete" AND o.SAPIN = voters.SAPIN ' +
-			`WHERE voters.ballot_id IN (${e_ballot_ids}) ` +
-			'GROUP BY SAPIN) as v ' +
-		'LEFT JOIN members m ON m.SAPIN = v.SAPIN ';
+	const sql = `
+		SELECT
+			m.SAPIN, v.byBallots
+		FROM
+			(SELECT
+				COALESCE(o.ReplacedBySAPIN, voters.SAPIN) as SAPIN,	// current SAPIN
+				JSON_ARRAYAGG(
+					JSON_OBJECT(
+						"ballot_id", voters.ballot_id,
+						"SAPIN", voters.SAPIN,
+						"voter_id", BIN_TO_UUID(voters.id),
+						"Excused", voters.Excused
+					)
+				) as byBallots
+			FROM wgVoters voters
+				LEFT JOIN members o ON o.Status = "Obsolete" AND o.SAPIN = voters.SAPIN
+			WHERE voters.ballot_id IN (${e_ballot_ids})
+			GROUP BY SAPIN) as v
+		LEFT JOIN members m ON m.SAPIN = v.SAPIN
+	`;
 
 	return db.query<(RowDataPacket & VotersForBallots)[]>(sql);
 }
@@ -154,10 +157,14 @@ type BallotVoters = {
 async function getVoterBallotUpdates(
 	ballot_id: number | number[],
 ): Promise<BallotVoters[]> {
-	const sql = db.format(
-		"SELECT ballot_id as id, COUNT(*) as Voters FROM wgVoters WHERE ballot_id IN (?) GROUP BY ballot_id",
-		[ballot_id],
-	);
+	const sql = `
+		SELECT
+			ballot_id as id,
+			COUNT(*) as Voters
+		FROM wgVoters
+		WHERE ballot_id IN (${db.escape(ballot_id)})
+		GROUP BY ballot_id
+	`;
 	return db.query<(RowDataPacket & BallotVoters)[]>(sql);
 }
 
@@ -201,38 +208,39 @@ export async function updateVoters(
 	workingGroupId: string,
 	updates: VoterUpdate[],
 ) {
-	const results = updates.map(({ id, changes }) =>
-		db.query<ResultSetHeader>(
-			"UPDATE wgVoters SET ? WHERE id=UUID_TO_BIN(?)",
-			[changes, id],
-		),
-	);
+	const results = updates.map(({ id, changes }) => {
+		const sql = `
+			UPDATE wgVoters
+			SET ${db.escape(changes)} 
+			WHERE id=UUID_TO_BIN(${db.escape(id)})
+		`;
+		return db.query<ResultSetHeader>(sql);
+	});
 	await Promise.all(results);
 	const voters = await getVoters({ id: updates.map((u) => u.id) });
 	return { voters };
 }
 
 export async function deleteVoters(ids: string[]) {
-	const sql = db.format("DELETE FROM wgVoters WHERE BIN_TO_UUID(id) IN (?)", [
-		ids,
-	]);
+	const sql = `DELETE FROM wgVoters WHERE BIN_TO_UUID(id) IN (${db.escape(ids)})`;
 	const result = await db.query<ResultSetHeader>(sql);
 	return result.affectedRows;
 }
 
 async function insertVoters(ballot_id: number, votersIn: Partial<Voter>[]) {
-	let sql = db.format("DELETE FROM wgVoters WHERE ballot_id=?;", [ballot_id]);
+	let sql = `DELETE FROM wgVoters WHERE ballot_id=${db.escape(ballot_id)};`;
 	if (votersIn.length > 0) {
 		sql +=
-			db.format("INSERT INTO wgVoters (ballot_id, ??) VALUES ", [
-				Object.keys(votersEntry(votersIn[0])),
-			]) +
+			`
+			INSERT INTO wgVoters (
+				ballot_id,
+				${Object.keys(votersEntry(votersIn[0])).join(", ")}
+			) 
+			VALUES ` +
 			votersIn
-				.map((v) =>
-					db.format("(?, ?)", [
-						ballot_id,
-						Object.values(votersEntry(v)),
-					]),
+				.map(
+					(v) =>
+						`(${db.escape(ballot_id)}, ${db.escape(Object.values(votersEntry(v)))})`,
 				)
 				.join(", ") +
 			";";

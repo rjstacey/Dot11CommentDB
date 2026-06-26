@@ -366,11 +366,13 @@ async function updateResult(
 				`Invalid id=${id}; first number must match ballot_id=${ballot.id}`,
 			);
 		const sapin = Number(m[2]);
-		const result = await db.query<ResultSetHeader>(
-			"UPDATE results SET ? WHERE ballot_id=? AND SAPIN=?",
-			[changes, ballot.id, sapin],
-		);
-		if (result.affectedRows === 0) {
+		const sql = `
+			UPDATE results
+			SET ${db.escape(changes)}
+			WHERE ballot_id=${db.escape(ballot.id)} AND SAPIN=${db.escape(sapin)}
+		`;
+		const { affectedRows } = await db.query<ResultSetHeader>(sql);
+		if (affectedRows === 0) {
 			const member = await getMember(workingGroupId, sapin);
 			if (!member)
 				throw new TypeError(`Invalid SAPIN=${sapin}; not a member`);
@@ -388,10 +390,14 @@ async function updateResult(
 			await db.query(sql);
 		}
 	} else {
-		await db.query(
-			"UPDATE results SET ? WHERE ballot_id=? AND id=UUID_TO_BIN(?)",
-			[changes, ballot.id, id],
-		);
+		const sql = `
+			UPDATE results
+			SET
+				${db.escape(changes)}
+			WHERE
+				ballot_id=${db.escape(ballot.id)} AND id=UUID_TO_BIN(${db.escape(id)})
+		`;
+		await db.query(sql);
 	}
 }
 
@@ -408,9 +414,10 @@ export async function updateResults(
 
 export async function deleteResults(ballot_id: number) {
 	const e_ballot_id = db.escape(ballot_id);
-	const sql =
-		`DELETE FROM results WHERE ballot_id=${e_ballot_id}; ` +
-		`UPDATE ballots SET ResultsSummary=NULL WHERE id=${e_ballot_id};`;
+	const sql = `
+		DELETE FROM results WHERE ballot_id=${e_ballot_id};
+		UPDATE ballots SET ResultsSummary=NULL WHERE id=${e_ballot_id};
+	`;
 	const results = await db.query<ResultSetHeader[]>(sql);
 	return results[0].affectedRows;
 }
@@ -419,9 +426,9 @@ async function insertResults(ballot: Ballot, results: Partial<Result>[]) {
 	let sql = `DELETE FROM results WHERE ballot_id=${db.escape(ballot.id)};`;
 	if (results.length) {
 		sql +=
-			`INSERT INTO results (ballot_id, ${Object.keys(
-				results[0],
-			)}) VALUES` +
+			`INSERT INTO results 
+				(ballot_id, ${Object.keys(results[0]).join(", ")}) 
+				VALUES ` +
 			results
 				.map((c) => `(${ballot.id}, ${db.escape(Object.values(c))})`)
 				.join(",") +

@@ -14,20 +14,20 @@ import type {
 	GroupUpdate,
 } from "@schemas/groups.js";
 
-// prettier-ignore
-const selectGroupsSql =
-	'SELECT ' + 
-		'BIN_TO_UUID(org.id) AS id, ' +
-		'BIN_TO_UUID(org.parent_id) AS parent_id, ' +
-		'org.`name`, ' +
-		'org.`type`, ' +
-		'org.`status`, ' +
-		'org.`color`, ' +
-		'org.`symbol`, ' +
-		'org.`project`, ' +
-		'COALESCE(off.`officerSAPINs`, JSON_ARRAY()) as officerSAPINs ' +
-	'FROM organization org ' +
-		'LEFT JOIN (SELECT group_id, JSON_ARRAYAGG(SAPIN) AS officerSAPINs FROM officers GROUP BY group_id) AS off ON org.id=off.group_id';
+const selectGroupsSql = `
+	SELECT 
+		BIN_TO_UUID(org.id) AS id,
+		BIN_TO_UUID(org.parent_id) AS parent_id,
+		org.\`name\`,
+		org.\`type\`,
+		org.\`status\`,
+		org.\`color\`,
+		org.\`symbol\`,
+		org.\`project\`,
+		COALESCE(off.\`officerSAPINs\`, JSON_ARRAY()) as officerSAPINs
+	FROM organization org
+		LEFT JOIN (SELECT group_id, JSON_ARRAYAGG(SAPIN) AS officerSAPINs FROM officers GROUP BY group_id) AS off ON org.id=off.group_id
+`;
 
 /**
  * Get group and subgroup identifiers
@@ -45,7 +45,8 @@ export async function getGroupAndSubgroupIds(id: string) {
 				FROM organization org
 				INNER JOIN cte on cte.id=org.parent_id
 		)
-		SELECT BIN_TO_UUID(id) as id FROM cte`;
+		SELECT BIN_TO_UUID(id) as id FROM cte
+	`;
 	return (await db.query<(RowDataPacket & { id: string })[]>(sql)).map(
 		(g) => g.id,
 	);
@@ -67,7 +68,8 @@ export async function getGroupAndSubgroupIdsByName(groupName: string) {
 				FROM organization org
 				INNER JOIN cte on cte.id=org.parent_id
 		)
-		SELECT BIN_TO_UUID(id) as id FROM cte`;
+		SELECT BIN_TO_UUID(id) as id FROM cte
+	`;
 
 	return (await db.query<(RowDataPacket & { id: string })[]>(sql)).map(
 		(g) => g.id,
@@ -152,22 +154,18 @@ export async function getGroups(user: UserContext, query?: GroupsQuery) {
 		if (parentName) {
 			const ids = await getGroupAndSubgroupIdsByName(parentName);
 			if (ids.length === 0) return []; // No group with that name
-			wheres.push(db.format("BIN_TO_UUID(org.id) IN (?)", [ids]));
+			wheres.push(`BIN_TO_UUID(org.id) IN (${db.escape(ids)})`);
 		}
 		Object.entries(rest).forEach(([key, value]) => {
 			let sql: string;
 			if (key === "id" || key === "parent_id") {
-				sql = db.format(
-					Array.isArray(value)
-						? "BIN_TO_UUID(org.??) IN (?)"
-						: "BIN_TO_UUID(org.??)=?",
-					[key, value],
-				);
+				sql = Array.isArray(value)
+					? `BIN_TO_UUID(org.\`${key}\`) IN (${db.escape(value)})`
+					: `BIN_TO_UUID(org.\`${key}\`) = ${db.escape(value)}`;
 			} else {
-				sql = db.format(
-					Array.isArray(value) ? "org.?? IN (?)" : "org.??=?",
-					[key, value],
-				);
+				sql = Array.isArray(value)
+					? `org.\`${key}\` IN (${db.escape(value)})`
+					: `org.\`${key}\` = ${db.escape(value)}`;
 			}
 			wheres.push(sql);
 		});
@@ -357,11 +355,11 @@ function groupSetSql(group: Partial<Group>) {
 
 	const sets: string[] = [];
 	for (const [key, value] of Object.entries(groupDB)) {
-		let sql: string;
-		if (key === "id" || key === "parent_id")
-			sql = db.format("??=UUID_TO_BIN(?)", [key, value]);
-		else sql = db.format("??=?", [key, value]);
-		sets.push(sql);
+		const e_value =
+			key === "id" || key === "parent_id"
+				? `UUID_TO_BIN(${db.escape(value)})`
+				: db.escape(value);
+		sets.push(`${key}=${e_value}`);
 	}
 
 	return sets.join(", ");
@@ -443,13 +441,16 @@ export async function removeGroups(
 		);
 	}
 
-	const result1 = await db.query<ResultSetHeader>(
-		"DELETE FROM officers WHERE BIN_TO_UUID(group_id) IN (?)",
-		[ids],
-	);
-	const result2 = await db.query<ResultSetHeader>(
-		"DELETE FROM organization WHERE BIN_TO_UUID(id) IN (?)",
-		[ids],
-	);
-	return result1.affectedRows + result2.affectedRows;
+	const sql1 = `
+		DELETE FROM officers
+		WHERE BIN_TO_UUID(group_id) IN (${db.escape(ids)})
+	`;
+	await db.query<ResultSetHeader>(sql1);
+	const sql2 = `
+		DELETE FROM organization
+		WHERE BIN_TO_UUID(id) IN (${db.escape(ids)})
+	`;
+	const { affectedRows } = await db.query<ResultSetHeader>(sql2);
+
+	return affectedRows;
 }

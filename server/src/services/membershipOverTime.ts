@@ -31,29 +31,27 @@ export async function init() {
 type MembershipOverTimeQuery = { id?: number | number[]; groupId?: string };
 
 export async function getMembershipOverTime(query?: MembershipOverTimeQuery) {
-	let sql = `SELECT
+	let sql = `
+		SELECT
 			id,
 			BIN_TO_UUID(groupId) as groupId,
 			date,
 			count,
 			note
-		FROM membershipOverTime`;
+		FROM membershipOverTime
+	`;
 
 	if (query) {
 		const wheres: string[] = [];
 		Object.entries(query).forEach(([key, value]) => {
 			wheres.push(
 				key === "groupId"
-					? db.format(
-							Array.isArray(value)
-								? "BIN_TO_UUID(??) IN (?)"
-								: "BIN_TO_UUID(??)=?",
-							[key, value],
-						)
-					: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
-							key,
-							value,
-						]),
+					? Array.isArray(value)
+						? `BIN_TO_UUID(\`${key}\`) IN (${db.escape(value)})`
+						: `BIN_TO_UUID(\`${key}\`) = ${db.escape(value)}`
+					: Array.isArray(value)
+						? `\`${key}\` IN (${db.escape(value)})`
+						: `\`${key}\` = ${db.escape(value)}`,
 			);
 		});
 		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
@@ -83,10 +81,12 @@ async function addMembershipOverTimeEvent(
 	group: Group,
 	add: MembershipEventCreate,
 ) {
-	const sql = db.format(
-		`INSERT INTO membershipOverTime SET groupId=UUID_TO_BIN(?), ?`,
-		[group.id, membershipEvent(add)],
-	);
+	const sql = `
+		INSERT INTO membershipOverTime
+		SET
+			groupId=UUID_TO_BIN(${db.escape(group.id)}),
+			${db.escape(membershipEvent(add))}
+	`;
 	const result = await db.query<ResultSetHeader>(sql);
 	return result.insertId;
 }
@@ -106,10 +106,11 @@ async function updateMembershipOverTimeEvent(
 	update: MembershipEventUpdate,
 ) {
 	const { id, changes } = update;
-	const sql = db.format(
-		"UPDATE membershipOverTime SET ? WHERE groupId=UUID_TO_BIN(?) AND id=?",
-		[membershipEvent(changes), group.id, id],
-	);
+	const sql = `
+		UPDATE membershipOverTime
+		SET ${db.escape(membershipEvent(changes))}
+		WHERE groupId=UUID_TO_BIN(${db.escape(group.id)}) AND id=${db.escape(id)}
+	`;
 	await db.query<ResultSetHeader>(sql);
 }
 
@@ -127,10 +128,10 @@ export async function removeMembershipOverTimeEvents(
 	group: Group,
 	ids: number[],
 ) {
-	const sql = db.format(
-		"DELETE FROM membershipOverTime WHERE groupId=UUID_TO_BIN(?) AND id IN (?)",
-		[group.id, ids],
-	);
+	const sql = `
+		DELETE FROM membershipOverTime
+		WHERE groupId=UUID_TO_BIN(${db.escape(group.id)}) AND id IN (${db.escape(ids)})
+	`;
 	const result = await db.query<ResultSetHeader>(sql);
 	return result.affectedRows;
 }
@@ -138,10 +139,10 @@ export async function removeMembershipOverTimeEvents(
 export async function uploadMembershipOverTime(group: Group, buffer: Buffer) {
 	const events = await parseMembershipOverTimeSpreadsheet(buffer);
 
-	const sql = db.format(
-		"DELETE FROM membershipOverTime WHERE groupId=UUID_TO_BIN(?)",
-		[group.id],
-	);
+	const sql = `
+		DELETE FROM membershipOverTime
+		WHERE groupId=UUID_TO_BIN(${db.escape(group.id)})
+	`;
 	await db.query(sql);
 
 	return addMembershipOverTimeEvents(group, events);

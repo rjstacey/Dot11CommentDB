@@ -11,12 +11,13 @@ import db from "../utils/database.js";
 
 export function getTemplates(
 	group: Group,
-	query?: EmailTemplateQuery
+	query?: EmailTemplateQuery,
 ): Promise<EmailTemplate[]> {
-	let sql =
-		"SELECT `id`, `name`, `to`, `cc`, `bcc`, `subject`, `body` " +
-		"FROM emailTemplates " +
-		`WHERE groupId=UUID_TO_BIN(${db.escape(group.id)})`;
+	let sql = `
+		SELECT \`id\`, \`name\`, \`to\`, \`cc\`, \`bcc\`, \`subject\`, \`body\`
+		FROM emailTemplates
+		WHERE groupId=UUID_TO_BIN(${db.escape(group.id)})
+	`;
 
 	if (query && "id" in query) sql += ` AND id IN (${db.escape(query.id)})`;
 
@@ -25,12 +26,12 @@ export function getTemplates(
 
 async function addEmailTemplate(
 	groupId: string,
-	template: EmailTemplateCreate
+	template: EmailTemplateCreate,
 ) {
-	const sql = db.format(
-		"INSERT INTO emailTemplates SET groupId=UUID_TO_BIN(?), ?",
-		[groupId, template]
-	);
+	const sql = `
+		INSERT INTO emailTemplates
+		SET groupId=UUID_TO_BIN(${db.escape(groupId)}), ${db.escape(template)}
+	`;
 	const { insertId } = await db.query<ResultSetHeader>(sql);
 	return insertId;
 }
@@ -40,10 +41,10 @@ async function addEmailTemplate(
  */
 export async function addTemplates(
 	group: Group,
-	templates: EmailTemplateCreate[]
+	templates: EmailTemplateCreate[],
 ) {
 	const ids = await Promise.all(
-		templates.map((t) => addEmailTemplate(group.id, t))
+		templates.map((t) => addEmailTemplate(group.id, t)),
 	);
 	return getTemplates(group, { id: ids });
 }
@@ -56,13 +57,14 @@ export async function addTemplates(
 async function updateTemplate(
 	groupId: string,
 	id: number,
-	changes: Partial<EmailTemplate>
+	changes: Partial<EmailTemplate>,
 ) {
 	if (Object.keys(changes).length > 0) {
-		const sql = db.format(
-			"UPDATE emailTemplates SET ? WHERE groupId=UUID_TO_BIN(?) AND id=?",
-			[changes, groupId, id]
-		);
+		const sql = `
+			UPDATE emailTemplates
+			SET ${db.escape(changes)}
+			WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND id=${db.escape(id)}
+		`;
 		await db.query(sql);
 	}
 	return changes.id || id;
@@ -74,10 +76,10 @@ async function updateTemplate(
  */
 export async function updateTemplates(
 	group: Group,
-	updates: EmailTemplateUpdate[]
+	updates: EmailTemplateUpdate[],
 ) {
 	const ids = await Promise.all(
-		updates.map((u) => updateTemplate(group.id, u.id, u.changes))
+		updates.map((u) => updateTemplate(group.id, u.id, u.changes)),
 	);
 	return getTemplates(group, { id: ids });
 }
@@ -87,10 +89,10 @@ export async function updateTemplates(
  * @param ids Array of template identifiers
  */
 export async function deleteTemplates(group: Group, ids: number[]) {
-	const sql = db.format(
-		"DELETE FROM emailTemplates WHERE groupId=UUID_TO_BIN(?) AND id IN(?)",
-		[group.id, ids]
-	);
+	const sql = `
+		DELETE FROM emailTemplates
+		WHERE groupId=UUID_TO_BIN(${db.escape(group.id)}) AND id IN(${db.escape(ids)})
+	`;
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }

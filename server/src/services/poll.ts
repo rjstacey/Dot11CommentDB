@@ -20,24 +20,25 @@ export async function init() {}
 
 export async function getPollEvents(query: EventsQuery): Promise<Event[]> {
 	// prettier-ignore
-	let sql =
-		"SELECT " +	
-			"id, " +
-			"name, " +
-			"BIN_TO_UUID(groupId) as groupId, " +
-			"timeZone, " +
-			'DATE_FORMAT(datetime, "%Y-%m-%dT%TZ") as datetime, ' +
-			"isPublished, " +
-			"autoNumber " +
-		"FROM pollEvents";
+	let sql = `
+		SELECT
+			id,
+			name,
+			BIN_TO_UUID(groupId) as groupId,
+			timeZone,
+			DATE_FORMAT(datetime, "%Y-%m-%dT%TZ") as datetime,
+			isPublished,
+			autoNumber
+		FROM pollEvents
+	`;
 
 	const wheres = Object.entries(query).map(([key, value]) => {
 		let sql: string;
 		if (key === "groupId")
-			sql = db.format("BIN_TO_UUID(??) IN (?)", [key, value]);
+			sql = `BIN_TO_UUID(${key}) IN (${db.escape(value)})`;
 		else if (key === "isPublished")
-			sql = db.format("?? = ?", [key, value ? 1 : 0]);
-		else sql = db.format("?? IN (?)", [key, value]);
+			sql = `${key} = ${db.escape(value ? 1 : 0)}`;
+		else sql = `${key} IN (${db.escape(value)})`;
 		return sql;
 	});
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
@@ -55,14 +56,14 @@ export async function addPollEvent(event: EventAdd) {
 }
 
 export async function updatePollEvent({ id, changes }: EventUpdate) {
-	const sql = db.format("UPDATE pollEvents SET ? WHERE id=?", [changes, id]);
+	const sql = `UPDATE pollEvents SET ${db.escape(changes)} WHERE id=${db.escape(id)}`;
 	await db.query(sql);
 	const [eventOut] = await getPollEvents({ id });
 	return eventOut;
 }
 
 export async function deletePollEvent(id: number) {
-	const sql = db.format("DELETE FROM pollEvents WHERE id=?", [id]);
+	const sql = "DELETE FROM pollEvents WHERE id=" + db.escape(id);
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }
@@ -72,8 +73,8 @@ function pollQuerySql(query: PollsQuery) {
 	const wheres = Object.entries(query).map(([key, value]) => {
 		let sql: string;
 		if (key === "groupId")
-			sql = db.format("BIN_TO_UUID(??) IN (?)", [key, value]);
-		else sql = db.format("p.?? IN (?)", [key, value]);
+			sql = `BIN_TO_UUID(${key}) IN (${db.escape(value)})`;
+		else sql = `p.${key} IN (${db.escape(value)})`;
 		return sql;
 	});
 	if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
@@ -81,25 +82,25 @@ function pollQuerySql(query: PollsQuery) {
 }
 
 export async function getPolls(query: PollsQuery = {}): Promise<Poll[]> {
-	// prettier-ignore
-	let sql =
-		"SELECT " +
-			"p.id, " +
-			"p.eventId, " +
-			"BIN_TO_UUID(e.groupId) as groupId, " +
-			"p.index, " +
-			"p.state, " +
-			"p.type, " +
-			"p.recordType, " +
-			"p.votersType, " +
-			"p.title, " +
-			"p.body, " +
-			"p.options, " +
-			"p.choice, " +
-			"p.movedSAPIN, " + 
-			"p.secondedSAPIN, " +
-			"p.resultsSummary " +
-		"FROM polls p LEFT JOIN pollEvents e ON p.eventId=e.id";
+	let sql = `
+		SELECT
+			p.id,
+			p.eventId,
+			BIN_TO_UUID(e.groupId) as groupId,
+			p.index,
+			p.state,
+			p.type,
+			p.recordType,
+			p.votersType,
+			p.title,
+			p.body,
+			p.options,
+			p.choice,
+			p.movedSAPIN,
+			p.secondedSAPIN,
+			p.resultsSummary
+		FROM polls p LEFT JOIN pollEvents e ON p.eventId=e.id
+	`;
 
 	sql += pollQuerySql(query) + " ORDER BY `index`";
 
@@ -111,14 +112,13 @@ function pollSetSql(poll: Partial<Poll>) {
 	const s: string[] = [];
 	for (const key of Object.keys(poll)) {
 		if (key === "options")
-			s.push(db.format("options=?", [JSON.stringify(poll.options)]));
+			s.push("options=" + db.escape(JSON.stringify(poll.options)));
 		else if (key === "resultsSummary")
 			s.push(
-				db.format("resultsSummary=?", [
-					JSON.stringify(poll.resultsSummary),
-				]),
+				"resultsSummary=" +
+					db.escape(JSON.stringify(poll.resultsSummary)),
 			);
-		else s.push(db.format("??=?", [key, poll[key]]));
+		else s.push(`${key}=${db.escape(poll[key])}`);
 	}
 	return s.join(", ");
 }
@@ -151,7 +151,7 @@ export async function updatePollQuery(query: PollsQuery, changes: PollChange) {
 }
 
 export async function deletePoll(id: number) {
-	const sql = db.format("DELETE FROM polls WHERE id=?", [id]);
+	const sql = "DELETE FROM polls WHERE id=" + db.escape(id);
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }
@@ -186,24 +186,25 @@ export async function pollVote(member: Member, poll: Poll, votes: number[]) {
 		throw new TypeError("Member not authorized to vote");
 	}
 
-	const sql = db.format(
-		"REPLACE INTO pollVotes (pollId, SAPIN, votes) VALUES (?, ?, ?)",
-		[poll.id, member.SAPIN, JSON.stringify(votes)],
-	);
+	const sql = `
+		REPLACE INTO pollVotes (pollId, SAPIN, votes)
+		VALUES (
+			${db.escape(poll.id)},
+			${db.escape(member.SAPIN)},
+			${db.escape(JSON.stringify(votes))}
+		)
+	`;
 	await db.query(sql);
 }
 
 export async function pollClearVotes(poll: Poll) {
-	const sql = db.format("DELETE FROM pollVotes WHERE pollId=?", [poll.id]);
+	const sql = `DELETE FROM pollVotes WHERE pollId=${db.escape(poll.id)}`;
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }
 
 export async function pollVoteCount(poll: Poll) {
-	const sql = db.format(
-		"SELECT COUNT(*) as count FROM pollVotes WHERE pollId=?",
-		[poll.id],
-	);
+	const sql = `SELECT COUNT(*) as count FROM pollVotes WHERE pollId=${db.escape(poll.id)}`;
 	const [row] = await db.query<(RowDataPacket & { count: number })[]>(sql);
 	return row.count;
 }

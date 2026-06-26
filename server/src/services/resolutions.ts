@@ -4,7 +4,7 @@ import db from "../utils/database.js";
 
 import { selectComments } from "./comments.js";
 import type { UserContext } from "./users.js";
-import type { ResultSetHeader } from "mysql2";
+import type { RowDataPacket } from "mysql2";
 import { ForbiddenError, NotFoundError } from "../utils/index.js";
 import { AccessLevel } from "@schemas/access.js";
 import { getGroups } from "./groups.js";
@@ -35,22 +35,30 @@ async function addResolution(user: UserContext, resolution: ResolutionCreate) {
 	let ResolutionID: number | null | undefined = resolution.ResolutionID;
 	if (typeof ResolutionID !== "number") {
 		/* Find smallest unused ResolutionID */
-		const result = (await db.query(
-			"SELECT MIN(r.ResolutionID)-1 AS ResolutionID FROM resolutions r WHERE comment_id=?;",
-			[resolution.comment_id]
-		)) as [{ ResolutionID: number | null }];
+		const sql = `
+			SELECT MIN(r.ResolutionID)-1 AS ResolutionID 
+			FROM resolutions r 
+			WHERE comment_id=${db.escape(resolution.comment_id)};
+		`;
+		const result =
+			await db.query<(RowDataPacket & { ResolutionID: number | null })[]>(
+				sql,
+			);
 		ResolutionID = result[0].ResolutionID;
 		//console.log(result)
 		if (ResolutionID === null) {
 			ResolutionID = 0;
 		} else if (ResolutionID < 0) {
-			const result = (await db.query(
-				"SELECT " +
-					"r1.ResolutionID+1 AS ResolutionID " +
-					"FROM resolutions r1 LEFT JOIN resolutions r2 ON r1.ResolutionID+1=r2.ResolutionID AND r1.comment_id=r2.comment_id " +
-					"WHERE r2.ResolutionID IS NULL AND r1.comment_id=? LIMIT 1;",
-				[resolution.comment_id]
-			)) as [{ ResolutionID: number }];
+			const sql = `
+				SELECT r1.ResolutionID+1 AS ResolutionID
+				FROM resolutions r1 LEFT JOIN resolutions r2 ON r1.ResolutionID+1=r2.ResolutionID AND r1.comment_id=r2.comment_id
+				WHERE r2.ResolutionID IS NULL AND r1.comment_id=${db.escape(resolution.comment_id)} LIMIT 1;
+			`;
+			//const result = (await db.query(sql)) as [{ ResolutionID: number }];
+			const result =
+				await db.query<(RowDataPacket & { ResolutionID: number })[]>(
+					sql,
+				);
 			//console.log(result)
 			ResolutionID = result[0].ResolutionID;
 		}
@@ -63,10 +71,11 @@ async function addResolution(user: UserContext, resolution: ResolutionCreate) {
 		ResolutionID,
 	};
 
-	const sql = db.format(
-		"INSERT INTO resolutions SET id=UUID_TO_BIN(?), ?, LastModifiedBy=?, LastModifiedTime=UTC_TIMESTAMP();",
-		[id, entry, user.SAPIN]
-	);
+	const sql = `
+		INSERT INTO resolutions
+		SET id=UUID_TO_BIN(${db.escape(id)}), ${db.escape(entry)},
+		LastModifiedBy=${db.escape(user.SAPIN)}, LastModifiedTime=UTC_TIMESTAMP();
+	`;
 	await db.query(sql);
 	return id;
 }
@@ -85,7 +94,7 @@ export async function addResolutions(
 	ballot_id: number,
 	access: number,
 	resolutions: ResolutionCreate[],
-	modifiedSince?: string
+	modifiedSince?: string,
 ) {
 	/* If the user does not have ballot level comments read-write access, then see if the user has comment level read-write access.
 	 * Comment level read-write access is available if the user is an ad-hoc officer. */
@@ -96,11 +105,11 @@ export async function addResolutions(
 		});
 		if (
 			resolutions.every((r) =>
-				comments.find((c) => c.comment_id === r.comment_id)
+				comments.find((c) => c.comment_id === r.comment_id),
 			)
 		)
 			throw new NotFoundError(
-				"At least one of the comment identifiers is invalid"
+				"At least one of the comment identifiers is invalid",
 			);
 		// All the comments must be assigned to an ad-hoc group
 		if (comments.every((c) => c.AdHocGroupId)) {
@@ -113,19 +122,18 @@ export async function addResolutions(
 				groups.every(
 					(group) =>
 						(group.permissions.comments || AccessLevel.none) >=
-						AccessLevel.rw
+						AccessLevel.rw,
 				)
 			)
 				access = AccessLevel.rw;
 		}
-		if (access < AccessLevel.rw)
-			throw new ForbiddenError("Insufficient karma");
+		if (access < AccessLevel.rw) throw new ForbiddenError();
 	}
 
 	await Promise.all(resolutions.map((r) => addResolution(user, r)));
 	const comments = await selectComments(
 		{ comment_id: resolutions.map((r) => r.comment_id) },
-		{ ballot_id, modifiedSince }
+		{ ballot_id, modifiedSince },
 	);
 	return { comments };
 }
@@ -134,17 +142,16 @@ async function updateResolution(
 	user: UserContext,
 	ballot_id: number,
 	id: string,
-	changes: ResolutionChange
+	changes: ResolutionChange,
 ) {
 	if (Object.keys(changes).length > 0) {
 		/* The ballot_id in WHERE clause is to qualify the update on the ballot_id since the update was authorized using
 		 * the declared ballot_id. We don't want the user updating a resolution for an unrelated ballot. */
-		const sql = db.format(
-			"UPDATE resolutions r LEFT JOIN comments c ON c.id=r.comment_id " +
-				"SET ?, r.LastModifiedBy=?, r.LastModifiedTime=UTC_TIMESTAMP() " +
-				"WHERE c.ballot_id=? AND r.id=UUID_TO_BIN(?)",
-			[changes, user.SAPIN, ballot_id, id]
-		);
+		const sql = `
+			UPDATE resolutions r LEFT JOIN comments c ON c.id=r.comment_id
+			SET ${db.escape(changes)}, r.LastModifiedBy=${db.escape(user.SAPIN)}, r.LastModifiedTime=UTC_TIMESTAMP()
+			WHERE c.ballot_id=${db.escape(ballot_id)} AND r.id=UUID_TO_BIN(${db.escape(id)})
+		`;
 		await db.query(sql);
 	}
 }
@@ -163,7 +170,7 @@ export async function updateResolutions(
 	ballot_id: number,
 	access: number,
 	updates: ResolutionUpdate[],
-	modifiedSince?: string
+	modifiedSince?: string,
 ) {
 	const ids = updates.map((u) => u.id);
 
@@ -177,7 +184,7 @@ export async function updateResolutions(
 		});
 		if (comments.length !== updates.length)
 			throw new NotFoundError(
-				"At least one of the resolution identifiers is invalid"
+				"At least one of the resolution identifiers is invalid",
 			);
 
 		let commentAccess = access;
@@ -192,7 +199,7 @@ export async function updateResolutions(
 				groups.every(
 					(group) =>
 						(group.permissions.comments || AccessLevel.none) >=
-						AccessLevel.rw
+						AccessLevel.rw,
 				)
 			)
 				commentAccess = AccessLevel.rw;
@@ -202,7 +209,7 @@ export async function updateResolutions(
 		// The user must be the assignee of all the resolutions to have resolution level privileges
 		if (
 			comments.every(
-				(c) => c.AssigneeSAPIN === user.SAPIN && !c.ApprovedByMotion
+				(c) => c.AssigneeSAPIN === user.SAPIN && !c.ApprovedByMotion,
 			)
 		)
 			resolutionAccess = AccessLevel.rw;
@@ -210,7 +217,7 @@ export async function updateResolutions(
 		// Since the user does not have ballot level read-write access, the user must have comment level or resolution level read-write access.
 		if (commentAccess < AccessLevel.rw && resolutionAccess < AccessLevel.rw)
 			throw new ForbiddenError(
-				"User does not have ballot level, comment level or resolution level read-write prvileges"
+				"User does not have ballot level, comment level or resolution level read-write prvileges",
 			);
 
 		// Can't modify resolution approval without at least comment level read-write access
@@ -219,25 +226,23 @@ export async function updateResolutions(
 			!updates.find((u) => "ApprovedByMotion" in u.changes)
 		)
 			throw new ForbiddenError(
-				"Need at least ballot level or comment level read-write privileges to modify resolution approval"
+				"Need at least ballot level or comment level read-write privileges to modify resolution approval",
 			);
 	}
-	const t1 = new Date();
+	//const t1 = new Date();
 	await Promise.all(
-		updates.map((u) => updateResolution(user, ballot_id, u.id, u.changes))
+		updates.map((u) => updateResolution(user, ballot_id, u.id, u.changes)),
 	);
-	const t2 = new Date();
-	// Log the time taken for the updates
+	/*const t2 = new Date();
 	console.log(
-		`Time taken to update resolutions: ${t2.getTime() - t1.getTime()}ms`
-	);
+		`Time taken to update resolutions: ${t2.getTime() - t1.getTime()}ms`,
+	);*/
 	const comments = await selectComments(
 		{ resolution_id: ids },
-		{ ballot_id, modifiedSince }
+		{ ballot_id, modifiedSince },
 	);
-	const t3 = new Date();
-	// Log the time taken for the updates
-	console.log(`Time taken to get comments: ${t3.getTime() - t2.getTime()}ms`);
+	/*const t3 = new Date();
+	console.log(`Time taken to get comments: ${t3.getTime() - t2.getTime()}ms`);*/
 	return { comments };
 }
 
@@ -255,7 +260,7 @@ export async function deleteResolutions(
 	ballot_id: number,
 	access: number,
 	ids: string[],
-	modifiedSince?: string
+	modifiedSince?: string,
 ) {
 	/* If the user does not have ballot level comments read-write access, then see if the user has comment level read-write access.
 	 * Comment level read-write access is available if the user is an ad-hoc officer. */
@@ -266,7 +271,7 @@ export async function deleteResolutions(
 		});
 		if (comments.length !== ids.length)
 			throw new NotFoundError(
-				"At least one of the resolution identifiers was not found"
+				"At least one of the resolution identifiers was not found",
 			);
 		// All the affected resolutions must have a group ID
 		if (comments.length > 0 && comments.every((c) => c.AdHocGroupId)) {
@@ -279,22 +284,24 @@ export async function deleteResolutions(
 				groups.every(
 					(group) =>
 						(group.permissions.comments || AccessLevel.none) >=
-						AccessLevel.rw
+						AccessLevel.rw,
 				)
 			)
 				access = AccessLevel.rw;
 		}
 		if (access < AccessLevel.rw)
 			throw new ForbiddenError(
-				"Need at least ballot level or comment level read-write privileges to delete resolution"
+				"Need at least ballot level or comment level read-write privileges to delete resolution",
 			);
 	}
 
-	if (ids.length > 0)
-		(await db.query(
-			"DELETE r FROM resolutions r LEFT JOIN comments c ON r.comment_id=c.id WHERE c.ballot_id=? AND BIN_TO_UUID(r.id) IN (?)",
-			[ballot_id, ids]
-		)) as ResultSetHeader;
+	if (ids.length > 0) {
+		const sql = `
+			DELETE r FROM resolutions r LEFT JOIN comments c ON r.comment_id=c.id
+			WHERE c.ballot_id=${db.escape(ballot_id)} AND BIN_TO_UUID(r.id) IN (${db.escape(ids)})
+		`;
+		await db.query(sql);
+	}
 	const comments = await selectComments({ ballot_id, modifiedSince });
 	return { comments };
 }

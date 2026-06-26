@@ -13,32 +13,31 @@ type AffiliationMapQuery = { id?: number | number[] };
 export async function getAffiliationMaps(
 	group: Group,
 	query?: AffiliationMapQuery,
-) {
+): Promise<AffiliationMap[]> {
 	const wheres: string[] = [];
 	if (query && query.id) {
-		wheres.push(
-			db.format(Array.isArray(query.id) ? "id IN (?)" : "id=?", [
-				query.id,
-			]),
-		);
+		wheres.push(`id IN (${db.escape(query.id)})`);
 	}
-	wheres.push(db.format("groupId=UUID_TO_BIN(?)", [group.id]));
+	wheres.push(`groupId=UUID_TO_BIN(${db.escape(group.id)})`);
 
-	const sql =
-		`
+	const sql = `
         SELECT
             id,
             BIN_TO_UUID(groupId) as groupId,
             \`match\`,
             shortAffiliation
-        FROM affiliationMap WHERE ` + wheres.join(" AND ");
-	return await db.query<(RowDataPacket & AffiliationMap)[]>(sql);
+        FROM affiliationMap WHERE ${wheres.join(" AND ")}
+	`;
+	return db.query<(RowDataPacket & AffiliationMap)[]>(sql);
 }
 
 async function addAffiliationMap(group: Group, add: AffiliationMapCreate) {
-	const sql = `INSERT INTO affiliationMap SET groupId=UUID_TO_BIN(${db.escape(group.id)}), ${db.escape(add)}`;
-	const result = await db.query<ResultSetHeader>(sql);
-	return result.insertId;
+	const sql = `
+		INSERT INTO affiliationMap
+		SET groupId=UUID_TO_BIN(${db.escape(group.id)}), ${db.escape(add)}
+	`;
+	const { insertId } = await db.query<ResultSetHeader>(sql);
+	return insertId;
 }
 
 export async function addAffiliationMaps(
@@ -56,7 +55,11 @@ async function updateAffiliationMap(
 	update: AffiliationMapUpdate,
 ) {
 	const { id, changes } = update;
-	const sql = `UPDATE affiliationMap SET ${db.escape(changes)} WHERE groupId=UUID_TO_BIN(${db.escape(group.id)}) AND id=${db.escape(id)}`;
+	const sql = `
+		UPDATE affiliationMap
+		SET ${db.escape(changes)}
+		WHERE groupId=UUID_TO_BIN(${db.escape(group.id)}) AND id=${db.escape(id)}
+	`;
 	await db.query<ResultSetHeader>(sql);
 }
 
@@ -69,7 +72,10 @@ export async function updateAffiliationMaps(
 }
 
 export async function removeAffiliationMaps(group: Group, ids: number[]) {
-	const sql = `DELETE FROM affiliationMap WHERE groupId=UUID_TO_BIN(${db.escape(group.id)}) AND id IN (${db.escape(ids)})`;
-	const result = await db.query<ResultSetHeader>(sql);
-	return result.affectedRows;
+	const sql = `
+		DELETE FROM affiliationMap
+		WHERE groupId=UUID_TO_BIN(${db.escape(group.id)}) AND id IN (${db.escape(ids)})
+	`;
+	const { affectedRows } = await db.query<ResultSetHeader>(sql);
+	return affectedRows;
 }

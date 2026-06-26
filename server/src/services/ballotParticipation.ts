@@ -12,7 +12,7 @@ import type {
  * @returns An array of ballot arrays that are the recent ballot series
  */
 async function getRecentCompletedBallotSeries(
-	workingGroupId: string
+	workingGroupId: string,
 ): Promise<BallotSeries[]> {
 	const sql = `
 		SELECT
@@ -23,9 +23,10 @@ async function getRecentCompletedBallotSeries(
 			ballotIds,
 			Project AS project
 		FROM ballotsSeries s1
-		WHERE workingGroupId=UUID_TO_BIN(${db.escape(
-			workingGroupId
-		)}) AND IsComplete<>0 AND type=1
+		WHERE 
+			workingGroupId=UUID_TO_BIN(${db.escape(workingGroupId)}) AND 
+			IsComplete<>0 AND 
+			type=1
 		ORDER BY End;
 	`;
 	let ballotSeries: BallotSeries[] =
@@ -40,7 +41,7 @@ async function getRecentCompletedBallotSeries(
 
 	// Select all that start after the earliest start of the three
 	ballotSeries = ballotSeries.filter(
-		(series) => new Date(series.start) >= earliestStart
+		(series) => new Date(series.start) >= earliestStart,
 	);
 
 	return ballotSeries;
@@ -51,7 +52,7 @@ async function getRecentCompletedBallotSeries(
  * @returns An array of ballot arrays that are the recent ballot series
  */
 async function getActiveBallotSeries(
-	workingGroupId: string
+	workingGroupId: string,
 ): Promise<BallotSeries[]> {
 	const sql = `
 		SELECT
@@ -63,20 +64,21 @@ async function getActiveBallotSeries(
 			s1.Project AS project
 		FROM ballotsSeries s1
 			LEFT JOIN ballots ON s1.id=ballots.prev_id
-		WHERE s1.workingGroupId=UUID_TO_BIN(${db.escape(
-			workingGroupId
-		)}) AND s1.IsComplete=0 AND s1.type=1 AND ballots.id IS NULL AND s1.Project NOT LIKE "%TEST%"
+		WHERE 
+			s1.workingGroupId=UUID_TO_BIN(${db.escape(workingGroupId)}) AND 
+			s1.IsComplete=0 AND 
+			s1.type=1 AND 
+			ballots.id IS NULL AND 
+			s1.Project NOT LIKE "%TEST%"
 		ORDER BY End;
 	`;
-	const ballotSeries: BallotSeries[] =
-		await db.query<(RowDataPacket & BallotSeries)[]>(sql);
-
+	const ballotSeries = await db.query<(RowDataPacket & BallotSeries)[]>(sql);
 	return ballotSeries;
 }
 
 export function getBallotSeriesParticipationSummary(
 	series_id: number,
-	initial_id: number
+	initial_id: number,
 ): Promise<BallotSeriesParticipationSummary[]> {
 	const sql = `
 		WITH resultsForSeries AS (
@@ -125,7 +127,7 @@ export async function getBallotSeriesParticipation(groupId: string) {
 
 	const ballotIds = ballotSeries.reduce(
 		(ids, series) => ids.concat(...series.ballotIds),
-		[] as number[]
+		[] as number[],
 	);
 	const ballots =
 		ballotIds.length > 0 ? await getBallots({ id: ballotIds }) : [];
@@ -136,7 +138,7 @@ export async function getBallotSeriesParticipation(groupId: string) {
 	for (const series of ballotSeries) {
 		const summaries = await getBallotSeriesParticipationSummary(
 			series.id,
-			series.votingPoolId
+			series.votingPoolId,
 		);
 		for (const s of summaries) {
 			if (!summaryIds.includes(s.SAPIN)) {
@@ -165,7 +167,7 @@ export async function getActiveBallotSeriesParticipation(groupId: string) {
 
 	const ballotIds = ballotSeries.reduce(
 		(ids, series) => ids.concat(...series.ballotIds),
-		[] as number[]
+		[] as number[],
 	);
 	const ballots =
 		ballotIds.length > 0 ? await getBallots({ id: ballotIds }) : [];
@@ -176,7 +178,7 @@ export async function getActiveBallotSeriesParticipation(groupId: string) {
 	for (const series of ballotSeries) {
 		const summaries = await getBallotSeriesParticipationSummary(
 			series.id,
-			series.votingPoolId
+			series.votingPoolId,
 		);
 		for (const s of summaries) {
 			if (!summaryIds.includes(s.SAPIN)) {

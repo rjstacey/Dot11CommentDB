@@ -13,24 +13,22 @@ import {
 } from "@schemas/officers.js";
 
 export function getOfficers(constraints?: OfficerQuery): Promise<Officer[]> {
-	// prettier-ignore
-	let sql =
-		'SELECT ' + 
-			'BIN_TO_UUID(officers.id) AS `id`,' +
-			'BIN_TO_UUID(officers.group_id) AS `group_id`, ' +
-			'officers.sapin, ' +
-			'officers.position ' +
-		'FROM officers';
+	let sql = `
+		SELECT 
+			BIN_TO_UUID(officers.id) AS \`id\`,
+			BIN_TO_UUID(officers.group_id) AS \`group_id\`,
+			officers.sapin,
+			officers.position
+		FROM officers
+	`;
 
 	if (constraints && Object.keys(constraints).length > 0) {
 		if (constraints.parentGroupId) {
-			sql += db.format(
-				" " +
-					"LEFT JOIN organization grp ON grp.id=officers.group_id " +
-					"LEFT JOIN organization parentGrp ON parentGrp.id=grp.parent_id " +
-					"WHERE UUID_TO_BIN(?) IN (grp.id, parentGrp.id, parentGrp.parent_id)",
-				[constraints.parentGroupId]
-			);
+			sql += `
+				LEFT JOIN organization grp ON grp.id=officers.group_id
+				LEFT JOIN organization parentGrp ON parentGrp.id=grp.parent_id
+				WHERE UUID_TO_BIN(${db.escape(constraints.parentGroupId)}) IN (grp.id, parentGrp.id, parentGrp.parent_id)
+			`;
 			delete constraints.parentGroupId;
 			if (Object.keys(constraints).length > 1) sql += " AND ";
 		} else {
@@ -39,16 +37,12 @@ export function getOfficers(constraints?: OfficerQuery): Promise<Officer[]> {
 		sql += Object.entries(constraints)
 			.map(([key, value]) =>
 				key === "id" || key === "group_id"
-					? db.format(
-							Array.isArray(value)
-								? "BIN_TO_UUID(??) IN (?)"
-								: "BIN_TO_UUID(??)=?",
-							[key, value]
-						)
-					: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
-							key,
-							value,
-						])
+					? Array.isArray(value)
+						? `BIN_TO_UUID(\`${key}\`) IN (${db.escape(value)})`
+						: `BIN_TO_UUID(\`${key}\`) = ${db.escape(value)}`
+					: Array.isArray(value)
+						? `\`${key}\` IN (${db.escape(value)})`
+						: `\`${key}\` = ${db.escape(value)}`,
 			)
 			.join(" AND ");
 	}
@@ -69,9 +63,9 @@ async function addOfficer({
 }: OfficerCreate): Promise<Officer> {
 	if (!id) id = uuid();
 
-	let sql = db.format("INSERT INTO officers SET id=UUID_TO_BIN(?)", [id]);
-	if (group_id) sql += db.format(", group_id=UUID_TO_BIN(?)", [group_id]);
-	if (Object.keys(rest).length > 0) sql += db.format(", ?", [rest]);
+	let sql = `INSERT INTO officers SET id=UUID_TO_BIN(${db.escape(id)})`;
+	if (group_id) sql += `, group_id=UUID_TO_BIN(${db.escape(group_id)})`;
+	if (Object.keys(rest).length > 0) sql += `, ${db.escape(rest)}`;
 
 	await db.query(sql);
 
@@ -88,7 +82,7 @@ async function addOfficer({
 export async function addOfficers(
 	user: UserContext,
 	workingGroup: Group,
-	officers: OfficerCreate[]
+	officers: OfficerCreate[],
 ) {
 	// Ensure that each officer has a valid groupId
 	const groupIds = await getGroupAndSubgroupIds(workingGroup.id);
@@ -97,7 +91,7 @@ export async function addOfficers(
 			throw new TypeError("Bad or missing group_id; must specify group");
 		if (!groupIds.includes(officer.group_id))
 			throw new TypeError(
-				"Bad officer group_id; must be working group or one of its subgroups"
+				"Bad officer group_id; must be working group or one of its subgroups",
 			);
 	});
 
@@ -113,11 +107,13 @@ export async function addOfficers(
  * @returns Updated officer object
  */
 async function updateOfficer({ id, changes }: OfficerUpdate): Promise<Officer> {
-	if (Object.keys(changes).length > 0)
-		await db.query("UPDATE officers SET ? WHERE id=UUID_TO_BIN(?)", [
-			changes,
-			id,
-		]);
+	if (Object.keys(changes).length > 0) {
+		const sql = `
+			UPDATE officers SET ${db.escape(changes)}
+			WHERE id=UUID_TO_BIN(${db.escape(id)})
+		`;
+		await db.query(sql);
+	}
 
 	const [officer] = await getOfficers({ id });
 	return officer;
@@ -132,7 +128,7 @@ async function updateOfficer({ id, changes }: OfficerUpdate): Promise<Officer> {
 export async function updateOfficers(
 	user: UserContext,
 	workingGroup: Group,
-	updates: OfficerUpdate[]
+	updates: OfficerUpdate[],
 ) {
 	// Ensure that each officer has a valid groupId
 	let groupIds: string[];
@@ -142,7 +138,7 @@ export async function updateOfficers(
 				groupIds = await getGroupAndSubgroupIds(workingGroup.id);
 			if (!groupIds.includes(changes.group_id))
 				throw new TypeError(
-					"Bad officer group_id; must be the working group or one of its subgroups"
+					"Bad officer group_id; must be the working group or one of its subgroups",
 				);
 		}
 	});
@@ -159,16 +155,16 @@ export async function updateOfficers(
 export async function removeOfficers(
 	user: UserContext,
 	workingGroup: Group,
-	ids: string[]
+	ids: string[],
 ): Promise<number> {
-	const sql = db.format(
-		// prettier-ignore
-		"DELETE officers " +
-		"FROM officers " +
-			"LEFT JOIN organization org ON officers.group_id=org.id " +
-		"WHERE BIN_TO_UUID(officers.id) IN (?) AND UUID_TO_BIN(?) IN (org.id, org.parent_id)",
-		[ids, workingGroup.id]
-	);
-	const result = await db.query<ResultSetHeader>(sql);
-	return result.affectedRows;
+	const sql = `
+		DELETE officers
+		FROM officers
+			LEFT JOIN organization org ON officers.group_id=org.id
+		WHERE
+			BIN_TO_UUID(officers.id) IN (${db.escape(ids)}) AND
+			UUID_TO_BIN(${db.escape(workingGroup.id)}) IN (org.id, org.parent_id)
+	`;
+	const { affectedRows } = await db.query<ResultSetHeader>(sql);
+	return affectedRows;
 }

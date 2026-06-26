@@ -88,81 +88,76 @@ function selectMembersSql(query: MemberQuery) {
 
 	let sql: string;
 	if (groupId === "00000000-0000-0000-0000-000000000000") {
-		// prettier-ignore
-		sql =
-			"SELECT " +
-				`'${groupId}' as groupId, ` +
-				"SAPIN, " +
-				"NULL as MemberID, " +
-				"Name, " +
-				"FirstName, MI, LastName, " +
-				"Email, " +
-				"'' as Affiliation, " +
-				"Employer, " +
-				"'Non-Voter' as Status, " +
-				"NULL as StatusChangeDate, " +
-				"CAST(FALSE as JSON) as StatusChangeOverride, " +
-				"NULL as ReplacedBySAPIN, " +
-				"NULL as DateAdded, " +
-				"'' as Notes, " +
-				"ContactInfo, " +
-				"ContactEmails, " +
-				"JSON_ARRAY() as StatusChangeHistory, " +
-				"JSON_ARRAY() AS ObsoleteSAPINs, " +
-				"CAST(FALSE as JSON) as InRoster " +
-			"FROM users";
+		sql = `
+			SELECT
+				'${groupId}' as groupId,
+				SAPIN,
+				NULL as MemberID,
+				Name,
+				FirstName, MI, LastName,
+				Email,
+				'' as Affiliation,
+				Employer,
+				'Non-Voter' as Status,
+				NULL as StatusChangeDate,
+				CAST(FALSE as JSON) as StatusChangeOverride,
+				NULL as ReplacedBySAPIN,
+				NULL as DateAdded,
+				'' as Notes,
+				ContactInfo,
+				ContactEmails,
+				JSON_ARRAY() as StatusChangeHistory,
+				JSON_ARRAY() AS ObsoleteSAPINs,
+				CAST(FALSE as JSON) as InRoster
+			FROM users
+		`;
 
 		Object.entries(rest).forEach(([key, value]) => {
 			wheres.push(
-				db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
-					key,
-					value,
-				]),
+				Array.isArray(value)
+					? `\`${key}\` IN (${db.escape(value)})`
+					: `\`${key}\` = ${db.escape(value)}`,
 			);
 		});
 	} else {
-		// prettier-ignore
-		sql =
-			"SELECT " +
-				"BIN_TO_UUID(groupId) as groupId, " +
-				"m.SAPIN, " +
-				"MemberID, " +
-				"Name, " +
-				"FirstName, MI, LastName, " +
-				"Email, " +
-				"Affiliation, " +
-				"Employer, " +
-				"Status, " +
-				'DATE_FORMAT(StatusChangeDate, "%Y-%m-%dT%TZ") AS StatusChangeDate, ' +
-				"StatusChangeOverride, " +
-				"ReplacedBySAPIN, " +
-				'DATE_FORMAT(DateAdded, "%Y-%m-%dT%TZ") AS DateAdded, ' +
-				"Notes, " +
-				"ContactInfo, " +
-				"ContactEmails, " +
-				"StatusChangeHistory, " +
-				"COALESCE(ObsoleteSAPINs, JSON_ARRAY()) AS ObsoleteSAPINs, " +
-				"InRoster " +
-			"FROM members m " +
-				'LEFT JOIN (SELECT ReplacedBySAPIN AS SAPIN, JSON_ARRAYAGG(SAPIN) AS ObsoleteSAPINs FROM members WHERE Status="Obsolete" GROUP BY ReplacedBySAPIN) AS o ON m.SAPIN=o.SAPIN ';
+		sql = `
+			SELECT
+				BIN_TO_UUID(groupId) as groupId,
+				m.SAPIN,
+				MemberID,
+				Name,
+				FirstName, MI, LastName,
+				Email,
+				Affiliation,
+				Employer,
+				Status,
+				DATE_FORMAT(StatusChangeDate, "%Y-%m-%dT%TZ") AS StatusChangeDate,
+				StatusChangeOverride,
+				ReplacedBySAPIN,
+				DATE_FORMAT(DateAdded, "%Y-%m-%dT%TZ") AS DateAdded,
+				Notes,
+				ContactInfo,
+				ContactEmails,
+				StatusChangeHistory,
+				COALESCE(ObsoleteSAPINs, JSON_ARRAY()) AS ObsoleteSAPINs,
+				InRoster
+			FROM members m
+				LEFT JOIN (SELECT ReplacedBySAPIN AS SAPIN, JSON_ARRAYAGG(SAPIN) AS ObsoleteSAPINs FROM members WHERE Status="Obsolete" GROUP BY ReplacedBySAPIN) AS o ON m.SAPIN=o.SAPIN 
+		`;
 
 		if (groupId) {
 			wheres.push(
-				db.format(
-					Array.isArray(groupId)
-						? "BIN_TO_UUID(groupId) IN (?)"
-						: "groupId=UUID_TO_BIN(?)",
-					[groupId],
-				),
+				Array.isArray(groupId)
+					? `BIN_TO_UUID(groupId) IN (${db.escape(groupId)})`
+					: `groupId = UUID_TO_BIN(${db.escape(groupId)})`,
 			);
 		}
 
 		Object.entries(rest).forEach(([key, value]) => {
 			wheres.push(
-				db.format(Array.isArray(value) ? "m.?? IN (?)" : "m.??=?", [
-					key,
-					value,
-				]),
+				Array.isArray(value)
+					? `m.\`${key}\` IN (${db.escape(value)})`
+					: `m.\`${key}\` = ${db.escape(value)}`,
 			);
 		});
 	}
@@ -189,17 +184,18 @@ export async function getMember(groupId: string, SAPIN: number) {
 /** A details list of users (IEEE account holders) */
 export function getUsers() {
 	// prettier-ignore
-	const sql =
-		"SELECT " +
-			"SAPIN, " +
-			"Email, " +
-			"Name, " +
-			"FirstName, MI, LastName, " +
-			"Employer, " +
-			"ContactInfo, " +
-			"ContactEmails " +
-		"FROM users";
-	return db.query(sql) as Promise<UserType[]>;
+	const sql = `
+		SELECT
+			SAPIN,
+			Email,
+			Name,
+			FirstName, MI, LastName,
+			Employer,
+			ContactInfo,
+			ContactEmails
+		FROM users
+	`;
+	return db.query<(RowDataPacket & UserType)[]>(sql);
 }
 
 /** A record of users (IEEE account holders) */
@@ -371,10 +367,9 @@ function memberSetsSql(entry: Partial<GroupMemberDB>) {
 	const sets: string[] = [];
 	Object.entries(entry).forEach(([key, value]) => {
 		sets.push(
-			db.format(key === "groupId" ? "??=UUID_TO_BIN(?)" : "??=?", [
-				key,
-				value,
-			]),
+			key === "groupId"
+				? `\`${key}\`=UUID_TO_BIN(${db.escape(value)})`
+				: `\`${key}\`=${db.escape(value)}`,
 		);
 	});
 
@@ -391,13 +386,13 @@ async function addMember(groupId: string, member: MemberCreate) {
 
 	const uEntry = userEntry(member);
 	uEntry.SAPIN = SAPIN;
-	sql = "INSERT IGNORE INTO users SET " + db.escape(uEntry) + "; ";
+	sql = `INSERT IGNORE INTO users SET ${db.escape(uEntry)};`;
 
 	const mEntry = memberEntry(member);
 	mEntry.groupId = groupId;
 	mEntry.SAPIN = SAPIN;
 
-	sql += "INSERT INTO groupMembers SET " + memberSetsSql(mEntry) + ";";
+	sql += `INSERT INTO groupMembers SET ${memberSetsSql(mEntry)};`;
 	await db.query(sql);
 
 	return getMember(groupId, SAPIN);
@@ -463,11 +458,11 @@ export async function addMemberStatusChangeEntries(
 
 	const history = member.StatusChangeHistory.concat(entries);
 
-	const sql = db.format(
-		"UPDATE groupMembers SET StatusChangeHistory=? " +
-			"WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-		[JSON.stringify(history), groupId, sapin],
-	);
+	const sql = `
+		UPDATE groupMembers
+		SET StatusChangeHistory=${db.escape(JSON.stringify(history))}
+		WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND SAPIN=${db.escape(sapin)}
+	`;
 	await db.query(sql);
 
 	return getMember(groupId, sapin);
@@ -492,11 +487,11 @@ export async function updateMemberStatusChangeEntries(
 		return update ? { ...h, ...update.changes } : h;
 	});
 
-	const sql = db.format(
-		"UPDATE groupMembers SET StatusChangeHistory=? " +
-			"WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-		[JSON.stringify(history), groupId, sapin],
-	);
+	const sql = `
+		UPDATE groupMembers
+		SET StatusChangeHistory=${db.escape(JSON.stringify(history))}
+		WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND SAPIN=${db.escape(sapin)}
+	`;
 	await db.query(sql);
 
 	return getMember(groupId, sapin);
@@ -519,11 +514,11 @@ export async function deleteMemberStatusChangeEntries(
 	const history = member.StatusChangeHistory.filter(
 		(h) => !ids.includes(h.id),
 	);
-	const sql = db.format(
-		"UPDATE groupMembers SET StatusChangeHistory=? " +
-			"WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-		[JSON.stringify(history), groupId, sapin],
-	);
+	const sql = `
+		UPDATE groupMembers
+		SET StatusChangeHistory=${db.escape(JSON.stringify(history))}
+		WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND SAPIN=${db.escape(sapin)}
+	`;
 	await db.query(sql);
 
 	return getMember(groupId, sapin);
@@ -541,10 +536,11 @@ export async function updateMemberContactEmail(
 	const emails = member.ContactEmails.map((h) =>
 		h.id === entry.id ? { ...h, ...entry } : h,
 	);
-	const sql = db.format("UPDATE users SET ContactEmails=? WHERE SAPIN=?", [
-		JSON.stringify(emails),
-		sapin,
-	]);
+	const sql = `
+		UPDATE users
+		SET ContactEmails=${db.escape(JSON.stringify(emails))}
+		WHERE SAPIN=${db.escape(sapin)}
+	`;
 	await db.query(sql);
 
 	return (await getMember(groupId, sapin))!;
@@ -566,10 +562,11 @@ export async function addMemberContactEmail(
 		) + 1;
 	const emails = member.ContactEmails.slice();
 	emails.unshift({ id, DateAdded: DateTime.now().toISO(), ...entry });
-	const sql = db.format("UPDATE users SET ContactEmails=? WHERE SAPIN=?", [
-		JSON.stringify(emails),
-		sapin,
-	]);
+	const sql = `
+		UPDATE users
+		SET ContactEmails=${db.escape(JSON.stringify(emails))}
+		WHERE SAPIN=${db.escape(sapin)}
+	`;
 	await db.query(sql);
 
 	return (await getMember(groupId, sapin))!;
@@ -585,10 +582,11 @@ export async function deleteMemberContactEmail(
 		throw new NotFoundError(`Member with SAPIN=${sapin} does not exist`);
 
 	const emails = member.ContactEmails.filter((h) => h.id !== entry.id);
-	const sql = db.format("UPDATE users SET ContactEmails=? WHERE SAPIN=?", [
-		JSON.stringify(emails),
-		sapin,
-	]);
+	const sql = `
+		UPDATE users
+		SET ContactEmails=${db.escape(JSON.stringify(emails))}
+		WHERE SAPIN=${db.escape(sapin)}
+	`;
 	await db.query(sql);
 
 	return (await getMember(groupId, sapin))!;
@@ -617,22 +615,15 @@ async function updateMemberStatus(
 		member.Status === "Obsolete" && status !== "Obsolete"
 			? null
 			: member.ReplacedBySAPIN;
-	const sql = db.format(
-		"UPDATE groupMembers SET " +
-			"Status=?, " +
-			"StatusChangeDate=?, " +
-			"StatusChangeHistory=JSON_ARRAY_INSERT(StatusChangeHistory, '$[0]', CAST(? AS JSON)), " +
-			"ReplacedBySAPIN=? " +
-			"WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?;",
-		[
-			status,
-			date.toUTC().toFormat("yyyy-MM-dd HH:mm:ss"),
-			JSON.stringify(historyEntry),
-			replacedBySAPIN,
-			member.groupId,
-			member.SAPIN,
-		],
-	);
+	const sql = `
+		UPDATE groupMembers
+		SET
+			Status=${db.escape(status)},
+			StatusChangeDate=${db.escape(date.toUTC().toFormat("yyyy-MM-dd HH:mm:ss"))},
+			StatusChangeHistory=JSON_ARRAY_INSERT(StatusChangeHistory, '$[0]', CAST(${db.escape(JSON.stringify(historyEntry))} AS JSON)),
+			ReplacedBySAPIN=${db.escape(replacedBySAPIN)}
+		WHERE groupId=UUID_TO_BIN(${db.escape(member.groupId)}) AND SAPIN=${db.escape(member.SAPIN)};
+	`;
 	await db.query(sql);
 }
 
@@ -661,19 +652,21 @@ export async function updateMember(
 	}
 	const entry1 = userEntry(changesRest);
 	if (Object.keys(entry1).length > 0) {
-		const sql = db.format("UPDATE users SET ? WHERE SAPIN=?", [
-			entry1,
-			sapin,
-		]);
+		const sql = `
+			UPDATE users
+			SET ${db.escape(entry1)}
+			WHERE SAPIN=${db.escape(sapin)}
+		`;
 		p.push(db.query<ResultSetHeader>(sql));
 	}
 
 	const entry2 = memberEntry(changesRest);
 	if (Object.keys(entry2).length) {
-		const sql = db.format(
-			"UPDATE groupMembers SET ? WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-			[entry2, groupId, sapin],
-		);
+		const sql = `
+			UPDATE groupMembers
+			SET ${db.escape(entry2)}
+			WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND SAPIN=${db.escape(sapin)}
+		`;
 		p.push(db.query<ResultSetHeader>(sql));
 	}
 
@@ -706,26 +699,24 @@ export async function updateMembers(
 export async function deleteMembers(groupId: string, ids: number[]) {
 	let sql: string;
 	if (ids.length > 0) {
-		sql = db.format(
-			"DELETE FROM groupMembers WHERE groupId=UUID_TO_BIN(?) AND SAPIN IN (?)",
-			[groupId, ids],
-		);
-		const result = await db.query<ResultSetHeader>(sql);
+		sql = `
+			DELETE FROM groupMembers
+			WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND SAPIN IN (${db.escape(ids)})
+		`;
+		const { affectedRows } = await db.query<ResultSetHeader>(sql);
 
 		// SAPINs that are no longer referenced from any groupMembers table, must be removed them from the users table
-		sql = db.format("SELECT SAPIN FROM groupMembers WHERE SAPIN IN (?)", [
-			ids,
-		]);
+		sql = `SELECT SAPIN FROM groupMembers WHERE SAPIN IN (${db.escape(ids)})`;
 		const inUseIds = (
 			await db.query<(RowDataPacket & { SAPIN: number })[]>(sql)
 		).map((row) => row.SAPIN);
 		ids = ids.filter((id) => !inUseIds.includes(id));
 		if (ids.length) {
-			sql = db.format("DELETE FROM users WHERE SAPIN IN (?)", [ids]);
+			sql = `DELETE FROM users WHERE SAPIN IN (${db.escape(ids)})`;
 			await db.query(sql);
 		}
 
-		return result.affectedRows;
+		return affectedRows;
 	}
 	return 0;
 }
@@ -735,9 +726,11 @@ async function uploadDatabaseMembers(groupId: string, buffer: Buffer) {
 		(m) => m.SAPIN > 0,
 	);
 
-	await db.query("DELETE FROM groupMembers WHERE groupId=UUID_TO_BIN(?)", [
-		groupId,
-	]);
+	const sql = `
+		DELETE FROM groupMembers
+		WHERE groupId=UUID_TO_BIN(${db.escape(groupId)})
+	`;
+	await db.query(sql);
 
 	if (members.length > 0) {
 		const users = members.map((r) => ({
@@ -789,50 +782,55 @@ async function uploadDatabaseMembers(groupId: string, buffer: Buffer) {
 async function uploadDatabaseMemberSAPINs(groupId: string, buffer: Buffer) {
 	const sapins = await parseSAPINsSpreadsheet(buffer);
 
-	const updateSql = (SAPIN: number, date: string | null) =>
-		db.format(
-			"UPDATE groupMembers SET DateAdded=? WHERE groupId=UUID_TO_BIN(?) AND SAPIN=?",
-			[date, groupId, SAPIN],
-		);
+	const updateSql = (SAPIN: number, date: string | null) => `
+		UPDATE groupMembers
+		SET DateAdded=${db.escape(date)}
+		WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND SAPIN=${db.escape(SAPIN)}
+	`;
 
 	const insertUserSql = (SAPIN: number, memberId: number) =>
-		// prettier-ignore
-		"INSERT IGNORE INTO users (" +
-			"SAPIN, " +
-			"Name, LastName, FirstName, MI, " +
-			"Email, Employer, ContactInfo) " +
-		"SELECT " +
-			`${db.escape(SAPIN)}, ` +
-			"Name, LastName, FirstName, MI, " +
-			"Email, Employer, ContactInfo " +
-		"FROM users u JOIN groupMembers m " +
-			`ON u.SAPIN=m.SAPIN AND m.groupId=UUID_TO_BIN(${db.escape(groupId)}) ` +
-		`WHERE m.MemberID=${db.escape(memberId)} ` +
-		"LIMIT 1";
+		`INSERT IGNORE INTO users (
+			SAPIN,
+			Name, LastName, FirstName, MI, 
+			Email, Employer, ContactInfo
+		) 
+		SELECT 
+			${db.escape(SAPIN)}, 
+			Name, LastName, FirstName, MI,
+			Email, Employer, ContactInfo
+		FROM users u JOIN groupMembers m 
+			ON u.SAPIN=m.SAPIN AND m.groupId=UUID_TO_BIN(${db.escape(groupId)}) 
+		WHERE m.MemberID=${db.escape(memberId)} 
+		LIMIT 1
+	`;
 
 	const insertGroupMemberSql = (
 		SAPIN: number,
 		date: string | null,
 		memberId: number,
-	) =>
-		// prettier-ignore
-		"INSERT INTO groupMembers (" +
-			"SAPIN, groupId, DateAdded, " +
-			"MemberID, " +
-			"Affiliation, " +
-			"Status, " +
-			"StatusChangeDate, " +
-			"ReplacedBySAPIN) " +
-		"SELECT " +
-			db.format("?, UUID_TO_BIN(?), ?, ", [SAPIN, groupId, date]) +
-			"MemberID, " +
-			"Affiliation, " +
-			'"Obsolete", ' +
-			'UTC_TIMESTAMP(), ' +
-			"SAPIN " +
-		"FROM groupMembers " +
-		db.format("WHERE groupId=UUID_TO_BIN(?) AND MemberID=? ", [groupId, memberId]) +
-		"LIMIT 1";
+	) => `
+		INSERT INTO groupMembers (
+			SAPIN,
+			groupId,
+			DateAdded,
+			MemberID,
+			Affiliation,
+			Status,
+			StatusChangeDate,
+			ReplacedBySAPIN)
+		SELECT
+			${db.escape(SAPIN)},
+			UUID_TO_BIN(${db.escape(groupId)}),
+			${db.escape(date)},
+			MemberID,
+			Affiliation,
+			"Obsolete",
+			UTC_TIMESTAMP(),
+			SAPIN
+		FROM groupMembers
+		WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND MemberID=${db.escape(memberId)}
+		LIMIT 1
+	`;
 
 	const missingSapins: typeof sapins = [];
 	await Promise.all(
@@ -877,22 +875,20 @@ async function uploadDatabaseMemberEmails(groupId: string, buffer: Buffer) {
 		const contactEmails = entities[memberId];
 		contactEmails.push({ ...entry, id: contactEmails.length });
 	}
-	let sql =
-		"UPDATE users u LEFT JOIN groupMembers m " +
-		`ON u.SAPIN=m.SAPIN AND m.groupId=UUID_TO_BIN(${db.escape(groupId)}) ` +
-		"SET ContactEmails=JSON_ARRAY(); ";
+	let sql = `
+		UPDATE users u LEFT JOIN groupMembers m
+		ON u.SAPIN=m.SAPIN AND m.groupId=UUID_TO_BIN(${db.escape(groupId)})
+		SET ContactEmails=JSON_ARRAY();
+	`;
 
 	sql += Object.entries(entities)
 		.map(
-			([memberId, contactEmails]) =>
-				"UPDATE users u LEFT JOIN groupMembers m " +
-				`ON u.SAPIN=m.SAPIN AND m.groupId=UUID_TO_BIN(${db.escape(
-					groupId,
-				)}) ` +
-				`SET ContactEmails=${db.escape(
-					JSON.stringify(contactEmails),
-				)} ` +
-				`WHERE m.MemberID=${memberId}`,
+			([memberId, contactEmails]) => `
+				UPDATE users u LEFT JOIN groupMembers m
+				ON u.SAPIN=m.SAPIN AND m.groupId=UUID_TO_BIN(${db.escape(groupId)})
+				SET ContactEmails=${db.escape(JSON.stringify(contactEmails))} 
+				WHERE m.MemberID=${db.escape(memberId)}
+			`,
 		)
 		.join("; ");
 
@@ -913,18 +909,17 @@ async function uploadDatabaseMemberHistory(groupId: string, buffer: Buffer) {
 	}
 
 	const sql =
-		"UPDATE groupMembers SET StatusChangeHistory=JSON_ARRAY() " +
-		`WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}); ` +
+		`
+		UPDATE groupMembers SET StatusChangeHistory=JSON_ARRAY() 
+		WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}); 
+		` +
 		Object.entries(entities)
 			.map(
-				([memberId, history]) =>
-					"UPDATE groupMembers " +
-					`SET StatusChangeHistory=${db.escape(
-						JSON.stringify(history.reverse()),
-					)} ` +
-					`WHERE groupId=UUID_TO_BIN(${db.escape(
-						groupId,
-					)}) AND MemberID=${db.escape(memberId)}`,
+				([memberId, history]) => `
+					UPDATE groupMembers
+					SET StatusChangeHistory=${db.escape(JSON.stringify(history.reverse()))}
+					WHERE groupId=UUID_TO_BIN(${db.escape(groupId)}) AND MemberID=${db.escape(memberId)}
+				`,
 			)
 			.join("; ");
 
@@ -986,17 +981,21 @@ export async function importMyProjectRoster(
 			insertKeys.map((key) => db.escape(u[key])).join(", "),
 		);
 		const updateKeys = insertKeys.filter((k) => k !== "SAPIN");
-		let sql =
-			db.format("INSERT INTO users (??) VALUES ", [insertKeys]) +
-			insertValues.map((s) => "(" + s + ")").join(", ") +
-			" AS new ON DUPLICATE KEY UPDATE " +
-			updateKeys.map((k) => db.format("??=new.??", [k, k])).join(", ");
+		let sql = `
+			INSERT INTO users (
+				${insertKeys.map((k) => `\`${k}\``).join(", ")}
+			)
+			VALUES
+				${insertValues.map((s) => `(${s})`).join(", ")}
+			AS new ON DUPLICATE KEY UPDATE 
+				${updateKeys.map((k) => `\`${k}\`=new.\`${k}\``).join(", ")}
+		`;
 		let result = await db.query<ResultSetHeader>(sql);
 
-		sql = db.format(
-			"UPDATE groupMembers SET InRoster=0 WHERE groupId=UUID_TO_BIN(?)",
-			[groupId],
-		);
+		sql = `
+			UPDATE groupMembers SET InRoster=0
+			WHERE groupId=UUID_TO_BIN(${db.escape(groupId)})
+		`;
 		await db.query(sql);
 
 		const members = roster.map((r) => ({
@@ -1017,10 +1016,14 @@ export async function importMyProjectRoster(
 				)
 				.join(", "),
 		);
-		sql =
-			db.format("INSERT INTO groupMembers (??) VALUES ", [insertKeys]) +
-			insertValues.map((s) => "(" + s + ")").join(", ") +
-			" AS new ON DUPLICATE KEY UPDATE `Affiliation`=new.`Affiliation`, `InRoster`=new.`InRoster`";
+		sql = `
+			INSERT INTO groupMembers (
+				${insertKeys.map((k) => `\`${k}\``).join(", ")}
+			)
+			VALUES
+				${insertValues.map((s) => `(${s})`).join(", ")}
+			AS new ON DUPLICATE KEY UPDATE \`Affiliation\`=new.\`Affiliation\`, \`InRoster\`=new.\`InRoster\`
+		`;
 		result = await db.query<ResultSetHeader>(sql);
 		console.log(result);
 	}

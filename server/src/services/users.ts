@@ -21,12 +21,12 @@ export async function selectUser({
 	SAPIN?: number;
 	Email?: string;
 }): Promise<User | undefined> {
-	// prettier-ignore
-	const sql =
-		'SELECT ' +
-			'SAPIN, Name, Email, Null as Token ' +
-		'FROM users ' +
-		'WHERE ' + (SAPIN? `SAPIN=${db.escape(SAPIN)}`: `Email=${db.escape(Email)}`);
+	const sql = `
+		SELECT 
+			SAPIN, Name, Email, NULL as Token 
+		FROM users 
+		WHERE ${SAPIN ? `SAPIN=${db.escape(SAPIN)}` : `Email=${db.escape(Email)}`}
+	`;
 	const [user] = await db.query<(RowDataPacket & User)[]>(sql);
 	return user;
 }

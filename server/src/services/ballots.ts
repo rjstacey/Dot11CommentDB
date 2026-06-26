@@ -125,23 +125,20 @@ const ballotsStageFieldsSQL = `
  * @returns An array of ballot objects.
  */
 export async function getBallots(query?: BallotQuery): Promise<Ballot[]> {
-	let sql = "SELECT " + ballotsStageFieldsSQL + "FROM ballotsStage b";
+	let sql = `SELECT ${ballotsStageFieldsSQL} FROM ballotsStage b`;
 
 	if (query) {
 		const wheres: string[] = [];
 		Object.entries(query).forEach(([key, value]) => {
+			const e_value = db.escape(value);
 			wheres.push(
 				key === "groupId" || key === "workingGroupId"
-					? db.format(
-							Array.isArray(value)
-								? "BIN_TO_UUID(??) IN (?)"
-								: "BIN_TO_UUID(??)=?",
-							[key, value],
-						)
-					: db.format(Array.isArray(value) ? "?? IN (?)" : "??=?", [
-							key,
-							value,
-						]),
+					? Array.isArray(value)
+						? `BIN_TO_UUID(\`${key}\`) IN (${e_value})`
+						: `BIN_TO_UUID(\`${key}\`) = ${e_value}`
+					: Array.isArray(value)
+						? `\`${key}\` IN (${e_value})`
+						: `\`${key}\` = ${e_value}`,
 			);
 		});
 		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
@@ -207,14 +204,13 @@ export async function getBallotWithNewResultsSummary(
  * @returns an array of ballots (starting with the initial ballot) that is the ballot series
  */
 export function getBallotSeries(id: number): Promise<Ballot[]> {
-	// prettier-ignore
-	const sql =
-		"SELECT " +
-			ballotsStageFieldsSQL +
-		"FROM ballotsSeries s " +
-		"JOIN ballotsStage b ON s.id=b.id " +
-		"WHERE s.series_id=" + db.escape(id);
-
+	const sql = `
+		SELECT 
+			${ballotsStageFieldsSQL}
+		FROM ballotsSeries s
+		JOIN ballotsStage b ON s.id=b.id
+		WHERE s.series_id=${db.escape(id)}
+	`;
 	return db.query<(RowDataPacket & Ballot)[]>(sql);
 }
 
@@ -278,11 +274,11 @@ function ballotEntry(changes: Partial<Ballot>) {
 function ballotSetSql(ballot: Partial<BallotDB>) {
 	const sets: string[] = [];
 	for (const [key, value] of Object.entries(ballot)) {
-		let sql: string;
-		if (key === "groupId")
-			sql = db.format("??=UUID_TO_BIN(?)", [key, value]);
-		else sql = db.format("??=?", [key, value]);
-		sets.push(sql);
+		const e_value =
+			key === "groupId"
+				? `UUID_TO_BIN(${db.escape(value)})`
+				: db.escape(value);
+		sets.push(`${key} = ${e_value}`);
 	}
 	return sets.join(", ");
 }
@@ -305,12 +301,15 @@ async function addBallot(
 	// If the group is not set, set to working group
 	if (!entry.groupId) entry.groupId = workingGroup.id;
 
+	const sql = `
+		INSERT INTO ballots
+		SET 
+			workingGroupId=UUID_TO_BIN(${db.escape(workingGroup.id)}), 
+			${ballotSetSql(entry)}
+	`;
+
 	let id: number;
 	try {
-		const sql =
-			"INSERT INTO ballots SET " +
-			db.format("workingGroupId=UUID_TO_BIN(?), ", [workingGroup.id]) +
-			ballotSetSql(entry);
 		const results = await db.query<ResultSetHeader>(sql);
 		id = results.insertId;
 	} catch (error) {
@@ -355,15 +354,13 @@ async function updateBallot(
 	const { id, changes } = update;
 	const entry = ballotEntry(changes);
 	if (Object.keys(entry).length > 0) {
-		const sql =
-			"UPDATE ballots SET " +
-			ballotSetSql(entry) +
-			db.format(" WHERE id=? AND workingGroupId=UUID_TO_BIN(?)", [
-				id,
-				workingGroup.id,
-			]);
-		const result = await db.query<ResultSetHeader>(sql);
-		if (result.affectedRows !== 1)
+		const sql = `
+			UPDATE ballots
+			SET ${ballotSetSql(entry)}
+			WHERE id=${db.escape(id)} AND workingGroupId=UUID_TO_BIN(${db.escape(workingGroup.id)})
+		`;
+		const { affectedRows } = await db.query<ResultSetHeader>(sql);
+		if (affectedRows !== 1)
 			throw new Error(`Unexpected: no update for ballot with id=${id}`);
 	}
 
@@ -399,23 +396,26 @@ export async function deleteBallots(
 	ids: number[],
 ) {
 	// Make sure the ids are owned by the working group
-	ids = (
-		await db.query<(RowDataPacket & { id: number })[]>(
-			"SELECT id FROM ballots WHERE id IN (?) AND workingGroupId=UUID_TO_BIN(?)",
-			[ids, workingGroup.id],
-		)
-	).map((b) => b.id);
+	const sql1 = `
+		SELECT id 
+		FROM ballots 
+		WHERE id IN (${db.escape(ids)}) AND workingGroupId=UUID_TO_BIN(${db.escape(workingGroup.id)})
+	`;
+	ids = (await db.query<(RowDataPacket & { id: number })[]>(sql1)).map(
+		(b) => b.id,
+	);
 
 	if (ids.length === 0) return 0;
 
 	const e_ids = db.escape(ids);
-	const sql =
-		"START TRANSACTION;" +
-		`DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (${e_ids});` +
-		`DELETE FROM comments WHERE ballot_id IN (${e_ids});` +
-		`DELETE FROM results WHERE ballot_id IN (${e_ids});` +
-		`DELETE FROM ballots WHERE id IN (${e_ids});` +
-		"COMMIT;";
+	const sql = `
+		START TRANSACTION;
+		DELETE r FROM comments c JOIN resolutions r ON c.id=r.comment_id WHERE c.ballot_id IN (${e_ids});
+		DELETE FROM comments WHERE ballot_id IN (${e_ids});
+		DELETE FROM results WHERE ballot_id IN (${e_ids});
+		DELETE FROM ballots WHERE id IN (${e_ids});
+		COMMIT;
+	`;
 
 	await db.query(sql);
 	return ids.length;

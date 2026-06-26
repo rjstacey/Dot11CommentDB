@@ -84,7 +84,7 @@ const comparisons: CompFunc[] = [
 function findMatchByEliminationUsingTheseComparisons(
 	dbC: CommentComp,
 	sheetComments: CommentResolution[],
-	comparisons: CompFunc[]
+	comparisons: CompFunc[],
 ) {
 	let scr = sheetComments;
 	for (const comp of comparisons) {
@@ -124,7 +124,7 @@ function findMatchByEliminationUsingTheseComparisons(
  */
 const matchByElimination: MatchFunc = function (
 	sheetComments: CommentResolution[],
-	dbComments: CommentResolution[]
+	dbComments: CommentResolution[],
 ) {
 	if (sheetComments.length < dbComments.length) {
 		throw `Spreadsheet has ${sheetComments.length} comments; less than number comments, ${dbComments.length}, in the database.`;
@@ -141,7 +141,7 @@ const matchByElimination: MatchFunc = function (
 			const sC = findMatchByEliminationUsingTheseComparisons(
 				dbC,
 				sheetCommentsRemaining,
-				comps
+				comps,
 			);
 			if (sC) {
 				matched.push({ dbComment: dbC, sheetComment: sC });
@@ -164,7 +164,7 @@ const matchByElimination: MatchFunc = function (
  */
 const matchComment: MatchFunc = function (
 	sheetComments: CommentResolution[],
-	dbComments: CommentResolution[]
+	dbComments: CommentResolution[],
 ) {
 	const matched: CommentMatch[] = []; // paired dbComments and sheetComments
 	const dbCommentsRemaining: CommentResolution[] = []; // dbComments with no match
@@ -173,7 +173,7 @@ const matchComment: MatchFunc = function (
 		// The reducer function runs through each of the comparisons and as long as it passes (returns true)
 		// it continues. If a comparisong fails the result fails.
 		const i = sheetCommentsRemaining.findIndex((sC) =>
-			comparisons.reduce((acc, comp) => acc && comp(dbC, sC), true)
+			comparisons.reduce((acc, comp) => acc && comp(dbC, sC), true),
 		);
 		if (i >= 0) {
 			matched.push({
@@ -203,7 +203,7 @@ const matchCID: MatchFunc = function (sheetComments, dbComments) {
 	const sheetCommentsRemaining = sheetComments.slice();
 	dbComments.forEach((dbC) => {
 		const i = sheetCommentsRemaining.findIndex(
-			(sC) => parseInt(sC.CID) === dbC.CommentID
+			(sC) => parseInt(sC.CID) === dbC.CommentID,
 		);
 		if (i >= 0) {
 			matched.push({
@@ -221,7 +221,7 @@ const matchCID: MatchFunc = function (sheetComments, dbComments) {
 
 type MatchFunc = (
 	sheetComments: CommentResolution[],
-	dbComments: CommentResolution[]
+	dbComments: CommentResolution[],
 ) => readonly [CommentMatch[], CommentResolution[], CommentResolution[]];
 const MatchAlgoFunctions: Record<MatchAlgo, MatchFunc> = {
 	cid: matchCID,
@@ -243,7 +243,7 @@ type CommentUpdate = {
 function commentUpdate(
 	toUpdate: FieldToUpdate[],
 	c: Partial<CommentUpdate>,
-	cs: CommentUpdate & { CID: CommentResolution["CID"] }
+	cs: CommentUpdate & { CID: CommentResolution["CID"] },
 ) {
 	const u: Partial<CommentUpdate> = {};
 
@@ -290,7 +290,7 @@ type ResolutionUpdate = {
 function resolutionUpdate(
 	toUpdate: FieldToUpdate[],
 	c: Partial<ResolutionUpdate>,
-	cs: ResolutionUpdate
+	cs: ResolutionUpdate,
 ) {
 	const n: Partial<ResolutionUpdate> = {};
 
@@ -345,7 +345,7 @@ async function updateComments(
 	userId: number,
 	ballot_id: number,
 	matched: CommentMatch[],
-	toUpdate: FieldToUpdate[]
+	toUpdate: FieldToUpdate[],
 ) {
 	// See if any of the comment fields need updating
 	const updateComments: Partial<Comment>[] = [],
@@ -379,21 +379,23 @@ async function updateComments(
 			const id = c.id;
 			delete c.id;
 			c.LastModifiedBy = userId;
-			return db.format(
-				"UPDATE comments SET ?, LastModifiedTime=UTC_TIMESTAMP() WHERE id=?",
-				[c, id]
-			);
+			return `
+				UPDATE comments 
+				SET ${db.escape(c)}, LastModifiedTime=UTC_TIMESTAMP() 
+				WHERE id=UUID_TO_BIN(${db.escape(id)})
+			`;
 		})
 		.concat(
 			updateResolutions.map((r) => {
 				const id = r.id;
 				delete r.id;
 				r.LastModifiedBy = userId;
-				return db.format(
-					"UPDATE resolutions SET ?, LastModifiedTime=UTC_TIMESTAMP() WHERE id=UUID_TO_BIN(?)",
-					[r, id]
-				);
-			})
+				return `
+					UPDATE resolutions 
+					SET ${db.escape(r)}, LastModifiedTime=UTC_TIMESTAMP() 
+					WHERE id=UUID_TO_BIN(${db.escape(id)})
+				`;
+			}),
 		)
 		.join(";");
 
@@ -429,7 +431,7 @@ async function addComments(
 	userId: number,
 	ballot_id: number,
 	sheetComments: CommentResolution[],
-	toUpdate: FieldToUpdate[]
+	toUpdate: FieldToUpdate[],
 ) {
 	const update = toUpdate.filter((f) => f !== "cid").concat("clausepage");
 	const newComments: NewComment[] = [];
@@ -457,23 +459,43 @@ async function addComments(
 
 	const SQL = newComments
 		.map((c) => {
-			return db.format(
-				"INSERT INTO comments (ballot_id, ??, LastModifiedBy, LastModifiedTime) VALUE (?, ?, ?, UTC_TIMESTAMP())",
-				[Object.keys(c), ballot_id, Object.values(c), userId]
-			);
+			return `
+				INSERT INTO comments (
+					ballot_id,
+					${Object.keys(c).join(",")},
+					LastModifiedBy,
+					LastModifiedTime
+				)
+				VALUE (
+					${db.escape(ballot_id)},
+					${Object.values(c)
+						.map((v) => db.escape(v))
+						.join(", ")},
+					${db.escape(userId)},
+					UTC_TIMESTAMP()
+				)
+			`;
 		})
 		.concat(
 			newResolutions.map((r) => {
 				const commentId = r.CommentID;
 				delete r.CommentID;
 				r.LastModifiedBy = userId;
-				return db.format(
-					"INSERT INTO resolutions " +
-						"(comment_id, ??, LastModifiedTime) " +
-						"VALUE ((SELECT id FROM comments WHERE ballot_id=? AND CommentID=?), ?, UTC_TIMESTAMP())",
-					[Object.keys(r), ballot_id, commentId, Object.values(r)]
-				);
-			})
+				return `
+					INSERT INTO resolutions (
+						comment_id,
+						${Object.keys(r).join(",")},
+						LastModifiedTime
+					)
+					VALUE (
+						(SELECT id FROM comments WHERE ballot_id=${db.escape(ballot_id)} AND CommentID=${db.escape(commentId)}),
+						${Object.values(r)
+							.map((v) => db.escape(v))
+							.join(", ")},
+						UTC_TIMESTAMP()
+					)
+				`;
+			}),
 		)
 		.join(";");
 
@@ -498,17 +520,17 @@ export async function uploadResolutions(
 	matchUpdate: MatchUpdate,
 	sheetName: string,
 	filename: string,
-	buffer: Buffer
+	buffer: Buffer,
 ) {
 	if (filename.search(/\.xlsx$/i) === -1) {
 		throw TypeError(
-			"Must be an Excel Workbook (*.xlsx). Older formats are not supported."
+			"Must be an Excel Workbook (*.xlsx). Older formats are not supported.",
 		);
 	}
 
 	if (matchAlgo === "elimination" && matchUpdate === "any") {
 		throw new TypeError(
-			`For successive elimination, matchUpdate cannot be 'any'.`
+			`For successive elimination, matchUpdate cannot be 'any'.`,
 		);
 	}
 
@@ -523,7 +545,7 @@ export async function uploadResolutions(
 	console.log(
 		matchedComments.length,
 		dbCommentsRemaining.length,
-		sheetCommentsRemaining.length
+		sheetCommentsRemaining.length,
 	);
 
 	//const t4 = Date.now();
@@ -541,7 +563,7 @@ export async function uploadResolutions(
 					dbCommentsRemaining.map((c) => c.CommentID).join(", ") +
 					"\n" +
 					`${sheetCommentsRemaining.length} unmatched spreadsheet entries:\n` +
-					sheetCommentsRemaining.map((c) => c.CID).join(", ")
+					sheetCommentsRemaining.map((c) => c.CID).join(", "),
 			);
 		}
 
@@ -549,7 +571,7 @@ export async function uploadResolutions(
 			user.SAPIN,
 			ballot_id,
 			matchedComments,
-			toUpdate
+			toUpdate,
 		);
 		matched = matchedComments.map((m) => m.dbComment.CommentID);
 		remaining = sheetCommentsRemaining.map((c) => c.CID);
@@ -558,7 +580,7 @@ export async function uploadResolutions(
 			user.SAPIN,
 			ballot_id,
 			matchedComments,
-			toUpdate
+			toUpdate,
 		);
 		matched = matchedComments.map((m) => m.dbComment.CommentID);
 		unmatched = dbCommentsRemaining.map((c) => c.CommentID);
@@ -568,7 +590,7 @@ export async function uploadResolutions(
 			user.SAPIN,
 			ballot_id,
 			sheetCommentsRemaining,
-			toUpdate
+			toUpdate,
 		);
 		matched = [];
 		added = sheetCommentsRemaining.map((c) => c.CID);
