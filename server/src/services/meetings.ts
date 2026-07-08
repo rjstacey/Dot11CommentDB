@@ -286,7 +286,7 @@ function meetingToWebexMeeting(meeting: MeetingCreate) {
 		end: DateTime.fromISO(meeting.end, { zone: timezone }).toISO() || "",
 		timezone,
 		integrationTags: [`sessionId: ${meeting.sessionId}`],
-		sendEmail: false,
+		//sendEmail: false,
 	};
 	//console.log('to webex meeting', meeting, webexMeeting)
 	return webexMeeting;
