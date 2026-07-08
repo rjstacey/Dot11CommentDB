@@ -14,7 +14,9 @@
 	],
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"build": "npm version patch && npm run build --workspaces"
+		"version": "echo version $npm_package_name-$npm_package_version",
+		"build": "npm version patch && echo building $npm_package_name-$npm_package_version && npm run build --workspaces",
+		"deploy-test": "cd build && eb deploy --label $npm_package_name-$npm_package_version"
 	},
 	"repository": {
 		"type": "git",
