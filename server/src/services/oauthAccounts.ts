@@ -77,6 +77,31 @@ export function updateAuthParams(
 	return db.query<ResultSetHeader>(sql);
 }
 
+/**
+ * Set the auth parameters
+ * @param id OAuth account identifier
+ * @param authParams tokens object or null.
+ * @param userId User indentifier (SAPIN)
+ */
+export function setAuthParams(
+	id: number,
+	authParams: object | null,
+	userId: number,
+): Promise<ResultSetHeader> {
+	const e_authParams = db.escape(
+		authParams ? JSON.stringify(authParams) : null,
+	);
+	const sql = `
+		UPDATE oauth_accounts 
+		SET
+			authParams=${e_authParams},
+			authUserId=${db.escape(userId)},
+			authDate=UTC_TIMESTAMP()
+		WHERE id=${db.escape(id)}
+	`;
+	return db.query<ResultSetHeader>(sql);
+}
+
 function getConstraintsWhereSql(constraints?: OAuthAccountsQuery) {
 	if (!constraints) return "";
 
