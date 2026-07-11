@@ -202,8 +202,15 @@ async function tryReactivateAccount(account: CalendarAccountLocal) {
 
 async function getActivatedCalendarAccount(id: number) {
 	const account = await getCalendarAccount(id);
-	if (!account.primaryCalendar)
-		throw new Error(`Calendar account id=${id} not activated`);
+	if (!account.primaryCalendar) {
+		if (account.authParams) {
+			await activateCalendarAccount(account, account.authParams);
+		} else {
+			throw new Error(
+				`Calendar account ${account.name} needs authentication`,
+			);
+		}
+	}
 	return account as ActivatedCalendarAccountLocal;
 }
 
