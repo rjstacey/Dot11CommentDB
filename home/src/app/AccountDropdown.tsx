@@ -1,5 +1,5 @@
 import { Dropdown } from "react-bootstrap";
-import { loginAndReturn } from "@common";
+import { clearUserLocalStorage } from "@common";
 import { resetStore, persistor, selectUser, setUser } from "@/store";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
@@ -14,6 +14,10 @@ export function AccountDropdown({ className }: { className?: string }) {
 		await persistor.flush();
 		window.location.reload();
 	};
+	async function logout() {
+		clearUserLocalStorage();
+		dispatch(resetStore());
+	}
 
 	return (
 		<Dropdown id="account-dropdown" className={className}>
@@ -30,7 +34,7 @@ export function AccountDropdown({ className }: { className?: string }) {
 				<Dropdown.ItemText>{user.Email}</Dropdown.ItemText>
 				<Dropdown.Divider />
 				<Dropdown.Item onClick={reload}>Clear and Reload</Dropdown.Item>
-				<Dropdown.Item onClick={loginAndReturn}>Sign Out</Dropdown.Item>
+				<Dropdown.Item onClick={logout}>Sign Out</Dropdown.Item>
 			</Dropdown.Menu>
 		</Dropdown>
 	);

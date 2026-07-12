@@ -1,20 +1,12 @@
-import type { RouteObject, LoaderFunction } from "react-router";
-import { store } from "@/store";
-import { loadGroups } from "@/store/groups";
+import type { RouteObject } from "react-router";
 
 import Main from "./main";
 import ErrorPage from "./errorPage";
 import Tools from "./tools";
 import AppLayout from "./layout";
 import Privacy from "./privacy";
-import { installLoaderWrapper } from "./initialLoad";
-
-/*
- * Routing loader functions
- */
-const rootLoader: LoaderFunction = async () => {
-	await store.dispatch(loadGroups());
-};
+import Terms from "./terms";
+import loader from "./loader";
 
 /*
  * Routes
@@ -24,11 +16,16 @@ const routes: RouteObject[] = [
 		path: "/",
 		Component: AppLayout,
 		errorElement: <ErrorPage />,
-		loader: rootLoader,
+		hydrateFallbackElement: <div>Loading...</div>,
+		loader,
 		children: [
 			{
-				path: "privacy-policy",
+				path: "privacy",
 				element: <Privacy />,
+			},
+			{
+				path: "terms",
+				element: <Terms />,
 			},
 			{
 				path: ":groupName",
@@ -48,7 +45,5 @@ const routes: RouteObject[] = [
 		],
 	},
 ];
-
-installLoaderWrapper(routes);
 
 export default routes;

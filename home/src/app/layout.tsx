@@ -10,8 +10,14 @@ function Layout() {
 			<Container as="main" className="p-0">
 				<Outlet />
 			</Container>
-			<Container as="footer" className="d-flex justify-content-center">
-				<Link to="privacy-policy">Privacy policy</Link>
+			<Container as="footer" className="d-flex justify-content-around">
+				<Link
+					to="https://www.ieee.org/about/help/site-terms-conditions"
+					replace
+				>
+					Terms of Service
+				</Link>
+				<Link to="privacy">Privacy Policy</Link>
 			</Container>
 			<ErrorModal />
 			<ConfirmModal />
