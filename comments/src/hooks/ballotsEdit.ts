@@ -174,6 +174,7 @@ export function getDefaultBallot(
 		number,
 		EpollNum: 0,
 		Document: "",
+		DocLink: null,
 		Topic: "",
 		Start: today,
 		End: today,

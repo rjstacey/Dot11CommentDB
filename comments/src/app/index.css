@@ -135,6 +135,12 @@ main {
 	}
 }
 
+.input-fit-content {
+	field-sizing: content;
+	max-width: 100%;
+	min-width: 20ch;
+}
+
 .has-changes,
 .form-control.has-changes:focus {
 	background-color: rgb(255, 255, 126);

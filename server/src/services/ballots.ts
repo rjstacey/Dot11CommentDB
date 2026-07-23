@@ -93,6 +93,11 @@ const createViewBallotsStage = `
 export async function init() {
 	await db.query(createViewBallotsSeries);
 	await db.query(createViewBallotsStage);
+
+	let rows = await db.query<RowDataPacket[]>("SHOW COLUMNS FROM ballots LIKE 'DocLink'");
+	if (rows.length === 0) {
+		await db.query("ALTER TABLE ballots ADD COLUMN DocLink VARCHAR(255)");
+	}
 }
 
 /* Get ballot fields */
@@ -107,7 +112,7 @@ const ballotsStageFieldsSQL = `
 	IF(b.IsComplete = 1, CAST(TRUE as json), CAST(FALSE as json)) as IsComplete,
 	DATE_FORMAT(b.Start, "%Y-%m-%dT%TZ") AS Start,
 	DATE_FORMAT(b.End, "%Y-%m-%dT%TZ") AS End,
-	b.Document, b.Topic, b.EpollNum,
+	b.Document, b.DocLink, b.Topic, b.EpollNum,
 	BIN_TO_UUID(b.workingGroupId) as workingGroupId,
 	b.ResultsSummary AS Results,
 	JSON_OBJECT(
@@ -222,6 +227,7 @@ type BallotDB = {
 	IsComplete?: boolean;
 	Project?: string;
 	Document?: string;
+	DocLink?: string | null;
 	Topic?: string;
 	Start?: string | null;
 	End?: string | null;
@@ -237,6 +243,7 @@ function ballotEntry(changes: Partial<Ballot>) {
 		IsComplete: changes.IsComplete,
 		Project: changes.Project,
 		Document: changes.Document,
+		DocLink: changes.DocLink,
 		Topic: changes.Topic,
 		EpollNum: changes.EpollNum,
 		prev_id: changes.prev_id,

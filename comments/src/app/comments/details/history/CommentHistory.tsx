@@ -7,21 +7,22 @@ import {
 	loadCommentsHistory,
 	selectCommentsHistoryState,
 	CommentHistoryEntry,
+	clearCommentsHistory,
 } from "@/store/commentsHistory";
 
-import { CommentBasics } from "./CommentBasics";
+import { CommentBasics } from "../edit/CommentBasics";
 import {
 	CommentAdHoc,
 	CommentGroup,
 	CommentNotesRow,
-} from "./CommentCategorization";
+} from "../edit/CommentCategorization";
 import {
 	ResolutionAssigneeRow,
 	ResolutionSubmissionRow,
-} from "./ResolutionAssigneeRow";
-import { ResolutionApprovalRow } from "./ResolutionApprovalRow";
-import { ResolutionRow } from "./ResolutionRow";
-import { EditingNotesRow } from "./EditingNotes";
+} from "../edit/ResolutionAssigneeRow";
+import { ResolutionApprovalRow } from "../edit/ResolutionApprovalRow";
+import { ResolutionRow } from "../edit/ResolutionRow";
+import { EditingNotesRow } from "../edit/EditingNotes";
 
 import "./CommentHistory.css";
 
@@ -60,7 +61,7 @@ function CommentAdd(entry: CommentHistoryEntry) {
 				</Row>
 				<CommentBasics
 					comment={comment}
-					updateComment={() => {}}
+					updateComment={() => { }}
 					readOnly
 				/>
 			</div>
@@ -256,8 +257,7 @@ function CommentHistoryDisplay() {
 	const comment_id = entities[id]?.comment_id;
 
 	useEffect(() => {
-		if (!comment_id) return;
-		dispatch(loadCommentsHistory(comment_id));
+		dispatch(comment_id ? loadCommentsHistory(comment_id) : clearCommentsHistory());
 	}, [comment_id]);
 
 	return (

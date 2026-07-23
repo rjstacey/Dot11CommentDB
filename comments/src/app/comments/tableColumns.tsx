@@ -14,8 +14,8 @@ import {
 	CommentMBS,
 	renderCommenter,
 	CommentCategory,
-} from "./details/CommentBasics";
-import { renderSubmission } from "./details/SubmissionSelect";
+} from "./details/edit/CommentBasics";
+import { renderSubmission } from "./details/edit/SubmissionSelect";
 import { useAppSelector } from "@/store/hooks";
 import { selectBallotsState } from "@/store/ballots";
 import {

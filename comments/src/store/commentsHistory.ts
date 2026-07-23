@@ -80,3 +80,9 @@ export const loadCommentsHistory =
 		}
 		dispatch(getSuccess(r));
 	};
+
+export const clearCommentsHistory =
+	(): AppThunk =>
+	async (dispatch) => {
+		dispatch(getSuccess({ history: [] }));
+	};
