@@ -24,6 +24,7 @@ import imat from "./imat.js";
 
 import ballots from "./ballots.js";
 import epolls from "./epolls.js";
+import grouper from "./grouper.js";
 
 const router = Router();
 
@@ -74,6 +75,7 @@ router.use("/:groupName/meetings", parseGroupName, meetings); // Session meeting
 router.use("/:groupName/webex", parseGroupName, webex); // Webex account and meetings
 router.use("/:groupName/calendar", parseGroupName, calendar); // Google calendar accounts and events
 router.use("/:groupName/imat", parseGroupName, imat); // Access to IEEE SA attendance system (IMAT)
+router.use("/:groupName/grouper", parseGroupName, grouper); // Access to IEEE SA group web system (Grouper)
 
 /*
  * APIs for balloting and comment resolution
