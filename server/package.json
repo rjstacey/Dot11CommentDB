@@ -16,14 +16,14 @@
 		"eslint": "eslint"
 	},
 	"dependencies": {
-		"@aws-sdk/client-ses": "^3.1070.0",
-		"@aws-sdk/config": "^3.1070.0",
+		"@aws-sdk/client-ses": "^3.1106.0",
+		"@aws-sdk/config": "^3.1106.0",
 		"@aws-sdk/credential-providers": "^3.1070.0",
-		"@smithy/node-http-handler": "^4.8.1",
+		"@smithy/node-http-handler": "^4.9.13",
 		"cheerio": "^1.2.0",
 		"cors": "^2.8.6",
-		"csv-parse": "^7.0.0",
-		"csv-stringify": "^6.8.0",
+		"csv-parse": "^7.0.2",
+		"csv-stringify": "^6.8.3",
 		"dotenv": "^17.4.2",
 		"exceljs": "^4.4.0",
 		"express": "^5.2.1",
@@ -32,16 +32,17 @@
 		"jsonwebtoken": "^9.0.3",
 		"lodash.isempty": "^4.4.0",
 		"lodash.uniq": "^4.5.0",
-		"mysql2": "^3.22.5",
+		"mysql2": "^3.23.3",
 		"socket.io": "^4.8.3",
 		"tough-cookie": "^5.1.2",
-		"tzdata": "^1.0.49",
-		"undici": "^7.28.0"
+		"tzdata": "^1.0.50",
+		"undici": "^7.29.0"
 	},
 	"devDependencies": {
+		"@types/cors": "^2.8.19",
 		"@types/express": "^5.0.6",
 		"@types/jsonwebtoken": "^9.0.10",
 		"@types/lodash.isempty": "^4.4.9",
-		"esbuild": "^0.28.1"
+		"esbuild": "^0.28.2"
 	}
 }
