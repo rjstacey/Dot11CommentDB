@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv, type UserConfig } from "vite";
 //import { analyzer } from "vite-bundle-analyzer";
 import react from "@vitejs/plugin-react";
+import svgr from 'vite-plugin-svgr';
 import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
 import { ProxyAgent } from "proxy-agent";
@@ -45,6 +46,7 @@ export default defineConfig(({ command, mode }) => {
 		},
 		plugins: [
 			react(),
+			svgr(),
 			//analyzer(),
 			VitePWA({
 				devOptions: {
@@ -100,6 +102,11 @@ export default defineConfig(({ command, mode }) => {
 					ws: true,
 					agent,
 				},
+			},
+			cors: {
+				origin: '*',
+				methods: ['GET', 'POST', 'PUT', 'DELETE'],
+				allowedHeaders: ['Content-Type', 'Authorization'],
 			},
 		},
 	} satisfies UserConfig;
