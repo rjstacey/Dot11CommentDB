@@ -63,11 +63,7 @@ const Placeholder = (props: React.ComponentProps<"span">) => (
 	</div>
 );
 
-export function CommentEditDetail({
-	contentButton
-}: {
-	contentButton: React.ReactNode
-}) {
+export function CommentEditDetail() {
 	const dispatch = useAppDispatch();
 
 	const editMode: boolean | undefined =
@@ -114,7 +110,6 @@ export function CommentEditDetail({
 						<i className="bi-trash me-1" />
 						{"Delete Resn"}
 					</Button>
-					{contentButton}
 				</>
 			)}
 		</>
@@ -150,9 +145,9 @@ export function CommentEditDetail({
 	}
 
 	return (
-		<Container fluid="lg">
-			<Row>
-				<Col xs="auto" className="d-flex align-items-center gap-2">
+		<>
+			<div className="d-flex justify-content-between align-items-center">
+				<div className="d-flex align-items-center gap-2">
 					<RoleSelect />
 					{(commentsAccess >= AccessLevel.rw ||
 						resolutionsAccess >= AccessLevel.rw) && (
@@ -170,13 +165,13 @@ export function CommentEditDetail({
 								{"Edit"}
 							</ToggleButton>
 						)}
-				</Col>
-				<Col className="d-flex justify-content-end gap-2">
+				</div>
+				<div className="d-flex justify-content-end gap-2">
 					{actionElements}
-				</Col>
-			</Row>
-			<div className="main">{content}</div>
+				</div>
+			</div>
+			<Container className="main">{content}</Container>
 			<ShowAccess access={[commentsAccess, resolutionsAccess]} />
-		</Container>
+		</>
 	);
 }

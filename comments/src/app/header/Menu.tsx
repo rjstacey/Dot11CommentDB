@@ -1,8 +1,7 @@
-import React, {
+import {
 	useEffect,
 	useRef,
 	useMemo,
-	Children,
 	isValidElement,
 	cloneElement,
 	useState,
@@ -51,7 +50,7 @@ export function Menu({ children }: { children?: React.ReactElement[] }) {
 
 	const items = useMemo(() => {
 		const items: React.ReactElement[] = [];
-		Children.forEach(children, (child, index) => {
+		children?.forEach((child, index) => {
 			if (!isValidElement<{ className?: string }>(child)) {
 				return;
 			}

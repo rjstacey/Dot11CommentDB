@@ -1,4 +1,4 @@
-import type { LoaderFunction } from "react-router";
+import type { LoaderFunction, LoaderFunctionArgs } from "react-router";
 import isEqual from "lodash.isequal";
 import { store } from "@/store";
 import { selectIsOnline } from "@/store/offline";
@@ -8,16 +8,17 @@ import {
 	selectBallotByBallotID,
 	setCurrentBallot_id,
 	selectCurrentBallot_id,
+	type Ballot
 } from "@/store/ballots";
 import {
 	clearComments,
 	loadComments,
 	selectCommentsState,
-	setSelected,
-	setPanelIsSplit,
+	setSelected
 } from "@/store/comments";
+import { setCommentsLayout } from "@/hooks/commentsLayout";
 
-export function refresh() {
+export function refresh () {
 	const { dispatch, getState } = store;
 	const ballot_id = selectCurrentBallot_id(getState());
 	dispatch(ballot_id ? loadComments(ballot_id, true) : clearComments());
@@ -27,7 +28,9 @@ export const indexLoader: LoaderFunction = async () => {
 	store.dispatch(clearComments());
 };
 
-export const ballotIdLoader: LoaderFunction = async ({ params }) => {
+export const ballotIdLoader = async ({
+	params
+}: LoaderFunctionArgs): Promise<Ballot> => {
 	const { groupName, ballotId } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	if (!ballotId) throw new Error("Route error: ballotId not set");
@@ -51,16 +54,16 @@ export const ballotIdLoader: LoaderFunction = async ({ params }) => {
 		dispatch(clearComments());
 		throw new Error(`Ballot ${ballotId} not found`);
 	}
+
+	return ballot;
 };
 
-export const commentsLoader: LoaderFunction = async (args) => {
-	await ballotIdLoader(args);
-
+export const commentsLoader: LoaderFunction = async args => {
 	const { dispatch, getState } = store;
 
 	const url = new URL(args.request.url);
-	const detail = url.searchParams.get("detail") === "1";
-	dispatch(setPanelIsSplit({ isSplit: detail }));
+	const layout = url.searchParams.get("layout");
+	dispatch(setCommentsLayout(layout));
 
 	const cids = url.searchParams.getAll("cid");
 	const { ids, entities, selected } = selectCommentsState(getState());

@@ -8,6 +8,7 @@ import {
 	getAppTableDataSelectors,
 	FieldType,
 	Fields,
+	AppTableDataActions
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
@@ -16,7 +17,7 @@ import {
 	selectBallotEntities,
 	selectBallot,
 	BallotType,
-	Ballot,
+	Ballot
 } from "./ballots";
 import { selectGroup, AccessLevel } from "./groups";
 import { Effect, offlineFetch } from "./offline";
@@ -33,7 +34,7 @@ import {
 	CommentsExportStyle,
 	AdHocStatus,
 	commentStatusOrder,
-	getCommentStatus,
+	getCommentStatus
 	//CommentStatusType,
 } from "@schemas/comments";
 import {
@@ -42,12 +43,12 @@ import {
 	EditStatusType,
 	ResolutionUpdate,
 	ResolutionCreate,
-	ResolutionChange,
+	ResolutionChange
 } from "@schemas/resolutions";
 import {
 	uploadResolutionsResponseSchema,
 	UploadResolutionsResponse,
-	ResolutionsUploadParams,
+	ResolutionsUploadParams
 } from "@schemas/uploadResolutions";
 
 export type {
@@ -62,7 +63,7 @@ export type {
 	ResolutionChange,
 	CommentResolution,
 	CommentsExportFormat,
-	CommentsExportStyle,
+	CommentsExportStyle
 };
 export { AdHocStatus, AccessLevel, commentStatusOrder, getCommentStatus };
 
@@ -75,25 +76,25 @@ export type CommentResolutionUpdate = {
 
 const mustSatisfyOptions = [
 	{ value: 0, label: "No" },
-	{ value: 1, label: "Yes" },
+	{ value: 1, label: "Yes" }
 ];
 
 export const categoryMap: Record<CategoryType, string> = {
 	T: "Technical",
 	E: "Editorial",
-	G: "General",
+	G: "General"
 } as const;
 
 const categoryOptions = Object.entries(categoryMap).map(([value, label]) => ({
 	value: value as keyof typeof categoryMap,
-	label,
+	label
 }));
 
 export const resnStatusMap: Record<ResnStatusType, string> = {
 	"": "",
 	A: "ACCEPTED",
 	V: "REVISED",
-	J: "REJECTED",
+	J: "REJECTED"
 } as const;
 
 export const resnStatusOptions: {
@@ -102,26 +103,23 @@ export const resnStatusOptions: {
 }[] = (Object.keys(resnStatusMap) as ResnStatusType[]).map(
 	(value: ResnStatusType | null) => ({
 		value,
-		label: resnStatusMap[value!],
-	}),
+		label: resnStatusMap[value!]
+	})
 );
 resnStatusOptions.unshift({ value: null, label: "(Blank)" });
 
 const editStatusOptions = [
 	{ value: null, label: "(Blank)" },
 	{ value: "I", label: "Implemented" },
-	{ value: "N", label: "No change" },
+	{ value: "N", label: "No change" }
 ];
 
-const mustSatisfyLabels = mustSatisfyOptions.reduce(
-	(obj, o) => {
-		obj[o.value] = o.label;
-		return obj;
-	},
-	{} as Record<number, string>,
-);
+const mustSatisfyLabels = mustSatisfyOptions.reduce((obj, o) => {
+	obj[o.value] = o.label;
+	return obj;
+}, {} as Record<number, string>);
 
-function getCID(b: Ballot | undefined, c: CommentResolution) {
+function getCID (b: Ballot | undefined, c: CommentResolution) {
 	let CID: string;
 	if (b && b.Type === BallotType.SA)
 		CID = (b.stage === 0 ? "I" : "R" + b.stage) + "-" + c.CommentID;
@@ -130,9 +128,9 @@ function getCID(b: Ballot | undefined, c: CommentResolution) {
 	return CID;
 }
 
-const commentStatusOptions = commentStatusOrder.map((value) => ({
+const commentStatusOptions = commentStatusOrder.map(value => ({
 	value,
-	label: value ? value : "(Blank)",
+	label: value ? value : "(Blank)"
 }));
 
 export const fields: Fields = {
@@ -143,18 +141,18 @@ export const fields: Fields = {
 		label: "MBS",
 		dataRenderer: (v: number) => mustSatisfyLabels[v],
 		options: mustSatisfyOptions,
-		type: FieldType.NUMERIC,
+		type: FieldType.NUMERIC
 	},
 	Category: {
 		label: "Category",
 		dataRenderer: (v: CategoryType) => categoryMap[v],
-		options: categoryOptions,
+		options: categoryOptions
 	},
 	Clause: { label: "Clause", type: FieldType.CLAUSE },
 	Page: {
 		label: "Page",
 		type: FieldType.NUMERIC,
-		dataRenderer: (v) => v.toFixed(2),
+		dataRenderer: v => v.toFixed(2)
 	},
 	Comment: { label: "Comment" },
 	ProposedChange: { label: "Proposed change" },
@@ -169,12 +167,12 @@ export const fields: Fields = {
 	Resolution: { label: "Resolution" },
 	EditStatus: { label: "Editing Status", options: editStatusOptions },
 	EditInDraft: { label: "In Draft" },
-	EditNotes: { label: "Editing Notes" },
+	EditNotes: { label: "Editing Notes" }
 };
 
 //const selectId = (c) => c.id; //c.CID;
 
-export function getField(entity: CommentResolution, dataKey: string) {
+export function getField (entity: CommentResolution, dataKey: string) {
 	//if (dataKey === "CID") return getCID(entity);
 	if (dataKey === "Status") return getCommentStatus(entity);
 	return entity[dataKey as keyof CommentResolution];
@@ -185,10 +183,10 @@ type Update<T> = {
 	changes: Partial<T>;
 };
 
-function getResolutionCountUpdates(
+function getResolutionCountUpdates (
 	ids: EntityId[],
 	entities: Record<EntityId, CommentResolution>,
-	comment_ids: number[],
+	comment_ids: number[]
 ) {
 	const updates: CommentResolutionUpdate[] = [];
 	for (const comment_id of comment_ids) {
@@ -199,10 +197,10 @@ function getResolutionCountUpdates(
 		}
 		const ResolutionCount = comments.length;
 		updates.push(
-			...comments.map((c) => ({
+			...comments.map(c => ({
 				id: c.id,
-				changes: { ResolutionCount },
-			})),
+				changes: { ResolutionCount }
+			}))
 		);
 	}
 	return updates;
@@ -211,7 +209,7 @@ function getResolutionCountUpdates(
 const initialState = {
 	ballot_id: null as number | null,
 	lastLoad: null as string | null,
-	roleGroupId: undefined as string | null | undefined,
+	roleGroupId: undefined as string | null | undefined
 };
 
 const dataSet = "comments";
@@ -226,9 +224,9 @@ const slice = createAppTableDataSlice({
 	sortComparer,
 	initialState,
 	reducers: {
-		setRoleGroupId(state, action: { payload: string | null }) {
+		setRoleGroupId (state, action: { payload: string | null }) {
 			state.roleGroupId = action.payload;
-		},
+		}
 	},
 	extraReducers: (builder, dataAdapter) => {
 		builder
@@ -243,77 +241,94 @@ const slice = createAppTableDataSlice({
 					}
 					state.ballot_id = ballot_id;
 					state.lastLoad = new Date().toISOString();
-				},
+				}
 			)
 			.addMatcher(
 				(action: Action) => action.type === clearComments.toString(),
-				(state) => {
+				state => {
 					dataAdapter.removeAll(state);
 					state.valid = false;
-				},
+				}
 			)
 			.addMatcher(
-				(action) => action.type === getCommit.toString(),
+				action => action.type === getCommit.toString(),
 				(state, action: ReturnType<typeof getCommit>) => {
 					const comments = action.payload;
-					const updates = comments.map((c) => ({
+					const updates = comments.map(c => ({
 						id: c.id,
-						changes: c,
+						changes: c
 					}));
 					dataAdapter.updateMany(state, updates);
-				},
+				}
 			)
 			.addMatcher(
-				(action) => action.type === updateCommit.toString(),
+				action => action.type === updateCommit.toString(),
 				(state, action: ReturnType<typeof updateCommit>) => {
 					const { comments } = action.payload;
-					const updates = comments.map((c) => ({
+					const updates = comments.map(c => ({
 						id: c.id,
-						changes: c,
+						changes: c
 					}));
 					dataAdapter.updateMany(state, updates);
-				},
+				}
 			)
 			.addMatcher(
-				(action) => action.type === addManyRollback.toString(),
+				action => action.type === addManyRollback.toString(),
 				(state, action: ReturnType<typeof addManyRollback>) => {
 					const added_ids = action.payload;
 					if (!Array.isArray(added_ids))
 						console.error("missing or bad payload; expected array");
 					const comment_ids = added_ids.map(
-						(id) => state.entities[id]!.comment_id,
+						id => state.entities[id]!.comment_id
 					);
 					dataAdapter.removeMany(state, added_ids);
 					const { ids, entities } = state;
 					const updates = getResolutionCountUpdates(
 						ids,
 						entities,
-						comment_ids,
+						comment_ids
 					);
 					dataAdapter.updateMany(state, updates);
-				},
+				}
 			)
 			.addMatcher(
-				(action) => action.type === removeManyRollback.toString(),
+				action => action.type === removeManyRollback.toString(),
 				(state, action: ReturnType<typeof removeManyRollback>) => {
 					const comments = action.payload;
 					if (!Array.isArray(comments))
 						console.error("missing or bad payload; expected array");
 					dataAdapter.addMany(state, comments);
 					const { ids, entities } = state;
-					const comment_ids = comments.map((c) => c.comment_id);
+					const comment_ids = comments.map(c => c.comment_id);
 					const updates = getResolutionCountUpdates(
 						ids,
 						entities,
-						comment_ids,
+						comment_ids
 					);
 					dataAdapter.updateMany(state, updates);
-				},
+				}
 			);
-	},
+	}
 });
 
 export default slice;
+
+const setSelected2 =
+	(selected: string[]): AppThunk =>
+	async (dispatch, getState) => {
+		const entities = selectCommentEntities(getState());
+		const searchParams = new URLSearchParams(location.search);
+		searchParams.delete("cid");
+		selected
+			.map(id => {
+				const entity = entities[id];
+				return entity ? entity.CID : null;
+			})
+			.forEach(cid => {
+				if (cid) searchParams.append("cid", cid);
+			});
+		location.search = searchParams.toString();
+	};
 
 /* Slice actions */
 export const commentsActions = slice.actions;
@@ -326,26 +341,25 @@ const {
 	removeMany: localRemoveMany,
 	setSelected,
 	setUiProperties,
-	setRoleGroupId,
-	setPanelIsSplit,
+	setRoleGroupId
 } = slice.actions;
 
 // Overload getPending() with one that sets ballot_id
 const getPending = createAction<{ ballot_id: number | null }>(
-	dataSet + "/getPending",
+	dataSet + "/getPending"
 );
 export const clearComments = createAction(dataSet + "/clear");
 
 const getCommit = createAction<CommentResolution[]>(dataSet + "/getCommit");
 const updateCommit = createAction<{ comments: CommentResolution[] }>(
-	dataSet + "/updateCommit",
+	dataSet + "/updateCommit"
 );
 const addManyRollback = createAction<EntityId[]>(dataSet + "/addManyRollback");
 const removeManyRollback = createAction<CommentResolution[]>(
-	dataSet + "/removeManyRollback",
+	dataSet + "/removeManyRollback"
 );
 
-export { setSelected, setUiProperties, setRoleGroupId, setPanelIsSplit };
+export { setSelected, setUiProperties, setRoleGroupId };
 
 /*
  * Selectors
@@ -397,14 +411,14 @@ const selectCommentsLastModified = createSelector(
 	selectCommentEntities,
 	(ids, entities) => {
 		let lastModified = 0;
-		ids.forEach((id) => {
+		ids.forEach(id => {
 			const c = entities[id]!;
 			const d = c.LastModifiedTime ? Date.parse(c.LastModifiedTime) : 0;
 			if (d > lastModified) lastModified = d;
 			return lastModified;
 		});
 		return new Date(lastModified).toISOString();
-	},
+	}
 );
 
 export const selectSyncedCommentEntities = createSelector(
@@ -424,33 +438,13 @@ export const selectSyncedCommentEntities = createSelector(
 			return { ...entities, ...changedEntities };
 		}
 		return entities;
-	},
+	}
 );
 
 export const commentsSelectors = getAppTableDataSelectors(selectCommentsState, {
 	selectEntities: selectSyncedCommentEntities,
-	getField,
+	getField
 });
-
-export const selectCommentsSearch = createSelector(
-	(state: RootState) => selectCommentsState(state).selected,
-	selectCommentEntities,
-	(state: RootState) =>
-		commentsSelectors.selectCurrentPanelConfig(state).isSplit,
-	(selected, entities, isSplit) => {
-		const searchParams = new URLSearchParams();
-		if (isSplit) searchParams.append("detail", "1");
-		selected
-			.map((id) => {
-				const entity = entities[id];
-				return entity ? entity.CID : null;
-			})
-			.forEach((cid) => {
-				if (cid) searchParams.append("cid", cid);
-			});
-		return searchParams.toString();
-	},
-);
 
 /*
  * Thunk actions
@@ -459,15 +453,14 @@ const baseCommentsUrl = "/api/comments";
 const baseResolutionsUrl = "/api/resolutions";
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-let loading = false;
-let loadingPromise: Promise<void>;
+let loadingPromise: Promise<void> | undefined;
 export const loadComments =
 	(ballot_id: number, force = false): AppThunk =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const currentBallot_id = selectCommentsState(state).ballot_id;
 		if (currentBallot_id === ballot_id) {
-			if (loading) return loadingPromise;
+			if (loadingPromise) return loadingPromise;
 			const age = selectCommentsAge(state);
 			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
@@ -478,7 +471,6 @@ export const loadComments =
 			dispatch(setRoleGroupId(ballot?.groupId || null));
 		}
 		const url = `${baseCommentsUrl}/${ballot_id}`;
-		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: unknown) => {
@@ -492,7 +484,7 @@ export const loadComments =
 				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
-				loading = false;
+				loadingPromise = undefined;
 			});
 		return loadingPromise;
 	};
@@ -506,7 +498,7 @@ export const getCommentUpdates = (): AppThunk => async (dispatch, getState) => {
 	const effect: Effect = {
 		url,
 		method: "GET",
-		params: { modifiedSince },
+		params: { modifiedSince }
 	};
 	const commit: Action = { type: getCommit.toString() };
 	dispatch(offlineFetch({ effect, commit }));
@@ -524,12 +516,12 @@ export const updateComments =
 		for (const id of ids) {
 			const c = entities[id]!;
 			const comment_id = c.comment_id;
-			const u = updates.find((u) => u.id === comment_id);
+			const u = updates.find(u => u.id === comment_id);
 			if (u) {
 				localUpdates.push({ id, changes: u.changes });
 				const changes: CommentResolutionChange = {};
 				for (const key of Object.keys(
-					u.changes,
+					u.changes
 				) as (keyof CommentResolution)[]) {
 					// @ts-expect-error - 2322
 					changes[key] = c[key];
@@ -652,7 +644,7 @@ const defaultResolution: Partial<Resolution> = {
 	ApprovedByMotion: "",
 	EditStatus: null,
 	EditInDraft: "",
-	EditNotes: "",
+	EditNotes: ""
 };
 
 const updateMany =
@@ -662,12 +654,12 @@ const updateMany =
 		const { entities, ballot_id } = selectCommentsState(state);
 		const lastModified = selectCommentsLastModified(state);
 
-		const rollbackUpdates = updates.map((u) => {
+		const rollbackUpdates = updates.map(u => {
 			const id = u.id;
 			const changes: Partial<CommentResolution> = {};
 			const entity = entities[id]!;
 			for (const key of Object.keys(
-				u.changes,
+				u.changes
 			) as (keyof CommentResolution)[]) {
 				// @ts-expect-error - abcd
 				changes[key] = entity[key];
@@ -690,7 +682,7 @@ const removeMany =
 		const { entities, ballot_id } = selectCommentsState(state);
 		const lastModified = selectCommentsLastModified(state);
 
-		const comments = ids.map((id) => entities[id]!);
+		const comments = ids.map(id => entities[id]!);
 		dispatch(localRemoveMany(ids));
 		const url = `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`;
 		const effect: Effect = { url, method: "DELETE", params: ids };
@@ -725,7 +717,7 @@ export const addResolutions =
 
 			// Find a unique ResolutionID
 			const existingResolutionIDs = new Set(
-				comments.map((c) => c.ResolutionID),
+				comments.map(c => c.ResolutionID)
 			);
 			let ResolutionID = 0;
 			while (existingResolutionIDs.has(ResolutionID)) ResolutionID++;
@@ -736,7 +728,7 @@ export const addResolutions =
 				...defaultResolution,
 				...r,
 				ResolutionID,
-				id: resolution_id,
+				id: resolution_id
 			};
 			remoteAdds.push(resolution);
 
@@ -746,7 +738,7 @@ export const addResolutions =
 				...resolution,
 				ResolutionCount,
 				resolution_id,
-				id: resolution_id,
+				id: resolution_id
 			};
 
 			if (comments.length === 1 && !comments[0].resolution_id) {
@@ -759,10 +751,10 @@ export const addResolutions =
 
 				// Update ResolutionCount for other comments
 				updates.push(
-					...comments.map((c) => ({
+					...comments.map(c => ({
 						id: c.id,
-						changes: { ResolutionCount },
-					})),
+						changes: { ResolutionCount }
+					}))
 				);
 			}
 
@@ -774,7 +766,7 @@ export const addResolutions =
 		const url = `${baseResolutionsUrl}/${ballot_id}?modifiedSince=${lastModified}`;
 		const effect: Effect = { url, method: "POST", params: remoteAdds };
 		const commit: Action = { type: updateCommit.toString() };
-		const rollback: Action = addManyRollback(adds.map((c) => c.id));
+		const rollback: Action = addManyRollback(adds.map(c => c.id));
 		dispatch(offlineFetch({ effect, commit, rollback }));
 		dispatch(setSelected(selected));
 	};
@@ -810,16 +802,16 @@ export const deleteResolutions =
 			resolution_ids.sort(
 				(id1, id2) =>
 					(entities[id1]!.ResolutionID || 0) -
-					(entities[id2]!.ResolutionID || 0),
+					(entities[id2]!.ResolutionID || 0)
 			);
 
 			// Find all comments that would remain
 			const remainingComments = ids
-				.map((id) => entities[id]!)
+				.map(id => entities[id]!)
 				.filter(
-					(c) =>
+					c =>
 						c.comment_id === comment_id &&
-						!resolution_ids.includes(c.id),
+						!resolution_ids.includes(c.id)
 				);
 
 			if (remainingComments.length === 0) {
@@ -828,7 +820,7 @@ export const deleteResolutions =
 				const id = resolution_ids.shift()!;
 				updates.push({
 					id,
-					changes: { ...defaultResolution, ResolutionCount: 1 },
+					changes: { ...defaultResolution, ResolutionCount: 1 }
 				});
 				if (resolution_ids.length > 0) deletes.push(...resolution_ids);
 
@@ -841,10 +833,10 @@ export const deleteResolutions =
 				// Update the ResolutionCount for the remaining comments
 				const ResolutionCount = remainingComments.length;
 				commentUpdates.push(
-					...remainingComments.map((c) => ({
+					...remainingComments.map(c => ({
 						id: c.id,
-						changes: { ResolutionCount },
-					})),
+						changes: { ResolutionCount }
+					}))
 				);
 
 				// Select the first of the remaining comments
@@ -882,15 +874,15 @@ export const uploadResolutions =
 		matchAlgorithm: MatchAlgo,
 		matchUpdate: MatchUpdate,
 		sheetName: string,
-		file: File,
+		file: File
 	): AppThunk<UploadResult | undefined> =>
-	async (dispatch) => {
+	async dispatch => {
 		const url = `${baseResolutionsUrl}/${ballot_id}/upload`;
 		const params: ResolutionsUploadParams = {
 			toUpdate,
 			matchAlgorithm,
 			matchUpdate,
-			sheetName,
+			sheetName
 		};
 		let r: UploadResolutionsResponse;
 		try {
@@ -907,7 +899,7 @@ export const uploadResolutions =
 			unmatched,
 			added,
 			remaining,
-			updated,
+			updated
 		} = r;
 		dispatch(getPending({ ballot_id }));
 		dispatch(getSuccess(comments));
@@ -921,13 +913,13 @@ export const exportCommentsSpreadsheet =
 		format: CommentsExportFormat,
 		style: CommentsExportStyle,
 		file?: File,
-		appendSheets = false,
+		appendSheets = false
 	): AppThunk =>
-	async (dispatch) => {
+	async dispatch => {
 		const params: CommentsExportParams = {
 			format,
 			style,
-			appendSheets: appendSheets ? "true" : "false",
+			appendSheets: appendSheets ? "true" : "false"
 		};
 		const url = `${baseCommentsUrl}/${ballot_id}/export`;
 		try {

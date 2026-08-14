@@ -1,21 +1,17 @@
-import { useEffect } from "react";
-import { useNavigation, useSearchParams } from "react-router";
 import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
-	SplitPanel,
-	Panel,
 	ShowFilters,
 	GlobalFilter,
 } from "@common";
 
-import { useAppSelector } from "@/store/hooks";
 import {
 	fields,
 	commentsSelectors,
 	commentsActions,
-	selectCommentsSearch,
 } from "@/store/comments";
+import { panelKeys, type PanelKey, useCommentsLayout } from "@/hooks/commentsLayout";
+import { useCommentsSearch } from "@/hooks/commentsSearch";
 
 import {
 	tableColumns,
@@ -23,20 +19,37 @@ import {
 	defaultTablesConfig,
 } from "./tableColumns";
 import { CommentsDetail } from "./details";
+import { DraftDetail } from "./draft";
+import { Panels, Panel } from "./panels";
 
 import "./comments.css";
 
 export function CommentsMain() {
-	const [search, setSearch] = useSearchParams();
-	const navigation = useNavigation();
-	const isNavigating = Boolean(navigation.location);
-	const commentsSearch = useAppSelector(selectCommentsSearch);
+	const { visiblePanels, widths, setWidths } = useCommentsLayout();
+	const { setSelected } = useCommentsSearch();
 
-	useEffect(() => {
-		if (isNavigating || search.toString() === commentsSearch.toString())
-			return;
-		setSearch(commentsSearch, { replace: true });
-	}, [search, commentsSearch, isNavigating]);
+	function getPanelContent(key: PanelKey) {
+		if (key === "list") {
+			return (
+				<AppTable
+					defaultTablesConfig={defaultTablesConfig}
+					columns={tableColumns}
+					headerHeight={76}
+					estimatedRowHeight={72}
+					rowGetter={commentsRowGetter}
+					selectors={commentsSelectors}
+					actions={commentsActions}
+					setSelected={setSelected}
+				/>
+			);
+		}
+		else if (key === "detail") {
+			return <CommentsDetail />;
+		}
+		else if (key === "draft") {
+			return <DraftDetail />;
+		}
+	}
 
 	return (
 		<>
@@ -56,22 +69,17 @@ export function CommentsMain() {
 				</Col>
 			</Row>
 
-			<SplitPanel selectors={commentsSelectors} actions={commentsActions}>
-				<Panel>
-					<AppTable
-						defaultTablesConfig={defaultTablesConfig}
-						columns={tableColumns}
-						headerHeight={76}
-						estimatedRowHeight={72}
-						rowGetter={commentsRowGetter}
-						selectors={commentsSelectors}
-						actions={commentsActions}
-					/>
-				</Panel>
-				<Panel className="details-panel">
-					<CommentsDetail />
-				</Panel>
-			</SplitPanel>
+			<Panels widths={widths} setWidths={setWidths} >
+				{panelKeys.map((key) => (
+					<Panel
+						key={key}
+						className={key !== "list" ? "details-panel" : undefined}
+						isVisible={visiblePanels.includes(key)}
+					>
+						{getPanelContent(key)}
+					</Panel>
+				))}
+			</Panels>
 		</>
 	);
 }

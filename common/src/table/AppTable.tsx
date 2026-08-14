@@ -77,6 +77,7 @@ export type AppTableProps = {
 	gutterSize?: number;
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
+	setSelected?: (selected: EntityId[]) => void;
 };
 
 const scrollbarSize = getScrollbarSize();
@@ -333,9 +334,9 @@ export function AppTable({
 			headerRef.current.scrollLeft = e.currentTarget.scrollLeft;
 	}, []);
 
-	const setSelected = useCallback(
-		(ids: EntityId[]) => dispatch(actions.setSelected(ids)),
-		[dispatch, actions],
+	const setSelected = useMemo(() =>
+		props.setSelected || ((ids: EntityId[]) => dispatch(actions.setSelected(ids))),
+		[dispatch, props.setSelected, actions.setSelected],
 	);
 	const onKeyDown = useKeyDown(selected, ids, setSelected, bodyRef);
 	const onRowClick = useRowClick(selected, ids, setSelected);

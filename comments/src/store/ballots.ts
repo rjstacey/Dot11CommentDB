@@ -8,13 +8,14 @@ import {
 	createAppTableDataSlice,
 	FieldType,
 	getAppTableDataSelectors,
+	selectUser
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
 import {
 	selectGroupEntities,
 	selectTopLevelGroupByName,
-	AccessLevel,
+	AccessLevel
 } from "./groups";
 
 import {
@@ -23,7 +24,7 @@ import {
 	BallotUpdate,
 	BallotChange,
 	BallotCreate,
-	BallotType,
+	BallotType
 } from "@schemas/ballots";
 
 export type { Ballot, BallotUpdate, BallotChange, BallotCreate };
@@ -37,14 +38,14 @@ export type SyncedBallot = Ballot & {
 export const BallotTypeLabels: Record<BallotType, string> = {
 	[BallotType.CC]: "CC",
 	[BallotType.WG]: "LB",
-	[BallotType.SA]: "SA",
+	[BallotType.SA]: "SA"
 };
 
 export const BallotTypeOptions = Object.entries(BallotTypeLabels).map(
 	([key, value]) => ({
 		value: Number(key),
-		label: value,
-	}),
+		label: value
+	})
 );
 
 export const renderBallotType = (type: BallotType) =>
@@ -58,19 +59,19 @@ export const fields = {
 		label: "Type",
 		type: FieldType.NUMERIC,
 		options: BallotTypeOptions,
-		dataRenderer: renderBallotType,
+		dataRenderer: renderBallotType
 	},
 	number: {
 		label: "Number",
-		type: FieldType.NUMERIC,
+		type: FieldType.NUMERIC
 	},
 	BallotID: {
-		label: "ID",
+		label: "ID"
 	},
 	stage: {
 		label: "Stage",
 		dataRenderer: getStage,
-		type: FieldType.NUMERIC,
+		type: FieldType.NUMERIC
 	},
 	IsComplete: { label: "Final", type: FieldType.NUMERIC },
 	Document: { label: "Document" },
@@ -80,14 +81,14 @@ export const fields = {
 	End: { label: "End", dataRenderer: displayDate, type: FieldType.DATE },
 	Results: { label: "Results", dontFilter: true, dontSort: true },
 	Comments: { label: "Comments", dontFilter: true, dontSort: true },
-	PrevBallotID: { label: "Prev ballot" },
+	PrevBallotID: { label: "Prev ballot" }
 };
 
-export function getStage(ballot: Ballot) {
+export function getStage (ballot: Ballot) {
 	return ballot.stage === 0 ? "Initial" : `Recirc ${ballot.stage}`;
 }
 
-export function getBallotId(ballot: Ballot) {
+export function getBallotId (ballot: Ballot) {
 	if (ballot.Type === BallotType.CC) {
 		return "CC" + (ballot.number || "(Blank)");
 	} else if (ballot.Type === BallotType.WG) {
@@ -106,7 +107,7 @@ export function getBallotId(ballot: Ballot) {
 export const getEncodedBallotId = (ballot: Ballot) =>
 	encodeURIComponent(getBallotId(ballot));
 
-export function getField(entity: SyncedBallot, dataKey: string) {
+export function getField (entity: SyncedBallot, dataKey: string) {
 	if (dataKey === "Stage") {
 		if (entity.Type === BallotType.SA || entity.Type === BallotType.WG) {
 			return entity.stage === 0 ? "Initial" : `Recirc ${entity.stage}`;
@@ -140,7 +141,7 @@ const initialState: ExtraState = {
 	lastLoad: null,
 	currentGroupProject: { groupId: null, project: null },
 	currentBallot_id: null,
-	chooseFromActiveGroups: true,
+	chooseFromActiveGroups: true
 };
 
 const sortComparer = (b1: Ballot, b2: Ballot) => {
@@ -155,13 +156,13 @@ const slice = createAppTableDataSlice({
 	sortComparer,
 	initialState,
 	reducers: {
-		setCurrentGroupProject(state, action: PayloadAction<GroupProject>) {
+		setCurrentGroupProject (state, action: PayloadAction<GroupProject>) {
 			const { groupId, project } = action.payload;
 			state.currentBallot_id = null;
 			state.currentGroupProject.groupId = groupId;
 			state.currentGroupProject.project = project;
 		},
-		setCurrentBallot_id(state, action: PayloadAction<number | null>) {
+		setCurrentBallot_id (state, action: PayloadAction<number | null>) {
 			const id = action.payload;
 			const { entities } = state;
 			const ballot = id ? entities[id] : undefined;
@@ -171,9 +172,9 @@ const slice = createAppTableDataSlice({
 			state.currentGroupProject.groupId = groupId;
 			state.currentGroupProject.project = project;
 		},
-		setChooseFromActiveGroups(state, action: PayloadAction<boolean>) {
+		setChooseFromActiveGroups (state, action: PayloadAction<boolean>) {
 			state.chooseFromActiveGroups = action.payload;
-		},
+		}
 	},
 	extraReducers: (builder, dataAdapter) => {
 		builder
@@ -187,11 +188,11 @@ const slice = createAppTableDataSlice({
 						state.valid = false;
 						dataAdapter.removeAll(state);
 					}
-				},
+				}
 			)
 			.addMatcher(
 				(action: Action) => action.type === dataSet + "/getSuccess",
-				(state) => {
+				state => {
 					state.lastLoad = new Date().toISOString();
 					const { entities, currentBallot_id: id } = state;
 					const ballot = id ? entities[id] : undefined;
@@ -200,20 +201,20 @@ const slice = createAppTableDataSlice({
 					state.currentBallot_id = ballot ? ballot.id : null;
 					state.currentGroupProject.groupId = groupId;
 					state.currentGroupProject.project = project;
-				},
+				}
 			)
 			.addMatcher(
 				(action: Action) => action.type === clearBallots.toString(),
-				(state) => {
+				state => {
 					dataAdapter.removeAll(state);
 					state.valid = false;
 					state.lastLoad = null;
 					state.currentBallot_id = null;
 					state.currentGroupProject.groupId = null;
 					state.currentGroupProject.project = null;
-				},
+				}
 			);
-	},
+	}
 });
 
 export default slice;
@@ -232,7 +233,7 @@ const {
 	setCurrentBallot_id: setCurrentBallotIdLocal,
 	setUiProperties,
 	setSelected: setSelectedBallots,
-	setChooseFromActiveGroups,
+	setChooseFromActiveGroups
 } = slice.actions;
 
 // Overload getPending() with one that sets groupName
@@ -270,7 +271,7 @@ export const selectChooseFromActiveGroups = (state: RootState) =>
 export const selectBallots = createSelector(
 	selectBallotIds,
 	selectBallotEntities,
-	(ids, entities) => ids.map((id) => entities[id]!),
+	(ids, entities) => ids.map(id => entities[id]!)
 );
 
 export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
@@ -279,12 +280,12 @@ export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
 	if (m) {
 		const label = m[1];
 		const entry = Object.entries(BallotTypeLabels).find(
-			([, value]) => value === label,
+			([, value]) => value === label
 		);
 		if (!entry) return;
 		const type = Number(entry[0]);
 		const n = Number(m[2]);
-		return ballots.find((b) => b.Type === type && b.number === n);
+		return ballots.find(b => b.Type === type && b.number === n);
 	}
 	m = ballotId.match(/(.+)-(I|R)(\d*)/);
 	if (m) {
@@ -292,16 +293,16 @@ export const selectBallotByBallotID = (state: RootState, ballotId: string) => {
 		let stage = 0;
 		if (m[2] === "R") stage = Number(m[3]);
 		return ballots.find(
-			(b) =>
+			b =>
 				b.Type === BallotType.SA &&
 				b.Project === project &&
-				b.stage === stage,
+				b.stage === stage
 		);
 	}
 	m = ballotId.match(/\d+/);
 	if (m) {
 		const id = Number(m[0]);
-		return ballots.find((b) => b.id === id);
+		return ballots.find(b => b.id === id);
 	}
 };
 
@@ -312,12 +313,12 @@ const selectSyncedBallotEntities = createSelector(
 	selectGroupEntities,
 	(ids, entities, groupEntities) => {
 		const syncedEntities: Record<EntityId, SyncedBallot> = {};
-		ids.forEach((id) => {
+		ids.forEach(id => {
 			const ballot = entities[id]!;
 			const entity = {
 				...ballot,
 				GroupName: "Unknown",
-				GroupActive: false,
+				GroupActive: false
 			};
 			const group = groupEntities[ballot.groupId];
 			if (group) {
@@ -327,7 +328,7 @@ const selectSyncedBallotEntities = createSelector(
 			syncedEntities[id] = entity;
 		});
 		return syncedEntities;
-	},
+	}
 );
 
 export const selectBallotsWorkingGroup = (state: RootState) => {
@@ -352,16 +353,16 @@ export const selectGroupProjectOptions = createSelector(
 	selectChooseFromActiveGroups,
 	(ballotIds, ballotEntities, groupEntities, chooseFromActiveGroups) => {
 		const options: GroupProjectOption[] = [];
-		ballotIds.forEach((id) => {
+		ballotIds.forEach(id => {
 			const ballot = ballotEntities[id]!;
 			const group = groupEntities[ballot.groupId];
 			if (group) {
 				if (chooseFromActiveGroups && !group.status) return;
 				if (
 					options.find(
-						(o) =>
+						o =>
 							o.groupId === ballot.groupId &&
-							o.project === ballot.Project,
+							o.project === ballot.Project
 					)
 				)
 					return;
@@ -370,12 +371,12 @@ export const selectGroupProjectOptions = createSelector(
 				options.push({
 					groupId: ballot.groupId,
 					project: ballot.Project,
-					label,
+					label
 				});
 			}
 		});
 		return options.sort((o1, o2) => o1.label.localeCompare(o2.label));
-	},
+	}
 );
 
 /* Generate ballot list for current project or all ballots if current project not set */
@@ -386,7 +387,7 @@ export const selectBallotOptions = createSelector(
 	(ids, entities, groupProject) => {
 		let ballotIds = ids as number[];
 		if (groupProject.groupId || groupProject.project) {
-			ballotIds = ballotIds.filter((id) => {
+			ballotIds = ballotIds.filter(id => {
 				const ballot = entities[id]!;
 				return (
 					ballot.groupId === groupProject.groupId &&
@@ -394,8 +395,8 @@ export const selectBallotOptions = createSelector(
 				);
 			});
 		}
-		return ballotIds.map((id) => entities[id]!);
-	},
+		return ballotIds.map(id => entities[id]!);
+	}
 );
 
 export const selectBallotSeries = createSelector(
@@ -403,7 +404,7 @@ export const selectBallotSeries = createSelector(
 	selectBallotIds,
 	selectBallotEntities,
 	(ballot_id, ids, entities) => {
-		function getBallotSeries(ballot: Ballot): Ballot[] {
+		function getBallotSeries (ballot: Ballot): Ballot[] {
 			const ballotSeries = [ballot];
 			for (const id of ids) {
 				const ballotNext = entities[id]!;
@@ -414,7 +415,7 @@ export const selectBallotSeries = createSelector(
 		}
 		const ballot = entities[ballot_id];
 		return ballot ? getBallotSeries(ballot) : undefined;
-	},
+	}
 );
 
 export const selectBallotSeriesId = (state: RootState, ballot: Ballot) => {
@@ -446,19 +447,19 @@ export const selectCurrentBallotSeries = createSelector(
 			ballot = ballot.prev_id ? entities[ballot.prev_id] : undefined;
 		}
 		return ballots;
-	},
+	}
 );
 
 export const ballotsSelectors = getAppTableDataSelectors(selectBallotsState, {
 	selectEntities: selectSyncedBallotEntities,
-	getField,
+	getField
 });
 
 /* Thunk actions */
 export const updateBallotsLocal =
 	(ballots: ({ id: number } & Partial<Omit<Ballot, "id">>)[]): AppThunk =>
-	async (dispatch) => {
-		const updates = ballots.map((ballot) => {
+	async dispatch => {
+		const updates = ballots.map(ballot => {
 			const { id, ...changes } = ballot;
 			return { id, changes };
 		});
@@ -480,20 +481,20 @@ export const setCurrentGroupProject =
 		// Find newest ballot for this project
 		const ballots = selectBallots(getState())
 			.filter(
-				(b) =>
+				b =>
 					b.groupId === groupProject.groupId &&
-					b.Project === groupProject.project,
+					b.Project === groupProject.project
 			)
 			.sort(
 				(b1, b2) =>
 					new Date(b1.End || "").valueOf() -
-					new Date(b2.End || "").valueOf(),
+					new Date(b2.End || "").valueOf()
 			);
 		const ballot = ballots[ballots.length - 1];
 		dispatch(
 			ballot
 				? setCurrentBallotIdLocal(ballot.id)
-				: setCurrentGroupProjectLocal(groupProject),
+				: setCurrentGroupProjectLocal(groupProject)
 		);
 		return ballot;
 	};
@@ -506,21 +507,19 @@ export const setCurrentBallot_id =
 	};
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-let loading = false;
-let loadingPromise: Promise<void>;
+let loadingPromise: Promise<void> | undefined = undefined;
 export const loadBallots =
 	(groupName: string, force = false): AppThunk<void> =>
 	async (dispatch, getState) => {
 		const state = getState();
 		const current = selectBallotsState(state);
 		if (groupName === current.groupName) {
-			if (loading) return loadingPromise;
+			if (loadingPromise) return loadingPromise;
 			const age = selectBallotsAge(getState());
 			if (!force && age && age < AGE_STALE) return loadingPromise;
 		}
 		dispatch(getPending({ groupName }));
 		const url = `/api/${groupName}/ballots`;
-		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: unknown) => {
@@ -532,7 +531,7 @@ export const loadBallots =
 				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
-				loading = false;
+				loadingPromise = undefined;
 			});
 		return loadingPromise;
 	};
@@ -586,4 +585,50 @@ export const addBallot =
 		const [updatedBallot] = ballots;
 		dispatch(addOne(updatedBallot));
 		return updatedBallot;
+	};
+
+export const openDraft =
+	(ballot: Ballot): AppThunk<File | undefined> =>
+	async (dispatch, getState) => {
+		let src = ballot.DocLink;
+		if (!src) return undefined;
+		const fileName = decodeURI(src.match(/[^\\/]+$/)?.[0] || "");
+		if (!fileName)
+			throw new Error("Can't get filename from ballot DocLink");
+
+		const opfsRoot = await navigator.storage.getDirectory();
+		let opfsFile: FileSystemFileHandle;
+		try {
+			opfsFile = await opfsRoot.getFileHandle(fileName);
+		} catch (e) {
+			// File does not exist. See if we can create one.
+			opfsFile = await opfsRoot.getFileHandle(fileName, { create: true });
+			const path = src.replace(
+				"https://grouper.ieee.org/groups/802/11/",
+				""
+			);
+			const groupName = selectBallotsGroupName(getState());
+			src = `/api/${groupName}/grouper?path=${path}`;
+
+			const response = await fetch(src, {
+				headers: {
+					Authorization: `Bearer ${selectUser(getState())?.Token}`
+				}
+			});
+
+			if (!response.ok)
+				throw new Error(
+					`Failed to fetch draft: ${response.statusText}`
+				);
+			const writable = await opfsFile.createWritable();
+			await response.body?.pipeTo(writable);
+		}
+		const file = await opfsFile.getFile();
+		return file;
+	};
+
+export const openCurrentDraft =
+	(): AppThunk<File | undefined> => async (dispatch, getState) => {
+		const ballot = selectCurrentBallot(getState());
+		return ballot ? dispatch(openDraft(ballot)) : undefined;
 	};
