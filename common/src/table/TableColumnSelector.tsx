@@ -15,7 +15,7 @@ export type ColumnSelectorProps = {
 	actions: AppTableDataActions;
 };
 
-function ColumnSelectorDropdown({
+export function ColumnSelectorDropdown({
 	columns,
 	selectors,
 	actions,
@@ -103,7 +103,7 @@ function ColumnSelectorDropdown({
 	);
 }
 
-const ColumnSelector = (props: ColumnSelectorProps) => (
+const ColumnSelector = (props: React.ComponentProps<typeof ColumnSelectorDropdown>) => (
 	<Dropdown align="end" title="Configure table">
 		<Dropdown.Toggle split variant="outline-secondary">
 			<i className="bi-layout-three-columns me-1" />
