@@ -35,6 +35,7 @@ export default defineConfig(({ command, mode }) => {
 						if (id.includes("socket.io-client")) return "socket";
 						if (id.includes("luxon")) return "luxon";
 						if (id.includes("zod")) return "zod";
+						if (id.includes("embedpdf")) return "embedpdf";
 						if (id.includes("react-window")) return "utils";
 						if (id.includes("clsx")) return "utils";
 						if (id.includes("file-saver")) return "utils";
