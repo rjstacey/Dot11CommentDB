@@ -11,7 +11,7 @@ import type {
 	Ballot,
 	BallotQuery,
 	BallotCreate,
-	BallotUpdate,
+	BallotUpdate
 } from "@schemas/ballots.js";
 import { BallotType } from "@schemas/ballots.js";
 
@@ -90,11 +90,13 @@ const createViewBallotsStage = `
 		FROM ballotsSeries b WHERE b.series_id=b.id;
 `;
 
-export async function init() {
+export async function init () {
 	await db.query(createViewBallotsSeries);
 	await db.query(createViewBallotsStage);
 
-	let rows = await db.query<RowDataPacket[]>("SHOW COLUMNS FROM ballots LIKE 'DocLink'");
+	const rows = await db.query<RowDataPacket[]>(
+		"SHOW COLUMNS FROM ballots LIKE 'DocLink'"
+	);
 	if (rows.length === 0) {
 		await db.query("ALTER TABLE ballots ADD COLUMN DocLink VARCHAR(255)");
 	}
@@ -129,7 +131,7 @@ const ballotsStageFieldsSQL = `
  * @param query Query constraints
  * @returns An array of ballot objects.
  */
-export async function getBallots(query?: BallotQuery): Promise<Ballot[]> {
+export async function getBallots (query?: BallotQuery): Promise<Ballot[]> {
 	let sql = `SELECT ${ballotsStageFieldsSQL} FROM ballotsStage b`;
 
 	if (query) {
@@ -142,8 +144,8 @@ export async function getBallots(query?: BallotQuery): Promise<Ballot[]> {
 						? `BIN_TO_UUID(\`${key}\`) IN (${e_value})`
 						: `BIN_TO_UUID(\`${key}\`) = ${e_value}`
 					: Array.isArray(value)
-						? `\`${key}\` IN (${e_value})`
-						: `\`${key}\` = ${e_value}`,
+					? `\`${key}\` IN (${e_value})`
+					: `\`${key}\` = ${e_value}`
 			);
 		});
 		if (wheres.length > 0) sql += " WHERE " + wheres.join(" AND ");
@@ -161,14 +163,14 @@ export async function getBallots(query?: BallotQuery): Promise<Ballot[]> {
  * @param id Ballot identifier
  * @returns A ballot object that represents the identified ballot
  */
-export async function getBallot(id: number) {
+export async function getBallot (id: number) {
 	const [ballot] = await getBallots({ id });
 	if (!ballot) throw new NotFoundError(`No such ballot: ${id}`);
 	return ballot;
 }
 
 /** Derive BallotID from other fields */
-export function getBallotId(ballot: Ballot) {
+export function getBallotId (ballot: Ballot) {
 	if (ballot.Type === BallotType.CC) {
 		return "CC" + (ballot.number || "(Blank)");
 	} else if (ballot.Type === BallotType.WG) {
@@ -184,17 +186,17 @@ export function getBallotId(ballot: Ballot) {
 	return ballot.id.toString();
 }
 
-export async function getBallotWithNewResultsSummary(
+export async function getBallotWithNewResultsSummary (
 	user: UserContext,
 	workingGroupId: string | null,
-	ballot_id: number,
+	ballot_id: number
 ): Promise<Ballot> {
 	const ballot = await getBallot(ballot_id);
 	if (!workingGroupId) {
 		const workingGroup = await getWorkingGroup(user, ballot.groupId!);
 		if (!workingGroup)
 			throw new NotFoundError(
-				`Can't find working group for ballot id=${ballot_id}`,
+				`Can't find working group for ballot id=${ballot_id}`
 			);
 		workingGroupId = workingGroup.id;
 	}
@@ -208,7 +210,7 @@ export async function getBallotWithNewResultsSummary(
  * @param id last ballot in series
  * @returns an array of ballots (starting with the initial ballot) that is the ballot series
  */
-export function getBallotSeries(id: number): Promise<Ballot[]> {
+export function getBallotSeries (id: number): Promise<Ballot[]> {
 	const sql = `
 		SELECT 
 			${ballotsStageFieldsSQL}
@@ -235,7 +237,7 @@ type BallotDB = {
 	prev_id?: number | null;
 };
 
-function ballotEntry(changes: Partial<Ballot>) {
+function ballotEntry (changes: Partial<Ballot>) {
 	const entry: BallotDB = {
 		groupId: changes.groupId,
 		Type: changes.Type,
@@ -246,7 +248,7 @@ function ballotEntry(changes: Partial<Ballot>) {
 		DocLink: changes.DocLink,
 		Topic: changes.Topic,
 		EpollNum: changes.EpollNum,
-		prev_id: changes.prev_id,
+		prev_id: changes.prev_id
 	};
 
 	if (typeof changes.Start !== "undefined") {
@@ -278,7 +280,7 @@ function ballotEntry(changes: Partial<Ballot>) {
 	return entry;
 }
 
-function ballotSetSql(ballot: Partial<BallotDB>) {
+function ballotSetSql (ballot: Partial<BallotDB>) {
 	const sets: string[] = [];
 	for (const [key, value] of Object.entries(ballot)) {
 		const e_value =
@@ -298,10 +300,10 @@ function ballotSetSql(ballot: Partial<BallotDB>) {
  * @param ballot The ballot to be added
  * @returns The ballot as added
  */
-async function addBallot(
+async function addBallot (
 	user: UserContext,
 	workingGroup: Group,
-	ballot: BallotCreate,
+	ballot: BallotCreate
 ) {
 	const entry = ballotEntry(ballot);
 
@@ -335,12 +337,12 @@ async function addBallot(
  * @param ballots An array of ballots to be added
  * @returns An array of ballots as added
  */
-export function addBallots(
+export function addBallots (
 	user: UserContext,
 	workingGroup: Group,
-	ballots: BallotCreate[],
+	ballots: BallotCreate[]
 ) {
-	return Promise.all(ballots.map((b) => addBallot(user, workingGroup, b)));
+	return Promise.all(ballots.map(b => addBallot(user, workingGroup, b)));
 }
 
 /**
@@ -353,10 +355,10 @@ export function addBallots(
  * @param update.changes A partial ballot object that contains parameters to change.
  * @returns The ballot as updated
  */
-async function updateBallot(
+async function updateBallot (
 	user: UserContext,
 	workingGroup: Group,
-	update: BallotUpdate,
+	update: BallotUpdate
 ) {
 	const { id, changes } = update;
 	const entry = ballotEntry(changes);
@@ -364,7 +366,9 @@ async function updateBallot(
 		const sql = `
 			UPDATE ballots
 			SET ${ballotSetSql(entry)}
-			WHERE id=${db.escape(id)} AND workingGroupId=UUID_TO_BIN(${db.escape(workingGroup.id)})
+			WHERE id=${db.escape(id)} AND workingGroupId=UUID_TO_BIN(${db.escape(
+			workingGroup.id
+		)})
 		`;
 		const { affectedRows } = await db.query<ResultSetHeader>(sql);
 		if (affectedRows !== 1)
@@ -382,12 +386,12 @@ async function updateBallot(
  * @param updates An array of objects with shape {id, changes}
  * @returns An array of ballots as updated
  */
-export function updateBallots(
+export function updateBallots (
 	user: UserContext,
 	workingGroup: Group,
-	updates: BallotUpdate[],
+	updates: BallotUpdate[]
 ) {
-	return Promise.all(updates.map((u) => updateBallot(user, workingGroup, u)));
+	return Promise.all(updates.map(u => updateBallot(user, workingGroup, u)));
 }
 
 /**
@@ -397,19 +401,21 @@ export function updateBallots(
  * @param workingGroup The working group from path
  * @param ids An array of ballot identifiers that identify the ballots to delete
  */
-export async function deleteBallots(
+export async function deleteBallots (
 	user: UserContext,
 	workingGroup: Group,
-	ids: number[],
+	ids: number[]
 ) {
 	// Make sure the ids are owned by the working group
 	const sql1 = `
 		SELECT id 
 		FROM ballots 
-		WHERE id IN (${db.escape(ids)}) AND workingGroupId=UUID_TO_BIN(${db.escape(workingGroup.id)})
+		WHERE id IN (${db.escape(ids)}) AND workingGroupId=UUID_TO_BIN(${db.escape(
+		workingGroup.id
+	)})
 	`;
 	ids = (await db.query<(RowDataPacket & { id: number })[]>(sql1)).map(
-		(b) => b.id,
+		b => b.id
 	);
 
 	if (ids.length === 0) return 0;
