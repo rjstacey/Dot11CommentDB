@@ -8,19 +8,19 @@ import {
 	LexicalEditor,
 	LexicalNode,
 	$createTextNode,
-	TextFormatType,
+	TextFormatType
 } from "lexical";
 
-function wrapElementWith(
+function wrapElementWith (
 	element: HTMLElement | Text,
-	tag: string,
+	tag: string
 ): HTMLElement {
 	const el = document.createElement(tag);
 	el.appendChild(element);
 	return el;
 }
 
-function convertTextDOMNode(domNode: Node): DOMConversionOutput {
+function convertTextDOMNode (domNode: Node): DOMConversionOutput {
 	let textContent = domNode.textContent || "";
 	textContent = textContent.replace(/\r/g, "").replace(/[ \t\n]+/g, " ");
 	if (textContent === "") {
@@ -41,10 +41,10 @@ const nodeNameToTextFormat: Record<string, TextFormatType> = {
 	sup: "superscript",
 	u: "underline",
 	ins: "underline",
-	mark: "highlight",
+	mark: "highlight"
 };
 
-function convertTextFormatElement(domNode: Node): DOMConversionOutput {
+function convertTextFormatElement (domNode: Node): DOMConversionOutput {
 	let format: TextFormatType | undefined =
 		nodeNameToTextFormat[domNode.nodeName.toLowerCase()];
 
@@ -58,18 +58,18 @@ function convertTextFormatElement(domNode: Node): DOMConversionOutput {
 		return { node: null };
 	}
 	return {
-		forChild: (lexicalNode) => {
+		forChild: lexicalNode => {
 			if ($isTextNode(lexicalNode) && !lexicalNode.hasFormat(format!)) {
 				lexicalNode.toggleFormat(format!);
 			}
 
 			return lexicalNode;
 		},
-		node: null,
+		node: null
 	};
 }
 
-function convertSpanElement(domNode: Node): DOMConversionOutput {
+function convertSpanElement (domNode: Node): DOMConversionOutput {
 	// domNode is a <span> since we matched it by nodeName
 	const span = domNode as HTMLSpanElement;
 	// Google Docs uses span tags + font-weight for bold text
@@ -86,7 +86,7 @@ function convertSpanElement(domNode: Node): DOMConversionOutput {
 	const verticalAlign = span.style.verticalAlign;
 
 	return {
-		forChild: (lexicalNode) => {
+		forChild: lexicalNode => {
 			if (!$isTextNode(lexicalNode)) {
 				return lexicalNode;
 			}
@@ -111,102 +111,107 @@ function convertSpanElement(domNode: Node): DOMConversionOutput {
 
 			return lexicalNode;
 		},
-		node: null,
+		node: null
 	};
 }
 
 export class RichTextNode extends TextNode {
-	static getType() {
+	static getType () {
 		return "rich-text";
 	}
 
-	static clone(node: RichTextNode): RichTextNode {
+	static clone (node: RichTextNode): RichTextNode {
 		return new RichTextNode(node.__text, node.__key);
 	}
 
-	isSimpleText() {
+	isSimpleText () {
 		return (
 			(this.__type === "text" || this.__type === "rich-text") &&
 			this.__mode === 0
 		);
 	}
 
-	static importJSON(serializedNode: SerializedTextNode): RichTextNode {
-		return TextNode.importJSON(serializedNode);
+	static importJSON (serializedNode: SerializedTextNode): RichTextNode {
+		const node = $createRichTextNode(serializedNode.text);
+		node.setFormat(serializedNode.format);
+		node.setDetail(serializedNode.detail);
+		node.setMode(serializedNode.mode);
+		node.setStyle(serializedNode.style);
+		return node;
 	}
 
-	exportJSON(): SerializedTextNode {
+	exportJSON (): SerializedTextNode {
 		return {
 			...super.exportJSON(),
 			type: "rich-text",
-			version: 1,
+			version: 1
 		};
 	}
 
-	static importDOM(): DOMConversionMap | null {
+	static importDOM (): DOMConversionMap | null {
 		const priority = 1;
 		return {
 			"#text": () => ({
 				conversion: convertTextDOMNode,
-				priority,
+				priority
 			}),
 			span: () => ({
 				conversion: convertSpanElement,
-				priority,
+				priority
 			}),
 			b: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			code: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			em: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			i: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			s: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			del: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			strong: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			sub: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			sup: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			u: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			ins: () => ({
 				conversion: convertTextFormatElement,
-				priority,
+				priority
 			}),
 			mark: () => ({
 				conversion: convertTextFormatElement,
-				priority,
-			}),
+				priority
+			})
 		};
 	}
 
 	exportDOM(editor: LexicalEditor): DOMExportOutput;
-	exportDOM() {
+	exportDOM () {
 		let element: HTMLElement | Text = document.createTextNode(this.__text);
 		if (this.hasFormat("bold")) element = wrapElementWith(element, "b");
 		if (this.hasFormat("italic")) element = wrapElementWith(element, "i");
@@ -225,12 +230,12 @@ export class RichTextNode extends TextNode {
 	}
 }
 
-export function $createRichTextNode(text: string): RichTextNode {
+export function $createRichTextNode (text: string): RichTextNode {
 	return new RichTextNode(text);
 }
 
-export function $isRichTextNode(
-	node: LexicalNode | null | undefined,
+export function $isRichTextNode (
+	node: LexicalNode | null | undefined
 ): node is RichTextNode {
 	return node instanceof RichTextNode;
 }

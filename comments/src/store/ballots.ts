@@ -600,7 +600,7 @@ export const openDraft =
 		let opfsFile: FileSystemFileHandle;
 		try {
 			opfsFile = await opfsRoot.getFileHandle(fileName);
-		} catch (e) {
+		} catch {
 			// File does not exist. See if we can create one.
 			opfsFile = await opfsRoot.getFileHandle(fileName, { create: true });
 			const path = src.replace(

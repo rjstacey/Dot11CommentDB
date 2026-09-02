@@ -1,14 +1,18 @@
 import { v4 as uuid } from "uuid";
 import { createSelector, createAction } from "@reduxjs/toolkit";
-import type { Action, EntityId } from "@reduxjs/toolkit";
+import type {
+	Action,
+	EntityId,
+	PayloadAction,
+	ThunkAction
+} from "@reduxjs/toolkit";
 import {
 	fetcher,
 	setError,
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	FieldType,
-	Fields,
-	AppTableDataActions
+	Fields
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
@@ -313,25 +317,14 @@ const slice = createAppTableDataSlice({
 
 export default slice;
 
-const setSelected2 =
-	(selected: string[]): AppThunk =>
-	async (dispatch, getState) => {
-		const entities = selectCommentEntities(getState());
-		const searchParams = new URLSearchParams(location.search);
-		searchParams.delete("cid");
-		selected
-			.map(id => {
-				const entity = entities[id];
-				return entity ? entity.CID : null;
-			})
-			.forEach(cid => {
-				if (cid) searchParams.append("cid", cid);
-			});
-		location.search = searchParams.toString();
-	};
-
 /* Slice actions */
-export const commentsActions = slice.actions;
+export const commentsActions: {
+	setSelected: (
+		ids: EntityId[]
+	) =>
+		| PayloadAction<EntityId[]>
+		| ThunkAction<void, unknown, unknown, PayloadAction<EntityId[]>>;
+} & Omit<typeof slice.actions, "setSelected"> = slice.actions;
 
 const {
 	getSuccess,

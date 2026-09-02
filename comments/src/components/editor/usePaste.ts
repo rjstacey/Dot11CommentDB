@@ -10,6 +10,7 @@ import {
 	$isRangeSelection,
 	$isParagraphNode,
 	$isTextNode,
+	PasteCommandType
 } from "lexical";
 import { $generateNodesFromDOM } from "@lexical/html";
 import { ResnStatusType } from "@/store/comments";
@@ -19,11 +20,11 @@ const whitespaceOnlyRegex = /^[\s\u00A0]*$/;
 const resnStatusRegex =
 	/^\s*(accepted|accept)|(revised|revise)|(rejected|reject)\s*$/i;
 
-function insertClipboardData(
+function insertClipboardData (
 	dataTransfer: DataTransfer,
 	selection: BaseSelection,
 	editor: LexicalEditor,
-	onChangeResnStatus?: (value: ResnStatusType) => void, // present if editing resolution field
+	onChangeResnStatus?: (value: ResnStatusType) => void // present if editing resolution field
 ): void {
 	const htmlString = dataTransfer.getData("text/html");
 	const plainString = dataTransfer.getData("text/plain");
@@ -36,11 +37,11 @@ function insertClipboardData(
 			const parser = new DOMParser();
 			const dom = parser.parseFromString(htmlString, "text/html");
 			const nodes = $generateNodesFromDOM(editor, dom).filter(
-				(node) =>
+				node =>
 					!(
 						($isParagraphNode(node) || $isTextNode(node)) &&
 						whitespaceOnlyRegex.test(node.getTextContent())
-					),
+					)
 			); // Remove top-level text and paragraphs that contain only whitespace
 			if (onChangeResnStatus) {
 				// If the first paragraph looks like a resolution status, extract it and remove it from the pasted content
@@ -90,28 +91,31 @@ function insertClipboardData(
 	}
 }
 
-export function usePaste(onChangeResnStatus?: (value: ResnStatusType) => void) {
+export function usePaste (onChangeResnStatus?: (value: ResnStatusType) => void) {
 	const [editor] = useLexicalComposerContext();
 	useEffect(() => {
-		return editor.registerCommand<ClipboardEvent>(
+		return editor.registerCommand(
 			PASTE_COMMAND,
-			(event) => {
+			(event: PasteCommandType) => {
 				event.preventDefault();
 				editor.update(() => {
 					const selection = $getSelection();
-					const clipboardData = event.clipboardData;
+					const clipboardData =
+						event instanceof ClipboardEvent
+							? event.clipboardData
+							: null;
 					if (clipboardData != null && $isRangeSelection(selection)) {
 						insertClipboardData(
 							clipboardData,
 							selection,
 							editor,
-							onChangeResnStatus,
+							onChangeResnStatus
 						);
 					}
 				});
 				return true;
 			},
-			COMMAND_PRIORITY_NORMAL,
+			COMMAND_PRIORITY_NORMAL
 		);
 	}, [editor, onChangeResnStatus]);
 }

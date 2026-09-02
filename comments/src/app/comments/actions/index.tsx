@@ -1,5 +1,4 @@
 import { Button, ButtonGroup, Dropdown, DropdownButton } from "react-bootstrap";
-import { TableColumnSelector } from "@common";
 
 import CommentsImport from "./CommentsImport";
 import CommentsExport from "./CommentsExport";
@@ -9,14 +8,12 @@ import { useAppSelector } from "@/store/hooks";
 import {
 	selectCommentsAccess,
 	AccessLevel,
-	commentsSelectors,
-	commentsActions,
 } from "@/store/comments";
 import { selectIsOnline } from "@/store/offline";
 import { useCommentsSearch, type Layout, layoutOptions } from "@/hooks/commentsSearch";
 
 import ProjectBallotSelector from "@/components/ProjectBallotSelector";
-import { tableColumns } from "../tableColumns";
+import { CommentsListColumnSelector } from "../list";
 import { refresh } from "../loader";
 
 function LayoutIcon({ layout }: { layout: Layout }) {
@@ -56,11 +53,7 @@ export function CommentsActions() {
 		<div className="d-flex w-100 justify-content-between align-items-center">
 			<ProjectBallotSelector />
 
-			<TableColumnSelector
-				columns={tableColumns}
-				selectors={commentsSelectors}
-				actions={commentsActions}
-			/>
+			<CommentsListColumnSelector />
 
 			<DropdownButton
 				as={ButtonGroup}

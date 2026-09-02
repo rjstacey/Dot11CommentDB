@@ -24,7 +24,7 @@ export function Panels({
 
 	const keys = useMemo(() => children.filter((c) => c.props.isVisible).map((c) => c.key!), [children]);
 
-	const onDrag = useCallback((targetKey: string, event: MouseEvent, { x, deltaX }: { x: number; deltaX: number }) => {
+	const onDrag = useCallback((targetKey: string, event: MouseEvent, { deltaX }: { x: number; deltaX: number }) => {
 		const parent = ref.current as HTMLDivElement;
 		const widths: Record<string, number> = {};
 		const keys: string[] = [];

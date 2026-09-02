@@ -2,10 +2,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { v4 as uuid } from "uuid";
 import { PDFViewer, PDFViewerRef, DocumentManagerPlugin, ScrollPlugin, AnnotationPlugin, PdfAnnotationSubtype, PdfAnnotationBorderStyle, PdfAnnotationObject } from '@embedpdf/react-pdf-viewer';
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectCommentsState, CommentResolution } from "@/store/comments";
-import { openCurrentDraft } from "@/store/ballots";
+import { selectCommentsState, CommentResolution, selectCommentsBallot } from "@/store/comments";
+import { type Ballot, openCurrentDraft } from "@/store/ballots";
 
-function commentAnnotation(comment: CommentResolution): PdfAnnotationObject {
+function commentAnnotation(comment: CommentResolution, ballot: Ballot | undefined): PdfAnnotationObject {
 	const pageLine = comment.Page ? comment.Page : 0;
 	const pageNumber = Math.floor(pageLine);
 	const lineNumber = (pageLine - Math.floor(pageLine)) * 100;
@@ -31,6 +31,7 @@ function commentAnnotation(comment: CommentResolution): PdfAnnotationObject {
 		strokeStyle: PdfAnnotationBorderStyle.SOLID,
 		opacity: 1,
 		author: comment.CommenterName,
+		created: ballot?.End ? new Date(ballot.End) : new Date(Date.now()),
 		contents,
 		flags: ["readOnly"],
 	};
@@ -40,6 +41,7 @@ export function DraftDetail() {
 	const dispatch = useAppDispatch();
 	const viewerRef = useRef<PDFViewerRef>(null);
 	const { selected, entities } = useAppSelector(selectCommentsState);
+	const ballot = useAppSelector(selectCommentsBallot);
 	const comments = useMemo(() => selected.map((id) => entities[id]!).filter(Boolean), [selected, entities]);
 	const [isReady, setIsReady] = useState(false);
 	const annotationsRef = useRef<PdfAnnotationObject[]>([]);
@@ -101,7 +103,7 @@ export function DraftDetail() {
 			if (!annotate) return;
 
 			annotationsRef.current.forEach((a) => annotate.deleteAnnotation(a.pageIndex, a.id));
-			annotationsRef.current = comments.map(commentAnnotation);
+			annotationsRef.current = comments.map(c => commentAnnotation(c, ballot));
 			annotationsRef.current.forEach(a => annotate.createAnnotation(a.pageIndex, a))
 
 			const scroll = registry
@@ -114,7 +116,7 @@ export function DraftDetail() {
 
 		}
 		if (isReady) updateAnnotations();
-	}, [comments, isReady]);
+	}, [comments, ballot, isReady]);
 
 	return (
 		<PDFViewer

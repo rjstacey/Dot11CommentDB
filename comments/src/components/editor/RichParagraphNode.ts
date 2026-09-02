@@ -6,10 +6,10 @@ import {
 	SerializedParagraphNode,
 	LexicalEditor,
 	$applyNodeReplacement,
-	ElementFormatType,
+	ElementFormatType
 } from "lexical";
 
-function convertParagraphElement(element: HTMLElement): DOMConversionOutput {
+function convertParagraphElement (element: HTMLElement): DOMConversionOutput {
 	const node = $createParagraphNode();
 	if (element.style) {
 		node.setFormat(element.style.textAlign as ElementFormatType);
@@ -21,43 +21,47 @@ function convertParagraphElement(element: HTMLElement): DOMConversionOutput {
 	return { node };
 }
 
-export function $createParagraphNode(): ParagraphNode {
+export function $createParagraphNode (): ParagraphNode {
 	return $applyNodeReplacement(new ParagraphNode());
 }
 
 export class RichParagraphNode extends ParagraphNode {
-	static getType() {
+	static getType () {
 		return "rich-paragraph";
 	}
 
-	static clone(node: RichParagraphNode): RichParagraphNode {
+	static clone (node: RichParagraphNode): RichParagraphNode {
 		return new RichParagraphNode(node.__key);
 	}
 
-	static importJSON(
+	static importJSON (
 		serializedNode: SerializedParagraphNode
 	): RichParagraphNode {
-		return ParagraphNode.importJSON(serializedNode);
+		const node = new RichParagraphNode();
+		node.setFormat(serializedNode.format);
+		node.setIndent(serializedNode.indent);
+		node.setDirection(serializedNode.direction);
+		return node;
 	}
 
-	exportJSON(): SerializedParagraphNode {
+	exportJSON (): SerializedParagraphNode {
 		return {
 			...super.exportJSON(),
 			type: "rich-paragraph",
-			version: 1,
+			version: 1
 		};
 	}
 
-	static importDOM(): DOMConversionMap | null {
+	static importDOM (): DOMConversionMap | null {
 		return {
 			p: () => ({
 				conversion: convertParagraphElement,
-				priority: 1,
-			}),
+				priority: 1
+			})
 		};
 	}
 
-	exportDOM(editor: LexicalEditor): DOMExportOutput {
+	exportDOM (editor: LexicalEditor): DOMExportOutput {
 		const { element } = super.exportDOM(editor);
 
 		// Drop the class and dir attributes

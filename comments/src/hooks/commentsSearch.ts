@@ -33,34 +33,38 @@ export const selectCommentsSearch = createSelector(
 );
 
 export function useCommentsSearch () {
-	const [searchParams, setSearchParams] = useSearchParams();
+	const [, setSearchParams] = useSearchParams();
 	const layout = useAppSelector(selectCommentsLayout);
 	const entities = useAppSelector(selectCommentEntities);
 
 	const setLayout = useCallback(
 		(layout: string | null) => {
-			if (layout) searchParams.set("layout", layout);
-			else searchParams.delete("layout");
-			setSearchParams(searchParams);
+			setSearchParams(searchParams => {
+				if (layout) searchParams.set("layout", layout);
+				else searchParams.delete("layout");
+				return searchParams;
+			});
 		},
-		[searchParams, setSearchParams]
+		[setSearchParams]
 	);
 
 	const setSelected = useCallback(
 		(selected: (string | number)[]) => {
-			console.log("setSelected", selected);
-			searchParams.delete("cid");
-			selected
-				.map(id => {
-					const entity = entities[id];
-					return entity ? entity.CID : null;
-				})
-				.forEach(cid => {
-					if (cid) searchParams.append("cid", cid);
-				});
-			setSearchParams(searchParams);
+			setSearchParams(searchParams => {
+				searchParams.delete("cid");
+				selected
+					.map(id => {
+						const entity = entities[id];
+						return entity ? entity.CID : null;
+					})
+					.forEach(cid => {
+						if (cid) searchParams.append("cid", cid);
+					});
+				return searchParams;
+			});
+			return () => {};
 		},
-		[entities, searchParams, setSearchParams]
+		[entities, setSearchParams]
 	);
 
 	return { layout, setLayout, setSelected };
