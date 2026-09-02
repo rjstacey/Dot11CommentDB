@@ -56,20 +56,20 @@ export type ColumnProperties<S = any, T1 extends {} = any, T2 extends T1 = any, 
 
 export type { ChangeableColumnProperties, TablesConfig, TableConfig };
 
-export type RowGetterProps<T extends {} = any> = {
+export type RowGetterProps<T extends {} = any, Id extends EntityId = any> = {
 	rowIndex: number;
-	rowId: EntityId;
-	entities: Record<EntityId, T>;
-	ids: EntityId[];
+	rowId: Id;
+	entities: Record<Id, T>;
+	ids: Id[];
 };
 
-export type RowGetter<T extends {} = any> = (props: RowGetterProps<T>) => any;
+export type RowGetter<T extends {} = any, Id extends EntityId = any> = (props: RowGetterProps<T, Id>) => any;
 
 export type AppTableProps<S, T1 extends {}, T2 extends T1, Id extends EntityId> = {
 	fitWidth?: boolean;
 	fixed?: boolean;
 	columns: ColumnProperties<S, T1, T2, Id>[];
-	rowGetter?: RowGetter;
+	rowGetter?: RowGetter<T2, Id>;
 	headerHeight: number;
 	estimatedRowHeight: number;
 	measureRowHeight?: boolean;
