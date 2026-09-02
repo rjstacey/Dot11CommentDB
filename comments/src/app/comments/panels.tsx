@@ -22,12 +22,9 @@ export function Panels({
 }) {
 	const ref = useRef<HTMLDivElement>(null);
 
-	const keys = useMemo(() => children.filter((c) => c.props.isVisible).map((c) => c.key!), [children]);
-
 	const onDrag = useCallback((targetKey: string, event: MouseEvent, { deltaX }: { x: number; deltaX: number }) => {
 		const parent = ref.current as HTMLDivElement;
 		const widths: Record<string, number> = {};
-		const keys: string[] = [];
 		let deltaWidth = 0;
 		for (const child of parent.children) {
 			const key = child.getAttribute("data-panel-key")!;
@@ -43,16 +40,15 @@ export function Panels({
 					deltaWidth = 0;
 				}
 				widths[key] = width;
-				keys.push(key);
 			}
 		}
 		setWidths(widths);
 	}, [setWidths]);
 
 	const content = useMemo(() => {
-		const content: React.ReactElement[] = [];
-		const numVisible = keys.length;
+		const numVisible = children.filter((c) => c.props.isVisible).length;
 
+		const content: React.ReactElement[] = [];
 		for (let i = 0; i < children.length; i++) {
 			const child = children[i];
 			const key = child.key as string;
@@ -75,7 +71,7 @@ export function Panels({
 			}
 		}
 		return content;
-	}, [keys, widths, children, onDrag]);
+	}, [widths, children, onDrag]);
 
 	return (
 		<div

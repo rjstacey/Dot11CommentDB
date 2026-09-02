@@ -269,7 +269,7 @@ export type AppTableDataSelectors<
 	Id extends EntityId = EntityId,
 > = ReturnType<typeof getAppTableDataSelectors<S, T1, T2, Id>>;
 
-/*
+/**
  * Create a redux slice suitible for AppTable rendering.
  *
  * Data entries are managed through the redux toolkit dataAdapter.

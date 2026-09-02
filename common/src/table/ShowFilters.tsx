@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import type { EntityId } from "@reduxjs/toolkit";
 import cx from "clsx";
 
 import {

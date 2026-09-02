@@ -62,7 +62,7 @@ export function useCommentsLayout () {
 		(widths: Record<string, number>) => {
 			dispatch(updateCommentsPanelWidths(layout, widths));
 		},
-		[dispatch]
+		[layout, dispatch]
 	);
 
 	return { visiblePanels, widths, setWidths };
