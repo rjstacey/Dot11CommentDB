@@ -111,7 +111,7 @@ const SelectHeaderCell = <S, T1 extends {}, T2 extends T1, Id extends EntityId>(
 	<ControlHeaderCell {...props} />
 );
 
-type ControlCellProps<S, T1 extends {}, T2 extends T1, Id extends EntityId> = CellRendererProps<S, T1, T2, Id> & {
+type ControlCellProps<S, T1 extends {}, T2 extends T1, Id extends EntityId> = CellRendererProps<T2, Id> & {
 	showExpanded?: boolean;
 	selectors: AppTableDataSelectors<S, T1, T2, Id>;
 	actions: AppTableDataActions<T1, Id>;
