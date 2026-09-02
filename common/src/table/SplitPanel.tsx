@@ -1,4 +1,5 @@
 import { cloneElement, useRef } from "react";
+import type { EntityId } from "@reduxjs/toolkit";
 import { Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 

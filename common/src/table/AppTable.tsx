@@ -1,5 +1,4 @@
 import { useRef, useCallback, useEffect, useState, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import type { Action, EntityId } from "@reduxjs/toolkit";
 import {
 	List,
@@ -20,29 +19,30 @@ import type {
 	AppTableDataActions,
 	AppTableDataSelectors,
 } from "../store/appTableData";
+import { useAppTableDispatch, useAppTableSelector } from "../store/appTableData";
 
 import "./AppTable.css";
 
 export type { GetEntityField, AppTableDataSelectors, AppTableDataActions };
 
-export type HeaderCellRendererProps = {
+export type HeaderCellRendererProps<S = any, T1 extends {} = any, T2 extends T1 = any, Id extends EntityId = any> = {
 	label?: React.ReactNode; // Column label
 	dataKey: string; // Identifies the data element in the row object
-	column: ColumnProperties & ChangeableColumnProperties;
+	column: ColumnProperties<S, T1, T2, Id> & ChangeableColumnProperties;
 	anchorEl: HTMLElement | null;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
+	selectors: AppTableDataSelectors<S, T1, T2, Id>;
+	actions: AppTableDataActions<T1, Id>;
 };
 
-export type CellRendererProps<T = any> = {
+export type CellRendererProps<T2 extends {} = any, Id extends EntityId = any> = {
 	dataKey: string;
 	rowIndex: number;
-	rowId: EntityId;
-	rowData: T;
-	prevRowId: EntityId | undefined;
+	rowId: Id;
+	rowData: T2;
+	prevRowId: Id | undefined;
 };
 
-export type ColumnProperties = {
+export type ColumnProperties<S = any, T1 extends {} = any, T2 extends T1 = any, Id extends EntityId = any> = {
 	key: string;
 	label?: React.ReactNode;
 	width?: number;
@@ -50,34 +50,33 @@ export type ColumnProperties = {
 	flexShrink?: number;
 	dropdownWidth?: number;
 	dataRenderer?: (value: any) => any;
-	headerRenderer?: (p: HeaderCellRendererProps) => React.ReactNode;
-	cellRenderer?: (p: CellRendererProps) => React.ReactNode;
+	headerRenderer?: (p: HeaderCellRendererProps<S, T1, T2, Id>) => React.ReactNode;
+	cellRenderer?: (p: CellRendererProps<T2, Id>) => React.ReactNode;
 };
 
 export type { ChangeableColumnProperties, TablesConfig, TableConfig };
 
-export type RowGetterProps<T = any> = {
+export type RowGetterProps<T extends {} = any> = {
 	rowIndex: number;
 	rowId: EntityId;
 	entities: Record<EntityId, T>;
 	ids: EntityId[];
 };
 
-export type RowGetter<T = any> = (props: RowGetterProps<T>) => any;
+export type RowGetter<T extends {} = any> = (props: RowGetterProps<T>) => any;
 
-export type AppTableProps = {
+export type AppTableProps<S, T1 extends {}, T2 extends T1, Id extends EntityId> = {
 	fitWidth?: boolean;
 	fixed?: boolean;
-	columns: ColumnProperties[];
+	columns: ColumnProperties<S, T1, T2, Id>[];
 	rowGetter?: RowGetter;
 	headerHeight: number;
 	estimatedRowHeight: number;
 	measureRowHeight?: boolean;
 	defaultTablesConfig?: TablesConfig;
 	gutterSize?: number;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
-	setSelected?: (selected: EntityId[]) => void;
+	selectors: AppTableDataSelectors<S, T1, T2, Id>;
+	actions: AppTableDataActions<T1, Id>;
 };
 
 const scrollbarSize = getScrollbarSize();
@@ -104,10 +103,10 @@ const TableBodyPlaceholder = ({
 /*
  * Key down handler for Grid (when focused)
  */
-const useKeyDown = (
-	selected: EntityId[],
-	ids: EntityId[],
-	setSelected: (ids: EntityId[]) => void,
+const useKeyDown = <Id extends EntityId>(
+	selected: Id[],
+	ids: Id[],
+	setSelected: (ids: Id[]) => void,
 	listRef: React.RefObject<ListImperativeAPI | null>,
 ) =>
 	useCallback(
@@ -153,10 +152,10 @@ const useKeyDown = (
 		[selected, ids, setSelected, listRef],
 	);
 
-const useRowClick = (
-	selected: EntityId[],
-	ids: EntityId[],
-	setSelected: (ids: EntityId[]) => void,
+const useRowClick = <Id extends EntityId>(
+	selected: Id[],
+	ids: Id[],
+	setSelected: (ids: Id[]) => void,
 ) =>
 	useCallback(
 		({
@@ -201,11 +200,11 @@ const useRowClick = (
 		[selected, ids, setSelected],
 	);
 
-const useSetDefaultTablesConfig = (
+const useSetDefaultTablesConfig = <S, T1 extends {}, T2 extends T1, Id extends EntityId>(
 	defaultTablesConfigIn: TablesConfig | undefined,
 	defaultFixed: boolean | undefined,
-	columns: ColumnProperties[],
-	dispatch: ReturnType<typeof useDispatch>,
+	columns: ColumnProperties<S, T1, T2, Id>[],
+	dispatch: ReturnType<typeof useAppTableDispatch>,
 	setDefaultTablesConfig: (payload: {
 		tableView: string;
 		tablesConfig: TablesConfig;
@@ -273,14 +272,14 @@ const useSetDefaultTablesConfig = (
 	return defaultTablesConfig[defaultTableView];
 };
 
-export function AppTable({
+export function AppTable<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	gutterSize = 5,
 	estimatedRowHeight,
 	measureRowHeight = false,
 	selectors,
 	actions,
 	...props
-}: AppTableProps) {
+}: AppTableProps<S, T1, T2, Id>) {
 	const headerRef = useRef<HTMLDivElement>(null);
 	const bodyRef = useListRef(null);
 
@@ -304,7 +303,7 @@ export function AppTable({
 		[estimatedRowHeight, gutterSize, rowHeights],
 	);
 
-	const dispatch = useDispatch();
+	const dispatch = useAppTableDispatch();
 
 	const defaultTableConfig = useSetDefaultTablesConfig(
 		props.defaultTablesConfig,
@@ -315,11 +314,11 @@ export function AppTable({
 	);
 
 	const { getField } = selectors;
-	const { selected, expanded, loading } = useSelector(selectors.selectState);
-	const ids = useSelector(selectors.selectSortedFilteredIds);
-	const entities = useSelector(selectors.selectEntities);
+	const { selected, expanded, loading } = useAppTableSelector(selectors.selectState);
+	const ids = useAppTableSelector(selectors.selectSortedFilteredIds);
+	const entities = useAppTableSelector(selectors.selectEntities);
 	const tableConfig =
-		useSelector(selectors.selectCurrentTableConfig) || defaultTableConfig;
+		useAppTableSelector(selectors.selectCurrentTableConfig) || defaultTableConfig;
 
 	const adjustColumnWidth = useCallback(
 		(key: string, delta: number) => {
@@ -335,15 +334,15 @@ export function AppTable({
 	}, []);
 
 	const setSelected = useMemo(() =>
-		props.setSelected || ((ids: EntityId[]) => dispatch(actions.setSelected(ids))),
-		[dispatch, props.setSelected, actions.setSelected],
+		(ids: Id[]) => dispatch(actions.setSelected(ids)),
+		[dispatch, actions.setSelected],
 	);
 	const onKeyDown = useKeyDown(selected, ids, setSelected, bodyRef);
 	const onRowClick = useRowClick(selected, ids, setSelected);
 
 	const fixed = tableConfig.fixed;
 	const { columns, totalWidth } = useMemo(() => {
-		const columns: Array<ColumnProperties & ChangeableColumnProperties> =
+		const columns: Array<ColumnProperties<S, T1, T2, Id> & ChangeableColumnProperties> =
 			props.columns
 				.map((col) => ({ ...col, ...tableConfig.columns[col.key] }))
 				.filter((col) => col.shown);
@@ -355,7 +354,7 @@ export function AppTable({
 	}, [props.columns, tableConfig.columns]);
 
 	// Package the context data
-	const tableData: AppTableRowData = useMemo(
+	const tableData: AppTableRowData<S, T1, T2, Id> = useMemo(
 		() => ({
 			gutterSize,
 			entities,
@@ -392,7 +391,7 @@ export function AppTable({
 	return (
 		<Table role="table" onKeyDown={onKeyDown} tabIndex={0}>
 			{ids.length ? (
-				<List<AppTableRowData>
+				<List<AppTableRowData<S, T1, T2, Id>>
 					listRef={bodyRef}
 					className="table-body"
 					rowComponent={AppTableRow}

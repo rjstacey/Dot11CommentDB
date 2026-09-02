@@ -57,7 +57,7 @@ export function createExpandedSubslice<Id extends EntityId>(dataSet: string) {
 	};
 }
 
-export function getExpandedSelectors<S, Id extends EntityId = EntityId>(
+export function getExpandedSelectors<S, Id extends EntityId>(
 	selectState: (state: S) => ExpandedState<Id>,
 ) {
 	return {

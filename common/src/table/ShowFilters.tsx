@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import type { EntityId } from "@reduxjs/toolkit";
 import cx from "clsx";
 
 import {
@@ -11,6 +11,8 @@ import {
 	CompOpValue,
 	CompOp,
 	FilterComp,
+	useAppTableDispatch,
+	useAppTableSelector,
 } from "../store/appTableData";
 
 import "../styles/index.css";
@@ -120,11 +122,11 @@ function ShowFilters({
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
 }) {
-	const dispatch = useDispatch();
+	const dispatch = useAppTableDispatch();
 
-	const totalRows = useSelector(selectors.selectIds).length;
-	const shownRows = useSelector(selectors.selectSortedFilteredIds).length;
-	const filters = useSelector(selectors.selectFilters);
+	const totalRows = useAppTableSelector(selectors.selectIds).length;
+	const shownRows = useAppTableSelector(selectors.selectSortedFilteredIds).length;
+	const filters = useAppTableSelector(selectors.selectFilters);
 
 	const activeFilterElements = useMemo(() => {
 		const removeFilter = (

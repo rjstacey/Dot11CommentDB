@@ -1,5 +1,5 @@
 import { useRef } from "react";
-
+import type { EntityId } from "@reduxjs/toolkit";
 import { ColumnResizer, DraggableEventHandler } from "./ColumnResizer";
 
 import type {
@@ -10,19 +10,19 @@ import type {
 	AppTableDataActions,
 } from "./AppTable";
 
-type HeaderCellProps = {
+type HeaderCellProps<S, T1 extends {}, T2 extends T1, Id extends EntityId> = {
 	anchorEl: HTMLElement | null;
-	column: ColumnProperties & ChangeableColumnProperties;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
+	column: ColumnProperties<S, T1, T2, Id> & ChangeableColumnProperties;
+	selectors: AppTableDataSelectors<S, T1, T2, Id>;
+	actions: AppTableDataActions<T1, Id>;
 	fixed: boolean;
 	adjustColumnWidth: (key: string, deltaX: number) => void;
 	defaultHeaderCellRenderer: (
-		props: HeaderCellRendererProps,
+		props: HeaderCellRendererProps<S, T1, T2, Id>,
 	) => React.ReactNode;
 };
 
-function HeaderCell({
+function HeaderCell<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	anchorEl,
 	column,
 	fixed,
@@ -30,7 +30,7 @@ function HeaderCell({
 	actions,
 	adjustColumnWidth,
 	defaultHeaderCellRenderer,
-}: HeaderCellProps) {
+}: HeaderCellProps<S, T1, T2, Id>) {
 	const {
 		key: dataKey,
 		width,
@@ -47,7 +47,7 @@ function HeaderCell({
 		overflow: "hidden", // necessary so that the content does not affect size
 	};
 	const headerCellRenderer = headerRenderer || defaultHeaderCellRenderer;
-	const headerCellRendererProps: HeaderCellRendererProps = {
+	const headerCellRendererProps: HeaderCellRendererProps<S, T1, T2, Id> = {
 		anchorEl,
 		dataKey,
 		column,
@@ -75,7 +75,7 @@ function HeaderCell({
  * div.header-row is the full header and may exceed the viewport width; scrolled by the data table horizontal scroll bar
  * A HeaderCell is present for each column and contains the header cell content and column resizer
  */
-export function TableHeader({
+export function TableHeader<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	headerRef,
 	scrollbarSize,
 	fixed,
@@ -88,10 +88,12 @@ export function TableHeader({
 	headerRef: React.Ref<HTMLDivElement>;
 	scrollbarSize: number;
 	fixed: boolean;
-	columns: Array<ColumnProperties & ChangeableColumnProperties>;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
-} & Pick<HeaderCellProps, "adjustColumnWidth" | "defaultHeaderCellRenderer">) {
+	columns: Array<ColumnProperties<S, T1, T2, Id> & ChangeableColumnProperties>;
+	selectors: AppTableDataSelectors<S, T1, T2, Id>;
+	actions: AppTableDataActions<T1, Id>;
+	adjustColumnWidth: (key: string, delta: number) => void;
+	defaultHeaderCellRenderer: (props: HeaderCellRendererProps<S, T1, T2, Id>) => React.ReactNode;
+}) {
 	const anchorRef = useRef<HTMLDivElement>(null);
 
 	return (

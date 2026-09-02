@@ -6,7 +6,6 @@ import {
 	useCallback,
 } from "react";
 import ExpadingTextArea from "react-expanding-textarea";
-import { useDispatch, useSelector } from "react-redux";
 import type { EntityId } from "@reduxjs/toolkit";
 
 import {
@@ -14,13 +13,15 @@ import {
 	AppTableDataActions,
 	FilterComp,
 	CompOp,
+	useAppTableDispatch,
+	useAppTableSelector,
 } from "../store/appTableData";
 
 import "./IdList.css";
 
 const idRegex = /[^\s,]+/g;
 
-function IdList({
+function IdList<Id extends EntityId>({
 	style,
 	className,
 	ids,
@@ -31,10 +32,10 @@ function IdList({
 }: {
 	style?: React.CSSProperties;
 	className?: string;
-	ids: EntityId[];
-	isValid: (id: EntityId) => boolean;
+	ids: Id[];
+	isValid: (id: Id) => boolean;
 	isNumber: boolean;
-	onChange: (ids: EntityId[]) => void;
+	onChange: (ids: Id[]) => void;
 	focusOnMount?: boolean;
 }) {
 	const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -105,7 +106,7 @@ function IdList({
 	function markInvalid(value: string) {
 		return value.replace(idRegex, (match) => {
 			const id = isNumber ? Number(match) : match;
-			return isValid(id) ? match : `<mark>${match}</mark>`;
+			return isValid(id as Id) ? match : `<mark>${match}</mark>`;
 		});
 	}
 
@@ -113,7 +114,7 @@ function IdList({
 		setValue(value);
 		let updatedIds: EntityId[] = value.match(idRegex) || [];
 		if (isNumber) updatedIds = updatedIds.map(Number);
-		if (updatedIds.join() !== ids.join()) onChange(updatedIds);
+		if (updatedIds.join() !== ids.join()) onChange(updatedIds as Id[]);
 	}
 
 	return (
@@ -144,7 +145,7 @@ function IdList({
 	);
 }
 
-export function IdFilter({
+export function IdFilter<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	selectors,
 	actions,
 	dataKey = "id",
@@ -154,13 +155,13 @@ export function IdFilter({
 	style?: React.CSSProperties;
 	className?: string;
 	focusOnMount?: boolean;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
+	selectors: AppTableDataSelectors<S, T1, T2, Id>;
+	actions: AppTableDataActions<T1, Id>;
 }) {
-	const dispatch = useDispatch();
+	const dispatch = useAppTableDispatch();
 	const { getField } = selectors;
-	const ids = useSelector(selectors.selectIds);
-	const entities = useSelector(selectors.selectEntities);
+	const ids = useAppTableSelector(selectors.selectIds);
+	const entities = useAppTableSelector(selectors.selectEntities);
 	const isNumber =
 		ids.length > 0 &&
 		typeof getField(entities[ids[0]], dataKey) === "number";
@@ -169,7 +170,7 @@ export function IdFilter({
 		(state: any) => selectors.selectFilter(state, dataKey),
 		[selectors, dataKey],
 	);
-	const filter = useSelector(selectFilter);
+	const filter = useAppTableSelector(selectFilter);
 	const values = filter.comps.map((v) => v.value);
 
 	const isValid = useCallback(
@@ -201,24 +202,24 @@ export function IdFilter({
 	);
 }
 
-export function IdSelector({
+export function IdSelector<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	dataKey = "id",
 	selectors,
 	actions,
 	...props
 }: {
 	dataKey?: string;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
+	selectors: AppTableDataSelectors<S, T1, T2, Id>;
+	actions: AppTableDataActions<T1, Id>;
 	style?: React.CSSProperties;
 	className?: string;
 	focusOnMount?: boolean;
 }) {
-	const dispatch = useDispatch();
+	const dispatch = useAppTableDispatch();
 	const { getField } = selectors;
-	const ids = useSelector(selectors.selectIds);
-	const entities = useSelector(selectors.selectEntities);
-	const selected = useSelector(selectors.selectSelected);
+	const ids = useAppTableSelector(selectors.selectIds);
+	const entities = useAppTableSelector(selectors.selectEntities);
+	const selected = useAppTableSelector(selectors.selectSelected);
 	const values = selected.map((id) => getField(entities[id]!, dataKey));
 	const isNumber =
 		ids.length > 0 &&
@@ -232,9 +233,9 @@ export function IdSelector({
 	);
 
 	const onChange = useCallback(
-		(values: EntityId[]) => {
+		(values: Id[]) => {
 			const selected = values.reduce(
-				(selected: EntityId[], value: EntityId) => {
+				(selected: Id[], value: Id) => {
 					const i = ids.findIndex(
 						(id) => getField(entities[id]!, dataKey) === value,
 					);

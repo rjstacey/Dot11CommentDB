@@ -6,7 +6,7 @@ import type { GetEntityField, ColumnProperties, RowGetter } from "./AppTable";
 /**
  * TableRow component for AppTable
  */
-function TableRow({
+function TableRow<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	style,
 	gutterSize,
 	rowIndex,
@@ -29,14 +29,14 @@ function TableRow({
 	};
 	gutterSize: number;
 	rowIndex: number;
-	rowId: EntityId;
-	rowData: { [k: string]: unknown };
-	prevRowId: EntityId | undefined;
+	rowId: Id;
+	rowData: T2;
+	prevRowId: Id | undefined;
 	isSelected: boolean;
 	isExpanded: boolean;
 	fixed: boolean;
-	columns: ColumnProperties[];
-	getField: GetEntityField;
+	columns: ColumnProperties<S, T1, T2, Id>[];
+	getField: GetEntityField<T2>;
 	estimatedRowHeight: number;
 	onRowHeightChange: (rowIndex: number, height: number) => void;
 	onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -117,16 +117,16 @@ function TableRow({
 	);
 }
 
-export type AppTableRowData = {
+export type AppTableRowData<S, T1 extends {}, T2 extends T1, Id extends EntityId> = {
 	gutterSize: number;
-	entities: Record<EntityId, unknown>;
-	ids: EntityId[];
-	selected: EntityId[];
-	expanded: EntityId[];
+	entities: Record<Id, T2>;
+	ids: Id[];
+	selected: Id[];
+	expanded: Id[];
 	fixed: boolean;
-	columns: ColumnProperties[];
-	getRowData?: RowGetter;
-	getField: GetEntityField;
+	columns: ColumnProperties<S, T1, T2, Id>[];
+	getRowData?: RowGetter<T2>;
+	getField: GetEntityField<T2>;
 	estimatedRowHeight: number;
 	measureRowHeight: boolean;
 	onRowHeightChange: (index: number, height: number) => void;
@@ -139,7 +139,7 @@ export type AppTableRowData = {
 	}) => void;
 };
 
-export function AppTableRow({
+export function AppTableRow<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	index: rowIndex,
 	style,
 	entities,
@@ -153,7 +153,7 @@ export function AppTableRow({
 }: {
 	index: number;
 	style: React.CSSProperties;
-} & AppTableRowData) {
+} & AppTableRowData<S, T1, T2, Id>) {
 	const { rowId, rowData, prevRowId } = useMemo(() => {
 		const rowId = ids[rowIndex];
 		const prevRowId = rowIndex > 0 ? ids[rowIndex - 1] : undefined;
@@ -171,7 +171,7 @@ export function AppTableRow({
 		() =>
 			onRowClick
 				? (event: React.MouseEvent<HTMLDivElement>) =>
-						onRowClick({ event, rowIndex })
+					onRowClick({ event, rowIndex })
 				: undefined,
 		[onRowClick, rowIndex],
 	);

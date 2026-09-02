@@ -1,8 +1,8 @@
 import { useCallback, useRef, useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Form, Row, Col, Button, Dropdown } from "react-bootstrap";
-import { useDispatch, useSelector } from "react-redux";
 import { List, type RowComponentProps } from "react-window";
+import type { EntityId } from "@reduxjs/toolkit";
 
 import { DateFilter } from "./DateFilter";
 
@@ -19,6 +19,8 @@ import {
 	CompOpValue,
 	FieldTypeValue,
 	getCompFunc,
+	useAppTableDispatch,
+	useAppTableSelector,
 } from "../store/appTableData";
 
 import type { HeaderCellRendererProps } from "./AppTable";
@@ -62,19 +64,19 @@ function IconSort({
 	return <i className={className} style={style} />;
 }
 
-function SortComponent({
+function SortComponent<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	dataKey,
 	selectors,
 	actions,
 }: {
 	dataKey: string;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
+	selectors: AppTableDataSelectors<S, T1, T2, Id>;
+	actions: AppTableDataActions<T1, Id>;
 }) {
-	const { direction, type } = useSelector((state) =>
+	const { direction, type } = useAppTableSelector((state: S) =>
 		selectors.selectSort(state, dataKey),
 	);
-	const dispatch = useDispatch();
+	const dispatch = useAppTableDispatch();
 	const setSort = useCallback(
 		(direction: SortDirectionValue) =>
 			dispatch(actions.setSortDirection({ dataKey, direction })),
@@ -120,7 +122,7 @@ function SortComponent({
 
 type FilterItem = Option & FilterComp;
 
-function FilterComponent({
+function FilterComponent<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	dataKey,
 	selectors,
 	actions,
@@ -128,29 +130,29 @@ function FilterComponent({
 	customFilterElement,
 }: {
 	dataKey: string;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
+	selectors: AppTableDataSelectors<S, T1, T2, Id>;
+	actions: AppTableDataActions<T1, Id>;
 	dataRenderer?: (value: any) => string;
 	customFilterElement?: React.ReactNode;
 }) {
 	const [search, setSearch] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
 
-	const dispatch = useDispatch();
+	const dispatch = useAppTableDispatch();
 
 	const selectSort = useCallback(
-		(state: any) => selectors.selectSort(state, dataKey),
+		(state: S) => selectors.selectSort(state, dataKey),
 		[selectors, dataKey],
 	);
 	const selectFilter = useCallback(
-		(state: any) => selectors.selectFilter(state, dataKey),
+		(state: S) => selectors.selectFilter(state, dataKey),
 		[selectors, dataKey],
 	);
-	const sort = useSelector(selectSort);
-	const filter = useSelector(selectFilter);
-	const selected = useSelector(selectors.selectSelected);
-	const entities = useSelector(selectors.selectEntities);
-	const ids = useSelector(selectors.selectIds);
+	const sort = useAppTableSelector(selectSort);
+	const filter = useAppTableSelector(selectFilter);
+	const selected = useAppTableSelector(selectors.selectSelected);
+	const entities = useAppTableSelector(selectors.selectEntities);
+	const ids = useAppTableSelector(selectors.selectIds);
 	const getField = selectors.getField;
 
 	const values = useMemo(
@@ -265,7 +267,7 @@ function FilterComponent({
 						value: search,
 						operation: CompOp.REGEX,
 					};
-				} catch (err) {}
+				} catch (err) { }
 			} else if (
 				filter.type === FieldType.NUMERIC &&
 				(search[0] === ">" || search[0] === "<")
@@ -458,13 +460,13 @@ const Header = ({
 	/>
 );
 
-type AppTableHeaderCellProps = HeaderCellRendererProps & {
+type AppTableHeaderCellProps<S, T1 extends {}, T2 extends T1, Id extends EntityId> = HeaderCellRendererProps<S, T1, T2, Id> & {
 	className?: string;
 	style?: React.CSSProperties;
 	customFilterElement?: React.ReactNode;
 };
 
-function AppTableHeaderCell({
+function AppTableHeaderCell<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	className,
 	style,
 	label, // Column label
@@ -474,9 +476,9 @@ function AppTableHeaderCell({
 	selectors,
 	actions,
 	customFilterElement, // Custom filter element for dropdown
-}: AppTableHeaderCellProps) {
+}: AppTableHeaderCellProps<S, T1, T2, Id>) {
 	const [show, setShow] = useState(false);
-	const sorts = useSelector(selectors.selectSorts);
+	const sorts = useAppTableSelector(selectors.selectSorts);
 	const sort = sorts.settings[dataKey];
 	const isSorted = sorts.by.includes(dataKey);
 
@@ -484,7 +486,7 @@ function AppTableHeaderCell({
 		(state: any) => selectors.selectFilter(state, dataKey),
 		[selectors, dataKey],
 	);
-	const filter = useSelector(selectFilter);
+	const filter = useAppTableSelector(selectFilter);
 	const isFiltered = filter && filter.comps.length > 0;
 
 	if (!sort && !filter)

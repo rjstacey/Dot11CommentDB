@@ -10,7 +10,7 @@ import type { ColumnProperties, ChangeableColumnProperties } from "./AppTable";
 import "./TableColumnSelector.css";
 
 export type ColumnSelectorProps = {
-	columns: Array<ColumnProperties>;
+	columns: ColumnProperties[];
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
 };

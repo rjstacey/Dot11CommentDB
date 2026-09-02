@@ -1,7 +1,8 @@
-import { useState, useMemo, JSX } from "react";
+import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Dropdown, FormCheck, Button } from "react-bootstrap";
-import { useDispatch, useSelector } from "react-redux";
+import type { EntityId } from "@reduxjs/toolkit";
+import { useAppTableDispatch, useAppTableSelector } from "../store/appTableData";
 
 import type {
 	HeaderCellRendererProps,
@@ -13,23 +14,23 @@ import type {
 import "../styles/index.css";
 import "./ControlColumn.css";
 
-type ControlHeaderCellProps = HeaderCellRendererProps & {
-	customSelectorElement?: JSX.Element; //React.ReactNode;
+type ControlHeaderCellProps<S, T1 extends {}, T2 extends T1, Id extends EntityId> = HeaderCellRendererProps<S, T1, T2, Id> & {
+	customSelectorElement?: React.ReactElement; //React.ReactNode;
 	showExpanded?: boolean;
 };
 
-function ControlHeaderCell({
+function ControlHeaderCell<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	anchorEl,
 	customSelectorElement,
 	showExpanded,
 	selectors,
 	actions,
-}: ControlHeaderCellProps) {
-	const dispatch = useDispatch();
+}: ControlHeaderCellProps<S, T1, T2, Id>) {
+	const dispatch = useAppTableDispatch();
 
-	const selected = useSelector(selectors.selectSelected);
-	const expanded = useSelector(selectors.selectExpanded);
-	const shownIds = useSelector(selectors.selectSortedFilteredIds);
+	const selected = useAppTableSelector(selectors.selectSelected);
+	const expanded = useAppTableSelector(selectors.selectExpanded);
+	const shownIds = useAppTableSelector(selectors.selectSortedFilteredIds);
 	const [show, setShow] = useState(false);
 
 	const allSelected = useMemo(
@@ -93,9 +94,8 @@ function ControlHeaderCell({
 			{showExpanded && (
 				<Button
 					variant="light"
-					className={`icon icon-double-caret-${
-						allExpanded ? "down" : "right"
-					} m-0 p-0`}
+					className={`icon icon-double-caret-${allExpanded ? "down" : "right"
+						} m-0 p-0`}
 					title="Expand all"
 					onClick={toggleExpand}
 				/>
@@ -104,48 +104,60 @@ function ControlHeaderCell({
 	);
 }
 
-const SelectExpandHeaderCell = (
-	props: Omit<ControlHeaderCellProps, "showExpanded">,
+const SelectExpandHeaderCell = <S, T1 extends {}, T2 extends T1, Id extends EntityId>(
+	props: Omit<ControlHeaderCellProps<S, T1, T2, Id>, "showExpanded">,
 ) => <ControlHeaderCell showExpanded {...props} />;
-const SelectHeaderCell = (props: ControlHeaderCellProps) => (
+const SelectHeaderCell = <S, T1 extends {}, T2 extends T1, Id extends EntityId>(props: ControlHeaderCellProps<S, T1, T2, Id>) => (
 	<ControlHeaderCell {...props} />
 );
 
-type ControlCellProps = CellRendererProps & {
+type ControlCellProps<S, T1 extends {}, T2 extends T1, Id extends EntityId> = CellRendererProps<S, T1, T2, Id> & {
 	showExpanded?: boolean;
-	selectors: AppTableDataSelectors;
-	actions: AppTableDataActions;
+	selectors: AppTableDataSelectors<S, T1, T2, Id>;
+	actions: AppTableDataActions<T1, Id>;
 };
 
-function ControlCell({
+function ControlCell<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	rowId,
 	showExpanded,
 	selectors,
 	actions,
-}: ControlCellProps) {
-	const dispatch = useDispatch();
+}: ControlCellProps<S, T1, T2, Id>) {
+	const dispatch = useAppTableDispatch();
 
-	const toggleSelect = () => dispatch(actions.toggleSelected([rowId]));
-	const toggleExpand = () => dispatch(actions.toggleExpanded([rowId]));
+	const selected = useAppTableSelector(selectors.selectSelected);
+	const expanded = useAppTableSelector(selectors.selectExpanded);
 
-	const selected = useSelector(selectors.selectSelected);
-	const expanded = useSelector(selectors.selectExpanded);
+	const isSelected = selected.includes(rowId);
+	const toggleSelect = () => {
+		const i = selected.indexOf(rowId);
+		let s = selected.slice();
+		if (i >= 0) s.splice(i, 1);
+		else s.push(rowId);
+		dispatch(actions.setSelected(s));
+	};
+
 	const isExpanded = expanded.includes(rowId);
+	const toggleExpand = () => {
+		const i = expanded.indexOf(rowId);
+		let e = expanded.slice();
+		if (i >= 0) e.splice(i, 1);
+		else e.push(rowId);
+		dispatch(actions.setExpanded(e));
+	};
 
 	return (
 		<div className="control-column" onClick={(e) => e.stopPropagation()}>
 			<FormCheck
 				id={"select-row-" + rowId}
 				title={"Select row " + rowId}
-				checked={selected.includes(rowId)}
+				checked={isSelected}
 				onChange={toggleSelect}
 			/>
 			{showExpanded && (
 				<Button
 					variant="light"
-					className={`icon icon-caret-${
-						isExpanded ? "down" : "right"
-					} m-0 p-0`}
+					className={`icon icon-caret-${isExpanded ? "down" : "right"} m-0 p-0`}
 					title="Expand all"
 					onClick={toggleExpand}
 				/>
@@ -154,10 +166,10 @@ function ControlCell({
 	);
 }
 
-const SelectExpandCell = (props: Omit<ControlCellProps, "showExpanded">) => (
+const SelectExpandCell = <S, T1 extends {}, T2 extends T1, Id extends EntityId>(props: Omit<ControlCellProps<S, T1, T2, Id>, "showExpanded">) => (
 	<ControlCell showExpanded {...props} />
 );
-const SelectCell = (props: ControlCellProps) => <ControlCell {...props} />;
+const SelectCell = <S, T1 extends {}, T2 extends T1, Id extends EntityId>(props: ControlCellProps<S, T1, T2, Id>) => <ControlCell {...props} />;
 
 export {
 	SelectHeaderCell,

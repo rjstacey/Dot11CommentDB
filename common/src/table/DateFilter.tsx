@@ -1,10 +1,11 @@
-import { useDispatch, useSelector } from "react-redux";
 import { Form, Row, Col } from "react-bootstrap";
 import {
 	FilterComp,
 	AppTableDataSelectors,
 	AppTableDataActions,
 	CompOp,
+	useAppTableSelector,
+	useAppTableDispatch,
 } from "../store/appTableData";
 
 export function DateFilter({
@@ -16,14 +17,14 @@ export function DateFilter({
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
 }) {
-	const dispatch = useDispatch();
+	const dispatch = useAppTableDispatch();
 
-	const beforeDate = useSelector((state: any) => {
+	const beforeDate = useAppTableSelector((state: any) => {
 		const filter = selectors.selectFilter(state, dataKey);
 		return filter.comps.find((c) => c.operation === CompOp.LT)?.value || "";
 	});
 
-	const afterDate = useSelector((state: any) => {
+	const afterDate = useAppTableSelector((state: any) => {
 		const filter = selectors.selectFilter(state, dataKey);
 		return filter.comps.find((c) => c.operation === CompOp.GT)?.value || "";
 	});

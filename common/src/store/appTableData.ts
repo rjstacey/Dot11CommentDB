@@ -1,4 +1,6 @@
-import { createSlice, createEntityAdapter } from "@reduxjs/toolkit";
+
+import { useDispatch, useSelector } from "react-redux";
+import { createSlice, createEntityAdapter, type ThunkAction, UnknownAction, ThunkDispatch, Dispatch } from "@reduxjs/toolkit";
 
 import type {
 	EntityId,
@@ -50,7 +52,7 @@ export * from "./ui";
 
 //type Dictionary<T> = Record<EntityId, T>;
 
-export type GetEntityField<T extends {} = Record<string, any>> = (
+export type GetEntityField<T extends {}> = (
 	entity: T,
 	dataKey: string,
 ) => any;
@@ -88,7 +90,7 @@ type LoadingState = {
 	valid: boolean;
 };
 
-export type AppTableDataState<T, Id extends EntityId> = EntityState<T, Id> &
+export type AppTableDataState<T extends {}, Id extends EntityId> = EntityState<T, Id> &
 	LoadingState &
 	SelectedState<Id> &
 	ExpandedState<Id> &
@@ -113,8 +115,8 @@ type R0<S, T1 extends {}, Id extends EntityId> = {
 	selectSortedIds: (state: S) => Id[];
 	selectFilteredIds: (state: S) => Id[];
 	selectSortedFilteredIds: (state: S) => Id[];
-} & ReturnType<typeof getSelectedSelectors<S>> &
-	ReturnType<typeof getExpandedSelectors<S>> &
+} & ReturnType<typeof getSelectedSelectors<S, Id>> &
+	ReturnType<typeof getExpandedSelectors<S, Id>> &
 	ReturnType<typeof getFiltersSelectors<S>> &
 	ReturnType<typeof getSortsSelectors<S>> &
 	ReturnType<typeof getUiSelectors<S>>;
@@ -211,8 +213,8 @@ export function getAppTableDataSelectors<
 			selectSortedIds,
 			selectFilteredIds,
 			selectSortedFilteredIds,
-			...getSelectedSelectors(selectState),
-			...getExpandedSelectors(selectState),
+			...getSelectedSelectors<S, Id>(selectState),
+			...getExpandedSelectors<S, Id>(selectState),
 			...getFiltersSelectors(selectState),
 			...getSortsSelectors(selectState),
 			...getUiSelectors(selectState),
@@ -417,9 +419,23 @@ export function createAppTableDataSlice<
 	return slice;
 }
 
-export type AppTableDataActions<
-	T extends {} = any,
-	Id extends EntityId = EntityId,
+type RawAppTableDataActions<
+	T extends {},
+	Id extends EntityId,
 > = ReturnType<
 	typeof createAppTableDataSlice<T, Id, {}, {}, string>
 >["actions"];
+
+export type AppTableDataActions<
+	T extends {} = any,
+	Id extends EntityId = any,
+> = Omit<RawAppTableDataActions<T, Id>, "setSelected"> & {
+	setSelected: (
+		ids: Id[],
+	) =>
+		| PayloadAction<Id[]>
+		| ThunkAction<void, any, unknown, PayloadAction<Id[]>>;
+};
+
+export const useAppTableDispatch = useDispatch as () => ThunkDispatch<any, unknown, UnknownAction> & Dispatch<UnknownAction>;
+export const useAppTableSelector = useSelector;

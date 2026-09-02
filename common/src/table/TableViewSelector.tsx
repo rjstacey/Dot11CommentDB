@@ -1,22 +1,23 @@
 import { Button, ButtonGroup } from "react-bootstrap";
-import { useDispatch, useSelector } from "react-redux";
 
-import type {
-	AppTableDataSelectors,
-	AppTableDataActions,
+import {
+	type AppTableDataSelectors,
+	type AppTableDataActions,
+	useAppTableDispatch,
+	useAppTableSelector,
 } from "../store/appTableData";
 
 function TableViewSelector({
 	selectors,
 	actions,
 }: {
-	selectors: AppTableDataSelectors<any>;
+	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
 }) {
-	const dispatch = useDispatch();
+	const dispatch = useAppTableDispatch();
 
-	const currentView = useSelector(selectors.selectCurrentView);
-	const allViews = useSelector(selectors.selectViews);
+	const currentView = useAppTableSelector(selectors.selectCurrentView);
+	const allViews = useAppTableSelector(selectors.selectViews);
 
 	if (allViews.length <= 1) return null;
 
