@@ -9,6 +9,7 @@
 	"license": "ISC",
 	"scripts": {
 		"start": "NODE_ENV=development tsx watch --trace-deprecation src/index.ts",
+		"mysql": "sudo service mysql start",
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "esbuild src/index.ts --bundle --minify --platform=node --target=node20 --outfile=../build/server.js",
 		"prod": "cd ../build && node server.js",
@@ -16,9 +17,8 @@
 		"eslint": "eslint"
 	},
 	"dependencies": {
-		"@aws-sdk/client-ses": "^3.1106.0",
-		"@aws-sdk/config": "^3.1106.0",
-		"@aws-sdk/credential-providers": "^3.1070.0",
+		"@aws-sdk/client-ses": "^3.1120.0",
+		"@aws-sdk/credential-providers": "^3.1120.0",
 		"@smithy/node-http-handler": "^4.9.13",
 		"cheerio": "^1.2.0",
 		"cors": "^2.8.6",
@@ -27,22 +27,19 @@
 		"dotenv": "^17.4.2",
 		"exceljs": "^4.4.0",
 		"express": "^5.2.1",
-		"googleapis": "^173.0.0",
+		"googleapis": "^176.0.0",
 		"http-cookie-agent": "^8.0.0",
 		"jsonwebtoken": "^9.0.3",
-		"lodash.isempty": "^4.4.0",
-		"lodash.uniq": "^4.5.0",
-		"mysql2": "^3.23.3",
+		"mysql2": "^3.24.2",
 		"socket.io": "^4.8.3",
 		"tough-cookie": "^5.1.2",
 		"tzdata": "^1.0.50",
-		"undici": "^7.29.0"
+		"undici": "^8.10.0"
 	},
 	"devDependencies": {
 		"@types/cors": "^2.8.19",
 		"@types/express": "^5.0.6",
 		"@types/jsonwebtoken": "^9.0.10",
-		"@types/lodash.isempty": "^4.4.9",
 		"esbuild": "^0.28.2"
 	}
 }
