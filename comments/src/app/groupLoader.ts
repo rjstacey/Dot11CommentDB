@@ -6,6 +6,7 @@ import {
 	selectTopLevelGroupByName,
 	AccessLevel,
 	setTopLevelGroupId,
+	selectTopLevelGroupId
 } from "@/store/groups";
 import { loadMembers } from "@/store/members";
 import { loadBallots } from "@/store/ballots";
@@ -20,7 +21,9 @@ export const groupLoader: LoaderFunction = async ({ params }) => {
 	const group = selectTopLevelGroupByName(getState(), groupName);
 
 	if (!group) throw new Error("Invalid group: " + groupName);
-	dispatch(setTopLevelGroupId(group.id));
+	if (selectTopLevelGroupId(getState()) !== group.id) {
+		dispatch(setTopLevelGroupId(group.id));
+	}
 
 	const access = group.permissions.ballots || AccessLevel.none;
 	if (access < AccessLevel.ro)

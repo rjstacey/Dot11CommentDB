@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,
@@ -50,6 +50,7 @@ export function CommentsList() {
 	const actions = useMemo(() => ({ ...commentsActions, setSelected }), [setSelected]);
 
 	const { columns, rowGetter, defaultTablesConfig } = useTableColumns({ actions, selectors: commentsSelectors });
+
 
 	return (
 		<AppTable

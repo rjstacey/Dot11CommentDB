@@ -16,7 +16,10 @@ import {
 	selectCommentsState,
 	setSelected
 } from "@/store/comments";
-import { setCommentsLayout } from "@/hooks/commentsLayout";
+import {
+	selectCommentsLayout,
+	setCommentsLayout
+} from "@/hooks/commentsLayout";
 
 export function refresh () {
 	const { dispatch, getState } = store;
@@ -63,7 +66,9 @@ export const commentsLoader: LoaderFunction = async args => {
 
 	const url = new URL(args.request.url);
 	const layout = url.searchParams.get("layout");
-	dispatch(setCommentsLayout(layout));
+	if (selectCommentsLayout(getState()) !== layout) {
+		dispatch(setCommentsLayout(layout));
+	}
 
 	const cids = url.searchParams.getAll("cid");
 	const { ids, entities, selected } = selectCommentsState(getState());

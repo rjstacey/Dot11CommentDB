@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useSearchParams } from "react-router";
 import { createSelector } from "@reduxjs/toolkit";
 
@@ -34,23 +34,23 @@ export const selectCommentsSearch = createSelector(
 
 export function useCommentsSearch () {
 	const [, setSearchParams] = useSearchParams();
+	const s = useRef(setSearchParams);
+	s.current = setSearchParams; // stable reference since setSearchParams changes with navigation
+
 	const layout = useAppSelector(selectCommentsLayout);
 	const entities = useAppSelector(selectCommentEntities);
 
-	const setLayout = useCallback(
-		(layout: string | null) => {
-			setSearchParams(searchParams => {
-				if (layout) searchParams.set("layout", layout);
-				else searchParams.delete("layout");
-				return searchParams;
-			});
-		},
-		[setSearchParams]
-	);
+	const setLayout = useCallback((layout: string | null) => {
+		s.current(searchParams => {
+			if (layout) searchParams.set("layout", layout);
+			else searchParams.delete("layout");
+			return searchParams;
+		});
+	}, []);
 
 	const setSelected = useCallback(
 		(selected: (string | number)[]) => {
-			setSearchParams(searchParams => {
+			s.current(searchParams => {
 				searchParams.delete("cid");
 				selected
 					.map(id => {
@@ -64,7 +64,7 @@ export function useCommentsSearch () {
 			});
 			return () => {};
 		},
-		[entities, setSearchParams]
+		[entities]
 	);
 
 	return { layout, setLayout, setSelected };
