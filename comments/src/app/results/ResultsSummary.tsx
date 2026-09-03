@@ -40,28 +40,28 @@ type ResultRender = {
 	style?: Style;
 };
 
-function ballotDate(d: string | null) {
-	if (!d) return "-";
-	const date = new Date(d);
-	const format = Intl.DateTimeFormat("en-GB", {
-		year: "numeric",
-		month: "numeric",
-		day: "numeric",
-		timeZone: "America/New_York",
-	}); // DD/MM/YYYY
-	const parts = format
-		.formatToParts(date)
-		.map((p) => p.value)
-		.filter((n) => !isNaN(Number(n)))
-		.reverse()
-		.join("-"); // YYYY-MM-DD
-	return parts;
+/** Convert an ISO date string to US eastern time and return string in form "YYYY-MM-DD" */
+function ballotDate(isoDate: string | null) {
+	if (!isoDate) return "";
+	const utcDate = new Date(isoDate);
+	const date = new Date(
+		utcDate.toLocaleString("en-US", { timeZone: "America/New_York" }),
+	);
+	return (
+		date.getFullYear() +
+		"-" +
+		("0" + (date.getMonth() + 1)).slice(-2) +
+		"-" +
+		("0" + date.getDate()).slice(-2)
+	);
 }
+
 
 const ballotDuration = (b: Ballot) => {
 	if (b.Start && b.End) {
 		const dStart = new Date(b.Start);
 		const dEnd = new Date(b.End);
+		dEnd.setDate(dEnd.getDate() + 1); // Add a day (because the ballot closes at the end of the day)
 		const _MS_PER_DAY = 1000 * 60 * 60 * 24;
 		const dur = Math.floor(
 			(dEnd.valueOf() - dStart.valueOf()) / _MS_PER_DAY,
@@ -228,9 +228,8 @@ function longSummaryHtml(ballots: Ballot[]) {
 				fontWeight: "bold",
 				padding: "0.2em 0.8em",
 			};
-			return `<td colspan="${
-				ballots.length + 1
-			}" style="${styleObjToString(style)}">${r}</td>`;
+			return `<td colspan="${ballots.length + 1
+				}" style="${styleObjToString(style)}">${r}</td>`;
 		} else {
 			const cols: string[] = [];
 			const label =
