@@ -18,12 +18,12 @@ import {
 } from "@/store/comments";
 import { useCommentsEdit } from "@/hooks/commentsEdit";
 
+import { ShowAccess } from "@/components/ShowAccess";
+import { ShowHistoryButton } from "../ShowHistoryButton";
 import CommentEdit from "./CommentEdit";
 import ResolutionEdit from "./ResolutionEdit";
 import { EditingNotesRowCollapsable } from "./EditingNotes";
 import { RoleSelect } from "./RoleSelect";
-import { ShowAccess } from "@/components/ShowAccess";
-import { ShowHistoryButton } from "../ShowHistoryButton";
 
 function renderCommentsStatus(commentResolutions: CommentResolution[]) {
 	let status: string | typeof MULTIPLE = "";

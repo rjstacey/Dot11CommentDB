@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { CommentEditDetail } from "./edit";
 import { CommentHistoryDetail } from "./history";
-import { useAppSelector } from "@/store/hooks";
-import { selectIsOnline } from "@/store/offline";
 
 import "./details.css";
 
