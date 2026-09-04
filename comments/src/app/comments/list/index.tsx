@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { Row, Col } from "react-bootstrap";
 import {
 	AppTable,

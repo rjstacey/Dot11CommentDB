@@ -23,6 +23,7 @@ import ResolutionEdit from "./ResolutionEdit";
 import { EditingNotesRowCollapsable } from "./EditingNotes";
 import { RoleSelect } from "./RoleSelect";
 import { ShowAccess } from "@/components/ShowAccess";
+import { ShowHistoryButton } from "../ShowHistoryButton";
 
 function renderCommentsStatus(commentResolutions: CommentResolution[]) {
 	let status: string | typeof MULTIPLE = "";
@@ -63,7 +64,14 @@ const Placeholder = (props: React.ComponentProps<"span">) => (
 	</div>
 );
 
-export function CommentEditDetail() {
+export function CommentEditDetail({
+	showHistory,
+	setShowHistory,
+}: {
+	showHistory: boolean;
+	setShowHistory: (show: boolean) => void;
+}
+) {
 	const dispatch = useAppDispatch();
 
 	const editMode: boolean | undefined =
@@ -82,96 +90,93 @@ export function CommentEditDetail() {
 		onDeleteResolutions,
 	} = useCommentsEdit(!editMode);
 
-	const actionElements = (
-		<>
-			{commentsAccess >= AccessLevel.rw && (
-				<>
-					<Button
-						variant="outline-primary"
-						title="Create alternate resolution"
-						disabled={
-							state.action !== "update" ||
-							!editMode
-						}
-						onClick={onAddResolutions}
-					>
-						<i className="bi-plus-lg me-1" />
-						{"Add Resn"}
-					</Button>
-					<Button
-						variant="outline-primary"
-						title="Delete resolution"
-						disabled={
-							state.action !== "update" ||
-							!editMode
-						}
-						onClick={onDeleteResolutions}
-					>
-						<i className="bi-trash me-1" />
-						{"Delete Resn"}
-					</Button>
-				</>
-			)}
-		</>
-	);
+	let actionElements: React.ReactNode = undefined;
+	if (commentsAccess >= AccessLevel.rw) {
+		actionElements = <>
+			<Button
+				variant="outline-primary"
+				title="Create alternate resolution"
+				disabled={
+					state.action !== "update" ||
+					!editMode
+				}
+				onClick={onAddResolutions}
+			>
+				<i className="bi-plus-lg me-1" />
+				{"Add Resn"}
+			</Button>
+			<Button
+				variant="outline-primary"
+				title="Delete resolution"
+				disabled={
+					state.action !== "update" ||
+					!editMode
+				}
+				onClick={onDeleteResolutions}
+			>
+				<i className="bi-trash me-1" />
+				{"Delete Resn"}
+			</Button>
+			<ShowHistoryButton
+				showHistory={showHistory}
+				setShowHistory={setShowHistory}
+			/>
+		</>;
+	}
 
 	let content: React.ReactNode;
 	if (state.action === null) {
 		content = <Placeholder>{state.message}</Placeholder>;
 	} else {
-		content = (
-			<>
-				<CidAndStatusRow
-					commentResolutions={state.commentResolutions}
-				/>
-				<CommentEdit
-					edited={state.commentsEdited}
-					onChange={onChangeComments}
-					readOnly={readOnly || commentsAccess < AccessLevel.rw}
-				/>
-				<ResolutionEdit
-					resolution={state.resolutionsEdited}
-					updateResolution={onChangeResolutions}
-					readOnly={readOnly || resolutionsAccess < AccessLevel.rw}
-					commentsAccess={commentsAccess}
-				/>
-				<EditingNotesRowCollapsable
-					resolution={state.resolutionsEdited}
-					updateResolution={onChangeResolutions}
-					readOnly={readOnly || commentsAccess < AccessLevel.rw}
-				/>
-			</>
-		);
+		content = <>
+			<CidAndStatusRow
+				commentResolutions={state.commentResolutions}
+			/>
+			<CommentEdit
+				edited={state.commentsEdited}
+				onChange={onChangeComments}
+				readOnly={readOnly || commentsAccess < AccessLevel.rw}
+			/>
+			<ResolutionEdit
+				resolution={state.resolutionsEdited}
+				updateResolution={onChangeResolutions}
+				readOnly={readOnly || resolutionsAccess < AccessLevel.rw}
+				commentsAccess={commentsAccess}
+			/>
+			<EditingNotesRowCollapsable
+				resolution={state.resolutionsEdited}
+				updateResolution={onChangeResolutions}
+				readOnly={readOnly || commentsAccess < AccessLevel.rw}
+			/>
+		</>;
 	}
 
-	return (
-		<>
-			<div className="d-flex justify-content-between align-items-center">
-				<div className="d-flex align-items-center gap-2">
-					<RoleSelect />
-					{(commentsAccess >= AccessLevel.rw ||
-						resolutionsAccess >= AccessLevel.rw) && (
-							<ToggleButton
-								id="toggle-edit-mode"
-								type="checkbox"
-								variant="outline-primary"
-								title="Edit mode"
-								disabled={state.action !== "update"}
-								value="1"
-								checked={editMode}
-								onChange={(e) => setEditMode(e.target.checked)}
-							>
-								<i className="bi-pencil me-1" />
-								{"Edit"}
-							</ToggleButton>
-						)}
-				</div>
-				<div className="d-flex justify-content-end gap-2">
-					{actionElements}
-				</div>
+	return <>
+		<div className="d-flex justify-content-between align-items-center">
+			<div className="d-flex align-items-center gap-2">
+				<RoleSelect />
+				{(commentsAccess >= AccessLevel.rw ||
+					resolutionsAccess >= AccessLevel.rw) && (
+						<ToggleButton
+							id="toggle-edit-mode"
+							type="checkbox"
+							variant="outline-primary"
+							title="Edit mode"
+							disabled={state.action !== "update"}
+							value="1"
+							checked={editMode}
+							onChange={(e) => setEditMode(e.target.checked)}
+						>
+							<i className="bi-pencil me-1" />
+							{"Edit"}
+						</ToggleButton>
+					)}
 			</div>
-			<Container className="main">{content}</Container>
-			<ShowAccess access={[commentsAccess, resolutionsAccess]} />
-		</>
-	);
+			<div className="d-flex justify-content-end gap-2">
+				{actionElements}
+			</div>
+		</div>
+		<Container className="main">{content}</Container>
+		<ShowAccess access={[commentsAccess, resolutionsAccess]} />
+	</>;
 }

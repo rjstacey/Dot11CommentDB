@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { PDFViewer, PDFViewerRef, DocumentManagerPlugin, ScrollPlugin, AnnotationPlugin, PdfAnnotationSubtype, PdfAnnotationBorderStyle, PdfAnnotationObject } from '@embedpdf/react-pdf-viewer';
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -45,13 +45,6 @@ export function DraftDetail() {
 	const comments = useMemo(() => selected.map((id) => entities[id]!).filter(Boolean), [selected, entities]);
 	const [isReady, setIsReady] = useState(false);
 	const annotationsRef = useRef<PdfAnnotationObject[]>([]);
-
-	useEffect(() => {
-		console.log("mount");
-		return () => {
-			console.log("unmount");
-		}
-	}, []);
 
 	const onViewerReady = useCallback(async () => {
 		console.log("Viewer ready");
@@ -113,7 +106,6 @@ export function DraftDetail() {
 			const a = annotationsRef.current[0];
 			if (a)
 				scroll.scrollToPage({ pageNumber: a.pageIndex + 1, behavior: 'instant' });
-
 		}
 		if (isReady) updateAnnotations();
 	}, [comments, ballot, isReady]);
@@ -125,7 +117,7 @@ export function DraftDetail() {
 			onReady={onViewerReady}
 			config={{
 				theme: { preference: 'light' },
-				disabledCategories: ['annotation', 'print', 'export', 'insert', 'form', 'redaction']
+				disabledCategories: ['annotation', 'print', 'export', 'insert', 'form', 'redaction'],
 			}}
 		/>
 	);
