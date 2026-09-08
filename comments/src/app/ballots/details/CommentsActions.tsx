@@ -1,10 +1,4 @@
-import {
-	useState,
-	useRef,
-	useLayoutEffect,
-	type FormEvent,
-	type ChangeEvent,
-} from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import {
 	Row,
 	Col,
@@ -22,7 +16,7 @@ import { useAppDispatch } from "@/store/hooks";
 import {
 	importComments,
 	uploadComments,
-	deleteComments,
+	deleteAllComments,
 	setStartCommentId,
 	uploadUserComments,
 	uploadPublicReviewComments,
@@ -32,7 +26,7 @@ import { SubmitCancelRow } from "@/components/SubmitCancelRow";
 
 function ChangeStartCIDForm({
 	ballot,
-	close = () => {},
+	close = () => { },
 }: {
 	ballot: Ballot;
 	close?: () => void;
@@ -43,7 +37,7 @@ function ChangeStartCIDForm({
 		"" + (ballot.Comments?.CommentIDMin || 1),
 	);
 
-	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+	const onSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(setStartCommentId(ballot.id, Number(startCID)));
@@ -117,7 +111,7 @@ function DeleteComments({ ballot }: { ballot: Ballot }) {
 		);
 		if (!ok) return;
 		setBusy(true);
-		await dispatch(deleteComments(ballot.id));
+		await dispatch(deleteAllComments(ballot.id));
 		setBusy(false);
 	}
 
@@ -172,7 +166,7 @@ function UploadComments({ ballot }: { ballot: Ballot }) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [inputValue, setInputValue] = useState("");
 
-	const onChangeFile = async (e: ChangeEvent<HTMLInputElement>) => {
+	const onChangeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		setInputValue(e.target.value);
 		const file = e.target.files?.[0];
 		if (!file) return;
@@ -212,7 +206,7 @@ function UploadComments({ ballot }: { ballot: Ballot }) {
 
 function AddMemberCommentsForm({
 	ballot,
-	close = () => {},
+	close = () => { },
 }: {
 	ballot: Ballot;
 	close?: () => void;
@@ -229,12 +223,12 @@ function AddMemberCommentsForm({
 		setFormValid(formValid);
 	});
 
-	const onChangeFile = (e: ChangeEvent<HTMLInputElement>) => {
+	const onChangeFile = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		setFile(file);
 	};
 
-	const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+	const onSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setBusy(true);
 		await dispatch(uploadUserComments(ballot.id, commenterSAPIN!, file!));
@@ -317,7 +311,7 @@ function AddPublicReviewComments({ ballot }: { ballot: Ballot }) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [inputValue, setInputValue] = useState("");
 
-	const onChangeFile = async (e: ChangeEvent<HTMLInputElement>) => {
+	const onChangeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		setInputValue(e.target.value);
 		const file = e.target.files?.[0];
 		if (!file) return;

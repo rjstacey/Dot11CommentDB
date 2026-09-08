@@ -530,7 +530,7 @@ export const updateComments =
 		dispatch(offlineFetch({ effect, /*commit,*/ rollback }));
 	};
 
-export const deleteComments =
+export const deleteAllComments =
 	(ballot_id: number): AppThunk =>
 	async (dispatch, getState) => {
 		if (selectCommentsBallot_id(getState()) === ballot_id)
