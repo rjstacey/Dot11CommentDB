@@ -54,6 +54,11 @@ main {
 	font-weight: bold;
 }
 
+.draft-panel {
+	display: flex;
+}
+
+
 .top-row {
 	display: flex;
 	flex-wrap: wrap;

@@ -30,7 +30,7 @@ export function CommentsMain() {
 				{panelKeys.map((key) => (
 					<Panel
 						key={key}
-						className={key === "detail" ? "details-panel" : key === "draft" ? "d-flex" : undefined}
+						className={key === "detail" ? "details-panel" : key === "draft" ? "draft-panel" : undefined}
 						isVisible={visiblePanels.includes(key)}
 					>
 						{getPanelContent(key)}
