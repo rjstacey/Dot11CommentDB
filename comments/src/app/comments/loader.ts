@@ -31,9 +31,7 @@ export const indexLoader: LoaderFunction = async () => {
 	store.dispatch(clearComments());
 };
 
-export const ballotIdLoader = async ({
-	params
-}: LoaderFunctionArgs): Promise<Ballot> => {
+export const ballotIdLoader: LoaderFunction = async ({ params }) => {
 	const { groupName, ballotId } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	if (!ballotId) throw new Error("Route error: ballotId not set");
@@ -57,11 +55,11 @@ export const ballotIdLoader = async ({
 		dispatch(clearComments());
 		throw new Error(`Ballot ${ballotId} not found`);
 	}
-
-	return ballot;
 };
 
 export const commentsLoader: LoaderFunction = async args => {
+	await ballotIdLoader(args);
+
 	const { dispatch, getState } = store;
 
 	const url = new URL(args.request.url);
