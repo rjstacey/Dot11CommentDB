@@ -279,7 +279,7 @@ export async function parseEpollUserComments(
 		.map((row, index) =>
 			parseUserComment(user, startCommentId + index, startIndex + index, row),
 		)
-		.filter(c => c.Comment);	// only keep rows with comment
+		.filter(c => c.Comment);	// only keep rows with a comment
 }
 
 const epollResultsHeader = ["SA PIN", "Date", "Vote", "Email"];
