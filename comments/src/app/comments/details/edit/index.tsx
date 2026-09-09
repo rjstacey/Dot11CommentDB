@@ -85,14 +85,31 @@ export function CommentEditDetail({
 		commentsAccess,
 		resolutionsAccess,
 		onChangeComments,
+		onDeleteComments,
 		onChangeResolutions,
 		onAddResolutions,
 		onDeleteResolutions,
 	} = useCommentsEdit(!editMode);
 
-	let actionElements: React.ReactNode = undefined;
+	let actionElements: React.ReactElement[] = [];
+	if (commentsAccess >= AccessLevel.admin) {
+		actionElements.push(
+			<Button
+				variant="outline-danger"
+				title="Delete selected comments"
+				disabled={
+					state.action !== "update" ||
+					!editMode
+				}
+				onClick={onDeleteComments}
+			>
+				<i className="bi-trash me-1" />
+				{"Delete Comment"}
+			</Button>
+		);
+	}
 	if (commentsAccess >= AccessLevel.rw) {
-		actionElements = <>
+		actionElements.push(
 			<Button
 				variant="outline-primary"
 				title="Create alternate resolution"
@@ -105,6 +122,8 @@ export function CommentEditDetail({
 				<i className="bi-plus-lg me-1" />
 				{"Add Resn"}
 			</Button>
+		);
+		actionElements.push(
 			<Button
 				variant="outline-primary"
 				title="Delete resolution"
@@ -117,11 +136,13 @@ export function CommentEditDetail({
 				<i className="bi-trash me-1" />
 				{"Delete Resn"}
 			</Button>
+		);
+		actionElements.push(
 			<ShowHistoryButton
 				showHistory={showHistory}
 				setShowHistory={setShowHistory}
 			/>
-		</>;
+		);
 	}
 
 	let content: React.ReactNode;

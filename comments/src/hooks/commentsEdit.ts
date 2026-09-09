@@ -21,6 +21,7 @@ import {
 	AccessLevel,
 	updateComments,
 	deleteResolutions,
+	deleteComments,
 } from "@/store/comments";
 import { useCommentsAccess } from "./useCommentsAccess";
 
@@ -217,6 +218,26 @@ export function useCommentsEdit(readOnly: boolean) {
 		[readOnly, setState, triggerSave],
 	);
 
+	const onDeleteComments = async () => {
+		if (commentsAccess < AccessLevel.admin) {
+			console.warn("onDeleteComments: state is readOnly");
+			return;
+		}
+		if (state.action !== "update") {
+			console.warn("onDeleteComments: bad state");
+			return;
+		}
+		const cidsStr = state.comments.map((c) => c.CommentID).join(", ").toString();
+		const ok = await ConfirmModal.show(
+			"Are you sure you want to delete comments: " + cidsStr + "?",
+		);
+		if (!ok) return;
+		const ids = state.comments
+			.map((c) => c.id);
+		console.log(ids);
+		await dispatch(deleteComments(ids));
+	};
+
 	const onChangeResolutions = useCallback(
 		(changes: ResolutionChange) => {
 			setState((state) => {
@@ -287,6 +308,7 @@ export function useCommentsEdit(readOnly: boolean) {
 		commentsAccess,
 		resolutionsAccess,
 		onChangeComments,
+		onDeleteComments,
 		onChangeResolutions,
 		onAddResolutions,
 		onDeleteResolutions,

@@ -8,7 +8,7 @@ export type CategoryType = z.infer<typeof categoryTypeSchema>;
 
 export enum AdHocStatus {
 	MoreWorkRequired = 1,
-	SubmissionRequired = 2,
+	SubmissionRequired = 2
 }
 export const adHocStatusSchema = z.enum(AdHocStatus);
 
@@ -35,16 +35,16 @@ export const commentSchema = z.object({
 	CommentGroup: z.string(),
 	ProposedChange: z.string(),
 	LastModifiedBy: z.number().nullable(),
-	LastModifiedTime: z.iso.datetime().nullable(),
+	LastModifiedTime: z.iso.datetime().nullable()
 });
 
 export const commentsUploadParamsSchema = z.object({
-	startCommentId: z.coerce.number().optional(),
+	startCommentId: z.coerce.number().optional()
 });
 export type CommentsUploadParams = z.infer<typeof commentsUploadParamsSchema>;
 
 export const commentsUploadUserParamsSchema = z.object({
-	SAPIN: z.coerce.number(),
+	SAPIN: z.coerce.number()
 });
 export type CommentsUploadUserParams = z.infer<
 	typeof commentsUploadUserParamsSchema
@@ -62,15 +62,16 @@ export const commentChangeSchema = commentSchema
 		AdHocGroupId: true,
 		CommentGroup: true,
 		Notes: true,
-		AdHocStatus: true,
+		AdHocStatus: true
 	})
 	.partial();
 
 export const commentUpdateSchema = z.object({
 	id: commentSchema.shape.id,
-	changes: commentChangeSchema,
+	changes: commentChangeSchema
 });
 export const commentUpdatesSchema = commentUpdateSchema.array();
+export const commentIdsSchema = z.number().array();
 
 export type Comment = z.infer<typeof commentSchema>;
 export type CommentCreate = z.infer<typeof commentCreateSchema>;
@@ -87,7 +88,7 @@ export const commentResolutionSchema = commentSchema
 		ResolutionID: z.number().nullable(),
 		ResolutionCount: z.number(),
 		Vote: z.string().nullable(),
-		CID: z.string(),
+		CID: z.string()
 	});
 export const commentResolutionsSchema = commentResolutionSchema.array();
 
@@ -97,7 +98,7 @@ export const commentResolutionChangeSchema = commentChangeSchema.extend(
 
 export const commentResolutionQuerySchema = z
 	.object({
-		modifiedSince: z.iso.datetime(),
+		modifiedSince: z.iso.datetime()
 	})
 	.partial();
 
@@ -113,12 +114,12 @@ const commentsExportFormatSchema = z.enum(["modern", "legacy", "myproject"]);
 const commentsExportStyleSchema = z.enum([
 	"AllComments",
 	"TabPerAdHoc",
-	"TabPerCommentGroup",
+	"TabPerCommentGroup"
 ]);
 export const commentsExportParamsSchema = z.object({
 	format: commentsExportFormatSchema.optional(),
 	style: commentsExportStyleSchema.optional(),
-	appendSheets: z.enum(["true", "false"]).optional(),
+	appendSheets: z.enum(["true", "false"]).optional()
 });
 export type CommentsExportParams = z.infer<typeof commentsExportParamsSchema>;
 export type CommentsExportFormat = z.infer<typeof commentsExportFormatSchema>;
@@ -126,7 +127,7 @@ export type CommentsExportStyle = z.infer<typeof commentsExportStyleSchema>;
 
 export const uploadCommentsResponseSchema = z.object({
 	comments: commentResolutionsSchema,
-	ballot: z.object({ id: z.number(), Comments: commentsSummarySchema }),
+	ballot: z.object({ id: z.number(), Comments: commentsSummarySchema })
 });
 export type UploadCommentsResponse = z.infer<
 	typeof uploadCommentsResponseSchema
@@ -139,12 +140,12 @@ export const commentStatusOrder = [
 	"Submission required",
 	"Resolution drafted",
 	"Ready for motion",
-	"Resolution approved",
+	"Resolution approved"
 ] as const;
 
-export type CommentStatusType = (typeof commentStatusOrder)[number];
+export type CommentStatusType = typeof commentStatusOrder[number];
 
-export function getCommentStatus(c: CommentResolution): CommentStatusType {
+export function getCommentStatus (c: CommentResolution): CommentStatusType {
 	let Status: CommentStatusType = "";
 	if (c.ApprovedByMotion) Status = "Resolution approved";
 	else if (c.ReadyForMotion) Status = "Ready for motion";

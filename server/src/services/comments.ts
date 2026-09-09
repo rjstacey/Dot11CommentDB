@@ -300,17 +300,17 @@ export async function setStartCommentId(
 	};
 }
 
-/**
- * Delete all comments for the specified ballot
- */
-export async function deleteComments(user: UserContext, ballot_id: number) {
-	// The order of the deletes is import; from resolutions table first and then from comments table.
+/** Delete comments. If @param `ids` is not provided, then all comments are deleted. */
+export async function deleteComments(user: UserContext, ballot_id: number, ids?: number[]) {
+	// The order of the deletes is important; from resolutions table first and then from comments table.
 	// This is because a delete from resolutions tables adds a history log and a delete from comments then removes it.
-	const sql = `
+	let sql = `
 		DELETE r, c
 		FROM comments c LEFT JOIN resolutions r ON r.comment_id=c.id
-		WHERE c.ballot_id=${db.escape(ballot_id)};
+		WHERE c.ballot_id=${db.escape(ballot_id)}
 	`;
+	if (typeof ids !== "undefined")
+		sql += ` AND c.id IN (${db.escape(ids)})`;
 	const { affectedRows } = await db.query<ResultSetHeader>(sql);
 	return affectedRows;
 }
@@ -364,7 +364,7 @@ async function insertComments(
 /**
  * Replace all comments for the specified ballot
  */
-async function replaceComments(
+async function replaceAllComments(
 	user: UserContext,
 	ballot_id: number,
 	comments: CommentCreate[],
@@ -399,7 +399,7 @@ export async function importEpollComments(
 	);
 	//console.log(comments[0])
 
-	return replaceComments(user, ballot.id, comments);
+	return replaceAllComments(user, ballot.id, comments);
 }
 
 /**
@@ -425,7 +425,7 @@ export async function uploadComments(
 	} else {
 		comments = await parseEpollComments(startCommentId, filename, buffer);
 	}
-	return replaceComments(user, ballot.id, comments);
+	return replaceAllComments(user, ballot.id, comments);
 }
 
 type MaxIndexes = {

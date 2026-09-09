@@ -21,7 +21,8 @@ import {
 	selectBallotEntities,
 	selectBallot,
 	BallotType,
-	Ballot
+	type Ballot,
+	updateBallots
 } from "./ballots";
 import { selectGroup, AccessLevel } from "./groups";
 import { Effect, offlineFetch } from "./offline";
@@ -39,9 +40,8 @@ import {
 	AdHocStatus,
 	commentStatusOrder,
 	getCommentStatus
-	//CommentStatusType,
 } from "@schemas/comments";
-import {
+import type {
 	Resolution,
 	ResnStatusType,
 	EditStatusType,
@@ -537,12 +537,35 @@ export const deleteAllComments =
 			dispatch(clearComments());
 		const summary = { Count: 0, CommentIDMin: 0, CommentIDMax: 0 };
 		dispatch(updateBallotsLocal([{ id: ballot_id, Comments: summary }]));
-		const url = `${baseCommentsUrl}/${ballot_id}`;
+		const url = `${baseCommentsUrl}/${ballot_id}/removeAll`;
 		try {
 			await fetcher.delete(url);
 		} catch (error) {
 			dispatch(setError("DELETE " + url, error));
 		}
+	};
+
+export const deleteComments =
+	(comment_ids: number[]): AppThunk =>
+	async (dispatch, getState) => {
+		const ballot_id = selectCommentsBallot_id(getState())!;
+		const { ids, entities } = selectCommentsState(getState());
+		const commentResolution_ids = [];
+		for (const id of ids) {
+			if (comment_ids.includes(entities[id]!.comment_id))
+				commentResolution_ids.push(id);
+		}
+		dispatch(localRemoveMany(commentResolution_ids));
+		//const summary = { Count: 0, CommentIDMin: 0, CommentIDMax: 0 };
+		//dispatch(updateBallotsLocal([{ id: ballot_id, Comments: summary }]));
+		const url = `${baseCommentsUrl}/${ballot_id}`;
+		try {
+			await fetcher.delete(url, comment_ids);
+		} catch (error) {
+			dispatch(setError("DELETE " + url, error));
+		}
+		// Get update for ballot comment stats
+		await dispatch(updateBallots([{ id: ballot_id, changes: {} }]));
 	};
 
 export const importComments =
