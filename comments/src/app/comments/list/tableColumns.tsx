@@ -17,8 +17,8 @@ import {
 	CommentCategory,
 } from "../details/edit/CommentBasics";
 import { renderSubmission } from "../details/edit/SubmissionSelect";
-import { useAppSelector } from "@/store/hooks";
-import { selectBallotsState } from "@/store/ballots";
+//import { useAppSelector } from "@/store/hooks";
+//import { selectBallotsState } from "@/store/ballots";
 import {
 	fields,
 	commentsSelectors,
@@ -148,7 +148,7 @@ const HeaderSubcomponent = ({
 
 function getStack1Renderers({ actions, selectors }: { actions: typeof commentsActions; selectors: typeof commentsSelectors }) {
 	return {
-		headerCellRenderer(props: HeaderCellRendererProps) {
+		headerRenderer(props: HeaderCellRendererProps) {
 			return (
 				<>
 					<FlexRow>
@@ -254,7 +254,8 @@ const renderHeaderCellStacked2 = (props: HeaderCellRendererProps) => (
 );
 
 function renderDataCellStacked2({ rowData }: { rowData: CommentResolution }) {
-	const { groupName } = useAppSelector(selectBallotsState);
+	//const { groupName } = useAppSelector(selectBallotsState);
+	const groupName = "802.11";	// Can't use hooks in function; must be a component
 	return (
 		<>
 			<div>{rowData.AssigneeName}</div>
@@ -354,13 +355,12 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 		dropdownWidth: 400,
 	},
 	{
-		key: "CommenterName",
-		...fields.CommenterName,
-		width: 100,
+		key: "Category",
+		...fields.Category,
+		width: 36,
 		flexGrow: 1,
-		flexShrink: 1,
+		flexShrink: 0,
 	},
-	{ key: "Vote", ...fields.Vote, width: 50, flexGrow: 1, flexShrink: 1 },
 	{
 		key: "MustSatisfy",
 		...fields.MustSatisfy,
@@ -370,13 +370,6 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 		cellRenderer: ({ rowData }: { rowData: CommentResolution }) => (
 			<CommentMBS comment={rowData} />
 		),
-	},
-	{
-		key: "Category",
-		...fields.Category,
-		width: 36,
-		flexGrow: 1,
-		flexShrink: 0,
 	},
 	{ key: "Clause", ...fields.Clause, width: 100, flexGrow: 1, flexShrink: 0 },
 	{
@@ -388,6 +381,14 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 		dataRenderer: renderPage,
 		cellRenderer: ({ rowData, dataKey }) => renderPage(rowData[dataKey]),
 	},
+	{
+		key: "CommenterName",
+		...fields.CommenterName,
+		width: 100,
+		flexGrow: 1,
+		flexShrink: 1,
+	},
+	{ key: "Vote", ...fields.Vote, width: 50, flexGrow: 1, flexShrink: 1 },
 	{
 		key: "Comment",
 		...fields.Comment,
@@ -405,6 +406,14 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 		flexShrink: 1,
 		cellRenderer: ({ rowData, dataKey }) =>
 			renderTextBlock(rowData[dataKey]),
+	},
+	{
+		key: "Status",
+		...fields.Status,
+		width: 150,
+		flexGrow: 1,
+		flexShrink: 1,
+		dropdownWidth: 250,
 	},
 	{
 		key: "Stack2",
@@ -464,14 +473,6 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 		flexGrow: 1,
 		flexShrink: 1,
 		dropdownWidth: 300,
-	},
-	{
-		key: "Status",
-		...fields.Status,
-		width: 150,
-		flexGrow: 1,
-		flexShrink: 1,
-		dropdownWidth: 250,
 	},
 	{
 		key: "ApprovedByMotion",

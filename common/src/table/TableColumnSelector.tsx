@@ -1,5 +1,6 @@
-import { Dropdown, Form, Row, Col } from "react-bootstrap";
+import { Dropdown, Form, Row, Col, ButtonGroup, Button } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
+import isEqual from "lodash.isequal";
 
 import type {
 	AppTableDataSelectors,
@@ -13,12 +14,41 @@ export type ColumnSelectorProps = {
 	columns: ColumnProperties[];
 	selectors: AppTableDataSelectors;
 	actions: AppTableDataActions;
+	quickSelect?: Record<string, string[]>;
 };
+
+function QuickSelect({ quickSelect, shownColumns, setShownColumns }: { quickSelect: Record<string, string[]>; shownColumns: string[]; setShownColumns: (keys: string[]) => void }) {
+	const entries = Object.entries(quickSelect);
+	return (
+		<Form.Group
+			as={Row}
+			controlId="quick-select"
+			className="align-items-center mb-2"
+		>
+			<Form.Label as="span" column xs="auto">
+				Quick select:
+			</Form.Label>
+			<ButtonGroup>
+				{entries.map(([label, value]) => (
+					<Button
+						key={label}
+						variant="outline-secondary"
+						active={isEqual(shownColumns, value)}
+						onClick={() => setShownColumns(value)}
+					>
+						{label}
+					</Button>
+				))}
+			</ButtonGroup>
+		</Form.Group>
+	)
+}
 
 export function ColumnSelectorDropdown({
 	columns,
 	selectors,
 	actions,
+	quickSelect,
 }: ColumnSelectorProps) {
 	const dispatch = useDispatch();
 
@@ -53,6 +83,15 @@ export function ColumnSelectorDropdown({
 		}
 	}
 
+	const shownColumns = Object.keys(tableConfig.columns).filter(key => tableConfig.columns[key].shown);
+	function setColumnsShown(keys: string[]) {
+		const shown: Record<string, boolean> = {};
+		for (const key of Object.keys(tableConfig.columns)) {
+			shown[key] = keys.includes(key);
+		}
+		dispatch(actions.setTableColumnsShown({ tableView: view, shown }));
+	}
+
 	return (
 		<Dropdown.Menu>
 			<Form className="p-3" style={{ minWidth: 200 }}>
@@ -65,6 +104,9 @@ export function ColumnSelectorDropdown({
 							<span>{view}</span>
 						</Col>
 					</Form.Group>
+				)}
+				{quickSelect && (
+					<QuickSelect quickSelect={quickSelect} shownColumns={shownColumns} setShownColumns={setColumnsShown} />
 				)}
 				<Form.Group
 					as={Row}

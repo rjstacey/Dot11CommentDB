@@ -179,6 +179,22 @@ export function createUiSubslice(dataSet: string) {
 			const column = tableConfig.columns[key];
 			column.shown = shown;
 		},
+		setTableColumnsShown(
+			state: UiState,
+			action: PayloadAction<{
+				tableView?: string;
+				shown: Record<string, boolean>;
+			}>
+		) {
+			const ui = state[name];
+			let { tableView, shown } = action.payload;
+			if (!tableView) tableView = ui.tableView;
+			const tableConfig = ui.tablesConfig[tableView];
+			for (const [key, isShown] of Object.entries(shown)) {
+				const column = tableConfig.columns[key];
+				column.shown = isShown;
+			}
+		},
 		toggleTableFixed(
 			state: UiState,
 			action: PayloadAction<{ tableView?: string }>

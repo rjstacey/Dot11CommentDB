@@ -1,9 +1,9 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
-import { PDFViewer, PDFViewerRef, DocumentManagerPlugin, ScrollPlugin, AnnotationPlugin, PdfAnnotationSubtype, PdfAnnotationBorderStyle, PdfAnnotationObject } from '@embedpdf/react-pdf-viewer';
+import { PDFViewer, PDFViewerRef, DocumentManagerPlugin, ScrollPlugin, AnnotationPlugin, PdfAnnotationSubtype, PdfAnnotationBorderStyle, PdfAnnotationObject, DocumentManagerCapability, ScrollCapability } from '@embedpdf/react-pdf-viewer';
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectCommentsState, CommentResolution, selectCommentsBallot } from "@/store/comments";
-import { type Ballot, openCurrentDraft } from "@/store/ballots";
+import { type Ballot, openDraft } from "@/store/ballots";
 
 function commentAnnotation(comment: CommentResolution, ballot: Ballot | undefined): PdfAnnotationObject {
 	const pageLine = comment.Page ? comment.Page : 0;
@@ -37,78 +37,109 @@ function commentAnnotation(comment: CommentResolution, ballot: Ballot | undefine
 	};
 }
 
+type DocState = {
+	id: string | null;
+	ballot_id: number | null;
+	name: string;
+	isReady: boolean;
+};
+const docStateNull = { id: null, ballot_id: null, name: "", isReady: false };
+
+type Plugins = {
+	docManager: ReturnType<DocumentManagerPlugin['provides']>;
+	scroll: ReturnType<ScrollPlugin['provides']>;
+	annotation: ReturnType<AnnotationPlugin['provides']>;
+}
+
 export function DraftDetail() {
 	const dispatch = useAppDispatch();
 	const viewerRef = useRef<PDFViewerRef>(null);
 	const { selected, entities } = useAppSelector(selectCommentsState);
-	const ballot = useAppSelector(selectCommentsBallot);
 	const comments = useMemo(() => selected.map((id) => entities[id]!).filter(Boolean), [selected, entities]);
-	const [isReady, setIsReady] = useState(false);
+	const ballot = useAppSelector(selectCommentsBallot);
+	const [plugins, setPlugins] = useState<Plugins | null>(null);
+	const [docState, setDocState] = useState<DocState>(docStateNull);
 	const annotationsRef = useRef<PdfAnnotationObject[]>([]);
 
 	const onViewerReady = useCallback(async () => {
-		console.log("Viewer ready");
 		const registry = await viewerRef.current?.registry;
 		const docManager = registry
 			?.getPlugin<DocumentManagerPlugin>('document-manager')
-			?.provides()
-		if (!docManager) return;
-
-		setIsReady(false);
-		docManager.onDocumentOpened(async (doc) => {
+			?.provides();
+		docManager?.onDocumentOpened(async (doc) => {
 			console.log(`Opened: ${doc.name} (${doc.id})`);
-			const registry = await viewerRef.current?.registry;
-			const scroll = registry
-				?.getPlugin<ScrollPlugin>('scroll')
-				?.provides()
-			if (!scroll) return;
-
-			scroll.onLayoutReady(() => {
-				setIsReady(true);
-			});
+			setDocState(s => s.id === doc.id ? { ...s, name: doc.name || "Untitled" } : s);
 		});
-		docManager.onDocumentClosed(async (doc) => {
-			console.log(`Closed: ${doc}`);
-			setIsReady(false);
+		docManager?.onDocumentClosed(async (documentId) => {
+			console.log(`Closed: ${documentId}`);
+			setDocState(s => s.id === documentId ? docStateNull : s);
+		});
+		docManager?.onActiveDocumentChanged(async ({ currentDocumentId }) => {
+			console.log(`Active: ${currentDocumentId}`);
+			setDocState(s => s.id !== currentDocumentId ? { ...s, isReady: false } : s);
 		});
 
-		docManager.onDocumentError((error) => {
-			console.error(`Error opening document:`, error);
+		const scroll = registry
+			?.getPlugin<ScrollPlugin>('scroll')
+			?.provides();
+		scroll?.onLayoutReady((event) => {
+			console.log(`Layout ready ${event.documentId}`);
+			setDocState(s => s.id === event.documentId ? { ...s, isReady: true } : s);
 		});
 
-		const file = await dispatch(openCurrentDraft());
-		console.log("open draft", file)
-		if (file) {
-			docManager.openDocumentBuffer({
-				buffer: await file.arrayBuffer(),
-				name: file.name,
-				autoActivate: true
-			});
+		const annotation = registry
+			?.getPlugin<AnnotationPlugin>('annotation')
+			?.provides();
+
+		if (docManager && scroll && annotation)
+			setPlugins({ docManager, scroll, annotation });
+	}, [setPlugins, setDocState]);
+
+	useEffect(() => {
+		if (!plugins) return;
+		const { docManager } = plugins;
+
+		if (docState.id && docState.ballot_id !== ballot?.id) {
+			docManager.closeDocument(docState.id);
+			return;
 		}
-	}, []);
+
+		async function openDoc() {
+			const file = await dispatch(openDraft(ballot!));
+			console.log("open draft", file)
+			if (file) {
+				let doc;
+				try {
+					doc = await docManager.openDocumentBuffer({
+						buffer: await file.arrayBuffer(),
+						name: file.name,
+						autoActivate: true
+					}).toPromise();
+				} catch (error) {
+					console.error("Failed to open document buffer:", error);
+					return;
+				}
+				setDocState({ id: doc.documentId, ballot_id: ballot!.id, name: file.name, isReady: false });
+			}
+		}
+
+		if (docState.id === null)
+			openDoc();
+	}, [plugins, ballot]);
 
 	useLayoutEffect(() => {
 		async function updateAnnotations() {
-			const registry = await viewerRef.current?.registry;
-			const annotate = registry
-				?.getPlugin<AnnotationPlugin>('annotation')
-				?.provides()
-			if (!annotate) return;
+			const { annotation, scroll } = plugins!;
 
-			annotationsRef.current.forEach((a) => annotate.deleteAnnotation(a.pageIndex, a.id));
+			annotationsRef.current.forEach((a) => annotation.deleteAnnotation(a.pageIndex, a.id));
 			annotationsRef.current = comments.map(c => commentAnnotation(c, ballot));
-			annotationsRef.current.forEach(a => annotate.createAnnotation(a.pageIndex, a))
-
-			const scroll = registry
-				?.getPlugin<ScrollPlugin>('scroll')
-				?.provides()
-			if (!scroll) return;
+			annotationsRef.current.forEach(a => annotation.createAnnotation(a.pageIndex, a))
 			const a = annotationsRef.current[0];
 			if (a)
 				scroll.scrollToPage({ pageNumber: a.pageIndex + 1, behavior: 'instant' });
 		}
-		if (isReady) updateAnnotations();
-	}, [comments, ballot, isReady]);
+		if (docState.isReady) updateAnnotations();
+	}, [ballot, comments, docState.isReady]);
 
 	return (
 		<PDFViewer

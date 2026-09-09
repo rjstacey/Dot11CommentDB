@@ -16,12 +16,21 @@ import { useCommentsSearch } from "@/hooks/commentsSearch";
 
 import { useTableColumns, tableColumns } from "./tableColumns";
 
+const qs = {
+	CID: ["Stack1"],
+	Comment: ["Stack1", "Comment", "ProposedChange"],
+	Assign: ["Stack1", "Comment", "ProposedChange", "Status", "Stack2", "Stack3"],
+	Resolve: ["Stack1", "Comment", "ProposedChange", "Status", "Stack3", "Resolution"],
+	Edit: ["Stack1", "Comment", "ProposedChange", "Status", "Resolution", "Editing"],
+}
+
 export function CommentsListColumnSelector() {
 	return (
 		<TableColumnSelector
 			columns={tableColumns}
 			selectors={commentsSelectors}
 			actions={commentsActions}
+			quickSelect={qs}
 		/>
 	)
 }
@@ -42,7 +51,7 @@ export function CommentsListFilters() {
 				/>
 			</Col>
 		</Row>
-	)
+	);
 }
 
 export function CommentsList() {
