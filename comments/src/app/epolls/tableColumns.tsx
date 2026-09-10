@@ -13,7 +13,6 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 ];
 
 export const defaultTablesConfig: TablesConfig = {};
-const tableView = "default";
 const tableConfig: TableConfig = {
 	fixed: false,
 	columns: {},
@@ -26,4 +25,4 @@ for (const column of tableColumns) {
 		width: column.width || 200,
 	};
 }
-defaultTablesConfig[tableView] = tableConfig;
+defaultTablesConfig["default"] = tableConfig;

@@ -1,5 +1,5 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { SplitTableButtonGroup } from "@common";
+import { TableColumnSelector, SplitPanelButton } from "@common";
 
 import { ResultsSummary } from "./ResultsSummary";
 import { ResultsExport } from "./ResultsExport";
@@ -30,12 +30,14 @@ export function ResultsActions() {
 			<Col>
 				<ProjectBallotSelector />
 			</Col>
-			<SplitTableButtonGroup
-				xs="auto"
-				selectors={resultsSelectors}
-				actions={resultsActions}
-				columns={tableColumns}
-			/>
+			<Col xs="auto" className="d-flex justify-content-end gap-2">
+				<TableColumnSelector
+					columns={tableColumns}
+					selectors={resultsSelectors}
+					actions={resultsActions}
+				/>
+				<SplitPanelButton selectors={resultsSelectors} actions={resultsActions} />
+			</Col>
 			<Col xs="auto" className="d-flex justify-content-end gap-2">
 				<ResultsSummary />
 				<ResultsExport ballot={resultsBallot} />

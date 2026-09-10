@@ -1,6 +1,6 @@
 import { Button, Row, Col } from "react-bootstrap";
 
-import { SplitTableButtonGroup } from "@common";
+import { TableColumnSelector, SplitPanelButton } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -10,7 +10,7 @@ import {
 } from "@/store/ballots";
 
 import { BallotsSubmenu } from "./submenu";
-import { tableColumns } from "./tableColumns";
+import { tableColumns, quickSelect } from "./tableColumns";
 import { refresh } from "./loader";
 
 export function BallotsActions() {
@@ -19,12 +19,16 @@ export function BallotsActions() {
 	return (
 		<Row className="w-100 d-flex justify-content-between align-items-center m-2">
 			<BallotsSubmenu />
-			<SplitTableButtonGroup
-				xs="auto"
-				selectors={ballotsSelectors}
-				actions={ballotsActions}
-				columns={tableColumns}
-			/>
+			<Col xs="auto" className="d-flex align-items-center gap-2"
+			>
+				<TableColumnSelector
+					columns={tableColumns}
+					selectors={ballotsSelectors}
+					actions={ballotsActions}
+					quickSelect={quickSelect}
+				/>
+				<SplitPanelButton selectors={ballotsSelectors} actions={ballotsActions} />
+			</Col>
 			<Col xs="auto" className="d-flex justify-content-end gap-2">
 				<Button
 					variant="outline-secondary"

@@ -1,5 +1,5 @@
 import { Spinner, Button, Row, Col } from "react-bootstrap";
-import { SplitTableButtonGroup } from "@common";
+import { SplitPanelButton, TableColumnSelector } from "@common";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
 import {
@@ -24,12 +24,14 @@ export function EpollsActions() {
 			<Col xs="auto">
 				<Spinner hidden={!loading} />
 			</Col>
-			<SplitTableButtonGroup
-				xs="auto"
-				selectors={epollsSelectors}
-				actions={epollsActions}
-				columns={tableColumns}
-			/>
+			<Col xs="auto" className="d-flex justify-content-end gap-2">
+				<TableColumnSelector
+					columns={tableColumns}
+					selectors={epollsSelectors}
+					actions={epollsActions}
+				/>
+				<SplitPanelButton selectors={epollsSelectors} actions={epollsActions} />
+			</Col>
 			<Col xs="auto" className="d-flex justify-content-end gap-2">
 				<Button
 					variant="outline-secondary"

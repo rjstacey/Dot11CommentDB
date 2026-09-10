@@ -150,9 +150,9 @@ export const tableColumns: ColumnProperties[] = [
 		flexShrink: 1,
 		flexGrow: 1,
 		dropdownWidth: 200,
-		cellRenderer: ({ rowData: ballot }) => {
-			return <span>{getBallotId(ballot)}</span>;
-		},
+		cellRenderer: ({ rowData: ballot }) => (
+			<span>{getBallotId(ballot)}</span>
+		),
 	},
 	{
 		key: "Group/Project",
@@ -271,7 +271,7 @@ export const tableColumns: ColumnProperties[] = [
 	},
 ];
 
-const defaultTablesColumns = {
+export const quickSelect = {
 	Basic: [
 		"__ctrl__",
 		"BallotID",
@@ -295,20 +295,20 @@ const defaultTablesColumns = {
 	],
 };
 
+const defaultTableColumns = quickSelect.Basic;
+
 export const defaultTablesConfig: TablesConfig = {};
-let tableView: keyof typeof defaultTablesColumns;
-for (tableView in defaultTablesColumns) {
-	const tableConfig: TableConfig = {
-		fixed: false,
-		columns: {},
+const tableConfig: TableConfig = {
+	fixed: false,
+	columns: {},
+};
+for (const column of tableColumns) {
+	const key = column.key;
+	tableConfig.columns[key] = {
+		unselectable: key.startsWith("__"),
+		shown: defaultTableColumns.includes(key),
+		width: column.width || 200,
 	};
-	for (const column of tableColumns) {
-		const key = column.key;
-		tableConfig.columns[key] = {
-			unselectable: key.startsWith("__"),
-			shown: defaultTablesColumns[tableView].includes(key),
-			width: column.width || 200,
-		};
-	}
-	defaultTablesConfig[tableView] = tableConfig;
 }
+defaultTablesConfig["default"] = tableConfig;
+

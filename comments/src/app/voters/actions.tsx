@@ -1,5 +1,5 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { SplitTableButtonGroup } from "@common";
+import { TableColumnSelector, SplitPanelButton } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsOnline } from "@/store/offline";
@@ -47,12 +47,13 @@ export function VotersActions() {
 				<ProjectBallotSelector />
 			</Col>
 			{isWgBallot && (
-				<Col xs="auto">
-					<SplitTableButtonGroup
-						actions={votersActions}
-						selectors={votersSelectors}
+				<Col xs="auto" className="d-flex justify-content-end gap-2">
+					<TableColumnSelector
 						columns={tableColumns}
+						selectors={votersSelectors}
+						actions={votersActions}
 					/>
+					<SplitPanelButton selectors={votersSelectors} actions={votersActions} />
 				</Col>
 			)}
 			<BallotInfo ballot={b} />
