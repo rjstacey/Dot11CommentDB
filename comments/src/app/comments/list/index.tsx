@@ -14,15 +14,7 @@ import {
 } from "@/store/comments";
 import { useCommentsSearch } from "@/hooks/commentsSearch";
 
-import { useTableColumns, tableColumns } from "./tableColumns";
-
-const qs = {
-	CID: ["Stack1"],
-	Comment: ["Stack1", "Comment", "ProposedChange"],
-	Assign: ["Stack1", "Comment", "ProposedChange", "Status", "Stack2", "Stack3"],
-	Resolve: ["Stack1", "Comment", "ProposedChange", "Status", "Stack3", "Resolution"],
-	Edit: ["Stack1", "Comment", "ProposedChange", "Status", "Resolution", "Editing"],
-}
+import { useTableColumns, tableColumns, quickSelect } from "./tableColumns";
 
 export function CommentsListColumnSelector() {
 	return (
@@ -30,10 +22,11 @@ export function CommentsListColumnSelector() {
 			columns={tableColumns}
 			selectors={commentsSelectors}
 			actions={commentsActions}
-			quickSelect={qs}
+			quickSelect={quickSelect}
 		/>
 	)
 }
+
 export function CommentsListFilters() {
 	return (
 		<Row className="w-100">
@@ -59,7 +52,6 @@ export function CommentsList() {
 	const actions = useMemo(() => ({ ...commentsActions, setSelected }), [setSelected]);
 
 	const { columns, rowGetter, defaultTablesConfig } = useTableColumns({ actions, selectors: commentsSelectors });
-
 
 	return (
 		<AppTable

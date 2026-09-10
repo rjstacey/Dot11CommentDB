@@ -105,9 +105,6 @@ export function ColumnSelectorDropdown({
 						</Col>
 					</Form.Group>
 				)}
-				{quickSelect && (
-					<QuickSelect quickSelect={quickSelect} shownColumns={shownColumns} setShownColumns={setColumnsShown} />
-				)}
 				<Form.Group
 					as={Row}
 					controlId="fixed"
@@ -124,6 +121,9 @@ export function ColumnSelectorDropdown({
 						/>
 					</Col>
 				</Form.Group>
+				{quickSelect && (
+					<QuickSelect quickSelect={quickSelect} shownColumns={shownColumns} setShownColumns={setColumnsShown} />
+				)}
 				<div className="column-list">
 					{selectableColumns.map((col) => (
 						<Dropdown.Item

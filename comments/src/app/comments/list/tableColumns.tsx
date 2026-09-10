@@ -17,8 +17,8 @@ import {
 	CommentCategory,
 } from "../details/edit/CommentBasics";
 import { renderSubmission } from "../details/edit/SubmissionSelect";
-//import { useAppSelector } from "@/store/hooks";
-//import { selectBallotsState } from "@/store/ballots";
+import { useAppSelector } from "@/store/hooks";
+import { selectBallotsState } from "@/store/ballots";
 import {
 	fields,
 	commentsSelectors,
@@ -253,13 +253,16 @@ const renderHeaderCellStacked2 = (props: HeaderCellRendererProps) => (
 	</>
 );
 
+function CommentSubmission({ submission }: { submission: string }) {
+	const { groupName } = useAppSelector(selectBallotsState);
+	return <div>{renderSubmission(groupName, submission)}</div>
+}
+
 function renderDataCellStacked2({ rowData }: { rowData: CommentResolution }) {
-	//const { groupName } = useAppSelector(selectBallotsState);
-	const groupName = "802.11";	// Can't use hooks in function; must be a component
 	return (
 		<>
-			<div>{rowData.AssigneeName}</div>
-			<div>{renderSubmission(groupName, rowData["Submission"])}</div>
+			<div>{rowData.AssigneeName || <>&nbsp;</>}</div>
+			<CommentSubmission submission={rowData.Submission} />
 		</>
 	);
 }
@@ -473,6 +476,7 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 		flexGrow: 1,
 		flexShrink: 1,
 		dropdownWidth: 300,
+		cellRenderer: ({ rowData }: { rowData: CommentResolution }) => <CommentSubmission submission={rowData.Submission} />
 	},
 	{
 		key: "ApprovedByMotion",
@@ -502,21 +506,15 @@ export const tableColumns: (ColumnProperties & { width: number })[] = [
 	},
 ];
 
-const defaultAssignColumns = [
-	"__ctrl__",
-	"Stack1",
-	"Comment",
-	"ProposedChange",
-	"Stack2",
-	"Stack3",
-	"Status",
-];
-const defaultResolveColumns = [
-	...defaultAssignColumns,
-	"ApprovedByMotion",
-	"Resolution",
-];
-const defaultEditColumns = [...defaultResolveColumns, "Editing"];
+export const quickSelect = {
+	CID: ["__ctrl__", "Stack1"],
+	Comment: ["__ctrl__", "Stack1", "Comment", "ProposedChange"],
+	Assign: ["__ctrl__", "Stack1", "Comment", "ProposedChange", "Status", "Stack2", "Stack3"],
+	Resolve: ["__ctrl__", "Stack1", "Comment", "ProposedChange", "Status", "Stack3", "Resolution"],
+	Edit: ["__ctrl__", "Stack1", "Comment", "ProposedChange", "Status", "Resolution", "Editing"],
+}
+
+const defaultColumns = quickSelect.Comment;
 
 const getDefaultColumnsConfig = (shownKeys: string[]) => {
 	const columnConfig: Record<string, ChangeableColumnProperties> = {};
@@ -539,9 +537,7 @@ const getDefaultTableConfig = (shownKeys: string[]) => {
 };
 
 export const defaultTablesConfig = {
-	Assign: getDefaultTableConfig(defaultAssignColumns),
-	Resolve: getDefaultTableConfig(defaultResolveColumns),
-	Edit: getDefaultTableConfig(defaultEditColumns),
+	default: getDefaultTableConfig(defaultColumns),
 };
 
 export function rowGetter({ rowIndex, ids, entities }: RowGetterProps) {
@@ -569,23 +565,21 @@ export function rowGetter({ rowIndex, ids, entities }: RowGetterProps) {
 
 export function useTableColumns({ actions, selectors }: { actions: typeof commentsActions; selectors: typeof commentsSelectors }) {
 
-	const columns = useMemo(() => {
-		return tableColumns.map(c => {
-			if (c.key === "__ctrl__") {
-				return {
-					...c,
-					...getControlColumnRenderers({ actions, selectors }),
-				};
-			}
-			if (c.key === "Stack1") {
-				return {
-					...c,
-					...getStack1Renderers({ actions, selectors }),
-				};
-			}
-			return c;
-		});
-	}, [actions, selectors]);
+	const columns = useMemo(() => tableColumns.map(c => {
+		if (c.key === "__ctrl__") {
+			return {
+				...c,
+				...getControlColumnRenderers({ actions, selectors }),
+			};
+		}
+		if (c.key === "Stack1") {
+			return {
+				...c,
+				...getStack1Renderers({ actions, selectors }),
+			};
+		}
+		return c;
+	}), [actions, selectors]);
 
 	return {
 		columns,

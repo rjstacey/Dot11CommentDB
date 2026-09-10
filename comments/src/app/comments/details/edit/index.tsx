@@ -95,6 +95,7 @@ export function CommentEditDetail({
 	if (commentsAccess >= AccessLevel.admin) {
 		actionElements.push(
 			<Button
+				key="delete-comments"
 				variant="outline-danger"
 				title="Delete selected comments"
 				disabled={
@@ -111,6 +112,7 @@ export function CommentEditDetail({
 	if (commentsAccess >= AccessLevel.rw) {
 		actionElements.push(
 			<Button
+				key="create-resolution"
 				variant="outline-primary"
 				title="Create alternate resolution"
 				disabled={
@@ -125,8 +127,9 @@ export function CommentEditDetail({
 		);
 		actionElements.push(
 			<Button
+				key="delete-resolutions"
 				variant="outline-primary"
-				title="Delete resolution"
+				title="Delete selected resolutions"
 				disabled={
 					state.action !== "update" ||
 					!editMode
@@ -139,6 +142,7 @@ export function CommentEditDetail({
 		);
 		actionElements.push(
 			<ShowHistoryButton
+				key="show-history"
 				showHistory={showHistory}
 				setShowHistory={setShowHistory}
 			/>
