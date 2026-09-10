@@ -21,7 +21,7 @@ function getPrimaryCalendarId(
 	return null;
 }
 
-const loader: LoaderFunction<LoaderData> = async ({ params }) => {
+const loader: LoaderFunction = async ({ params }) => {
 	const { groupName } = params;
 	if (!groupName) throw new Error("Route error: groupName not set");
 	const { dispatch, getState } = store;

@@ -1,5 +1,5 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { SplitTableButtonGroup } from "@common";
+import { TableColumnSelector, SplitPanelButton } from "@common";
 
 import {
 	webexMeetingsSelectors,
@@ -14,21 +14,21 @@ import { refresh } from "./loader";
 
 function WebexMeetingsActions() {
 	return (
-		<Row className="w-100 m-3">
+		<Row className="w-100 justify-content-between m-3">
 			<Col xs="auto">
 				<SessionSelectorNav allowShowDateRange />
 			</Col>
 
-			<SplitTableButtonGroup
-				className="d-flex justify-content-end"
-				selectors={webexMeetingsSelectors}
-				actions={webexMeetingsActions}
-				columns={tableColumns}
-			/>
 			<Col
 				xs="auto"
 				className="d-flex justify-content-end align-items-center gap-2"
 			>
+				<TableColumnSelector
+					columns={tableColumns}
+					selectors={webexMeetingsSelectors}
+					actions={webexMeetingsActions}
+				/>
+				<SplitPanelButton selectors={webexMeetingsSelectors} actions={webexMeetingsActions} />
 				<CopyWebexMeetingListButton />
 				<Button
 					variant="outline-primary"

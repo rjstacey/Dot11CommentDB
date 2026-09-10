@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router";
 import { Row, Col, Button } from "react-bootstrap";
-import { SplitTableButtonGroup } from "@common";
+import { TableColumnSelector, SplitPanelButton } from "@common";
 
 import {
 	imatBreakoutsSelectors,
@@ -30,12 +30,17 @@ function ImatBreakoutsActions() {
 			</Col>
 
 			{imatBreakoutMeetingId ? (
-				<SplitTableButtonGroup
-					className="d-flex justify-content-end"
-					selectors={imatBreakoutsSelectors}
-					actions={imatBreakoutsActions}
-					columns={tableColumns}
-				/>
+				<Col
+					xs="auto"
+					className="d-flex justify-content-end align-items-center gap-2"
+				>
+					<TableColumnSelector
+						columns={tableColumns}
+						selectors={imatBreakoutsSelectors}
+						actions={imatBreakoutsActions}
+					/>
+					<SplitPanelButton selectors={imatBreakoutsSelectors} actions={imatBreakoutsActions} />
+				</Col>
 			) : null}
 
 			<Col
