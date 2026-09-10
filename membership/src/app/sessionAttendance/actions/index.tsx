@@ -1,7 +1,7 @@
 import { useParams, useLocation } from "react-router";
-import { Row, Button } from "react-bootstrap";
+import { Row, Col, Button } from "react-bootstrap";
 
-import { SplitTableButtonGroup } from "@common";
+import { SplitPanelButton, TableColumnSelector } from "@common";
 import { SessionSelectorNav } from "./SessionSelectorNav";
 import { SessionAttendanceSubmenu } from "./submenu";
 import { ImportRegistration } from "./ImportRegistration";
@@ -11,6 +11,7 @@ import { refresh as imatRefresh } from "../attendance/loader";
 
 import {
 	tableColumns as imatTableColumns,
+	quickSelect as imatQuickSelect,
 	selectors as imatTableSelectors,
 	actions as imatTableActions,
 } from "../attendance/tableColumns";
@@ -39,13 +40,18 @@ export function SessionAttendanceActions() {
 		refresh = imatRefresh;
 		actions = (
 			<>
-				<SplitTableButtonGroup
-					xs="auto"
-					className="ms-auto"
-					selectors={imatTableSelectors}
-					actions={imatTableActions}
-					columns={imatTableColumns}
-				/>
+				<Col xs="auto" className="d-flex justify-content-end align-items-center gap-2">
+					<TableColumnSelector
+						columns={imatTableColumns}
+						selectors={imatTableSelectors}
+						actions={imatTableActions}
+						quickSelect={imatQuickSelect}
+					/>
+					<SplitPanelButton
+						selectors={imatTableSelectors}
+						actions={imatTableActions}
+					/>
+				</Col>
 				<Updates />
 				<ExportAttendeesList
 					groupName={groupName}
@@ -56,13 +62,17 @@ export function SessionAttendanceActions() {
 	} else if (route === "registration") {
 		actions = (
 			<>
-				<SplitTableButtonGroup
-					xs="auto"
-					className="ms-auto"
-					selectors={regTableSelectors}
-					actions={regTableActions}
-					columns={regTableColumns}
-				/>
+				<Col xs="auto" className="d-flex justify-content-end align-items-center gap-2">
+					<TableColumnSelector
+						columns={regTableColumns}
+						selectors={regTableSelectors}
+						actions={regTableActions}
+					/>
+					<SplitPanelButton
+						selectors={regTableSelectors}
+						actions={regTableActions}
+					/>
+				</Col>
 				<ImportRegistration
 					groupName={groupName}
 					sessionNumber={sessionNumber}

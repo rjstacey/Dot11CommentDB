@@ -1,6 +1,5 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { displayDateRange } from "@common";
-import { SplitTableButtonGroup } from "@common";
+import { displayDateRange, SplitPanelButton, TableColumnSelector } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import {
@@ -49,12 +48,17 @@ export function BallotParticipationActions() {
 	return (
 		<Row className="w-100 align-items-center gap-2">
 			<BallotSeriesSummary />
-			<SplitTableButtonGroup
-				xs="auto"
-				selectors={ballotParticipationSelectors}
-				actions={ballotParticipationActions}
-				columns={tableColumns}
-			/>
+			<Col xs="auto" className="d-flex justify-content-end gap-2">
+				<TableColumnSelector
+					columns={tableColumns}
+					selectors={ballotParticipationSelectors}
+					actions={ballotParticipationActions}
+				/>
+				<SplitPanelButton
+					selectors={ballotParticipationSelectors}
+					actions={ballotParticipationActions}
+				/>
+			</Col>
 			<Col className="d-flex align-items-center justify-content-end gap-2">
 				<BulkStatusUpdate isSession={false} />
 				<Button

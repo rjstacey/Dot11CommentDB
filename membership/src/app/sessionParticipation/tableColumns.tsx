@@ -132,7 +132,7 @@ export function useTableColumns() {
 					const notRelevant =
 						!!rowData.NonVoterDate &&
 						DateTime.fromISO(rowData.NonVoterDate) >
-							DateTime.fromISO(session.endDate);
+						DateTime.fromISO(session.endDate);
 					return attendance
 						? renderSessionAttendance(notRelevant, attendance)
 						: null;

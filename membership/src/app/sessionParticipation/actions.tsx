@@ -1,5 +1,5 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { SplitTableButtonGroup } from "@common";
+import { SplitPanelButton, TableColumnSelector } from "@common";
 import { displayDateRange } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -42,11 +42,14 @@ export function SessionParticipationActions() {
 		<Row className="w-100 align-items-center gap-2">
 			<SessionSummary />
 			<Col className="d-flex align-items-center justify-content-end gap-2">
-				<SplitTableButtonGroup
-					xs="auto"
+				<TableColumnSelector
+					columns={tableColumns}
 					selectors={sessionParticipationSelectors}
 					actions={sessionParticipationActions}
-					columns={tableColumns}
+				/>
+				<SplitPanelButton
+					selectors={sessionParticipationSelectors}
+					actions={sessionParticipationActions}
 				/>
 				<BulkStatusUpdate isSession={true} />
 				<Button

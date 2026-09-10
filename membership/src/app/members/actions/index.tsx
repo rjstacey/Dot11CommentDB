@@ -1,5 +1,5 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { SplitTableButtonGroup } from "@common";
+import { TableColumnSelector, SplitPanelButton } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectMembersState, Member, MembersDictionary } from "@/store/members";
@@ -11,7 +11,8 @@ import { MembersExport } from "./MembersExport";
 import {
 	membersSelectors,
 	membersActions,
-	tableColumns as membersColumns,
+	tableColumns,
+	quickSelect,
 } from "../tableColumns";
 
 import { refresh } from "../loader";
@@ -66,12 +67,18 @@ export function MembersActions() {
 			<MembersSummary xs="auto" />
 			<Col className="d-flex align-items-center justify-content-end">
 				<Row>
-					<SplitTableButtonGroup
-						className="justify-content-end m-2"
-						selectors={membersSelectors}
-						actions={membersActions}
-						columns={membersColumns}
-					/>
+					<Col xs="auto" className="d-flex justify-content-end gap-2">
+						<TableColumnSelector
+							columns={tableColumns}
+							selectors={membersSelectors}
+							actions={membersActions}
+							quickSelect={quickSelect}
+						/>
+						<SplitPanelButton
+							selectors={membersSelectors}
+							actions={membersActions}
+						/>
+					</Col>
 					<Col
 						xs="auto"
 						className="d-flex justify-content-end align-items-center gap-2"

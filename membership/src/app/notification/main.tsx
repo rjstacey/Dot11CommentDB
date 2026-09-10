@@ -4,9 +4,10 @@ import {
 	ShowFilters,
 	SplitPanel,
 	Panel,
-	SplitTableButtonGroup,
 	GlobalFilter,
 	displayDateRange,
+	SplitPanelButton,
+	TableColumnSelector,
 } from "@common";
 
 import { useAppSelector } from "@/store/hooks";
@@ -14,7 +15,7 @@ import { fields, membersSelectors, membersActions } from "@/store/members";
 import { selectMostRecentAttendedSession } from "@/store/sessions";
 import { selectMostRecentBallotSeries } from "@/store/ballotParticipation";
 
-import { tableColumns, defaultTablesConfig } from "./tableColumns";
+import { tableColumns, quickSelect, defaultTablesConfig } from "./tableColumns";
 import { NotificationDetail } from "./detail";
 import { refresh } from "./loader";
 
@@ -87,12 +88,18 @@ function NotificationMain() {
 			<Row className="w-100 m-3">
 				<MostRecentBallotSummary />
 				<MostRecentSessionSummary />
-				<SplitTableButtonGroup
-					xs="auto"
-					columns={tableColumns}
-					selectors={membersSelectors}
-					actions={membersActions}
-				/>
+				<Col xs="auto" className="d-flex justify-content-end align-items-center gap-2">
+					<TableColumnSelector
+						columns={tableColumns}
+						selectors={membersSelectors}
+						actions={membersActions}
+						quickSelect={quickSelect}
+					/>
+					<SplitPanelButton
+						selectors={membersSelectors}
+						actions={membersActions}
+					/>
+				</Col>
 				<Col
 					xs="auto"
 					className="d-flex justify-content-end align-items-center justify-self-stretch ms-auto gap-2"

@@ -1,5 +1,5 @@
 import { Row, Col, Button } from "react-bootstrap";
-import { AppTable, SplitPanel, Panel, SplitTableButtonGroup } from "@common";
+import { AppTable, SplitPanel, Panel, SplitPanelButton, TableColumnSelector } from "@common";
 
 import {
 	affiliationMapSelectors,
@@ -14,12 +14,17 @@ export function AffiliationMapMain() {
 	return (
 		<>
 			<Row className="w-100 d-flex justify-content-end align-items-center m-3">
-				<SplitTableButtonGroup
-					xs="auto"
-					selectors={affiliationMapSelectors}
-					actions={affiliationMapActions}
-					columns={tableColumns}
-				/>
+				<Col xs="auto" className="d-flex justify-content-end gap-2">
+					<TableColumnSelector
+						columns={tableColumns}
+						selectors={affiliationMapSelectors}
+						actions={affiliationMapActions}
+					/>
+					<SplitPanelButton
+						selectors={affiliationMapSelectors}
+						actions={affiliationMapActions}
+					/>
+				</Col>
 				<Col xs="auto" className="d-flex justify-content-end gap-2">
 					<Button
 						variant="outline-primary"

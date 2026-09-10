@@ -185,7 +185,7 @@ export const tableColumns: ColumnProperties[] = [
 	},
 ];
 
-const defaultTablesColumns = {
+export const quickSelect = {
 	General: [
 		"__ctrl__",
 		"SAPIN",
@@ -206,20 +206,19 @@ const defaultTablesColumns = {
 	],
 };
 
+const defaultTableColumns = quickSelect.General;
+
 export const defaultTablesConfig: TablesConfig = {};
-let tableView: keyof typeof defaultTablesColumns;
-for (tableView in defaultTablesColumns) {
-	const tableConfig: TableConfig = {
-		fixed: false,
-		columns: {},
+const tableConfig: TableConfig = {
+	fixed: false,
+	columns: {},
+};
+for (const column of tableColumns) {
+	const key = column.key;
+	tableConfig.columns[key] = {
+		unselectable: key.startsWith("__"),
+		shown: defaultTableColumns.includes(key),
+		width: column.width || 200,
 	};
-	for (const column of tableColumns) {
-		const key = column.key;
-		tableConfig.columns[key] = {
-			unselectable: key.startsWith("__"),
-			shown: defaultTablesColumns[tableView].includes(key),
-			width: column.width || 200,
-		};
-	}
-	defaultTablesConfig[tableView] = tableConfig;
 }
+defaultTablesConfig["default"] = tableConfig;
