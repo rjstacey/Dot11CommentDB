@@ -20,5 +20,4 @@ export { default as TableColumnSelector, ColumnSelectorDropdown } from "./TableC
 export { default as TableViewSelector } from "./TableViewSelector";
 export { IdSelector, IdFilter } from "./IdList";
 export { SplitPanel, Panel, SplitPanelButton } from "./SplitPanel";
-export { SplitTableButtonGroup } from "./SplitTableButtonGroup";
 export { default as ColumnResizer, type DraggableEventHandler } from "./ColumnResizer";

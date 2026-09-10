@@ -25,7 +25,7 @@ import {
 	SplitPanelButton,
 	SplitPanel,
 	Panel,
-	SplitTableButtonGroup,
+	TableColumnSelector,
 	HeaderCellRendererProps,
 	CellRendererProps,
 	ColumnProperties,
@@ -136,8 +136,8 @@ function tableColumnsWithControl(
 	dispatch: ReturnType<typeof useAppDispatch>
 ) {
 	const columns = tableColumns.slice();
-	let headerRenderer: (p: HeaderCellRendererProps) => JSX.Element,
-		cellRenderer: (p: CellRendererProps) => JSX.Element;
+	let headerRenderer: (p: HeaderCellRendererProps) => React.ReactElement,
+		cellRenderer: (p: CellRendererProps) => React.ReactElement;
 	if (expandable) {
 		headerRenderer = (p) => (
 			<SelectExpandHeaderCell
@@ -202,6 +202,7 @@ function tableColumnsWithControl(
 }
 
 type ExtraArgs = {
+	fixed: boolean;
 	expandable: boolean;
 	numberOfRows: number;
 };
@@ -259,11 +260,19 @@ export const SplitTable = ({ expandable, numberOfRows }: ExtraArgs) => {
 				}}
 			>
 				<LoaderButton numberOfRows={numberOfRows} />
-				<SplitTableButtonGroup
-					columns={columns}
-					selectors={dataSelectors}
-					actions={dataActions}
-				/>
+				<div
+					className="d-flex align-items-center gap-2"
+				>
+					<TableColumnSelector
+						columns={columns}
+						selectors={dataSelectors}
+						actions={dataActions}
+					/>
+					<SplitPanelButton
+						selectors={dataSelectors}
+						actions={dataActions}
+					/>
+				</div>
 			</div>
 			<div style={{ display: "flex", alignItems: "center" }}>
 				<ShowFilters
@@ -292,7 +301,7 @@ export const SplitTable = ({ expandable, numberOfRows }: ExtraArgs) => {
 	);
 };
 
-export const NoDefaultTable = ({ fixed, expandable, numberOfRows }) => {
+export const NoDefaultTable = ({ fixed, expandable, numberOfRows }: ExtraArgs) => {
 	const dispatch = useAppDispatch();
 	const columns = React.useMemo(
 		() => tableColumnsWithControl(expandable, dispatch),
@@ -397,7 +406,7 @@ const story = {
 		numberOfRows: 5,
 	},
 	decorators: [
-		(Story) => (
+		(Story: React.FC) => (
 			<Provider store={store}>
 				<Story />
 			</Provider>
