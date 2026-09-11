@@ -1,4 +1,4 @@
-import { Button, ButtonGroup, Dropdown, DropdownButton } from "react-bootstrap";
+import { Button, ButtonGroup, Dropdown, DropdownButton, Spinner } from "react-bootstrap";
 
 import CommentsImport from "./CommentsImport";
 import CommentsExport from "./CommentsExport";
@@ -6,6 +6,7 @@ import CommentsCopy from "./CommentsCopy";
 
 import { useAppSelector } from "@/store/hooks";
 import {
+	selectCommentsState,
 	selectCommentsAccess,
 	AccessLevel,
 } from "@/store/comments";
@@ -47,25 +48,30 @@ function LayoutItem({ layout, ...props }: { layout: Layout } & React.ComponentPr
 export function CommentsActions() {
 	const isOnline = useAppSelector(selectIsOnline);
 	const access = useAppSelector(selectCommentsAccess);
+	const { loading } = useAppSelector(selectCommentsState);
 	const { layout, setLayout } = useCommentsSearch();
 
 	return (
 		<div className="d-flex w-100 justify-content-between align-items-center">
 			<ProjectBallotSelector />
 
-			<CommentsListColumnSelector />
+			<div className="d-flex align-items-center gap-2">
+				<CommentsListColumnSelector />
 
-			<DropdownButton
-				as={ButtonGroup}
-				variant="outline-primary"
-				title={<LayoutIcon key={layout} layout={layout} />}
-				align="end"
-				onSelect={setLayout}
-			>
-				{layoutOptions.map((o) => (<LayoutItem key={o} layout={o} active={layout === o} />))}
-			</DropdownButton>
+				<DropdownButton
+					as={ButtonGroup}
+					variant="outline-primary"
+					title={<LayoutIcon key={layout} layout={layout} />}
+					align="end"
+					onSelect={setLayout}
+				>
+					{layoutOptions.map((o) => (<LayoutItem key={o} layout={o} active={layout === o} />))}
+				</DropdownButton>
+			</div>
 
 			<div className="d-flex gap-2">
+				<Spinner hidden={!loading} />
+
 				{access >= AccessLevel.rw && (
 					<>
 						<CommentsImport disabled={!isOnline} />
