@@ -19,7 +19,7 @@ export function SplitPanelButton({
 	actions: AppTableDataActions;
 }) {
 	const dispatch = useDispatch();
-	const { isSplit } = useSelector(selectors.selectCurrentPanelConfig);
+	const { isSplit } = useSelector(selectors.selectPanelConfig);
 	const toggleIsSplit = () =>
 		dispatch(actions.setPanelIsSplit({ isSplit: !isSplit }));
 
@@ -59,7 +59,7 @@ export function SplitPanel({
 }) {
 	const dispatch = useDispatch();
 	const ref = useRef<HTMLDivElement>(null);
-	let { isSplit, width } = useSelector(selectors.selectCurrentPanelConfig);
+	let { isSplit, width } = useSelector(selectors.selectPanelConfig);
 	const setPanelWidth = (width: number) =>
 		dispatch(actions.setPanelWidth({ width }));
 

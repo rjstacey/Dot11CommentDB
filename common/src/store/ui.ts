@@ -33,8 +33,7 @@ const name = "ui";
 
 export type UiState = {
 	[name]: {
-		tableView: string;
-		tablesConfig: TablesConfig;
+		tableConfig: TableConfig;
 		panelsConfig: PanelsConfig;
 		[property: string]: any;
 	};
@@ -42,8 +41,7 @@ export type UiState = {
 
 export function createUiSubslice(dataSet: string) {
 	const initialUiState = {
-		tableView: defaultTableView,
-		tablesConfig: { [defaultTableView]: defaultTableConfig },
+		tableConfig: defaultTableConfig,
 		panelsConfig: { [defaultTableView]: defaultPanelConfig },
 	};
 	const initialState: UiState = { [name]: initialUiState };
@@ -57,188 +55,89 @@ export function createUiSubslice(dataSet: string) {
 		setUiProperties(state: UiState, action: PayloadAction<UiProperties>) {
 			state[name] = { ...state[name], ...action.payload };
 		},
-		setTableView(
+		setTableConfig(
 			state: UiState,
-			action: PayloadAction<{ tableView: string }>
+			action: PayloadAction<TableConfig>
 		) {
 			const ui = state[name];
-			const { tableView } = action.payload;
-			ui.tableView = tableView;
-		},
-		setDefaultTablesConfig(
-			state: UiState,
-			action: PayloadAction<{
-				tableView: string;
-				tablesConfig: TablesConfig;
-			}>
-		) {
-			const ui = state[name];
-			const { tablesConfig } = action.payload;
-			// Remove table views with no default config
-			for (const tableView of Object.keys(ui.tablesConfig)) {
-				if (!tablesConfig[tableView]) {
-					delete ui.tablesConfig[tableView];
-					delete ui.panelsConfig[tableView];
-				}
-			}
-			// Add default config if config not already present
-			for (const [tableView, tableConfig] of Object.entries(
-				tablesConfig
-			)) {
-				if (!ui.tablesConfig[tableView]) {
-					ui.tablesConfig[tableView] = tableConfig;
-				} else {
-					const existingTableConfig = ui.tablesConfig[tableView];
-					// Remove columns that no longer exist
-					for (const colKey of Object.keys(
-						existingTableConfig.columns
-					)) {
-						if (!tableConfig.columns[colKey])
-							delete existingTableConfig.columns[colKey];
-					}
-					// Add columns that aren't currently present
-					for (const colKey of Object.keys(tableConfig.columns)) {
-						if (!existingTableConfig.columns[colKey])
-							existingTableConfig.columns[colKey] =
-								tableConfig.columns[colKey];
-					}
-				}
-				if (!ui.panelsConfig[tableView])
-					ui.panelsConfig[tableView] = defaultPanelConfig;
-			}
-			// Set current table view if not set or points to removed config
-			if (!ui.tableView || !ui.tablesConfig[ui.tableView]) {
-				const { tableView } = action.payload;
-				if (tableView) ui.tableView = tableView;
-				else ui.tableView = Object.keys(ui.tablesConfig)[0];
-			}
-		},
-		upsertTableColumns(
-			state: UiState,
-			action: PayloadAction<{
-				tableView?: string;
-				columns: { [key: string]: Partial<ChangeableColumnProperties> };
-			}>
-		) {
-			const ui = state[name];
-			let { tableView, columns } = action.payload;
-			if (tableView === undefined) tableView = ui.tableView;
-			let tableConfig = ui.tablesConfig[tableView];
-			if (tableConfig === undefined) tableConfig = defaultTableConfig;
-			for (const [key, column] of Object.entries(columns)) {
-				if (tableConfig.columns[key] === undefined)
-					tableConfig.columns[key] = defaultColumnProperties;
-				tableConfig.columns[key] = {
-					...tableConfig.columns[key],
-					...column,
-				};
-			}
+			ui.tableConfig = action.payload;
 		},
 		adjustTableColumnWidth(
 			state: UiState,
 			action: PayloadAction<{
-				tableView?: string;
 				key: string;
 				delta: number;
 			}>
 		) {
 			const ui = state[name];
-			let { tableView, key, delta } = action.payload;
-			if (!tableView) tableView = ui.tableView;
-			const tableConfig = ui.tablesConfig[tableView];
+			const tableConfig = ui.tableConfig;
+			const { key, delta } = action.payload;
 			const column = tableConfig.columns[key];
-			column.width = Math.max(0, column.width + delta);
-		},
-		setTableColumnWidth(
-			state: UiState,
-			action: PayloadAction<{
-				tableView?: string;
-				key: string;
-				width: number;
-			}>
-		) {
-			const ui = state[name];
-			let { tableView, key, width } = action.payload;
-			if (!tableView) tableView = ui.tableView;
-			const tableConfig = ui.tablesConfig[tableView];
-			const column = tableConfig.columns[key];
-			column.width = Math.max(0, width);
+			if (column)
+				column.width = Math.max(0, column.width + delta);
 		},
 		setTableColumnShown(
 			state: UiState,
 			action: PayloadAction<{
-				tableView?: string;
 				key: string;
 				shown: boolean;
 			}>
 		) {
 			const ui = state[name];
-			let { tableView, key, shown } = action.payload;
-			if (!tableView) tableView = ui.tableView;
-			const tableConfig = ui.tablesConfig[tableView];
-			const column = tableConfig.columns[key];
-			column.shown = shown;
+			const tableConfig = ui.tableConfig;
+			const { key, shown } = action.payload;
+			if (tableConfig?.columns[key]) {
+				tableConfig.columns[key].shown = shown;
+			}
 		},
 		setTableColumnsShown(
 			state: UiState,
-			action: PayloadAction<{
-				tableView?: string;
-				shown: Record<string, boolean>;
-			}>
+			action: PayloadAction<Record<string, boolean>>
 		) {
 			const ui = state[name];
-			let { tableView, shown } = action.payload;
-			if (!tableView) tableView = ui.tableView;
-			const tableConfig = ui.tablesConfig[tableView];
+			const tableConfig = ui.tableConfig;
+			const shown = action.payload;
 			for (const [key, isShown] of Object.entries(shown)) {
-				const column = tableConfig.columns[key];
-				column.shown = isShown;
+				if (tableConfig?.columns[key])
+					tableConfig.columns[key].shown = isShown;
 			}
 		},
 		toggleTableFixed(
 			state: UiState,
-			action: PayloadAction<{ tableView?: string }>
 		) {
 			const ui = state[name];
-			let { tableView } = action.payload;
-			if (tableView === undefined) tableView = ui.tableView;
-			let tableConfig = ui.tablesConfig[tableView];
-			if (tableConfig === undefined) tableConfig = defaultTableConfig;
-			tableConfig.fixed = !ui.tablesConfig[tableView].fixed;
-			ui.tablesConfig[tableView] = tableConfig;
+			const tableConfig = ui.tableConfig;
+			if (tableConfig) tableConfig.fixed = !tableConfig.fixed;
 		},
 		adjustPanelWidth(
 			state: UiState,
-			action: PayloadAction<{ tableView?: string; delta: number }>
+			action: PayloadAction<{ delta: number }>
 		) {
 			const ui = state[name];
-			let { tableView, delta } = action.payload;
-			if (!tableView) tableView = ui.tableView;
-			const panelConfig = ui.panelsConfig[tableView];
+			let { delta } = action.payload;
+			const panelConfig = ui.panelConfig ?? { ...defaultPanelConfig };
 			panelConfig.width += delta;
+			ui.panelConfig = panelConfig;
 		},
 		setPanelWidth(
 			state: UiState,
-			action: PayloadAction<{
-				tableView?: string | undefined;
-				width: number;
-			}>
+			action: PayloadAction<{	width: number }>
 		) {
 			const ui = state[name];
-			let { tableView, width } = action.payload;
-			if (!tableView) tableView = ui.tableView;
-			const panelConfig = ui.panelsConfig[tableView];
+			let { width } = action.payload;
+			const panelConfig = ui.panelConfig ?? { ...defaultPanelConfig };
 			panelConfig.width = width;
+			ui.panelConfig = panelConfig;
 		},
 		setPanelIsSplit(
 			state: UiState,
-			action: PayloadAction<{ tableView?: string; isSplit: boolean }>
+			action: PayloadAction<{ isSplit: boolean }>
 		) {
 			const ui = state[name];
-			let { tableView, isSplit } = action.payload;
-			if (!tableView) tableView = ui.tableView;
-			const panelConfig = ui.panelsConfig[tableView];
+			let { isSplit } = action.payload;
+			const panelConfig = ui.panelConfig ?? { ...defaultPanelConfig };
 			panelConfig.isSplit = isSplit;
+			ui.panelConfig = panelConfig;
 		},
 	};
 
@@ -253,42 +152,17 @@ export function getUiSelectors<S>(selectState: (state: S) => UiState) {
 	/** Select all UI properties */
 	const selectUiProperties = (state: S) => selectState(state)[name];
 
-	/** The currently selected view */
-	const selectCurrentView = (state: S): string =>
-		selectUiProperties(state).tableView;
-
-	/** A list of all views */
-	const selectTablesConfig = (state: S) => selectUiProperties(state).tablesConfig;
-	const selectViews = createSelector(
-		selectTablesConfig,
-		(tablesConfig) => Object.keys(tablesConfig)
-	);
-
-	/** Select table config for the current view */
-	const selectCurrentTableConfig = (state: S): TableConfig => {
-		const { tableView, tablesConfig } = selectUiProperties(state);
-		if (tablesConfig) {
-			const tableConfig = tablesConfig[tableView];
-			if (tableConfig) return tableConfig;
-		}
-		return defaultTableConfig;
-	};
+	const selectTableConfig = (state: S): TableConfig | undefined => selectUiProperties(state).tableConfig;
 
 	/** Select panel config for the current view */
-	const selectCurrentPanelConfig = (state: S): PanelConfig => {
-		const { tableView, panelsConfig } = selectUiProperties(state);
-		if (panelsConfig) {
-			const panelConfig = panelsConfig[tableView];
-			if (panelConfig) return panelConfig;
-		}
-		return defaultPanelConfig;
+	const selectPanelConfig = (state: S): PanelConfig => {
+		const { panelConfig } = selectUiProperties(state);
+		return panelConfig ?? defaultPanelConfig;
 	};
 
 	return {
 		selectUiProperties,
-		selectCurrentView,
-		selectViews,
-		selectCurrentTableConfig,
-		selectCurrentPanelConfig,
+		selectPanelConfig,
+		selectTableConfig
 	};
 }

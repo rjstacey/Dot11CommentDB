@@ -52,19 +52,11 @@ export function ColumnSelectorDropdown({
 }: ColumnSelectorProps) {
 	const dispatch = useDispatch();
 
-	const view = useSelector(selectors.selectCurrentView);
-	const tableConfig = useSelector(selectors.selectCurrentTableConfig);
+	const tableConfig = useSelector(selectors.selectTableConfig)!;
 
-	const toggleCurrentTableFixed = () =>
-		dispatch(actions.toggleTableFixed({ tableView: view }));
-	const setTableColumnShown = (colKey: string, shown: boolean) =>
-		dispatch(
-			actions.setTableColumnShown({
-				tableView: view,
-				key: colKey,
-				shown,
-			}),
-		);
+	const toggleTableFixed = () => dispatch(actions.toggleTableFixed());
+	const setTableColumnShown = (key: string, shown: boolean) =>
+		dispatch(actions.setTableColumnShown({ key, shown }));
 
 	/* Build an array of 'selectable' column config that includes a column label */
 	const selectableColumns: Array<
@@ -89,22 +81,12 @@ export function ColumnSelectorDropdown({
 		for (const key of Object.keys(tableConfig.columns)) {
 			shown[key] = keys.includes(key);
 		}
-		dispatch(actions.setTableColumnsShown({ tableView: view, shown }));
+		dispatch(actions.setTableColumnsShown(shown));
 	}
 
 	return (
 		<Dropdown.Menu>
 			<Form className="p-3" style={{ minWidth: 200 }}>
-				{view !== "default" && (
-					<Form.Group as={Row} className="align-items-center mb-2">
-						<Form.Label as="span" column xs="auto">
-							Table view:
-						</Form.Label>
-						<Col className="d-flex justify-content-end">
-							<span>{view}</span>
-						</Col>
-					</Form.Group>
-				)}
 				<Form.Group
 					as={Row}
 					controlId="fixed"
@@ -116,13 +98,16 @@ export function ColumnSelectorDropdown({
 					<Col className="d-flex justify-content-end">
 						<Form.Check
 							type="switch"
-							onChange={toggleCurrentTableFixed}
+							onChange={toggleTableFixed}
 							checked={tableConfig.fixed}
 						/>
 					</Col>
 				</Form.Group>
 				{quickSelect && (
-					<QuickSelect quickSelect={quickSelect} shownColumns={shownColumns} setShownColumns={setColumnsShown} />
+					<QuickSelect
+						quickSelect={quickSelect}
+						shownColumns={shownColumns}
+						setShownColumns={setColumnsShown} />
 				)}
 				<div className="column-list">
 					{selectableColumns.map((col) => (

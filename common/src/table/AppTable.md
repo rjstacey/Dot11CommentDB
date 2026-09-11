@@ -83,5 +83,3 @@ table view.
 attribute `width` and will use it (if present) to override the default `width` supplied in the `columns` prop. AppTable will update the `width`
 attribute for each column when it unmounts.
 
-The action `upsertTableColumns(dataSet, view, columns)` is used to updated `tablesConfig[view].columns`, merging in the supplied `columns` parameter.
-

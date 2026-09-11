@@ -6,7 +6,7 @@ import {
 	createAppTableDataSlice,
 	getAppTableDataSelectors,
 	FieldType,
-	Fields,
+	Fields
 } from "@common";
 
 import type { RootState, AppThunk } from ".";
@@ -14,14 +14,14 @@ import {
 	updateBallotsLocal,
 	selectBallotEntities,
 	selectBallot,
-	getBallotId,
+	getBallotId
 } from "./ballots";
 import { selectGroupPermissions, AccessLevel } from "./groups";
 import {
 	Result,
 	ResultUpdate,
 	ResultChange,
-	getResultsResponseSchema,
+	getResultsResponseSchema
 } from "@schemas/results";
 
 export type { Result, ResultUpdate, ResultChange };
@@ -38,13 +38,13 @@ export const fields: Fields = {
 	BallotName: { label: "Last Ballot" },
 	commentCount: { label: "Comments", type: FieldType.NUMERIC },
 	totalCommentCount: { label: "Total Comments", type: FieldType.NUMERIC },
-	notes: { label: "Notes" },
+	notes: { label: "Notes" }
 };
 
 /* Create slice */
 const initialState = {
 	ballot_id: null as number | null,
-	lastLoad: null as string | null,
+	lastLoad: null as string | null
 };
 const dataSet = "results";
 const slice = createAppTableDataSlice({
@@ -65,17 +65,17 @@ const slice = createAppTableDataSlice({
 						dataAdapter.removeAll(state);
 					}
 					state.lastLoad = new Date().toISOString();
-				},
+				}
 			)
 			.addMatcher(
 				(action: Action) => action.type === clearResults.toString(),
-				(state) => {
+				state => {
 					state.ballot_id = null;
 					state.valid = false;
 					dataAdapter.removeAll(state);
-				},
+				}
 			);
-	},
+	}
 });
 
 export default slice;
@@ -88,18 +88,17 @@ const {
 	getFailure,
 	setMany,
 	removeMany,
-	upsertTableColumns,
-	setSelected: setSelectedResults,
+	setTableColumnsShown,
+	setSelected: setSelectedResults
 } = slice.actions;
-export { setSelectedResults };
+
+export { setSelectedResults, setTableColumnsShown };
 
 // Overload getPending() with one that sets groupName
 const getPending = createAction<{ ballot_id: number | null }>(
-	dataSet + "/getPending",
+	dataSet + "/getPending"
 );
 export const clearResults = createAction(dataSet + "/clear");
-
-export { upsertTableColumns };
 
 /* Selectors */
 export const selectResultsState = (state: RootState) => state[dataSet];
@@ -140,11 +139,11 @@ export const selectResultExtendedEntities = createSelector(
 			newEntities[id] = {
 				...entity,
 				lastSAPIN,
-				BallotName,
+				BallotName
 			};
 		}
 		return newEntities;
-	},
+	}
 );
 
 export const selectResultsAccess = (state: RootState) => {
@@ -158,28 +157,26 @@ export const selectResultsAccess = (state: RootState) => {
 };
 
 export const resultsSelectors = getAppTableDataSelectors(selectResultsState, {
-	selectEntities: selectResultExtendedEntities,
+	selectEntities: selectResultExtendedEntities
 });
 
 /* Thunk actions */
 const baseUrl = "/api/results";
 
 const AGE_STALE = 60 * 60 * 1000; // 1 hour
-let loading = false;
-let loadingPromise: Promise<void>;
+let loadingPromise: Promise<void> | undefined;
 export const loadResults =
 	(ballot_id: number, force = false): AppThunk =>
 	(dispatch, getState) => {
 		const state = getState();
 		const currentBallot_id = selectResultsState(state).ballot_id;
 		if (currentBallot_id === ballot_id) {
-			if (loading) return loadingPromise;
+			if (loadingPromise) return loadingPromise;
 			const age = selectResultsAge(state);
 			if (!force && age && age < AGE_STALE) return Promise.resolve();
 		}
 		dispatch(getPending({ ballot_id }));
 		const url = `${baseUrl}/${ballot_id}`;
-		loading = true;
 		loadingPromise = fetcher
 			.get(url)
 			.then((response: unknown) => {
@@ -195,18 +192,18 @@ export const loadResults =
 				dispatch(setError("GET " + url, error));
 			})
 			.finally(() => {
-				loading = false;
+				loadingPromise = undefined;
 			});
 		return loadingPromise;
 	};
 
 export const exportResults =
 	(ballot_id: number, forSeries?: boolean): AppThunk =>
-	async (dispatch) => {
+	async dispatch => {
 		const url = `${baseUrl}/${ballot_id}/export`;
 		try {
 			await fetcher.getFile(url, {
-				forSeries,
+				forSeries
 			});
 		} catch (error) {
 			dispatch(setError("GET " + url, error));
@@ -215,7 +212,7 @@ export const exportResults =
 
 export const updateResults =
 	(ballot_id: number, updates: ResultUpdate[]): AppThunk =>
-	async (dispatch) => {
+	async dispatch => {
 		const url = `${baseUrl}/${ballot_id}`;
 		try {
 			const response = await fetcher.patch(url, updates);

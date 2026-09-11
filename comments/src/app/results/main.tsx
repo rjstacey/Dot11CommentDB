@@ -7,7 +7,7 @@ import {
 	selectResultsBallot_id,
 	resultsSelectors,
 	resultsActions,
-	upsertTableColumns,
+	setTableColumnsShown,
 	selectResultsAccess,
 	AccessLevel,
 } from "@/store/results";
@@ -18,18 +18,12 @@ import { tableColumns, getDefaultTablesConfig } from "./tableColumns";
 
 function updateTableConfigAction(access: number, type: number) {
 	if (access < AccessLevel.admin)
-		return upsertTableColumns({
-			columns: { SAPIN: { shown: false }, Email: { shown: false } },
-		});
+		return setTableColumnsShown({ SAPIN: false, Email: false });
 
 	if (type === BallotType.SA)
-		return upsertTableColumns({
-			columns: { SAPIN: { shown: false }, Email: { shown: true } },
-		});
+		return setTableColumnsShown({ SAPIN: false, Email: true });
 
-	return upsertTableColumns({
-		columns: { SAPIN: { shown: true }, Email: { shown: true } },
-	});
+	return setTableColumnsShown({ SAPIN: true, Email: true });
 }
 
 const maxWidth = 1600;

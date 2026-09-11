@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect, useState, useMemo } from "react";
-import type { Action, EntityId } from "@reduxjs/toolkit";
+import type { EntityId } from "@reduxjs/toolkit";
 import {
 	List,
 	ListImperativeAPI,
@@ -10,6 +10,7 @@ import {
 import { AppTableRow, AppTableRowData } from "./AppTableRow";
 import { TableHeader } from "./AppTableHeader";
 import AppTableHeaderCell from "./HeaderCell";
+import { useSetDefaultTablesConfig } from "./useTableConfig";
 
 import type {
 	GetEntityField,
@@ -200,77 +201,6 @@ const useRowClick = <Id extends EntityId>(
 		[selected, ids, setSelected],
 	);
 
-const useSetDefaultTablesConfig = <S, T1 extends {}, T2 extends T1, Id extends EntityId>(
-	defaultTablesConfigIn: TablesConfig | undefined,
-	defaultFixed: boolean | undefined,
-	columns: ColumnProperties<S, T1, T2, Id>[],
-	dispatch: ReturnType<typeof useAppTableDispatch>,
-	setDefaultTablesConfig: (payload: {
-		tableView: string;
-		tablesConfig: TablesConfig;
-	}) => Action,
-) => {
-	const defaultTablesConfig = useMemo(() => {
-		let defaultTablesConfig: TablesConfig;
-		if (!defaultTablesConfigIn) {
-			const config: TableConfig = {
-				fixed: defaultFixed || false,
-				columns: {},
-			};
-			for (const col of columns)
-				config.columns[col.key] = {
-					unselectable: true,
-					shown: true,
-					width: col.width || 100,
-				};
-			defaultTablesConfig = { default: config };
-		} else {
-			defaultTablesConfig = { ...defaultTablesConfigIn };
-			for (const [view, config] of Object.entries(defaultTablesConfig)) {
-				if (typeof config.fixed !== "boolean") {
-					config.fixed = !!defaultFixed || false;
-				}
-				if (typeof config.columns !== "object") {
-					console.warn(
-						`defaultTablesConfig['${view}'] does not include columns object`,
-					);
-					config.columns = {};
-				}
-				for (const col of columns) {
-					if (!config.columns.hasOwnProperty(col.key)) {
-						console.warn(
-							`defaultTablesConfig['${view}'] does not include column with key '${col.key}'`,
-						);
-						config.columns[col.key] = {
-							unselectable: true,
-							shown: true,
-							width: col.width || 100,
-						};
-					}
-				}
-			}
-		}
-		return defaultTablesConfig;
-	}, [defaultTablesConfigIn, defaultFixed, columns]);
-
-	const defaultTableView = Object.keys(defaultTablesConfig)[0];
-
-	useEffect(() => {
-		dispatch(
-			setDefaultTablesConfig({
-				tableView: defaultTableView,
-				tablesConfig: defaultTablesConfig,
-			}),
-		);
-	}, [
-		defaultTableView,
-		defaultTablesConfig,
-		dispatch,
-		setDefaultTablesConfig,
-	]);
-
-	return defaultTablesConfig[defaultTableView];
-};
 
 export function AppTable<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 	gutterSize = 5,
@@ -305,25 +235,20 @@ export function AppTable<S, T1 extends {}, T2 extends T1, Id extends EntityId>({
 
 	const dispatch = useAppTableDispatch();
 
-	const defaultTableConfig = useSetDefaultTablesConfig(
+	const tableConfig = useSetDefaultTablesConfig(
 		props.defaultTablesConfig,
-		props.fixed,
 		props.columns,
-		dispatch,
-		actions.setDefaultTablesConfig,
+		selectors,
+		actions,
 	);
 
 	const { getField } = selectors;
 	const { selected, expanded, loading } = useAppTableSelector(selectors.selectState);
 	const ids = useAppTableSelector(selectors.selectSortedFilteredIds);
 	const entities = useAppTableSelector(selectors.selectEntities);
-	const tableConfig =
-		useAppTableSelector(selectors.selectCurrentTableConfig) || defaultTableConfig;
 
 	const adjustColumnWidth = useCallback(
-		(key: string, delta: number) => {
-			dispatch(actions.adjustTableColumnWidth({ key, delta }));
-		},
+		(key: string, delta: number) => dispatch(actions.adjustTableColumnWidth({ key, delta })),
 		[dispatch, actions],
 	);
 
