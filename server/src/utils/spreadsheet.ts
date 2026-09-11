@@ -40,6 +40,63 @@ export function validateSpreadsheetHeader (
 }
 
 /**
+ * Get the display text of an ExcelJS cell value
+ * @param cellValue - The value from cell.value
+ * @returns The plain text representation
+ */
+function getCellAsText (cellValue: ExcelJS.CellValue): string {
+	if (cellValue === null || cellValue === undefined) return "";
+
+	// Primitive types
+	if (
+		typeof cellValue === "string" ||
+		typeof cellValue === "number" ||
+		typeof cellValue === "boolean"
+	) {
+		return String(cellValue);
+	}
+	if (cellValue instanceof Date) {
+		return cellValue.toISOString(); // Change format if needed
+	}
+
+	// Formula object
+	if ((cellValue as any).formula !== undefined) {
+		const formulaObj = cellValue as {
+			formula: string;
+			result?: ExcelJS.CellValue;
+		};
+		return formulaObj.result !== undefined
+			? getCellAsText(formulaObj.result)
+			: "";
+	}
+
+	// Hyperlink object
+	if ((cellValue as any).hyperlink !== undefined) {
+		const linkObj = cellValue as { text?: string; hyperlink: string };
+		return linkObj.text || linkObj.hyperlink;
+	}
+
+	// Rich text
+	if ((cellValue as any).richText !== undefined) {
+		const richTextArr = (cellValue as { richText: ExcelJS.RichText[] })
+			.richText;
+		return richTextArr.map(rt => rt.text).join("");
+	}
+
+	// Error object
+	if ((cellValue as any).error !== undefined) {
+		return `#ERROR: ${(cellValue as { error: string }).error}`;
+	}
+
+	// Fallback
+	try {
+		return String(cellValue);
+	} catch {
+		return "";
+	}
+}
+
+/**
  * Parse a spreadsheet in .xlsx or .csv format.
  *
  * @param file Basic file information (original name and buffer)
@@ -70,9 +127,7 @@ export async function parseSpreadsheet (
 				rows.push(
 					row.values
 						.slice(1, (numberColumns || expectedHeader.length) + 1)
-						.map(r =>
-							typeof r === "string" ? r : r ? r.toString() : ""
-						)
+						.map(getCellAsText)
 				);
 		});
 	} else if (filename.search(/\.csv$/i) >= 0) {
