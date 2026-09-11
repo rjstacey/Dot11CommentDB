@@ -74,6 +74,9 @@ export function DraftDetail() {
 			console.log(`Closed: ${documentId}`);
 			setDocState(s => s.id === documentId ? docStateNull : s);
 		});
+		docManager?.onDocumentError(async (doc) => {
+			console.log(`Error: ${doc.documentId}`);
+		});
 		docManager?.onActiveDocumentChanged(async ({ currentDocumentId }) => {
 			console.log(`Active: ${currentDocumentId}`);
 			setDocState(s => s.id !== currentDocumentId ? { ...s, isReady: false } : s);

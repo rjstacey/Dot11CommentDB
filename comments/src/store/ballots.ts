@@ -598,8 +598,13 @@ export const openDraft =
 
 		const opfsRoot = await navigator.storage.getDirectory();
 		let opfsFile: FileSystemFileHandle;
+		let file: File;
 		try {
 			opfsFile = await opfsRoot.getFileHandle(fileName);
+			file = await opfsFile.getFile();
+			if (file.size === 0) {
+				throw new Error("too small");
+			}
 		} catch {
 			// File does not exist. See if we can create one.
 			opfsFile = await opfsRoot.getFileHandle(fileName, { create: true });
@@ -622,8 +627,8 @@ export const openDraft =
 				);
 			const writable = await opfsFile.createWritable();
 			await response.body?.pipeTo(writable);
+			file = await opfsFile.getFile();
 		}
-		const file = await opfsFile.getFile();
 		return file;
 	};
 
