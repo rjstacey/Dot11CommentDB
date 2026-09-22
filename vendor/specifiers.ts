@@ -8,7 +8,6 @@
  */
 export const VENDOR_SPECIFIERS = [
 	"react",
-	"react/jsx-runtime",
 	"react-dom",
 	"react-dom/client",
 	"react-redux",
