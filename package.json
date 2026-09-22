@@ -1,6 +1,6 @@
 {
 	"name": "802tools",
-	"version": "2.0.64",
+	"version": "2.0.65",
 	"description": "802tools server and verious apps",
 	"main": "index.js",
 	"workspaces": [
