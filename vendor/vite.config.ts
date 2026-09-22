@@ -23,6 +23,10 @@ export default defineConfig(({ mode }) => {
 			target: "esnext",
 			rollupOptions: {
 				input,
+				// Without this, entries with no local consumer (e.g. zod, uuid,
+				// redux-persist re-export barrels) get tree-shaken to nothing,
+				// since nothing in this build imports named bindings from them.
+				preserveEntrySignatures: "strict",
 				output: {
 					entryFileNames: "[name]-[hash].js",
 					chunkFileNames: "chunks/[name]-[hash].js",
