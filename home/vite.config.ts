@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type UserConfig } from "vite";
 //import { analyzer } from "vite-bundle-analyzer";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
+import { sharedVendorPlugin } from "../vendor/shared-plugin.js";
 
 const target = "http://localhost:8080";
 
@@ -15,24 +16,8 @@ export default defineConfig(({ command, mode }) => {
 		base: env.BASE_URL,
 		build: {
 			outDir: env.BUILD_PATH,
-			rollupOptions: {
-				output: {
-					manualChunks(id) {
-						if (id.includes("react-dom/client")) return "react-dom";
-						if (id.includes("bootstrap")) return "boostrap";
-						if (id.includes("react-router")) return "router";
-						if (id.includes("redux")) return "redux";
-						if (id.includes("zod")) return "zod";
-						if (id.includes("react-window")) return "utils";
-						if (id.includes("clsx")) return "utils";
-						if (id.includes("file-saver")) return "utils";
-						if (id.includes("lodash.isequal")) return "utils";
-						if (id.includes("lodash.debounce")) return "utils";
-					},
-				},
-			},
 		},
-		plugins: [react() /*, analyzer()*/],
+		plugins: [react() /*, analyzer()*/, sharedVendorPlugin()],
 		resolve: {
 			alias: {
 				"@": "/src",

@@ -1,0 +1,13 @@
+{
+	"name": "@802tools/vendor",
+	"version": "1.0.0",
+	"description": "Shared vendor library bundle, built once and reused by every app",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "vite build --emptyOutDir"
+	},
+	"devDependencies": {
+		"vite": "^8.2.2"
+	}
+}

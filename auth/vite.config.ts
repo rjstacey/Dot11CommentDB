@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
+import { sharedVendorPlugin } from "../vendor/shared-plugin.js";
 
 const target = "http://localhost:8080";
 
@@ -15,7 +16,7 @@ export default defineConfig(({ command, mode }) => {
 		build: {
 			outDir: env.BUILD_PATH,
 		},
-		plugins: [react()],
+		plugins: [react(), sharedVendorPlugin()],
 		resolve: {
 			alias: {
 				"@": "/src",

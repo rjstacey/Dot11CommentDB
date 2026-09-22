@@ -5,6 +5,7 @@ import svgr from 'vite-plugin-svgr';
 import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
 import { ProxyAgent } from "proxy-agent";
+import { sharedVendorPlugin } from "../vendor/shared-plugin.js";
 
 export default defineConfig(({ command, mode }) => {
 	const __dirname = process.cwd();
@@ -26,21 +27,8 @@ export default defineConfig(({ command, mode }) => {
 			rollupOptions: {
 				output: {
 					manualChunks(id) {
-						if (id.includes("react-dom/client")) return "react-dom";
-						if (id.includes("bootstrap")) return "boostrap";
-						if (id.includes("react-router")) return "router";
-						if (id.includes("redux")) return "redux";
 						if (id.includes("lexical")) return "lexical";
-						if (id.includes("zod")) return "zod";
-						if (id.includes("socket.io-client")) return "socket";
-						if (id.includes("luxon")) return "luxon";
-						if (id.includes("zod")) return "zod";
 						if (id.includes("embedpdf")) return "embedpdf";
-						if (id.includes("react-window")) return "utils";
-						if (id.includes("clsx")) return "utils";
-						if (id.includes("file-saver")) return "utils";
-						if (id.includes("lodash.isequal")) return "utils";
-						if (id.includes("lodash.debounce")) return "utils";
 					},
 				},
 			},
@@ -48,6 +36,7 @@ export default defineConfig(({ command, mode }) => {
 		plugins: [
 			react(),
 			svgr(),
+			sharedVendorPlugin(),
 			//analyzer(),
 			VitePWA({
 				devOptions: {
