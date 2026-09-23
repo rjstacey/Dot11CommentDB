@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Plugin } from "vite";
 import { VENDOR_SPECIFIERS, vendorEntryName } from "./specifiers.js";
 
-type ManifestEntry = { file: string; name?: string };
+type ManifestEntry = { file: string; name?: string; isEntry?: boolean };
 type Manifest = Record<string, ManifestEntry>;
 
 /**
@@ -41,7 +41,9 @@ export function sharedVendorPlugin(
 				fs.readFileSync(manifestFile, "utf-8"),
 			);
 			const byName = new Map(
-				Object.values(manifest).map((entry) => [entry.name, entry.file]),
+				Object.values(manifest)
+					.filter((entry) => entry.isEntry)
+					.map((entry) => [entry.name, entry.file]),
 			);
 
 			const imports: Record<string, string> = {};

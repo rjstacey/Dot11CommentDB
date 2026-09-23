@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => {
 	for (const specifier of VENDOR_SPECIFIERS) {
 		input[vendorEntryName(specifier)] = specifier;
 	}
+	input.react = "./entries/react.ts";
+	input["react-dom"] = "./entries/react-dom.ts";
+	input["react-dom_client"] = "./entries/react-dom_client.ts";
 
 	return {
 		base: "/vendor/",
