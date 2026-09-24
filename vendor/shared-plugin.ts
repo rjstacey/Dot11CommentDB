@@ -71,7 +71,10 @@ export function sharedVendorPlugin(
 			order: "pre",
 			handler(html) {
 				if (!importMapScript) return html;
-				return html.replace("<head>", `<head>\n\t${importMapScript}`);
+				return html.replace(
+					"<head>",
+					`<head>\n\t${importMapScript}\n\t<link rel="stylesheet" href="/vendor/bootstrap-icons.css">`,
+				);
 			},
 		},
 	};

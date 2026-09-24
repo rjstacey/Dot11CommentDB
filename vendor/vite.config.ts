@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type UserConfig } from "vite";
 import { VENDOR_SPECIFIERS, vendorEntryName } from "./specifiers.js";
+import path from "node:path";
 
 // Builds every shared vendor package as its own ES module entry, plus a
 // manifest.json that maps each package specifier to its built, hashed file.
@@ -20,6 +21,10 @@ export default defineConfig(({ mode }) => {
 
 	return {
 		base: "/vendor/",
+		publicDir: path.resolve(
+			__dirname,
+			"../node_modules/bootstrap-icons/font",
+		),
 		build: {
 			outDir: buildPath,
 			manifest: true,

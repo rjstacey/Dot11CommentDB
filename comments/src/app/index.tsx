@@ -8,7 +8,6 @@ import { routes } from "./routes";
 import "./index.css";
 import "@common/styles/index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap-icons/font/bootstrap-icons.css";
 
 const router = createBrowserRouter(routes, { basename: "/comments" });
 
