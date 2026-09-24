@@ -28,7 +28,7 @@ export default defineConfig(({ command, mode }) => {
 			port: Number(env.PORT),
 			strictPort: true,
 			proxy: {
-				"^(/api|/auth|/login|/logout)": {
+				"^(/api|/auth|/oauth2|/login|/logout|/vendor)": {
 					target,
 					changeOrigin: true,
 				},

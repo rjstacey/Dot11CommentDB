@@ -69,7 +69,13 @@ export function sharedVendorPlugin(
 		},
 		transformIndexHtml: {
 			order: "pre",
-			handler(html) {
+			handler(html, {server}) {
+				if (server) {
+					return html.replace(
+						"<head>",
+						"<head>\n\t<link rel=\"stylesheet\" href=\"../vendor/bootstrap-icons.css\">",
+					);
+				}
 				if (!importMapScript) return html;
 				return html.replace(
 					"<head>",
