@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { FormCheck } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router";
 
@@ -6,7 +5,6 @@ import { Select } from "@common";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-	getBallotId,
 	getEncodedBallotId,
 	setCurrentGroupProject,
 	setCurrentBallot_id,
@@ -16,8 +14,6 @@ import {
 	selectBallotByBallotID,
 	GroupProject,
 	selectCurrentGroupProject,
-	BallotType,
-	getStage,
 	selectChooseFromActiveGroups,
 	setChooseFromActiveGroups,
 } from "@/store/ballots";
@@ -89,20 +85,7 @@ function BallotSelect({
 	style?: React.CSSProperties;
 	id?: string;
 }) {
-	const ballots = useAppSelector(selectBallotOptions);
-	const options = useMemo(
-		() =>
-			ballots.map((b) => ({
-				value: b.id,
-				label:
-					(b.Type === BallotType.SA
-						? `SA ${getStage(b)}`
-						: getBallotId(b)) +
-					" on " +
-					b.Document,
-			})),
-		[ballots],
-	);
+	const options = useAppSelector(selectBallotOptions);
 	const values = options.filter((o) => o.value === value);
 	const handleChange = (values: typeof options) =>
 		onChange(values.length > 0 ? values[0].value : 0);

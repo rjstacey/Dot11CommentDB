@@ -15,7 +15,8 @@ import type { RootState, AppThunk } from ".";
 import {
 	selectGroupEntities,
 	selectTopLevelGroupByName,
-	AccessLevel
+	AccessLevel,
+	Group
 } from "./groups";
 
 import {
@@ -61,18 +62,9 @@ export const fields = {
 		options: BallotTypeOptions,
 		dataRenderer: renderBallotType
 	},
-	number: {
-		label: "Number",
-		type: FieldType.NUMERIC
-	},
-	BallotID: {
-		label: "ID"
-	},
-	stage: {
-		label: "Stage",
-		dataRenderer: getStage,
-		type: FieldType.NUMERIC
-	},
+	number: { label: "Number", type: FieldType.NUMERIC },
+	BallotID: {	label: "ID"	},
+	stage: { label: "Stage", dataRenderer: getStage, type: FieldType.NUMERIC },
 	IsComplete: { label: "Final", type: FieldType.NUMERIC },
 	Document: { label: "Document" },
 	Topic: { label: "Topic" },
@@ -95,8 +87,7 @@ export function getBallotId (ballot: Ballot) {
 		return "LB" + (ballot.number || "(Blank)");
 	} else if (ballot.Type === BallotType.SA) {
 		return (
-			ballot.Project +
-			"-" +
+			ballot.Project + "-" +
 			(ballot.stage === 0 ? "I" : "R" + ballot.stage)
 		);
 	}
@@ -345,6 +336,26 @@ export type GroupProjectOption = GroupProject & {
 	label: string;
 };
 
+function renderGroupName(
+	group: Group,
+	entities: ReturnType<typeof selectGroupEntities>,
+) {
+	let label: string;
+	if (group.type === "wg") {
+		label = group.name;
+	} else {
+		const groups = [group];
+		let g: Group | undefined = group;
+		do {
+			g = g.parent_id ? entities[g.parent_id] : undefined;
+			if (g && g.type !== "wg") groups.unshift(g);
+		} while (g && g.type !== "wg");
+		label = groups.map((g) => g.name).join(" / ");
+	}
+
+	return label;
+}
+
 /* Generate project list from the ballot pool */
 export const selectGroupProjectOptions = createSelector(
 	selectBallotIds,
@@ -353,11 +364,11 @@ export const selectGroupProjectOptions = createSelector(
 	selectChooseFromActiveGroups,
 	(ballotIds, ballotEntities, groupEntities, chooseFromActiveGroups) => {
 		const options: GroupProjectOption[] = [];
-		ballotIds.forEach(id => {
+		for (const id of ballotIds) {
 			const ballot = ballotEntities[id]!;
 			const group = groupEntities[ballot.groupId];
 			if (group) {
-				if (chooseFromActiveGroups && !group.status) return;
+				if (chooseFromActiveGroups && !group.status) continue;
 				if (
 					options.find(
 						o =>
@@ -365,16 +376,15 @@ export const selectGroupProjectOptions = createSelector(
 							o.project === ballot.Project
 					)
 				)
-					return;
-				const label =
-					(group?.name || "Unknown") + " / " + ballot.Project;
+					continue;
+				const label = renderGroupName(group, groupEntities) + " / " + ballot.Project;
 				options.push({
 					groupId: ballot.groupId,
 					project: ballot.Project,
 					label
 				});
 			}
-		});
+		}
 		return options.sort((o1, o2) => o1.label.localeCompare(o2.label));
 	}
 );
@@ -385,17 +395,15 @@ export const selectBallotOptions = createSelector(
 	selectBallotEntities,
 	selectCurrentGroupProject,
 	(ids, entities, groupProject) => {
-		let ballotIds = ids as number[];
+		let ballots = ids.map(id => entities[id]!);
 		if (groupProject.groupId || groupProject.project) {
-			ballotIds = ballotIds.filter(id => {
-				const ballot = entities[id]!;
-				return (
-					ballot.groupId === groupProject.groupId &&
-					ballot.Project === groupProject.project
-				);
-			});
+			ballots = ballots.filter(b => b.groupId === groupProject.groupId && b.Project === groupProject.project)
 		}
-		return ballotIds.map(id => entities[id]!);
+		return ballots.map(b => {
+			let label = b.Type === BallotType.SA ? `SA ${getStage(b)}`: getBallotId(b);
+			label += ` on ${b.Project}/${b.Document}`;
+			return { value: b.id, label };
+		});
 	}
 );
 
