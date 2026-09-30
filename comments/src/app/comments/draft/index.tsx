@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
-import { PDFViewer, PDFViewerRef, DocumentManagerPlugin, ScrollPlugin, AnnotationPlugin, PdfAnnotationSubtype, PdfAnnotationBorderStyle, PdfAnnotationObject, DocumentManagerCapability, ScrollCapability } from '@embedpdf/react-pdf-viewer';
+import { PDFViewer, PDFViewerRef, DocumentManagerPlugin, ScrollPlugin, AnnotationPlugin, PdfAnnotationSubtype, PdfAnnotationBorderStyle, PdfAnnotationObject } from '@embedpdf/react-pdf-viewer';
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectCommentsState, CommentResolution, selectCommentsBallot } from "@/store/comments";
 import { type Ballot, openDraft } from "@/store/ballots";

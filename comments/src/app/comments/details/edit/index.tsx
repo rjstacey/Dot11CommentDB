@@ -91,7 +91,7 @@ export function CommentEditDetail({
 		onDeleteResolutions,
 	} = useCommentsEdit(!editMode);
 
-	let actionElements: React.ReactElement[] = [];
+	const actionElements: React.ReactElement[] = [];
 	if (commentsAccess >= AccessLevel.admin) {
 		actionElements.push(
 			<Button

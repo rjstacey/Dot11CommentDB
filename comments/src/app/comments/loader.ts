@@ -1,4 +1,4 @@
-import type { LoaderFunction, LoaderFunctionArgs } from "react-router";
+import type { LoaderFunction } from "react-router";
 import isEqual from "lodash.isequal";
 import { store } from "@/store";
 import { selectIsOnline } from "@/store/offline";
@@ -8,7 +8,6 @@ import {
 	selectBallotByBallotID,
 	setCurrentBallot_id,
 	selectCurrentBallot_id,
-	type Ballot
 } from "@/store/ballots";
 import {
 	clearComments,
