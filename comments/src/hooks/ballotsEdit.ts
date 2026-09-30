@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useReducer } from "react";
+import React, { useCallback, useEffect, useReducer, useMemo } from "react";
 import isEqual from "lodash.isequal";
 import { EntityId } from "@reduxjs/toolkit";
 import {
@@ -217,11 +217,10 @@ const CHANGE = (changes: BallotChange) =>
 	({ type: "CHANGE", changes }) as const;
 
 function useBallotsEditReducer() {
-	const { selected, ids, entities, loading, valid } =
-		useAppSelector(selectBallotsState);
+	const { selected, ids, entities, loading, valid } = useAppSelector(selectBallotsState);
+	const ballots = useMemo(() => selected.map((id) => entities[id]!).filter(Boolean), [selected, entities]);
 
 	const initState = useCallback((): BallotsEditState => {
-		const ballots = selected.map((id) => entities[id]!).filter(Boolean);
 		if (loading && !valid) {
 			return {
 				action: null,
@@ -245,7 +244,7 @@ function useBallotsEditReducer() {
 				ballots,
 			} satisfies BallotsEditState;
 		}
-	}, [selected, entities, loading, valid]);
+	}, [ballots, loading, valid]);
 
 	const reducer = useCallback(
 		(
@@ -362,7 +361,8 @@ export function useBallotsUpdate(
 
 export function useBallotsEdit(readOnly: boolean) {
 	const dispatch = useAppDispatch();
-	const { selected } = useAppSelector(selectBallotsState);
+	const { selected, entities } = useAppSelector(selectBallotsState);
+	const ballots = useMemo(() => selected.map((id) => entities[id]!).filter(Boolean), [selected, entities]);
 	const [state, dispatchStateAction] = useBallotsEditReducer();
 
 	useEffect(() => {
@@ -399,6 +399,12 @@ export function useBallotsEdit(readOnly: boolean) {
 		state,
 		dispatchStateAction,
 	);
+
+	useEffect(() => {
+		if (state.action === "update" && !hasChanges()) {
+			dispatchStateAction(INIT);
+		}
+	}, [ballots]);
 
 	const addDisabled = readOnly || hasChanges();
 	const onAdd = useCallback(() => {
