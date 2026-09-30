@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Button, ButtonGroup, Dropdown, DropdownButton, Spinner } from "react-bootstrap";
 
 import CommentsImport from "./CommentsImport";
@@ -36,12 +37,43 @@ function LayoutIcon({ layout }: { layout: Layout }) {
 	)
 }
 
-function LayoutItem({ layout, ...props }: { layout: Layout } & React.ComponentProps<typeof Dropdown.Item>) {
+function LayoutItem({ layout, keyToSelect, ...props }: { layout: Layout; keyToSelect: number } & React.ComponentProps<typeof Dropdown.Item>) {
 	return (
 		<Dropdown.Item className="d-flex align-items-center justify-content-between gap-3" eventKey={layout} {...props}>
-			{layout}
+			<span style={{ marginRight: "auto" }}>{layout}</span>
 			<LayoutIcon layout={layout} />
+			<i>{"Ctrl+" + keyToSelect}</i>
 		</Dropdown.Item>
+	)
+}
+
+function CommentsLayoutSelector() {
+	const { layout, prevLayout, setLayout } = useCommentsSearch();
+
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (!event.ctrlKey || event.altKey || event.metaKey) return;
+			const selectedLayout = layoutOptions[Number(event.key) - 1];
+			if (!selectedLayout) return;
+			event.preventDefault();
+			setLayout(selectedLayout);
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [setLayout]);
+
+	return (
+		<DropdownButton
+			as={ButtonGroup}
+			variant="outline-primary"
+			title={<LayoutIcon key={layout} layout={layout} />}
+			align="end"
+			onSelect={setLayout}
+			onDoubleClick={() => setLayout(prevLayout)}
+		>
+			{layoutOptions.map((o, i) => (<LayoutItem key={o} layout={o} keyToSelect={i + 1} active={layout === o} />))}
+		</DropdownButton>
 	)
 }
 
@@ -49,7 +81,6 @@ export function CommentsActions() {
 	const isOnline = useAppSelector(selectIsOnline);
 	const access = useAppSelector(selectCommentsAccess);
 	const { loading } = useAppSelector(selectCommentsState);
-	const { layout, setLayout } = useCommentsSearch();
 
 	return (
 		<div className="d-flex w-100 justify-content-between align-items-center">
@@ -57,16 +88,7 @@ export function CommentsActions() {
 
 			<div className="d-flex align-items-center gap-2">
 				<CommentsListColumnSelector />
-
-				<DropdownButton
-					as={ButtonGroup}
-					variant="outline-primary"
-					title={<LayoutIcon key={layout} layout={layout} />}
-					align="end"
-					onSelect={setLayout}
-				>
-					{layoutOptions.map((o) => (<LayoutItem key={o} layout={o} active={layout === o} />))}
-				</DropdownButton>
+				<CommentsLayoutSelector />
 			</div>
 
 			<div className="d-flex gap-2">

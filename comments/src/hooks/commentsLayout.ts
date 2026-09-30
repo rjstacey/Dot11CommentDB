@@ -20,14 +20,21 @@ export const layoutOptions = [
 ] as const;
 export type Layout = typeof layoutOptions[number];
 
-export const setCommentsLayout = (layout: string | null) => {
-	if (!layoutOptions.includes(layout as Layout)) layout = layoutOptions[0];
-	return setUiProperties({ layout });
-};
+export const setCommentsLayout = (layout: string | null): AppThunk =>
+	async (dispatch, getState) => {
+		if (!layoutOptions.includes(layout as Layout)) layout = layoutOptions[0];
+		const prevLayout = selectCommentsLayout(getState());
+		dispatch(setUiProperties({ layout, prevLayout }));
+	};
 
 export const selectCommentsLayout = (state: RootState): Layout => {
 	const { layout } = selectCommentsState(state).ui;
 	return layout || layoutOptions[0];
+};
+
+export const selectCommentsPrevLayout = (state: RootState): Layout => {
+	const { prevLayout } = selectCommentsState(state).ui;
+	return prevLayout || layoutOptions[0];
 };
 
 const setCommentsPannelsState = (panelsState: {

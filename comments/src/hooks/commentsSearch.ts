@@ -7,6 +7,7 @@ import { selectCommentsState, selectCommentEntities } from "@/store/comments";
 import {
 	layoutOptions,
 	selectCommentsLayout,
+	selectCommentsPrevLayout,
 	type Layout
 } from "./commentsLayout";
 import { useAppSelector } from "@/store/hooks";
@@ -38,6 +39,7 @@ export function useCommentsSearch () {
 	s.current = setSearchParams; // stable reference since setSearchParams changes with navigation
 
 	const layout = useAppSelector(selectCommentsLayout);
+	const prevLayout = useAppSelector(selectCommentsPrevLayout);
 	const entities = useAppSelector(selectCommentEntities);
 
 	const setLayout = useCallback((layout: string | null) => {
@@ -67,5 +69,5 @@ export function useCommentsSearch () {
 		[entities]
 	);
 
-	return { layout, setLayout, setSelected };
+	return { layout, prevLayout, setLayout, setSelected };
 }
